@@ -431,7 +431,7 @@ def make_exposure_draws_one_df(location_id,risk_id):
     
     for year_id in np.arange(1990,2011,5):
         
-        single_year_exposure_data = pd.read_csv("/share/scratch/users/emumford/emumford/microsim/random/Exposure_of_risk{r}_in_location{l}_inyear{y}.csv".format(r=risk_id, l=location_id,y=year_id))
+        single_year_exposure_data = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/Exposure_of_risk{r}_in_location{l}_inyear{y}.csv".format(r=risk_id, l=location_id,y=year_id))
 
         exposure_all_years = exposure_all_years.append(single_year_exposure_data)
     
@@ -602,81 +602,7 @@ def get_cause_deleted_mortality_rate(location_id,year_start,year_end):
     return cause_del_mr[keepcol]
 
 
-# ### 3. Get CODEm cause-specific mortality rates
-# ###### May delete this function if we want to use CSMR from DisMod
-
-# In[21]:
-
-def get_codem_cause_specific_mortality_rates(location_id,year_start,year_end,cause_id):
-    '''Returns the CODEm cause specific mortality rate for a cause
-
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-        
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-    
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-        
-    cause_id: int, cause id
-        location_id takes same cause_id values as are used for GBD
-        
-    Returns
-    -------
-    df with columns year_id, sex_id, age_id, and 1k draws of cause deleted mortality rates
-    '''
-    output_df = pd.DataFrame()
-    
-    for sex_id in (1,2):
-        
-        CSMR = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/codem_draws_for_location{l}_for_causeid{c}.csv".format(l = location_id, c=cause_id))
-        
-        CSMR = CSMR.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
-        
-        CSMR = get_age_from_age_group_id(CSMR)
-        
-        CSMR = CSMR.query("sex_id == {s}".format(s=sex_id))
-        
-        # For now, do not include information on early, pre, and post neonatal
-        CSMR = CSMR.query("age != 0")
-        
-                # Set ages and years of interest
-        all_ages = range(1,81) #TODO: Figure out how to extrapolate
-        all_years = range(year_start,year_end+1) #TODO: Figure out how to extrapolate
-
-        # Set indexes of year_id and age
-        CSMR = CSMR.set_index(['year_id','age']).sortlevel()
-
-        ind = pd.MultiIndex.from_product([all_years,all_ages],names=['year_id','age'])
-
-        expanded_data = pd.DataFrame(CSMR,index=ind)
-
-        # Keep only draw columns
-        keepcol = ['draw_{i}'.format(i=i) for i in range(0,1000)]
-        keepcol.append('pop')
-        mx = expanded_data[keepcol]
-
-        # Interpolate over age and year
-        interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
-
-        interp_data['sex_id']= sex_id
-        
-        output_df = output_df.append(extrapolate(interp_data,151,year_end +1))
-    
-    for i in range(0,1000):
-        output_df['mortality_rate_draw_{i}'.format(i=i)] = output_df['draw_{i}'.format(i=i)] / output_df['pop']
-        
-    keepcol = ['year_id','sex_id','age']
-    keepcol.extend(('mortality_rate_draw_{i}'.format(i=i) for i in range(0,1000)))
-    
-    return output_df[keepcol].sort(['year_id','age','sex_id'])
-
-
-# ### 4. Get modelable entity draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
+# ### 3. Get modelable entity draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
 # In[22]:
 
@@ -756,9 +682,9 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure_id, me
     return output_df[keepcol].sort(['year_id','age','sex_id'])
 
 
-# ### 5. Get heart failure draws
+# ### 4. Get heart failure draws
 
-# In[67]:
+# In[89]:
 
 def get_heart_failure_draws(location_id,year_start, year_end, measure_id, me_id): 
     
@@ -814,21 +740,21 @@ def get_heart_failure_draws(location_id,year_start, year_end, measure_id, me_id)
     measure_envelope = get_modelable_entity_draws(location_id, year_start, year_end, measure_id, 2412)
 
     for i in range(0,1000):
-            measure_envelope = measure_envelope.rename(columns={'draw_{i}'.                            format(i=i):'measure_envelope_{i}'.format(i=i)})
+            measure_envelope = measure_envelope.rename(columns={'draw_{i}'.            format(i=i):'measure_envelope_{i}'.format(i=i)})
 
     # merge with prev df and then multiply by proportion
-    output_df = pd.merge(measure_envelope,prev)
+    output_df = pd.merge(measure_envelope,prev,on=['age','year_id','sex_id'])
 
     for i in range(0,1000):
         output_df['draw_{i}'.format(i=i)] =  output_df['measure_envelope_{i}'.format(i=i)] *         output_df['proportion_{i}'.format(i=i)]
 
     keepcol = ['year_id','sex_id','age']
-    keepcol.extend(('draw_{i}'.format(i=i) for i in range(0,1000)
+    keepcol.extend(('draw_{i}'.format(i=i) for i in range(0,1000)))
 
     return output_df[keepcol]
 
 
-# ### 6. Get Relative Risks
+# ### 5. Get Relative Risks
 
 # In[24]:
 
@@ -862,7 +788,7 @@ def get_relative_risks(location_id,year_start,year_end,risk_id,cause_id):
     for sex_id in (1,2):
     
         # Read in a csv of cause data that is produced by the get_outputs Stata function
-        RR = pd.read_csv("/share/scratch/users/emumford/emumford/microsim/random/RR_of_risk_{r}_in_{l}.csv".                         format(r=risk_id,l=location_id))
+        RR = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/rel_risk_of_risk{r}_in_location{l}.csv".format(r=risk_id,l=location_id))
 
         RR = get_age_from_age_group_id(RR)
 
@@ -910,7 +836,7 @@ def get_relative_risks(location_id,year_start,year_end,risk_id,cause_id):
     return output_df[keepcol]
 
 
-# ### 7. PAFs
+# ### 6. PAFs
 
 # In[25]:
 
@@ -933,7 +859,8 @@ def get_pafs(location_id,year_start,year_end,risk_id,cause_id):
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
     
-    Returns
+    Returns/\
+    
     -------
     df with columns year_id, sex_id, age, val, upper, and lower
     
@@ -942,7 +869,8 @@ def get_pafs(location_id,year_start,year_end,risk_id,cause_id):
     
     for sex_id in (1,2):
 
-        pafs = pd.read_csv("/share/scratch/users/emumford/emumford/microsim/random/PAFs_of_risk_{r}_for_{c}_in_{l}.csv".                          format(r=risk_id,c=cause_id,l=location_id))
+        pafs = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/\
+PAFs_of_risk_{r}_for_{c}_in_{l}.csv".format(r=risk_id,c=cause_id,l=location_id))
         
         # smoking pafs file contains values for non-smokers
         pafs = pafs.dropna()
@@ -1103,7 +1031,7 @@ def load_data_from_cache(funct,*args,**kwargs):
     load_data_from_cache will run a function (funct)
     with arguments (args,kwargs)
     
-     Parameters
+    Parameters
     ----------
     funct : str, function
         (e.g. get_cause_deleted_mortality_rate)
@@ -1129,4 +1057,32 @@ def load_data_from_cache(funct,*args,**kwargs):
         result.to_csv(path)
     
     return gbd_ms_function(*args,**kwargs)
+
+
+# ### 12. Severity Splits
+
+# In[ ]:
+
+# def severity_split_proportions(pre_split_me_id,mild_me_id,mod_me_id,sev_me_id):
+#     '''severity_split_proportions determines the chance that a simulant has of 
+#     moving into a mild, moderate, or severe health state
+#     
+#     Parameters
+#     ----------
+#     pre_split_me_id
+
+#       mild_me_id
+      
+#       mod_me_id
+    
+#       sev_me_id
+
+        
+#     Returns
+#     -------
+#     1k draws of proportion of people that fall into each severity split
+#
+#     '''
+
+# read in prevalence of pre-severity split
 
