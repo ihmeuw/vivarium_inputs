@@ -1,12 +1,14 @@
 
 # coding: utf-8
 
-# In[3]:
+# In[129]:
 
 import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns
 import sys
 from scipy import stats
 from numpy.random import choice
+import os.path
+from hashlib import md5
 
 
 # # Microsim functions
@@ -563,7 +565,7 @@ def generate_ceam_population(location_id,year_start,number_of_simulants):
 
 # ### 2. get cause-deleted mortality rate
 
-# In[20]:
+# In[148]:
 
 def get_cause_deleted_mortality_rate(location_id,year_start,year_end):
     '''Returns the cause-delted mortality rate for a given time period and location
@@ -598,7 +600,7 @@ def get_cause_deleted_mortality_rate(location_id,year_start,year_end):
         cause_del_mr['cause_deleted_mortality_rate_{i}'.format(i=i)] = cause_del_mr.all_cause_mortality_rate -         cause_del_mr['draw_{i}'.format(i=i)]
 
     keepcol = ['age','year_id','sex_id']
-    keepcol.extend(['cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0,1000)])
+    keepcol.extend(['cause_deleted_mortality_rate_{i}'.format(i=config.getint('run_configuration', 'draw_number'))])
     return cause_del_mr[keepcol]
 
 
@@ -684,10 +686,9 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure_id, me
 
 # ### 4. Get heart failure draws
 
-# In[89]:
+# In[119]:
 
-def get_heart_failure_draws(location_id,year_start, year_end, measure_id, me_id): 
-    
+def get_heart_failure_draws(location_id,year_start, year_end, measure_id, me_id):
     '''Returns draws for a given measure and cause of heart failure
     Since GBD 2015 does not have full models for specific causes of heart failure,
     get_heart_failure_draws approximates full models through reading in data for 
@@ -699,59 +700,38 @@ def get_heart_failure_draws(location_id,year_start, year_end, measure_id, me_id)
     location_id : int
         location_id takes same location_id values as are used for GBD
         
-    year_start : int, year
+    year_start : int
         year_start is the year in which you want to start the simulation
     
-    year_end : int, end year
+    year_end : int
         year_end is the year in which you want to end the simulation
         
-    me_id: int, modelable entity id
+    me_id: int
         modelable_entity_id takes same me_id values as are used for GBD
         corresponds with the me_id of the cause of heart failure that is
-        of interest
+        of interest 
     
     Returns
     -------
     df with year_id, sex_id, age and 1k draws
-        
     '''
 
-    # get the proportion of heart failure prevalence due to the cause of heart failure
-    # that is of interest
-    # read in prevalence of entire hf envelope
-    prev_envelope = get_modelable_entity_draws(location_id, year_start, year_end, 5, 2412)
+    # read in heart failure envelope. specify measure of interest
+    hf_envelope = get_modelable_entity_draws(location_id, year_start, year_end, measure_id, 2412)
 
-    # read in prevalence of cause of heart failure that you're interested in modeling
-    prev_specific_cause = get_modelable_entity_draws(location_id, year_start, year_end, 5, me_id)
-
-    # rename draw columns for clarity
-    for i in range(0,1000):
-            prev_envelope = prev_envelope.rename(columns={'draw_{i}'.                            format(i=i):'prev_envelope_{i}'.format(i=i)})
-
-            prev_specific_cause = prev_specific_cause.rename(columns={'draw_{i}'.                                  format(i=i):'prev_cause_{i}'.format(i=i)})
-
-    # merge the prevalence files together to calculate proportions
-    prev = pd.merge(prev_envelope, prev_specific_cause,on=['age','year_id','sex_id'])  
+    # read in proportion of the cause of heart failure of interest
+    proportion_draws = get_modelable_entity_draws(location_id, year_start, year_end, 18, me_id)
+    
+    # merge and then multiply envelope draws by proportion draws
+    cause_of_hf = pd.merge(hf_envelope, proportion_draws,on=['age','year_id','sex_id'], suffixes=('_env','_prop'))  
 
     for i in range(0,1000):
-        prev['proportion_{i}'.format(i=i)] =  prev['prev_cause_{i}'.format(i=i)] /         prev['prev_envelope_{i}'.format(i=i)] 
-
-    # pull draws for measure of interest from hf envelope
-    measure_envelope = get_modelable_entity_draws(location_id, year_start, year_end, measure_id, 2412)
-
-    for i in range(0,1000):
-            measure_envelope = measure_envelope.rename(columns={'draw_{i}'.            format(i=i):'measure_envelope_{i}'.format(i=i)})
-
-    # merge with prev df and then multiply by proportion
-    output_df = pd.merge(measure_envelope,prev,on=['age','year_id','sex_id'])
-
-    for i in range(0,1000):
-        output_df['draw_{i}'.format(i=i)] =  output_df['measure_envelope_{i}'.format(i=i)] *         output_df['proportion_{i}'.format(i=i)]
+        cause_of_hf['draw_{i}'.format(i=i)] =  cause_of_hf['draw_{i}_env'.format(i=i)] *         cause_of_hf['draw_{i}_prop'.format(i=i)] 
 
     keepcol = ['year_id','sex_id','age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0,1000)))
 
-    return output_df[keepcol]
+    return cause_of_hf[keepcol]
 
 
 # ### 5. Get Relative Risks
@@ -912,7 +892,7 @@ PAFs_of_risk_{r}_for_{c}_in_{l}.csv".format(r=risk_id,c=cause_id,l=location_id))
 # ### 8. Exposures
 # # TODO: Clarify what category 1 is for smoking
 
-# In[26]:
+# In[152]:
 
 def get_exposures(location_id,year_start,year_end,risk_id):
     '''
@@ -970,7 +950,7 @@ def get_exposures(location_id,year_start,year_end,risk_id):
         output_df = output_df.append(extrapolate(interp_data,151,year_end +1))
         
         keepcol = ['year_id','sex_id','age']
-        keepcol.extend(('draw_{i}'.format(i=i) for i in range(0,1000)))
+        keepcol.extend(('draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))))
     
     return output_df
 
@@ -1022,9 +1002,9 @@ def get_exposures(location_id,year_start,year_end,risk_id):
 
 # ### 11. Load data from cache
 
-# In[32]:
+# In[147]:
 
-def load_data_from_cache(funct,*args,**kwargs):
+def load_data_from_cache(key, funct, col_name, *args, **kwargs):
     '''load_data_from_cache is a functor that will
     check a cache to see if data exists in that cache. 
     If the data does not exist in the cache, 
@@ -1033,10 +1013,14 @@ def load_data_from_cache(funct,*args,**kwargs):
     
     Parameters
     ----------
-    funct : str, function
+    funct : str
+        function ro run if data is not already loaded into the cache
         (e.g. get_cause_deleted_mortality_rate)
     
-    args : int
+    col_name : str
+        rename the draw column to whichever column_name you want
+    
+    args,kwargs : int
         input the arguments required by the function (funct)
         (e.g. location_id, year_start, year_end)
 
@@ -1056,7 +1040,13 @@ def load_data_from_cache(funct,*args,**kwargs):
         result = gbd_ms_function(*args, **kwargs)
         result.to_csv(path)
     
-    return gbd_ms_function(*args,**kwargs)
+    function_output = funct(*args,**kwargs)
+    
+    keepcol = ['year_id','age','sex_id','draw_{d}'.format(d=config.getint('run_configuration', 'draw_number'))]
+    
+    function_output = function_output[keepcol]
+    
+    return function_output.rename(columns={'draw_{d}'.format(d=draw_number): '{c}'.format(c=col_name)})
 
 
 # ### 12. Severity Splits
