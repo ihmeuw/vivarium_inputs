@@ -3,9 +3,9 @@
 
 # In[129]:
 
-import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns
-import sys
-from scipy import stats
+import numpy as np, pandas as pd
+# need to install scipy here eventually to make sure we can run all of the functions
+# from scipy import stats
 from numpy.random import choice
 import os.path
 from hashlib import md5
