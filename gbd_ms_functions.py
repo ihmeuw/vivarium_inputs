@@ -4,12 +4,11 @@
 # In[129]:
 
 import numpy as np, pandas as pd
-# need to install scipy here eventually to make sure we can run all of the functions
-# from scipy import stats
+from scipy import stats
 from numpy.random import choice
 import os.path
 from hashlib import md5
-
+from ceam import config
 
 # # Microsim functions
 # This notebook contains version 2.0 of the functions that will be used to re-format GBD data into a format that can be used for the cost-effectiveness microsim. Wherever possible, these functions will leverage the existing central comp functions (please see this link for more information on the central computation functions https://hub.ihme.washington.edu/display/G2/Central+Function+Documentation)
@@ -379,7 +378,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         all_cause_mr = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/all_cause_mortality_causeid294_in_country{l}.csv".format(l = location_id))
 
         # only get years we care about and only get "Rate" rows, since we want the mortality rate
-        all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.                                          format(ys=year_start, ye=year_end))
+        all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.                                          format(ys=year_start, ye=year_end)).copy()
                 
         # FIXME: Will want to use age midpoints in the future
         all_cause_mr['age'] = all_cause_mr['age_group_name'].map(extract_age_from_age_group_name) 
@@ -588,27 +587,33 @@ def get_cause_deleted_mortality_rate(location_id,year_start,year_end):
     all_me_id_draws = pd.DataFrame()
 
     for me_id in list_of_me_ids_in_microsim:
-        csmr_draws = get_modelable_entity_draws(location_id,year_start,year_end,15,me_id)
+        csmr_draws = get_modelable_entity_draws(location_id, year_start, year_end, 15, me_id) #15 is CSMR
         all_me_id_draws = all_me_id_draws.append(csmr_draws)
-    all_me_id_draws = all_me_id_draws.groupby(['age', 'sex_id','year_id'], as_index=False).sum()
 
-    all_cause_mr = get_all_cause_mortality_rate(location_id,year_start,year_end)
+    all_me_id_draws = all_me_id_draws.groupby(['age', 'sex_id', 'year_id'], as_index=False).sum()
 
-    cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=['age','sex_id','year_id'])
+    all_cause_mr = get_all_cause_mortality_rate(location_id, year_start, year_end)
 
-    for i in range(0,1000):
+    cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=['age', 'sex_id', 'year_id'])
+
+    for i in range(0,1000): 
         cause_del_mr['cause_deleted_mortality_rate_{i}'.format(i=i)] = cause_del_mr.all_cause_mortality_rate -         cause_del_mr['draw_{i}'.format(i=i)]
-
+    
     keepcol = ['age','year_id','sex_id']
     keepcol.extend(['cause_deleted_mortality_rate_{i}'.format(i=config.getint('run_configuration', 'draw_number'))])
-    return cause_del_mr[keepcol]
+    
+    cause_del_mr = cause_del_mr[keepcol]
+
+    cause_del_mr = cause_del_mr.rename(columns={'cause_deleted_mortality_rate_{i}'.format(i=config.getint('run_configuration', 'draw_number')) : 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))})
+
+    return cause_del_mr
 
 
 # ### 3. Get modelable entity draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
 # In[22]:
 
-def get_modelable_entity_draws(location_id, year_start, year_end, measure_id, me_id): 
+def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id): 
     '''Returns draws for a given measure and modelable entity 
 
     Parameters
@@ -644,9 +649,9 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure_id, me
         draws = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
         
         # TODO: use is.in to check if this is a list
-        draws = draws.query("measure_id == {m}".format(m=measure_id))
+        draws = draws[draws.measure_id == measure]
 
-        draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
+        draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end)).copy()
 
         draws = get_age_from_age_group_id(draws)
 
@@ -1004,7 +1009,7 @@ def get_exposures(location_id,year_start,year_end,risk_id):
 
 # In[147]:
 
-def load_data_from_cache(key, funct, col_name, *args, **kwargs):
+def load_data_from_cache(funct, col_name, *args, **kwargs):
     '''load_data_from_cache is a functor that will
     check a cache to see if data exists in that cache. 
     If the data does not exist in the cache, 
@@ -1019,7 +1024,7 @@ def load_data_from_cache(key, funct, col_name, *args, **kwargs):
     
     col_name : str
         rename the draw column to whichever column_name you want
-    
+       
     args,kwargs : int
         input the arguments required by the function (funct)
         (e.g. location_id, year_start, year_end)
@@ -1030,23 +1035,21 @@ def load_data_from_cache(key, funct, col_name, *args, **kwargs):
     df with input data for CEAM
     '''
     
-    file_name = key + '_' + md5(str((args, kwargs)).encode('utf-8')).hexdigest() + '.csv'
+    file_name = funct.__name__ + '_' + md5(str((args, kwargs)).encode('utf-8')).hexdigest() + '.csv'
     
     path = os.path.join(config.get('input_data', 'intermediary_data_cache_path'), file_name)
     
     if os.path.exists(path):
-        result = pd.read_csv(path)
+        function_output = pd.read_csv(path)
     else:
-        result = gbd_ms_function(*args, **kwargs)
-        result.to_csv(path)
-    
-    function_output = funct(*args,**kwargs)
-    
-    keepcol = ['year_id','age','sex_id','draw_{d}'.format(d=config.getint('run_configuration', 'draw_number'))]
+        function_output = funct(*args, **kwargs)
+        function_output.to_csv(path)
+          
+    keepcol = ['year_id','age','sex_id','draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
     
     function_output = function_output[keepcol]
     
-    return function_output.rename(columns={'draw_{d}'.format(d=draw_number): '{c}'.format(c=col_name)})
+    return function_output.rename(columns={'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number')) : '{c}_{i}'.format(c=col_name, i=config.getint('run_configuration', 'draw_number'))})
 
 
 # ### 12. Severity Splits
