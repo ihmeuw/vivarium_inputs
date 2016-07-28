@@ -18,6 +18,14 @@ from ceam import config
 
 # In[4]:
 
+def normalize_for_simulation(df):
+    # Convert sex_id to a categorical
+    df['sex'] = df.sex_id.map({1:'Male', 2:'Female', 3:'Both'}).astype('category')
+    df = df.drop('sex_id', axis=1)
+
+    df = df.rename({'year_id': 'year'})
+    return df
+
 def extract_age_from_age_group_name(age_group_name):
     """Creates an "age" column from the "age_group_id" column
 
@@ -1048,8 +1056,10 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
     keepcol = ['year_id','age','sex_id','draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
 
     function_output = function_output[keepcol]
+    function_output = function_output.rename(columns={'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number')) : col_name})
 
-    return function_output.rename(columns={'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number')) : '{c}_{i}'.format(c=col_name, i=config.getint('run_configuration', 'draw_number'))})
+    return normalize_for_simulation(function_output)
+
 
 
 # ### 12. Severity Splits
