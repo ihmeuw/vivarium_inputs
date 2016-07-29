@@ -10,6 +10,10 @@ import os.path
 from hashlib import md5
 from ceam import config
 
+import logging
+_log = logging.getLogger(__name__)
+
+
 # # Microsim functions
 # This notebook contains version 2.0 of the functions that will be used to re-format GBD data into a format that can be used for the cost-effectiveness microsim. Wherever possible, these functions will leverage the existing central comp functions (please see this link for more information on the central computation functions https://hub.ihme.washington.edu/display/G2/Central+Function+Documentation)
 
@@ -1043,13 +1047,15 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
     df with input data for CEAM
     '''
 
-    file_name = funct.__name__ + '_' + md5(str((args, kwargs)).encode('utf-8')).hexdigest() + '.csv'
+    file_name = funct.__name__ + '_' + md5(str((args, sorted(kwargs.items()))).encode('utf-8')).hexdigest() + '.csv'
 
     path = os.path.join(config.get('input_data', 'intermediary_data_cache_path'), file_name)
 
     if os.path.exists(path):
+        _log.debug('Loading %s from cache', (funct, args, kwargs))
         function_output = pd.read_csv(path)
     else:
+        _log.debug('Loading %s into cache', (funct, args, kwargs))
         function_output = funct(*args, **kwargs)
         function_output.to_csv(path)
 
