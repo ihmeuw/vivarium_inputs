@@ -608,17 +608,12 @@ def get_cause_deleted_mortality_rate(location_id,year_start,year_end):
 
     cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=['age', 'sex_id', 'year_id'])
 
-    for i in range(0,1000):
-        cause_del_mr['cause_deleted_mortality_rate_{i}'.format(i=i)] = cause_del_mr.all_cause_mortality_rate -         cause_del_mr['draw_{i}'.format(i=i)]
-
     keepcol = ['age','year_id','sex_id']
-    keepcol.extend(['cause_deleted_mortality_rate_{i}'.format(i=config.getint('run_configuration', 'draw_number'))])
+    for i in range(0,1000):
+        cause_del_mr['draw_{i}'.format(i=i)] = cause_del_mr.all_cause_mortality_rate - cause_del_mr['draw_{i}'.format(i=i)]
+        keepcol.append('draw_{i}'.format(i=i))
 
-    cause_del_mr = cause_del_mr[keepcol]
-
-    cause_del_mr = cause_del_mr.rename(columns={'cause_deleted_mortality_rate_{i}'.format(i=config.getint('run_configuration', 'draw_number')) : 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))})
-
-    return cause_del_mr
+    return cause_del_mr[keepcol]
 
 
 # ### 3. Get modelable entity draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
@@ -698,7 +693,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
         keepcol = ['year_id','sex_id','age']
         keepcol.extend(('draw_{i}'.format(i=i) for i in range(0,1000)))
 
-    return output_df[keepcol].sort(['year_id','age','sex_id'])
+    return output_df[keepcol].sort_values(by=['year_id','age','sex_id'])
 
 
 # ### 4. Get heart failure draws
