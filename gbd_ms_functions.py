@@ -23,7 +23,7 @@ def normalize_for_simulation(df):
     df['sex'] = df.sex_id.map({1:'Male', 2:'Female', 3:'Both'}).astype('category')
     df = df.drop('sex_id', axis=1)
 
-    df = df.rename({'year_id': 'year'})
+    df = df.rename(columns={'year_id': 'year'})
     return df
 
 def extract_age_from_age_group_name(age_group_name):
