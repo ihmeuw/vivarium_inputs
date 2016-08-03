@@ -432,6 +432,101 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
     return output_df
 
+def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_start, col_name, states):
+    
+    """Function that assigns chronic ihd status to starting population of simulants
+    
+    Parameters
+    ----------
+    simulants_df : dataframe
+        dataframe of simulants that is made earlier in the function
+    
+    location_id : int, location id
+        location_id takes same location_id values as are used for GBD
+    
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+        
+    seqlist : list
+        list of modelable entity ids of the sequelae of a cause
+        
+    col_name : str
+        name of the column that you want to create
+        (i.e. name of the disease)
+        
+    states : dict
+    	dict with keys = name of cause, values = modelable entity id of cause
+
+    Returns
+    -------
+    Creates a new column for a df of simulants with a column called chronic_ihd
+        chronic_ihd takes values 0 or 1
+            1 indicates that the simulant has chronic ihd
+            0 indicates that the simulant does not have chronic ihd
+    """
+    
+    prevalence_df = pd.DataFrame()
+    
+    new_sim_file = pd.DataFrame()
+    
+    keepcol = ['year_id','sex_id','age','draw_0']
+    prevalence_draws_dictionary = {}
+    
+    for key, value in states.items():
+        prevalence_draws_dictionary[key] = get_modelable_entity_draws(location_id,
+        year_start, year_start, 5, value)
+        prevalence_draws_dictionary[key] = prevalence_draws_dictionary[key][keepcol]
+        prevalence_df = prevalence_df.append(prevalence_draws_dictionary[key])
+
+    prevalence_df = prevalence_df.groupby(['year_id','sex_id','age'], as_index=False).sum()
+        
+    for sex_id in simulants_df.sex_id.unique():
+        for age in simulants_df.age.unique():
+            elements = [0,1]
+            probability_of_disease = prevalence_df.\
+            query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))['draw_0']
+            probability_of_NOT_having_disease = 1 - probability_of_disease
+            weights = [float(probability_of_NOT_having_disease),
+                       float(probability_of_disease)]
+
+            one_age = simulants_df.query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))
+            one_age['{c}'.format(c=col_name)] = one_age['age'].map(lambda x: choice(elements, p=weights))
+            new_sim_file = new_sim_file.append(one_age)
+            
+    # produce a column of strings with nulls for healty, everyone else gets key value from states
+    # add up to get total, divide each prevalence by total and then use that as the weights for np choice
+    # need to ensure that only people with the cause can get a specific sequelae
+    
+    # TODO: Should we be using groupby for these loops to ensure that we're not looping over an age/sex combo that
+    # doesn't exist
+    for key in states.keys():
+        prevalence_draws_dictionary[key] = \
+            pd.merge(prevalence_draws_dictionary[key], prevalence_df, on=['age','sex_id','year_id'], 
+                suffixes=('_single', '_total'))
+        prevalence_draws_dictionary[key]['scaled_prevalence'] = prevalence_draws_dictionary[key]['draw_0_single'] / \
+            prevalence_draws_dictionary[key]['draw_0_total']
+
+    for sex_id in new_sim_file.sex_id.unique():
+        for age in new_sim_file.age.unique():
+            list_of_weights = []
+            for key, dataframe in states.items():
+                weight_scale_prev_tuple =(key, prevalence_draws_dictionary[key].\
+                                        query("sex_id == {s} and age== {a}".format(s=sex_id, a=age))['scaled_prevalence'].values[0])
+                list_of_weights.append(weight_scale_prev_tuple)
+                
+            list_of_keys, list_of_weights = zip(*list_of_weights)
+            with_ihd = (new_sim_file.ihd == 1) & (new_sim_file.age == age) & \
+                       (new_sim_file.sex_id == sex_id)
+        
+            new_sim_file.loc[with_ihd, 'condition'] = np.random.choice(list_of_keys, p=list_of_weights, 
+                                                                                      size=with_ihd.sum())
+    
+    return new_sim_file
+
+
+
+
+
 # In[14]:
 
 # def interpolate
@@ -494,11 +589,7 @@ def generate_ceam_population(location_id,year_start,number_of_simulants):
     simulants['age'] = simulant_ages.rvs(size=number_of_simulants)
 
     simulants = assign_sex_id(simulants,location_id,year_start)
-
-    # simulants = assign_ihd(simulants,location_id,year_start)
-
-    # simulants = assign_disease(simulants,location_id,year_start,9312,'chronic_hemorrhagic_stroke')
-
+    
     return simulants
 
 
