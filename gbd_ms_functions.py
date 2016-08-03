@@ -30,7 +30,7 @@ def normalize_for_simulation(df):
     df = df.rename(columns={'year_id': 'year'})
     return df
 
-def get_age_group_midpoint__from_age_group_name(df):
+def get_age_group_midpoint_from_age_group_name(df):
     """Creates an "age" column from the "age_group_name" column
     Age column values are ages at the midpoint of the age groups
 
@@ -67,6 +67,27 @@ def get_age_from_age_group_id(df):
    19: 70, 20: 75, 21: 80})
 
    return df
+
+def extract_age_from_age_group_name(age_group_name):
+    """Creates an "age" column from the "age_group_id" column
+
+    Parameters
+    ----------
+    age_group_name: value from age_group_name column in a dataframe
+    
+    Returns
+    -------
+    Age value that is currently just defined as the age_start
+        All age groups under 1 (EN, NN, PN) are made to be 0
+        TODO: We'll want to capture EN, NN, PN ages in the future
+    """
+    
+    try:
+        return int(age_group_name.split(' ')[0])
+    
+    except ValueError:
+        return 0
+
 
 
 # In[6]:
