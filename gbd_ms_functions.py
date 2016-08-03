@@ -453,7 +453,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
     return output_df
 
-def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_start, col_name, states):
+def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_start, states):
     
     """Function that assigns chronic ihd status to starting population of simulants
     
@@ -471,10 +471,6 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
     seqlist : list
         list of modelable entity ids of the sequelae of a cause
         
-    col_name : str
-        name of the column that you want to create
-        (i.e. name of the disease)
-        
     states : dict
     	dict with keys = name of cause, values = modelable entity id of cause
 
@@ -490,7 +486,8 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
     
     new_sim_file = pd.DataFrame()
     
-    keepcol = ['year_id','sex_id','age','draw_0']
+    draw_number = config.getint('run_configuration', 'draw_number')
+    keepcol = ['year_id','sex_id','age','draw_{}'.format(draw_number)]
     prevalence_draws_dictionary = {}
     
     for key, value in states.items():
@@ -505,13 +502,13 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
         for age in simulants_df.age.unique():
             elements = [0,1]
             probability_of_disease = prevalence_df.\
-            query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))['draw_0']
+            query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))['draw_{}'.format(draw_number)]
             probability_of_NOT_having_disease = 1 - probability_of_disease
             weights = [float(probability_of_NOT_having_disease),
                        float(probability_of_disease)]
 
-            one_age = simulants_df.query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))
-            one_age['{c}'.format(c=col_name)] = one_age['age'].map(lambda x: choice(elements, p=weights))
+            one_age = simulants_df.query("age=={a} and sex_id=={s}".format(a=age,s=sex_id)).copy()
+            one_age['condition_envelope'] = one_age['age'].map(lambda x: choice(elements, p=weights))
             new_sim_file = new_sim_file.append(one_age)
             
     # produce a column of strings with nulls for healty, everyone else gets key value from states
@@ -524,8 +521,8 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
         prevalence_draws_dictionary[key] = \
             pd.merge(prevalence_draws_dictionary[key], prevalence_df, on=['age','sex_id','year_id'], 
                 suffixes=('_single', '_total'))
-        prevalence_draws_dictionary[key]['scaled_prevalence'] = prevalence_draws_dictionary[key]['draw_0_single'] / \
-            prevalence_draws_dictionary[key]['draw_0_total']
+        prevalence_draws_dictionary[key]['scaled_prevalence'] = prevalence_draws_dictionary[key]['draw_{}_single'.format(draw_number)] / \
+            prevalence_draws_dictionary[key]['draw_{}_total'.format(draw_number)]
 
     for sex_id in new_sim_file.sex_id.unique():
         for age in new_sim_file.age.unique():
@@ -536,13 +533,13 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
                 list_of_weights.append(weight_scale_prev_tuple)
                 
             list_of_keys, list_of_weights = zip(*list_of_weights)
-            with_ihd = (new_sim_file.ihd == 1) & (new_sim_file.age == age) & \
+            with_ihd = (new_sim_file.condition_envelope == 1) & (new_sim_file.age == age) & \
                        (new_sim_file.sex_id == sex_id)
         
-            new_sim_file.loc[with_ihd, 'condition'] = np.random.choice(list_of_keys, p=list_of_weights, 
+            new_sim_file.loc[with_ihd, 'condition_state'] = np.random.choice(list_of_keys, p=list_of_weights, 
                                                                                       size=with_ihd.sum())
     
-    return new_sim_file
+    return new_sim_file[['simulant_id', 'condition_state']]
 
 
 
@@ -1094,12 +1091,14 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
         function_output = funct(*args, **kwargs)
         function_output.to_csv(path)
 
-    keepcol = ['year_id','age','sex_id','draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
+    if col_name:
+        keepcol = ['year_id','age','sex_id','draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
 
-    function_output = function_output[keepcol]
-    function_output = function_output.rename(columns={'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number')) : col_name})
+        function_output = function_output[keepcol]
+        function_output = function_output.rename(columns={'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number')) : col_name})
 
-    return normalize_for_simulation(function_output)
+        return normalize_for_simulation(function_output)
+    return function_output
 
 
 
