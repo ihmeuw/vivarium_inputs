@@ -867,7 +867,7 @@ def get_relative_risks(location_id,year_start,year_end,risk_id,cause_id):
 
 # In[25]:
 
- ###fs(location_id, year_start, year_end, risk_id, cause_id):
+    get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     '''
     Parameters
     ----------
@@ -909,7 +909,7 @@ def get_relative_risks(location_id,year_start,year_end,risk_id,cause_id):
         pafs = pafs.query("sex_id == {s}".format(s=sex_id))
         
         all_ages = range(1,81) #TODO: Figure out how to extrapolate
-        all_years = range(year_start,year_end)
+        all_years = range(year_start,year_end + 1)
         
         # Set indexes of year_id and age
         pafs = pafs.set_index(['year_id','age']).sortlevel()
