@@ -949,43 +949,44 @@ def get_exposures(location_id,year_start,year_end,risk_id):
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
-
+        
     risk_id: int, risk id
         risk_id takes same risk_id values as are used for GBD
-
+        
     Returns
     -------
     df with columns year_id, sex_id, age and 1k exposure draws
-
+    
     '''
-
+    
     output_df = pd.DataFrame()
-
+    
     for sex_id in (1,2):
-
-        exposure = make_exposure_draws_one_df(location_id,risk_id)
-
+        
+        exposure = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/Exposure_of_risk{r}_in_location{l}.csv".\
+        format(r=risk_id, l=location_id))
+    
         exposure = get_age_from_age_group_id(exposure)
-
+        
         exposure = exposure.query("sex_id == {s}".format(s=sex_id))
-
+        
         exposure = exposure.query("age != 0")
-
+        
         # need to treat risks with category parameters specially
         if risk_id == 166:
             exposure = exposure.query("parameter == 'cat1'")
-
+        
         # Set ages and years of interest
-        all_ages = range(exposure.age.min(),81)
-        all_years = range(year_start,year_end+1)
+        all_ages = range(1,81)
+        all_years = range(year_start,year_end+1) 
 
         # Set indexes of year_id and age
         exposure = exposure.set_index(['year_id','age']).sortlevel()
 
         ind = pd.MultiIndex.from_product([all_years,all_ages],names=['year_id','age'])
-
+    
         expanded_data = pd.DataFrame(exposure,index=ind)
-
+        
         # Keep only draw columns
         keepcol = ['draw_{i}'.format(i=i) for i in range(0,1000)]
         mx = expanded_data[keepcol]
@@ -995,13 +996,15 @@ def get_exposures(location_id,year_start,year_end,risk_id):
         interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
 
         interp_data['sex_id']= sex_id
-
+        
         output_df = output_df.append(extrapolate_ages(interp_data,151,year_end +1))
-
+        
         keepcol = ['year_id','sex_id','age']
         keepcol.extend(('draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))))
-
-    return output_df
+        
+        output_df = output_df.apply(lambda x: x.fillna(0),axis = 0)
+    
+    return output_df[keepcol]
 
 
 # ### 9. SBP Dist
