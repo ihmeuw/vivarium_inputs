@@ -867,76 +867,78 @@ def get_relative_risks(location_id,year_start,year_end,risk_id,cause_id):
 
 # In[25]:
 
-def get_pafs(location_id,year_start,year_end,risk_id,cause_id):
+ ###fs(location_id, year_start, year_end, risk_id, cause_id):
     '''
     Parameters
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
-
+        
     year_start : int, year
         year_start is the year in which you want to start the simulation
-
+    
     year_end : int, end year
         year_end is the year in which you want to end the simulation
-
+        
     risk_id: int, risk id
         risk_id takes same risk_id values as are used for GBD
-
+        
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
-
-    Returns/\
-
+    
     -------
-    df with columns year_id, sex_id, age, val, upper, and lower
-
+    Returns
+        df with columns year_id, sex_id, age, val, upper, and lower
+    
     '''
     output_df = pd.DataFrame()
-
+    
     for sex_id in (1,2):
 
-        pafs = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/\
-PAFs_of_risk_{r}_for_{c}_in_{l}.csv".format(r=risk_id,c=cause_id,l=location_id))
-
-        # smoking pafs file contains values for non-smokers
-        pafs = pafs.dropna()
-
-        pafs['age'] = pafs['age_group_name'].map(extract_age_from_age_group_name)
-
+        pafs = pd.read_csv("/share/costeffectiveness/CEAM/cache/PAFs_for_{c}_in_{l}.csv".\
+        format(c=cause_id, l=location_id))
+        
+        # only want metric id 2 (percentages or pafs)
+        pafs = pafs.query("metric_id == 2")
+        
+        # only want one risk at a time
+        pafs = pafs.query("rei_id == {r}".format(r=risk_id))
+        
+        pafs = get_age_from_age_group_id(pafs)
+        
         pafs = pafs.query("sex_id == {s}".format(s=sex_id))
-
+        
         all_ages = range(1,81) #TODO: Figure out how to extrapolate
         all_years = range(year_start,year_end)
-
+        
         # Set indexes of year_id and age
         pafs = pafs.set_index(['year_id','age']).sortlevel()
 
         ind = pd.MultiIndex.from_product([all_years,all_ages],names=['year_id','age'])
-
+        
         expanded_data = pd.DataFrame(pafs,index=ind)
-
-        keepcol = ['val','upper','lower']
+        
+        keepcol = ['draw_{i}'.format(i=i) for i in range(0,1000)]
         mx = expanded_data[keepcol]
-
+        
         # Interpolate over age and year
         interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
         interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
 
         interp_data['sex_id']= sex_id
-
+        
         output_df = output_df.append(extrapolate_ages(interp_data,151,year_end +1))
-
+        
         # need to back calculate PAFS to earlier ages for risks that don't start
         # until a certain age
         output_df = output_df.apply(lambda x: x.fillna(0),axis = 0)
-
-        keepcol = ['year_id','sex_id','age','val','upper','lower']
-
+        
+        keepcol = ['year_id','sex_id','age']
+        keepcol.extend(('draw_{i}'.format(i=i) for i in range(0,1000)))
+    
     return output_df[keepcol]
 
-
-# ### 8. Exposures
+# 8. Exposures
 # # TODO: Clarify what category 1 is for smoking
 
 # In[152]:
