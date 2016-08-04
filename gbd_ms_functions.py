@@ -1104,4 +1104,67 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
 
 # ### 12. Severity Splits
 
+# 13. sbp mean and sd
 
+def get_sbp_mean_sd(location_id, year_start, year_end):
+    ''' Returns a dataframe of mean and sd of sbp in LOG SPACE
+    
+    Parameters
+    ----------
+    location_id : int
+    
+    year_start : int
+    
+    year_end : int
+
+    Returns
+    -------
+    df with mean and sd values in LOG space
+    '''
+    output_df = pd.DataFrame()
+    
+    for sex_id in [1,2]:
+        draws = pd.DataFrame()
+        for year_id in np.arange(year_start, year_end + 1, 5):
+            one_year_file = pd.read_stata("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".\
+                                         format(l=location_id, y=year_id, s=sex_id))
+            one_year_file['year_id'] = year_id
+            draws = draws.append(one_year_file)
+            
+        draws = get_age_from_age_group_id(draws)
+        
+        # Set ages and years of interest
+        all_ages = range(25,81)
+        all_years = range(year_start,year_end+1)
+
+        # Set indexes of year_id and age
+        draws = draws.set_index(['year_id','age']).sortlevel()
+        
+        ind = pd.MultiIndex.from_product([all_years,all_ages],names=['year_id','age'])
+
+        expanded_data = pd.DataFrame(draws,index=ind)
+
+        # Keep only draw columns
+        keepcol = ['exp_mean_{i}'.format(i=i) for i in range(0,1000)]
+        keepcol.extend(('exp_sd_{i}'.format(i=i) for i in range(0,1000)))
+        mx = expanded_data[keepcol]
+
+        # Interpolate over age and year
+        interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
+        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+
+        interp_data['sex_id']= sex_id
+        
+                # convert to lognormal
+        for i in range(0,1000):
+            interp_data['log_mean_{i}'.format(i=i)] = np.log(interp_data['exp_mean_{i}'.format(i=i)])
+            interp_data['log_sd_{i}'.format(i=i)] = np.sqrt(interp_data['exp_sd_{i}'.format(i=i)] / \
+                                                       interp_data['log_mean_{i}'.format(i=i)])
+
+        output_df = output_df.append(extrapolate_ages(interp_data,151,year_end +1))
+
+    keepcol = ['year_id','sex_id','age']
+    keepcol.extend(('log_mean_{i}'.format(i=i) for i in range(0,1000)))
+    keepcol.extend(('log_sd_{i}'.format(i=i) for i in range(0,1000)))
+
+    return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id', 'log_mean_{i}'.format(i=config.getint('run_configuration', 'draw_number')), 'log_sd_{i}'.format(i=config.getint('run_configuration', 'draw_number'))])
