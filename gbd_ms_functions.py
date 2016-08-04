@@ -255,7 +255,7 @@ def assign_sex_id(simulants_df,location_id, year_start):
         female_prop = 1 - male_prop
         weights = [float(male_prop),float(female_prop)]
 
-        one_age = simulants_df.query("age=={a}".format(a=age))
+        one_age = simulants_df.query("age=={a}".format(a=age)).copy()
         one_age['sex_id'] = one_age['age'].map(lambda x: choice(elements, p=weights))
 
         new_sim_file = new_sim_file.append(one_age)
@@ -864,7 +864,7 @@ def get_relative_risks(location_id,year_start,year_end,risk_id,cause_id):
 
 # In[25]:
 
-    get_pafs(location_id, year_start, year_end, risk_id, cause_id):
+def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     '''
     Parameters
     ----------
@@ -997,7 +997,7 @@ def get_exposures(location_id,year_start,year_end,risk_id):
         output_df = output_df.append(extrapolate_ages(interp_data,151,year_end +1))
         
         keepcol = ['year_id','sex_id','age']
-        keepcol.extend(('draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))))
+        keepcol.extend(('draw_{i}'.format(i=config.getint('run_configuration', 'draw_number')),))
         
         output_df = output_df.apply(lambda x: x.fillna(0),axis = 0)
     
@@ -1053,6 +1053,13 @@ def get_exposures(location_id,year_start,year_end,risk_id):
 
 # In[147]:
 
+from joblib import Memory
+memory = Memory(cachedir=config.get('input_data', 'intermediary_data_cache_path'), verbose=1)
+
+@memory.cache
+def _inner_cached_call(funct, *args, **kwargs):
+    return funct(*args, **kwargs)
+
 def load_data_from_cache(funct, col_name, *args, **kwargs):
     '''load_data_from_cache is a functor that will
     check a cache to see if data exists in that cache.
@@ -1079,17 +1086,7 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
     df with input data for CEAM
     '''
 
-    file_name = funct.__name__ + '_' + md5(str((args, sorted(kwargs.items()))).encode('utf-8')).hexdigest() + '.csv'
-
-    path = os.path.join(config.get('input_data', 'intermediary_data_cache_path'), file_name)
-
-    if os.path.exists(path):
-        _log.debug('Loading %s from cache', (funct, args, kwargs))
-        function_output = pd.read_csv(path)
-    else:
-        _log.debug('Loading %s into cache', (funct, args, kwargs))
-        function_output = funct(*args, **kwargs)
-        function_output.to_csv(path)
+    function_output = _inner_cached_call(funct, *args, **kwargs)
 
     if col_name:
         keepcol = ['year_id','age','sex_id','draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
