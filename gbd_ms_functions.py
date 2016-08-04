@@ -996,8 +996,7 @@ def get_exposures(location_id,year_start,year_end,risk_id):
         
         output_df = output_df.append(extrapolate_ages(interp_data,151,year_end +1))
         
-        keepcol = ['year_id','sex_id','age']
-        keepcol.extend(('draw_{i}'.format(i=config.getint('run_configuration', 'draw_number')),))
+        keepcol += ['year_id','sex_id','age']
         
         output_df = output_df.apply(lambda x: x.fillna(0),axis = 0)
     
