@@ -1022,7 +1022,7 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
     Parameters
     ----------
     funct : str
-        function ro run if data is not already loaded into the cache
+        function to run if data is not already loaded into the cache
         (e.g. get_cause_deleted_mortality_rate)
 
     col_name : str
