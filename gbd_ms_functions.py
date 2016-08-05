@@ -889,6 +889,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
         df with columns year_id, sex_id, age, val, upper, and lower
     
     '''
+
     output_df = pd.DataFrame()
     
     for sex_id in (1,2):
