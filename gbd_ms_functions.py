@@ -62,6 +62,7 @@ def get_age_from_age_group_id(df):
    df with an age column
    """
 
+   df = df.copy()
    df['age'] = df['age_group_id'].map({2: 0, 3: 0, 4: 0, 5: 1, 6: 5, 7: 10, 8: 15,
    9: 20, 10: 25, 11: 30, 12: 35, 13: 40, 14: 45, 15: 50, 16: 55, 17: 60, 18: 65,
    19: 70, 20: 75, 21: 80})
