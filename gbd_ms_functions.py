@@ -1105,7 +1105,7 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
 
 draw_number = config.getint('run_configuration', 'draw_number')
 
-def get_sbp_mean_sd(location_id, year_start, year_end):
+def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
     ''' Returns a dataframe of mean and sd of sbp in LOG SPACE
 
     Parameters
@@ -1131,8 +1131,6 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
             draws = draws.append(one_year_file)
 
         draws = get_age_from_age_group_id(draws)
-
-        draw_number = config.getint('run_configuration', 'draw_number')
 
         # Set ages and years of interest
         all_ages = range(25,81)
