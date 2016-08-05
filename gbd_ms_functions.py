@@ -207,8 +207,6 @@ def get_populations(location_id,year_start,sex_id):
     return pop
 
 
-# In[9]
-
 def assign_sex_id(simulants_df,location_id, year_start):
     """Assigns sex to a population of simulants so that age and sex are correlated
 

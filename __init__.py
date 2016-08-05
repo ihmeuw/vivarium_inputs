@@ -1,3 +1,5 @@
+# ~/ceam/ceam/gbd_data/__init__.py
+
 from ceam import config
 
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, get_modelable_entity_draws, assign_cause_at_beginning_of_simulation
@@ -17,3 +19,6 @@ def get_disease_states(population, states):
     condition_column = condition_column.fillna('healthy')
 
     return condition_column
+
+
+# End.
