@@ -1132,7 +1132,7 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
         draws = get_age_from_age_group_id(draws)
 
-        draw_number = 0
+        draw_number = config.getint('run_configuration', 'draw_number')
 
         # Set ages and years of interest
         all_ages = range(25,81)
@@ -1157,12 +1157,12 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
         interp_data['sex_id']= sex_id
 
-        interp_data['log_mean_{i}'.format(i=draw_number)] = np.log(interp_data['exp_mean_{i}'.format(i=draw_number)])
-        interp_data['log_sd_{i}'.format(i=draw_number)] = np.sqrt(interp_data['exp_sd_{i}'.format(i=draw_number)] / \
-                                                       interp_data['log_mean_{i}'.format(i=draw_number)])
+        interp_data['log_mean'] = np.log(interp_data['exp_mean_{i}'.format(i=draw_number)])
+        interp_data['log_sd'] = (interp_data['exp_sd_{i}'.format(i=draw_number)] / \
+                                 interp_data['exp_mean_{i}'.format(i=draw_number)])
 
-        output_df = output_df.append(extrapolate_ages(interp_data,151,year_end +1))
+        output_df = output_df.append(extrapolate_ages(interp_data, 151, year_end+1))
 
-    keepcol = ['year_id','sex_id','age', 'log_mean_{i}'.format(i=draw_number), 'log_sd_{i}'.format(i=draw_number)]
+    keepcol = ['year_id','sex_id','age', 'log_mean', 'log_sd']
 
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
