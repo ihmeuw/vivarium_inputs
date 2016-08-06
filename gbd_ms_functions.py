@@ -11,7 +11,7 @@ from ceam import config
 
 import logging
 _log = logging.getLogger(__name__)
-
+from ceam.util import from_yearly
 
 # # Microsim functions
 # This notebook contains version 2.0 of the functions that will be used to re-format GBD data into a format that can be used for the cost-effectiveness microsim.
@@ -703,8 +703,8 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
 
 # ### 4. Get heart failure draws
 
-def get_heart_failure_incidence_draws(location_id,year_start, year_end, me_id):
-    '''Returns incidence draws for a given measure and cause of heart failure
+def get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id):
+    '''Returns incidence draws for a given cause of heart failure
     Since GBD 2015 does not have full models for specific causes of heart failure,
     get_heart_failure_draws approximates full models through reading in data for
     the entire heart failure impairment envelope and then multipying the envelope
@@ -741,15 +741,16 @@ def get_heart_failure_incidence_draws(location_id,year_start, year_end, me_id):
     cause_of_hf = pd.merge(hf_envelope, proportion_draws,on=['age','year_id','sex_id'], suffixes=('_env','_prop'))
 
     for i in range(0,1000):
-        cause_of_hf['draw_{i}'.format(i=i)] =  cause_of_hf['draw_{i}_env'.format(i=i)] *         cause_of_hf['draw_{i}_prop'.format(i=i)]
+        cause_of_hf['draw_{i}'.format(i=i)] =  cause_of_hf['draw_{i}_env'.format(i=i)] * cause_of_hf['draw_{i}_prop'.format(i=i)]
+        cause_of_hf['draw_{i}'.format(i=i)] = from_yearly(x['draw_{i}'.format(i=i)].values, 30.5) #TODO: don't want to manually set timestep
+        cause_of_hf['draw_{i}'.format(i=i)] = rate_to_probability(x['draw_{i}'.format(i=i)].values)
 
     keepcol = ['year_id','sex_id','age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0,1000)))
 
     return cause_of_hf[keepcol]
 
-
-# ### 5. Get Relative Risks
+# 5. Get Relative Risks
 
 def get_relative_risks(location_id,year_start,year_end,risk_id,cause_id):
     '''
@@ -1113,6 +1114,64 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
     keepcol = ['year_id','sex_id','age', 'log_mean', 'log_sd']
 
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
+
+
+# Angina proportion splits
+
+def angina_proportions(year_start, year_end):
+    '''Format the angina proportions so that we can use them in CEAM.
+    This is messy. The proportions were produced by Catherine Johnson.
+    The proportion differs by age, but not by sex, location, or time.
+    This will likely change post GBD-2016.
+    
+    Parameters
+    ----------
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int
+        year_start is the year in which you want to start the simulation
+
+
+    Returns
+    -------
+    df with year_id, sex_id, age and 1k draws
+    '''
+
+    output_df = pd.DataFrame()
+    
+    for sex_id in [1, 2]:
+        
+        ang = pd.read_csv("/snfs1/Project/Cost_Effectiveness/dev/data_processed/angina_props.csv")
+        ang = ang.query("sex_id == {s}".format(s = sex_id))
+
+        # Set ages and years of interest
+        all_ages = range(1, 81)
+        all_years = range(year_start,year_end+1)
+
+        # Set indexes of year_id and age
+        ang = ang.set_index(['year_id','age']).sortlevel()
+
+        ind = pd.MultiIndex.from_product([all_years,all_ages],names=['year_id','age'])
+
+        expanded_data = pd.DataFrame(ang, index=ind)
+
+        keepcol = ['angina_prop']
+        mx = expanded_data[keepcol]
+
+        # Interpolate over age and year
+        interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
+        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+
+        interp_data['sex_id'] = sex_id
+
+        output_df = output_df.append(extrapolate_ages(interp_data, 151, year_end +1))
+        
+        # we don't have estimates under age 20, so I'm filling all ages under 20 with
+        # the same proportion that we have for 20 year olds
+        output_df = output_df.apply(lambda x: x.fillna(0.254902),axis = 0)
+
+        return output_df
 
 
 # End.
