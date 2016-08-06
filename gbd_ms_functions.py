@@ -11,7 +11,7 @@ from ceam import config
 
 import logging
 _log = logging.getLogger(__name__)
-from ceam.util import from_yearly
+from ceam.util import from_yearly, rate_to_probability
 
 # # Microsim functions
 # This notebook contains version 2.0 of the functions that will be used to re-format GBD data into a format that can be used for the cost-effectiveness microsim.
