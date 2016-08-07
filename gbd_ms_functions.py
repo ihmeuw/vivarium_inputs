@@ -530,8 +530,8 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
 
 
 #TODO: Think of a more eloquent way to get all of the causes into a list
-ihd = [1814,1817,3233]
-chronic_hemorrhagic_stroke = [9311,9312]
+ihd = [1814, 2412, 1817, 3233]
+chronic_hemorrhagic_stroke = [9311, 9310, 9312]
 list_of_me_ids_in_microsim = chronic_hemorrhagic_stroke + ihd
 
 
