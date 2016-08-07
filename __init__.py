@@ -17,7 +17,6 @@ def get_disease_states(population, states):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
 
-    import pdb; pdb.set_trace()
     condition_column = load_data_from_cache(assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex_id']], location_id=location_id, year_start=year_start, states=states)
 
     condition_column = condition_column.fillna('healthy')
