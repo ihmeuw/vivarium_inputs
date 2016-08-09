@@ -7,6 +7,8 @@ from scipy import stats
 from numpy.random import choice
 import os.path
 from hashlib import md5
+import os
+
 from ceam import config
 
 import logging
@@ -1036,7 +1038,12 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
     df with input data for CEAM
     '''
 
+    # This causes the files that the cache writes to be both readable and writeable by other users
+    old_umask = os.umask(0)
+
     function_output = _inner_cached_call(funct, *args, **kwargs)
+
+    os.umask(old_umask)
 
     if col_name:
         keepcol = ['year_id','age','sex_id','draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
