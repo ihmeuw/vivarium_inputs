@@ -457,7 +457,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
         list of modelable entity ids of the sequelae of a cause
 
     states : dict
-    	dict with keys = name of cause, values = modelable entity id of cause
+        dict with keys = name of cause, values = modelable entity id of cause
 
     Returns
     -------
