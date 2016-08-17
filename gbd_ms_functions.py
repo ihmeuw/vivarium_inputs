@@ -31,24 +31,6 @@ def normalize_for_simulation(df):
     df = df.rename(columns={'year_id': 'year'})
     return df
 
-def get_age_group_midpoint_from_age_group_name(df):
-    """Creates an "age" column from the "age_group_name" column
-    Age column values are ages at the midpoint of the age groups
-
-    Parameters
-    ----------
-    df: dataframe for which you want an age column that has an age_group_id column
-
-    Returns
-    -------
-    Midpoint of the age group values (e.g. age_group_name "5 to 9" returns 7.5
-        TODO: Need to check with Haidong or someone else on mortality to see if
-        we want to use age 82.5 for the 80+ age group
-    """
-
-    df['age'] = df['age_group_name'].map({})
-
-
 def get_age_from_age_group_id(df):
    """Creates an "age" column from the "age_group_id" column
 
@@ -67,27 +49,6 @@ def get_age_from_age_group_id(df):
    19: 70, 20: 75, 21: 80})
 
    return df
-
-def extract_age_from_age_group_name(age_group_name):
-    """Creates an "age" column from the "age_group_id" column
-
-    Parameters
-    ----------
-    age_group_name: value from age_group_name column in a dataframe
-
-    Returns
-    -------
-    Age value that is currently just defined as the age_start
-        All age groups under 1 (EN, NN, PN) are made to be 0
-        TODO: We'll want to capture EN, NN, PN ages in the future
-    """
-
-    try:
-        return int(age_group_name.split(' ')[0])
-
-    except ValueError:
-        return 0
-
 
 def expand_grid(a, y):
     """ Creates an expanded dataframe of ages and years
@@ -183,7 +144,7 @@ def get_populations(location_id,year_start,sex_id):
     assert os.path.isfile("/share/costeffectiveness/CEAM/cache/pop_{l}.csv"                      .format(l = location_id)) == True, "the population information for location_id {l} has not been pulled from the database or it is not in the correct place".    format(l=location_id)
 
     # use auxilliary function extract_age_from_age_group_name to create an age column
-    pop['age'] = pop['age_group_name'].map(extract_age_from_age_group_name)
+    pop = get_age_from_age_group_id(pop)
 
     # Grab population for year_start only (to initialize microsim population)
     pop = pop.query('year_id=={y}'.format(y=year_start))
@@ -233,137 +194,25 @@ def assign_sex_id(simulants_df,location_id, year_start):
 
     # pull in male and female populations so that we can assign sex according to
     # GBD population estimates (with age/sex correlation)
-    male_pop = get_populations(location_id,year_start,1)
-    female_pop = get_populations(location_id,year_start,2)
+    male_pop = get_populations(location_id, year_start, 1)
+    female_pop = get_populations(location_id, year_start, 2)
 
     # do for each age in population dataframes (same ages in male_pop and female_pop)
     for age in male_pop.age.values:
         male_pop_value = male_pop.query("age=={a}".format(a=age)).pop_scaled.values
         female_pop_value = female_pop.query("age=={a}".format(a=age)).pop_scaled.values
 
-        elements = [1,2]
+        elements = [1, 2]
         male_prop = male_pop_value / (male_pop_value + female_pop_value)
         female_prop = 1 - male_prop
-        weights = [float(male_prop),float(female_prop)]
+        weights = [float(male_prop), float(female_prop)]
 
-        one_age = simulants_df.query("age=={a}".format(a=age)).copy()
-        one_age['sex_id'] = one_age['age'].map(lambda x: choice(elements, p=weights))
+        one_age = simulants_df.query("age == {a}".format(a = age)).copy()
+        one_age['sex_id'] = one_age['age'].map(lambda x: choice(elements, p = weights))
 
         new_sim_file = new_sim_file.append(one_age)
 
     return new_sim_file
-
-
-def assign_ihd(simulants_df, location_id, year_start):
-    """Function that assigns chronic ihd status to starting population of simulants
-
-    Parameters
-    ----------
-    simulants_df : dataframe
-        dataframe of simulants that is made earlier in the function
-
-    location_id : int, location id
-        location_id takes same location_id values as are used for GBD
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    Returns
-    -------
-    Creates a new column for a df of simulants with a column called chronic_ihd
-        chronic_ihd takes values 0 or 1
-            1 indicates that the simulant has chronic ihd
-            0 indicates that the simulant does not have chronic ihd
-    """
-
-    new_sim_file = pd.DataFrame()
-
-    angina_prevalence_draws = get_modelable_entity_draws(location_id,year_start,year_start,5,1817)
-    asympt_prevalence_draws = get_modelable_entity_draws(location_id,year_start,year_start,5,3233)
-    hf_ihd_prevalence_draws = get_modelable_entity_draws(location_id,year_start,year_start,5,9567)
-
-    for i in range(0,1000):
-        angina_prevalence_draws = angina_prevalence_draws.        rename(columns={'draw_{i}'.format(i=i):'angina_prev{i}'.format(i=i)})
-
-        hf_ihd_prevalence_draws = hf_ihd_prevalence_draws.        rename(columns={'draw_{i}'.format(i=i):'hf_prev{i}'.format(i=i)})
-
-        asympt_prevalence_draws = asympt_prevalence_draws.        rename(columns={'draw_{i}'.format(i=i):'asympt_prev{i}'.format(i=i)})
-
-    prevalence_draws = angina_prevalence_draws.merge(hf_ihd_prevalence_draws, on = ['year_id','sex_id','age']).    merge(asympt_prevalence_draws, on = ['year_id','sex_id','age'])
-
-    for i in range(0,1000):
-        prevalence_draws['estimate_{i}'.format(i=i)] =         prevalence_draws['hf_prev{i}'.format(i=i)] +         prevalence_draws['asympt_prev{i}'.format(i=i)] +         prevalence_draws['angina_prev{i}'.format(i=i)]
-
-    #TODO: Confirm if we want to use draws (as opposed to mean of draws) moving forward
-    # If we use draws, we'll need to create the population file for every draw (1k times)
-    prevalence_draws['mean'] = prevalence_draws.loc[:,'estimate_0':'estimate_999'].mean(axis=1)
-
-    for sex_id in simulants_df.sex_id.unique():
-        for age in simulants_df.age.unique():
-            elements = [0,1]
-            probability_of_disease = prevalence_draws.            query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))['mean']
-            probability_of_NOT_having_disease = 1 - probability_of_disease
-            weights = [float(probability_of_NOT_having_disease),
-                       float(probability_of_disease)]
-
-            one_age = simulants_df.query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))
-            one_age['chronic_ihd'] = one_age['age'].map(lambda x: choice(elements, p=weights))
-            new_sim_file = new_sim_file.append(one_age)
-
-    return new_sim_file
-
-
-def assign_disease(simulants_df, location_id, year_start, me_id, col_name):
-    """Function that assigns disease status to starting population of simulants
-
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    me_id : int
-        modelable entity
-
-    col_name : str
-        name of the column that you want to create
-        (i.e. name of the disease)
-
-    Returns
-    -------
-    Creates a new column for a df of simulants with a column for the disease
-    which you are assigning
-        the column takes values 0 or 1
-            1 indicates that the simulant has the disease
-            0 indicates that the simulant does not have the disease
-    """
-
-    df = simulants_df
-
-    new_sim_file = pd.DataFrame()
-
-    prevalence_draws = get_modelable_entity_draws(location_id,year_start,year_start,5,me_id)
-
-    #TODO: Confirm if we want to use draws (as opposed to mean of draws) moving forward
-    # If we use draws, we'll need to create the population file for every draw (1k times)
-    prevalence_draws['mean'] = prevalence_draws.loc[:,'draw_0':'draw_999'].mean(axis=1)
-
-    for sex_id in simulants_df.sex_id.unique():
-        for age in simulants_df.age.unique():
-            elements = [0,1]
-            probability_of_disease = prevalence_draws.            query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))['mean']
-            probability_of_NOT_having_disease = 1 - probability_of_disease
-            weights = [float(probability_of_NOT_having_disease),
-                       float(probability_of_disease)]
-
-            one_age = df.query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))
-            one_age['{c}'.format(c=col_name)] = one_age['age'].map(lambda x: choice(elements, p=weights))
-            new_sim_file = new_sim_file.append(one_age)
-
-    return new_sim_file['{c}'.format(c=col_name)]
-
 
 def get_all_cause_mortality_rate(location_id, year_start, year_end):
     #FIXME: for future models, actually bring in cause-deleted mortality
@@ -439,23 +288,17 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     return output_df
 
 def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_start, states):
-
     """Function that assigns chronic ihd status to starting population of simulants
-
     Parameters
     ----------
     simulants_df : dataframe
         dataframe of simulants that is made earlier in the function
-
     location_id : int, location id
         location_id takes same location_id values as are used for GBD
-
     year_start : int, year
         year_start is the year in which you want to start the simulation
-
     seqlist : list
         list of modelable entity ids of the sequelae of a cause
-
     states : dict
         dict with keys = name of cause, values = modelable entity id of cause
 
@@ -472,7 +315,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
     new_sim_file = pd.DataFrame()
 
     draw_number = config.getint('run_configuration', 'draw_number')
-    keepcol = ['year_id','sex_id','age','draw_{}'.format(draw_number)]
+    keepcol = ['year_id', 'sex_id', 'age', 'draw_{}'.format(draw_number)]
     prevalence_draws_dictionary = {}
 
     for key, value in states.items():
@@ -481,19 +324,19 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
         prevalence_draws_dictionary[key] = prevalence_draws_dictionary[key][keepcol]
         prevalence_df = prevalence_df.append(prevalence_draws_dictionary[key])
 
-    prevalence_df = prevalence_df.groupby(['year_id','sex_id','age'], as_index=False).sum()
+    prevalence_df = prevalence_df.groupby(['year_id', 'sex_id', 'age'], as_index=False).sum()
 
     for sex_id in simulants_df.sex_id.unique():
         for age in simulants_df.age.unique():
-            elements = [0,1]
+            elements = [0, 1]
             probability_of_disease = prevalence_df.\
-            query("age=={a} and sex_id=={s}".format(a=age,s=sex_id))['draw_{}'.format(draw_number)]
+            query("age=={a} and sex_id=={s}".format(a= age,s= sex_id))['draw_{}'.format(draw_number)]
             probability_of_NOT_having_disease = 1 - probability_of_disease
             weights = [float(probability_of_NOT_having_disease),
                        float(probability_of_disease)]
 
-            one_age = simulants_df.query("age=={a} and sex_id=={s}".format(a=age,s=sex_id)).copy()
-            one_age['condition_envelope'] = one_age['age'].map(lambda x: choice(elements, p=weights))
+            one_age = simulants_df.query("age=={a} and sex_id=={s}".format(a= age,s= sex_id)).copy()
+            one_age['condition_envelope'] = one_age['age'].map(lambda x: choice(elements, p = weights))
             new_sim_file = new_sim_file.append(one_age)
 
     # produce a column of strings with nulls for healty, everyone else gets key value from states
@@ -504,7 +347,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
     # doesn't exist
     for key in states.keys():
         prevalence_draws_dictionary[key] = \
-            pd.merge(prevalence_draws_dictionary[key], prevalence_df, on=['age','sex_id','year_id'],
+            pd.merge(prevalence_draws_dictionary[key], prevalence_df, on=['age', 'sex_id', 'year_id'],
                 suffixes=('_single', '_total'))
         prevalence_draws_dictionary[key]['scaled_prevalence'] = prevalence_draws_dictionary[key]['draw_{}_single'.format(draw_number)] / \
             prevalence_draws_dictionary[key]['draw_{}_total'.format(draw_number)]
@@ -529,13 +372,6 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
 # def interpolate
 # this is a placeholder. we'll eventually want an interpolation function but
 # for now are content using Python's built in linear interpolation function
-
-
-#TODO: Think of a more eloquent way to get all of the causes into a list
-ihd = [1814, 2412, 1817, 3233]
-chronic_hemorrhagic_stroke = [9311, 9310, 9312]
-list_of_me_ids_in_microsim = chronic_hemorrhagic_stroke + ihd
-
 
 # # Section 4 - Define main functions
 # These functions will be used to re-format GBD data that will be used in the cost-effectiveness microsim.
@@ -565,7 +401,7 @@ def generate_ceam_population(location_id,year_start,number_of_simulants):
     '''
 
     # Use auxilliary get_populations function to bring in the both sex population
-    pop = get_populations(location_id,year_start,3)
+    pop = get_populations(location_id, year_start, 3)
 
     total_pop_value = pop.sum()['pop_scaled']
 
@@ -573,17 +409,17 @@ def generate_ceam_population(location_id,year_start,number_of_simulants):
     pop['proportion_of_total_pop'] = pop['pop_scaled'] / total_pop_value
 
     # create a dataframe of 50k simulants
-    simulants = pd.DataFrame({'simulant_id':range(0,number_of_simulants)})
+    simulants = pd.DataFrame({'simulant_id' : range(0, number_of_simulants)})
 
     # use stats package to assign ages to simulants according to proportions in the
     # population file
     #TODO: use np.random.choice and assign age/sex at the same time
     ages = pop.age.values
     proportions = pop.proportion_of_total_pop.values
-    simulant_ages = stats.rv_discrete(values=(ages, proportions))
-    simulants['age'] = simulant_ages.rvs(size=number_of_simulants)
+    simulant_ages = stats.rv_discrete(values = (ages, proportions))
+    simulants['age'] = simulant_ages.rvs(size = number_of_simulants)
 
-    simulants = assign_sex_id(simulants,location_id,year_start)
+    simulants = assign_sex_id(simulants, location_id, year_start)
 
     return simulants
 
