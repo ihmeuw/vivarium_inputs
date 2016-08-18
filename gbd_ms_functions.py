@@ -220,78 +220,89 @@ def assign_sex_id(simulants_df, location_id, year_start):
         new_sim_file = new_sim_file.append(one_age)
 
     return new_sim_file
-
-def get_all_cause_mortality_rate(location_id, year_start, year_end):
     
-    """Get all-cause mortality rate from year_start to year_end (inclusive)
+def get_all_cause_mortality_rate(location_id, year_start, year_end): 
+    #FIXME: for future models, actually bring in cause-deleted mortality
+    '''Get cause-deleted mortality rate from year_start to year_end (inclusive)
 
     Parameters
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
-
+        
     year_start : int, year
         year_start is the year in which you want to start the simulation
-
+    
     year_end : int, end year
         year_end is the year in which you want to end the simulation
-
+        
     Returns
     -------
     pd.DataFrame with columns
-    """
-
+    '''
+    
     all_cause_mr_dict = {}
-
-    for sex_id in (1, 2):
+    
+    for sex_id in (1,2):
 
         # Read in a csv of cause data that is produced by the get_outputs Stata function
-        all_cause_mr = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/all_cause_mortality_causeid294_in_country{l}.csv".format(l = location_id))
-
-        # only get years we care about and only get "Rate" rows, since we want the mortality rate
-        all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end)).copy()
-
-        # FIXME: Will want to use age midpoints in the future
-        all_cause_mr = get_age_from_age_group_id(all_cause_mr)
-
-        all_cause_mr = all_cause_mr.query('sex_id == {s}'.format(s=sex_id))
-
+        all_cause_deaths = pd.read_csv("/share/costeffectiveness/CEAM/cache/draws_for_location{l}_for_all_cause_mortality_rate.csv".\
+                                   format(l = location_id))
+        
+        # filter so that only metric id 1 (deaths) is in our dataframe
+        all_cause_deaths = all_cause_deaths.query("metric_id == 1").copy()
+        
+        # read in and merge the population file to file with all_cause deaths to calculate the rate
+        # rate = # of all cause deaths / population for every age, sex, year combination
+        pop = pd.read_csv("/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(l=location_id))
+     
+        # merge all cause deaths and pop to get all cause mortality rate
+        all_cause_mr = pd.merge(all_cause_deaths, pop, on = ['age_group_id', 'year_id', 'sex_id'])
+        
+        # Need to divide # of all cause deaths by population
+        for i in range(0,1000):
+            all_cause_mr['all_cause_mortality_rate_{}'.format(i)] = all_cause_mr['draw_{}'.format(i)]\
+            / all_cause_mr.pop_scaled
+        
+        all_cause_mr = get_age_from_age_group_id(all_cause_mr).copy()
+        
+        # only get years we care about 
+        all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.\
+                                          format(ys=year_start, ye=year_end))
+        
         # TODO: Figure out how to interpolate to the early, pre, and post neonatal groups
         all_cause_mr = all_cause_mr.query("age != 0")
-
+    
+        all_cause_mr = all_cause_mr.query('sex_id == {s}'.format(s=sex_id))
 
         # create list of all ages/years we want
-        all_ages = range(1, 81)
-        all_years = range(year_start, year_end + 1)
+        all_ages = range(1, 81) 
+        all_years = range(year_start, year_end+1) 
 
         # Set indexes on year_id and age
         all_cause_mr = all_cause_mr.set_index(['year_id', 'age']).sortlevel()
 
-        ind = pd.MultiIndex.from_product([all_years, all_ages], names=['year_id', 'age'])
+        ind = pd.MultiIndex.from_product([all_years, all_ages], names=['year_id','age'])
 
         expanded_data = pd.DataFrame(all_cause_mr, index=ind)
 
         # Keep only relevant columns
-        keepcol=['val', 'upper', 'lower']
-        mx = expanded_data[keepcol]
+        mx = expanded_data[['all_cause_mortality_rate_{i}'.format(i=i) for i in range(0,1000)]]
 
         # Interpolate over age and year
         interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
         interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
 
-        # Rename the 'val' column to be more descriptive
-        interp_data = interp_data.rename(columns={'val': 'all_cause_mortality_rate'})
-
         interp_data['sex_id'] = sex_id
-
-        all_cause_mr_dict[sex_id] = extrapolate_ages(interp_data, 151, year_end +1)
-
+        
+        all_cause_mr_dict[sex_id] = extrapolate_ages(interp_data, 151, year_end+1)
+    
     output_df = all_cause_mr_dict[1].append(all_cause_mr_dict[2])
-
+    
     output_df['location_id'] = location_id
-
+    
     output_df.location_id = output_df.location_id.astype(int)
-
+    
     return output_df
 
 def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_start, states):
@@ -437,48 +448,43 @@ def generate_ceam_population(location_id, year_start, number_of_simulants):
 
 # ### 2. get cause-deleted mortality rate
 
-
-
 def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
+    '''Returns the cause-delted mortality rate for a given time period and location
     
-    """
-    Returns the cause-delted mortality rate for a given time period and location
-
     Parameters
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
-
+        
     year_start : int, year
         year_start is the year in which you want to start the simulation
-
+    
     year_end : int, end year
         year_end is the year in which you want to end the simulation
 
     Returns
     -------
     df with columns age, year_id, sex_id, and 1k draws of cause deleted mortality rate
-    """
-    
+    '''
     all_me_id_draws = pd.DataFrame()
 
     for me_id in list_of_me_ids_in_microsim:
-        csmr_draws = get_modelable_entity_draws(location_id, year_start, year_end, 15, me_id) #15 is CSMR
+        csmr_draws = get_modelable_entity_draws(location_id, year_start, year_end, 15, me_id)
         all_me_id_draws = all_me_id_draws.append(csmr_draws)
-
-    all_me_id_draws = all_me_id_draws.groupby(['age', 'sex_id', 'year_id'], as_index = False).sum()
+        
+    all_me_id_draws = all_me_id_draws.groupby(['age', 'sex_id','year_id'], as_index=False).sum()
 
     all_cause_mr = get_all_cause_mortality_rate(location_id, year_start, year_end)
 
-    cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=['age', 'sex_id', 'year_id'])
+    cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=['age','sex_id','year_id'])
 
-    keepcol = ['age', 'year_id', 'sex_id']
-    for i in range(0, 1000):
-        cause_del_mr['draw_{i}'.format(i=i)] = cause_del_mr.all_cause_mortality_rate - cause_del_mr['draw_{i}'.format(i=i)]
-        keepcol.append('draw_{i}'.format(i=i))
+    for i in range(0,1000):
+        cause_del_mr['cause_deleted_mortality_rate_{}'.format(i)] = cause_del_mr['all_cause_mortality_rate_{}'.format(i)]\
+        - cause_del_mr['draw_{}'.format(i)]
 
+    keepcol = ['age','year_id','sex_id']
+    keepcol.extend(['cause_deleted_mortality_rate_{i}'.format(i=config.getint('run_configuration', 'draw_number'))])
     return cause_del_mr[keepcol]
-
 
 # ### 3. Get modelable entity draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
