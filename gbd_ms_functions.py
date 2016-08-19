@@ -659,27 +659,25 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     '''
     output_df = pd.DataFrame()
 
+    draws = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
+    draws = draws[draws.measure_id == measure]
+
+    draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end)).copy()
+
+    draws = get_age_from_age_group_id(draws)
+
+    # For now, do not include information on early, pre, and post neonatal
+    draws = draws.query("age != 0")
+
+    # Set ages and years of interest
+    all_ages = range(1,81)
+    all_years = range(year_start,year_end+1)
+
+    # Set indexes of year_id and age
+    draws = draws.set_index(['year_id','age']).sortlevel()
+
     for sex_id in (1,2):
-
-        draws = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
-
-        draws = draws[draws.measure_id == measure]
-
-        draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end)).copy()
-
-        draws = get_age_from_age_group_id(draws)
-
         draws = draws.query("sex_id == {s}".format(s=sex_id))
-
-        # For now, do not include information on early, pre, and post neonatal
-        draws = draws.query("age != 0")
-
-        # Set ages and years of interest
-        all_ages = range(1,81)
-        all_years = range(year_start,year_end+1)
-
-        # Set indexes of year_id and age
-        draws = draws.set_index(['year_id','age']).sortlevel()
 
         ind = pd.MultiIndex.from_product([all_years,all_ages],names=['year_id','age'])
 
