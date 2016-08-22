@@ -2,7 +2,7 @@
 # coding: utf-8
 
 
-import numpy as np 
+import numpy as np
 import pandas as pd
 from scipy import stats
 from numpy.random import choice
@@ -19,41 +19,45 @@ _log = logging.getLogger(__name__)
 # # Microsim functions
 # This notebook contains version 2.0 of the functions that will be used to re-format GBD data into a format that can be used for the cost-effectiveness microsim.
 # Wherever possible, these functions will leverage the existing central comp functions (please see this link for more information on the central computation
-# functions https://hub.ihme.washington.edu/display/G2/Central+Function+Documentation)
+# functions
+# https://hub.ihme.washington.edu/display/G2/Central+Function+Documentation)
 
 # # Section 1 - Define auxilliary functions
-# These functions will be used below to help simplify the code that actually reads in and re-formats GBD data.
+# These functions will be used below to help simplify the code that
+# actually reads in and re-formats GBD data.
 
 def normalize_for_simulation(df):
     # Convert sex_id to a categorical
-    df['sex'] = df.sex_id.map({1:'Male', 2:'Female', 3:'Both'}).astype('category')
+    df['sex'] = df.sex_id.map(
+        {1: 'Male', 2: 'Female', 3: 'Both'}).astype('category')
     df = df.drop('sex_id', axis=1)
 
     df = df.rename(columns={'year_id': 'year'})
     return df
 
+
 def get_age_from_age_group_id(df):
-   
-   """Creates an "age" column from the "age_group_id" column
+    """Creates an "age" column from the "age_group_id" column
 
-   Parameters
-   ----------
-   df: df for which you want an age column that has an age_group_id column
+    Parameters
+    ----------
+    df: df for which you want an age column that has an age_group_id column
 
-   Returns
-   -------
-   df with an age column
-   """
+    Returns
+    -------
+    df with an age column
+    """
 
-   df = df.copy()
-   df['age'] = df['age_group_id'].map({2: 0, 3: 0, 4: 0, 5: 1, 6: 5, 7: 10, 8: 15,
-   9: 20, 10: 25, 11: 30, 12: 35, 13: 40, 14: 45, 15: 50, 16: 55, 17: 60, 18: 65,
-   19: 70, 20: 75, 21: 80})
+    df = df.copy()
+    df['age'] = df['age_group_id'].map({2: 0, 3: 0, 4: 0, 5: 1, 6: 5, 7: 10, 8: 15,
+                                        9: 20, 10: 25, 11: 30, 12: 35, 13: 40, 
+                                        14: 45, 15: 50, 16: 55, 17: 60, 18: 65,
+                                        19: 70, 20: 75, 21: 80})
 
-   return df
+    return df
+
 
 def expand_grid(a, y):
-    
     """ 
     Creates an expanded dataframe of ages and years
     Mirrors the expand_grid function in R
@@ -70,14 +74,13 @@ def expand_grid(a, y):
     Dataframe of expanded ages and years
     """
 
-    aG, yG = np.meshgrid(a, y) # create the actual grid
-    aG = aG.flatten() # make the grid 1d
-    yG = yG.flatten() # make the grid 1d
-    return pd.DataFrame({'age': aG, 'year_id': yG}) # return a dataframe
+    aG, yG = np.meshgrid(a, y)  # create the actual grid
+    aG = aG.flatten()  # make the grid 1d
+    yG = yG.flatten()  # make the grid 1d
+    return pd.DataFrame({'age': aG, 'year_id': yG})  # return a dataframe
 
 
 def extrapolate_ages(df, age_end, year_end):
-    
     """
     Extrapolates GBD data for simulants over the age of 80
     Necessary because GBD's estimates only go to "80+" and we
@@ -112,7 +115,7 @@ def extrapolate_ages(df, age_end, year_end):
     # cause-deleted mortality rates to the older ages
     dup_table.reset_index(level=0, inplace=True)
 
-    merged = pd.merge(expand_table, dup_table , on=['year_id'])
+    merged = pd.merge(expand_table, dup_table, on=['year_id'])
 
     df.reset_index(level=0, inplace=True)
     df.reset_index(level=1, inplace=True)
@@ -123,7 +126,6 @@ def extrapolate_ages(df, age_end, year_end):
 
 
 def get_populations(location_id, year_start, sex_id):
-
     """
     Get age-/sex-specific population structure
 
@@ -144,31 +146,38 @@ def get_populations(location_id, year_start, sex_id):
         pop_scaled is the population for a given age/year/sex
     """
 
-    # Read in a csv of population data that is produced by the get_populations Stata function
-    pop = pd.read_csv("/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(l = location_id))
+    # Read in a csv of population data that is produced by the get_populations
+    # Stata function
+    pop = pd.read_csv(
+        "/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(l=location_id))
 
-    # assert an error to see if the population data was pulled from the database
-    assert os.path.isfile("/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(l = location_id)) == True, "the population information for location_id {l} has not been pulled from the database or it is not in the correct place".    format(l=location_id)
+    # assert an error to see if the population data was pulled from the
+    # database
+    assert os.path.isfile("/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(
+        l=location_id)) == True, "the population information for location_id {l} has not been pulled from the database or it is not in the correct place".format(l=location_id)
 
-    # use auxilliary function extract_age_from_age_group_name to create an age column
+    # use auxilliary function extract_age_from_age_group_name to create an age
+    # column
     pop = get_age_from_age_group_id(pop)
 
     # Grab population for year_start only (to initialize microsim population)
     pop = pop.query('year_id=={y}'.format(y=year_start))
 
     # Determine gender of interest. Can be 1, 2, or 3
-    pop = pop.query("sex_id == {s}".format(s = sex_id))
+    pop = pop.query("sex_id == {s}".format(s=sex_id))
 
     # For now, don't include population for early, pre, post neonates
-    pop = pop.query("age != 0") # TODO: Bring in EN, NN, PN eventually
+    pop = pop.query("age != 0")  # TODO: Bring in EN, NN, PN eventually
 
     # Keep only the relevant columns
-    keepcol=['year_id', 'location_name', 'location_id', 'age', 'sex_id', 'pop_scaled']
+    keepcol = ['year_id', 'location_name',
+               'location_id', 'age', 'sex_id', 'pop_scaled']
 
     pop = pop[keepcol]
 
     # assert an error if there are duplicate rows
-    assert pop.duplicated(['age', 'year_id', 'sex_id']).sum() == 0, "there are duplicates in the dataframe that get_populations just tried to output. check the population file that you pulled in from the GBD database"
+    assert pop.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_populations just tried to output. check the population file that you pulled in from the GBD database"
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert pop.isnull().values.any() == False, "there are nulls in the dataframe that get_populations just tried to output. check the population file that you pulled in from the GBD database"
@@ -204,109 +213,123 @@ def assign_sex_id(simulants_df, location_id, year_start):
     male_pop = get_populations(location_id, year_start, 1)
     female_pop = get_populations(location_id, year_start, 2)
 
-    # do for each age in population dataframes (same ages in male_pop and female_pop)
+    # do for each age in population dataframes (same ages in male_pop and
+    # female_pop)
     for age in male_pop.age.values:
-        male_pop_value = male_pop.query("age == {a}".format(a=age)).pop_scaled.values
-        female_pop_value = female_pop.query("age == {a}".format(a=age)).pop_scaled.values
+        male_pop_value = male_pop.query(
+            "age == {a}".format(a=age)).pop_scaled.values
+        female_pop_value = female_pop.query(
+            "age == {a}".format(a=age)).pop_scaled.values
 
         elements = [1, 2]
         male_prop = male_pop_value / (male_pop_value + female_pop_value)
         female_prop = 1 - male_prop
         weights = [float(male_prop), float(female_prop)]
 
-        one_age = simulants_df.query("age == {a}".format(a = age)).copy()
-        one_age['sex_id'] = one_age['age'].map(lambda x: choice(elements, p = weights))
+        one_age = simulants_df.query("age == {a}".format(a=age)).copy()
+        one_age['sex_id'] = one_age['age'].map(
+            lambda x: choice(elements, p=weights))
 
         new_sim_file = new_sim_file.append(one_age)
 
     return new_sim_file
-    
-def get_all_cause_mortality_rate(location_id, year_start, year_end): 
-    #FIXME: for future models, actually bring in cause-deleted mortality
+
+
+def get_all_cause_mortality_rate(location_id, year_start, year_end):
+    # FIXME: for future models, actually bring in cause-deleted mortality
     '''Get cause-deleted mortality rate from year_start to year_end (inclusive)
 
     Parameters
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
-        
+
     year_start : int, year
         year_start is the year in which you want to start the simulation
-    
+
     year_end : int, end year
         year_end is the year in which you want to end the simulation
-        
+
     Returns
     -------
     pd.DataFrame with columns
     '''
-    
-    all_cause_mr_dict = {}
-    
-    for sex_id in (1,2):
 
-        # Read in a csv of cause data that is produced by the get_outputs Stata function
-        all_cause_deaths = pd.read_csv("/share/costeffectiveness/CEAM/cache/draws_for_location{l}_for_all_cause_mortality_rate.csv".\
-                                   format(l = location_id))
-        
+    all_cause_mr_dict = {}
+
+    for sex_id in (1, 2):
+
+        # Read in a csv of cause data that is produced by the get_outputs Stata
+        # function
+        all_cause_deaths = pd.read_csv("/share/costeffectiveness/CEAM/cache/draws_for_location{l}_for_all_cause_mortality_rate.csv".
+                                       format(l=location_id))
+
         # filter so that only metric id 1 (deaths) is in our dataframe
         all_cause_deaths = all_cause_deaths.query("metric_id == 1").copy()
-        
+
         # read in and merge the population file to file with all_cause deaths to calculate the rate
-        # rate = # of all cause deaths / population for every age, sex, year combination
-        pop = pd.read_csv("/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(l=location_id))
-     
+        # rate = # of all cause deaths / population for every age, sex, year
+        # combination
+        pop = pd.read_csv(
+            "/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(l=location_id))
+
         # merge all cause deaths and pop to get all cause mortality rate
-        all_cause_mr = pd.merge(all_cause_deaths, pop, on = ['age_group_id', 'year_id', 'sex_id'])
-        
+        all_cause_mr = pd.merge(all_cause_deaths, pop, on=[
+                                'age_group_id', 'year_id', 'sex_id'])
+
         # Need to divide # of all cause deaths by population
-        for i in range(0,1000):
+        for i in range(0, 1000):
             all_cause_mr['all_cause_mortality_rate_{}'.format(i)] = all_cause_mr['draw_{}'.format(i)]\
-            / all_cause_mr.pop_scaled
-        
+                / all_cause_mr.pop_scaled
+
         all_cause_mr = get_age_from_age_group_id(all_cause_mr).copy()
-        
-        # only get years we care about 
-        all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.\
+
+        # only get years we care about
+        all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.
                                           format(ys=year_start, ye=year_end))
-        
-        # TODO: Figure out how to interpolate to the early, pre, and post neonatal groups
+
+        # TODO: Figure out how to interpolate to the early, pre, and post
+        # neonatal groups
         all_cause_mr = all_cause_mr.query("age != 0")
-    
+
         all_cause_mr = all_cause_mr.query('sex_id == {s}'.format(s=sex_id))
 
         # create list of all ages/years we want
-        all_ages = range(1, 81) 
-        all_years = range(year_start, year_end+1) 
+        all_ages = range(1, 81)
+        all_years = range(year_start, year_end + 1)
 
         # Set indexes on year_id and age
         all_cause_mr = all_cause_mr.set_index(['year_id', 'age']).sortlevel()
 
-        ind = pd.MultiIndex.from_product([all_years, all_ages], names=['year_id','age'])
+        ind = pd.MultiIndex.from_product(
+            [all_years, all_ages], names=['year_id', 'age'])
 
         expanded_data = pd.DataFrame(all_cause_mr, index=ind)
 
         # Keep only relevant columns
-        mx = expanded_data[['all_cause_mortality_rate_{i}'.format(i=i) for i in range(0,1000)]]
+        mx = expanded_data[
+            ['all_cause_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)]]
 
         # Interpolate over age and year
         interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+        interp_data = interp_data.groupby(
+            level=1).apply(lambda x: x.interpolate())
 
         interp_data['sex_id'] = sex_id
-        
-        all_cause_mr_dict[sex_id] = extrapolate_ages(interp_data, 151, year_end+1)
-    
+
+        all_cause_mr_dict[sex_id] = extrapolate_ages(
+            interp_data, 151, year_end + 1)
+
     output_df = all_cause_mr_dict[1].append(all_cause_mr_dict[2])
-    
+
     output_df['location_id'] = location_id
-    
+
     output_df.location_id = output_df.location_id.astype(int)
-    
+
     return output_df
 
+
 def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_start, states):
-   
     """
     Function that assigns chronic ihd status to starting population of simulants
     Parameters
@@ -341,51 +364,59 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
 
     for key, value in states.items():
         prevalence_draws_dictionary[key] = get_modelable_entity_draws(location_id,
-        year_start, year_start, 5, value)
-        prevalence_draws_dictionary[key] = prevalence_draws_dictionary[key][keepcol]
+                                                                      year_start, year_start, 5, value)
+        prevalence_draws_dictionary[
+            key] = prevalence_draws_dictionary[key][keepcol]
         prevalence_df = prevalence_df.append(prevalence_draws_dictionary[key])
 
-    prevalence_df = prevalence_df.groupby(['year_id', 'sex_id', 'age'], as_index=False).sum()
+    prevalence_df = prevalence_df.groupby(
+        ['year_id', 'sex_id', 'age'], as_index=False).sum()
 
     for sex_id in simulants_df.sex_id.unique():
         for age in simulants_df.age.unique():
             elements = [0, 1]
             probability_of_disease = prevalence_df.\
-            query("age=={a} and sex_id=={s}".format(a= age,s= sex_id))['draw_{}'.format(draw_number)]
+                query("age=={a} and sex_id=={s}".format(a=age, s=sex_id))[
+                    'draw_{}'.format(draw_number)]
             probability_of_NOT_having_disease = 1 - probability_of_disease
             weights = [float(probability_of_NOT_having_disease),
                        float(probability_of_disease)]
 
-            one_age = simulants_df.query("age=={a} and sex_id=={s}".format(a=age,s=sex_id)).copy()
-            one_age['condition_envelope'] = one_age['age'].map(lambda x: choice(elements, p=weights))
+            one_age = simulants_df.query(
+                "age=={a} and sex_id=={s}".format(a=age, s=sex_id)).copy()
+            one_age['condition_envelope'] = one_age['age'].map(
+                lambda x: choice(elements, p=weights))
             new_sim_file = new_sim_file.append(one_age)
 
     # produce a column of strings with nulls for healty, everyone else gets key value from states
     # add up to get total, divide each prevalence by total and then use that as the weights for np choice
-    # need to ensure that only people with the cause can get a specific sequelae
+    # need to ensure that only people with the cause can get a specific
+    # sequelae
 
     # TODO: Should we be using groupby for these loops to ensure that we're not looping over an age/sex combo that
     # doesn't exist
     for key in states.keys():
         prevalence_draws_dictionary[key] = \
             pd.merge(prevalence_draws_dictionary[key], prevalence_df, on=['age', 'sex_id', 'year_id'],
-                suffixes=('_single', '_total'))
+                     suffixes=('_single', '_total'))
         prevalence_draws_dictionary[key]['scaled_prevalence'] = prevalence_draws_dictionary[key]['draw_{}_single'.format(draw_number)] / \
-            prevalence_draws_dictionary[key]['draw_{}_total'.format(draw_number)]
+            prevalence_draws_dictionary[key][
+                'draw_{}_total'.format(draw_number)]
 
     for sex_id in new_sim_file.sex_id.unique():
         for age in new_sim_file.age.unique():
             list_of_weights = []
             for key, dataframe in states.items():
-                weight_scale_prev_tuple =(key, prevalence_draws_dictionary[key].\
-                                        query("sex_id == {s} and age== {a}".format(s=sex_id, a=age))['scaled_prevalence'].values[0])
+                weight_scale_prev_tuple = (key, prevalence_draws_dictionary[key].
+                                           query("sex_id == {s} and age== {a}".format(s=sex_id, a=age))['scaled_prevalence'].values[0])
                 list_of_weights.append(weight_scale_prev_tuple)
 
             list_of_keys, list_of_weights = zip(*list_of_weights)
             with_ihd = (new_sim_file.condition_envelope == 1) & (new_sim_file.age == age) & \
                        (new_sim_file.sex_id == sex_id)
 
-            new_sim_file.loc[with_ihd, 'condition_state'] = np.random.choice(list_of_keys, p=list_of_weights, size=with_ihd.sum())
+            new_sim_file.loc[with_ihd, 'condition_state'] = np.random.choice(
+                list_of_keys, p=list_of_weights, size=with_ihd.sum())
 
     return new_sim_file[['simulant_id', 'condition_state']]
 
@@ -395,13 +426,13 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
 # for now are content using Python's built in linear interpolation function
 
 # # Section 4 - Define main functions
-# These functions will be used to re-format GBD data that will be used in the cost-effectiveness microsim.
+# These functions will be used to re-format GBD data that will be used in
+# the cost-effectiveness microsim.
 
 # ### 1. Generate a population of simulants with age, sex, and disease prevalence characteristics according to
 # # TODO: Figure out if we can assign ages at 5 year intervals
 
 def generate_ceam_population(location_id, year_start, number_of_simulants):
-    
     """
     Returns a population of simulants to be fed into CEAM
 
@@ -422,7 +453,8 @@ def generate_ceam_population(location_id, year_start, number_of_simulants):
     simulant has different diseases
     """
 
-    # Use auxilliary get_populations function to bring in the both sex population
+    # Use auxilliary get_populations function to bring in the both sex
+    # population
     pop = get_populations(location_id, year_start, 3)
 
     total_pop_value = pop.sum()['pop_scaled']
@@ -431,15 +463,15 @@ def generate_ceam_population(location_id, year_start, number_of_simulants):
     pop['proportion_of_total_pop'] = pop['pop_scaled'] / total_pop_value
 
     # create a dataframe of 50k simulants
-    simulants = pd.DataFrame({'simulant_id' : range(0, number_of_simulants)})
+    simulants = pd.DataFrame({'simulant_id': range(0, number_of_simulants)})
 
     # use stats package to assign ages to simulants according to proportions in the
     # population file
-    #TODO: use np.random.choice and assign age/sex at the same time
+    # TODO: use np.random.choice and assign age/sex at the same time
     ages = pop.age.values
     proportions = pop.proportion_of_total_pop.values
-    simulant_ages = stats.rv_discrete(values = (ages, proportions))
-    simulants['age'] = simulant_ages.rvs(size = number_of_simulants)
+    simulant_ages = stats.rv_discrete(values=(ages, proportions))
+    simulants['age'] = simulant_ages.rvs(size=number_of_simulants)
 
     simulants = assign_sex_id(simulants, location_id, year_start)
 
@@ -450,15 +482,15 @@ def generate_ceam_population(location_id, year_start, number_of_simulants):
 
 def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
     '''Returns the cause-delted mortality rate for a given time period and location
-    
+
     Parameters
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
-        
+
     year_start : int, year
         year_start is the year in which you want to start the simulation
-    
+
     year_end : int, end year
         year_end is the year in which you want to end the simulation
 
@@ -469,27 +501,32 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
     all_me_id_draws = pd.DataFrame()
 
     for me_id in list_of_me_ids_in_microsim:
-        csmr_draws = get_modelable_entity_draws(location_id, year_start, year_end, 15, me_id)
+        csmr_draws = get_modelable_entity_draws(
+            location_id, year_start, year_end, 15, me_id)
         all_me_id_draws = all_me_id_draws.append(csmr_draws)
-        
-    all_me_id_draws = all_me_id_draws.groupby(['age', 'sex_id','year_id'], as_index=False).sum()
 
-    all_cause_mr = get_all_cause_mortality_rate(location_id, year_start, year_end)
+    all_me_id_draws = all_me_id_draws.groupby(
+        ['age', 'sex_id', 'year_id'], as_index=False).sum()
 
-    cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=['age','sex_id','year_id'])
+    all_cause_mr = get_all_cause_mortality_rate(
+        location_id, year_start, year_end)
 
-    for i in range(0,1000):
+    cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=[
+                            'age', 'sex_id', 'year_id'])
+
+    for i in range(0, 1000):
         cause_del_mr['cause_deleted_mortality_rate_{}'.format(i)] = cause_del_mr['all_cause_mortality_rate_{}'.format(i)]\
-        - cause_del_mr['draw_{}'.format(i)]
+            - cause_del_mr['draw_{}'.format(i)]
 
-    keepcol = ['age','year_id','sex_id']
-    keepcol.extend(['cause_deleted_mortality_rate_{i}'.format(i=config.getint('run_configuration', 'draw_number'))])
+    keepcol = ['age', 'year_id', 'sex_id']
+    keepcol.extend(['cause_deleted_mortality_rate_{i}'.format(
+        i=config.getint('run_configuration', 'draw_number'))])
     return cause_del_mr[keepcol]
 
 # ### 3. Get modelable entity draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
+
 def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id):
-    
     """
     Returns draws for a given measure and modelable entity
 
@@ -516,16 +553,18 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     -------
     df with year_id, sex_id, age and 1k draws
     """
-    
+
     output_df = pd.DataFrame()
 
     for sex_id in (1, 2):
 
-        draws = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
+        draws = pd.read_csv(
+            "/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
 
         draws = draws[draws.measure_id == measure]
 
-        draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end)).copy()
+        draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
+            ys=year_start, ye=year_end)).copy()
 
         draws = get_age_from_age_group_id(draws)
 
@@ -535,15 +574,16 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
         draws = draws.query("age != 0")
 
         # Set ages and years of interest
-        all_ages = range(1,81)
-        all_years = range(year_start,year_end+1)
+        all_ages = range(1, 81)
+        all_years = range(year_start, year_end + 1)
 
         # Set indexes of year_id and age
         draws = draws.set_index(['year_id', 'age']).sortlevel()
 
-        ind = pd.MultiIndex.from_product([all_years, all_ages], names=['year_id', 'age'])
+        ind = pd.MultiIndex.from_product(
+            [all_years, all_ages], names=['year_id', 'age'])
 
-        expanded_data = pd.DataFrame(draws,index=ind)
+        expanded_data = pd.DataFrame(draws, index=ind)
 
         # Keep only draw columns
         keepcol = ['draw_{i}'.format(i=i) for i in range(0, 1000)]
@@ -551,11 +591,13 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
 
         # Interpolate over age and year
         interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+        interp_data = interp_data.groupby(
+            level=1).apply(lambda x: x.interpolate())
 
-        interp_data['sex_id']= sex_id
+        interp_data['sex_id'] = sex_id
 
-        output_df = output_df.append(extrapolate_ages(interp_data, 151, year_end +1))
+        output_df = output_df.append(
+            extrapolate_ages(interp_data, 151, year_end + 1))
 
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -566,7 +608,6 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
 # ### 4. Get heart failure draws
 
 def get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id):
-    
     """
     Returns incidence draws for a given measure and cause of heart failure
     Since GBD 2015 does not have full models for specific causes of heart failure,
@@ -596,16 +637,20 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id):
     """
 
     # read in heart failure envelope. specify measure of interest
-    hf_envelope = get_modelable_entity_draws(location_id, year_start, year_end, 6, 2412)
+    hf_envelope = get_modelable_entity_draws(
+        location_id, year_start, year_end, 6, 2412)
 
     # read in proportion of the cause of heart failure of interest
-    proportion_draws = get_modelable_entity_draws(location_id, year_start, year_end, 18, me_id)
+    proportion_draws = get_modelable_entity_draws(
+        location_id, year_start, year_end, 18, me_id)
 
     # merge and then multiply envelope draws by proportion draws
-    cause_of_hf = pd.merge(hf_envelope, proportion_draws,on=['age', 'year_id', 'sex_id'], suffixes=('_env', '_prop'))
+    cause_of_hf = pd.merge(hf_envelope, proportion_draws, on=[
+                           'age', 'year_id', 'sex_id'], suffixes=('_env', '_prop'))
 
     for i in range(0, 1000):
-        cause_of_hf['draw_{i}'.format(i=i)] = cause_of_hf['draw_{i}_env'.format(i=i)] * cause_of_hf['draw_{i}_prop'.format(i=i)]
+        cause_of_hf['draw_{i}'.format(i=i)] = cause_of_hf['draw_{i}_env'.format(
+            i=i)] * cause_of_hf['draw_{i}_prop'.format(i=i)]
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -614,8 +659,8 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id):
 
 # ### 5. Get Relative Risks
 
+
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
-    
     """
     Parameters
     ----------
@@ -643,8 +688,10 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
 
     for sex_id in (1, 2):
 
-        # Read in a csv of cause data that is produced by the get_outputs Stata function
-        RR = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/rel_risk_of_risk{r}_in_location{l}.csv".format(r=risk_id,l=location_id))
+        # Read in a csv of cause data that is produced by the get_outputs Stata
+        # function
+        RR = pd.read_csv(
+            "/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/rel_risk_of_risk{r}_in_location{l}.csv".format(r=risk_id, l=location_id))
 
         RR = get_age_from_age_group_id(RR)
 
@@ -660,12 +707,13 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
 
         # Set ages and years of interest
         all_ages = range(1, 81)
-        all_years = range(year_start, year_end+1)
+        all_years = range(year_start, year_end + 1)
 
         # Set indexes of year_id and age
         RR = RR.set_index(['year_id', 'age']).sortlevel()
 
-        ind = pd.MultiIndex.from_product([all_years, all_ages], names=['year_id', 'age'])
+        ind = pd.MultiIndex.from_product(
+            [all_years, all_ages], names=['year_id', 'age'])
 
         expanded_data = pd.DataFrame(RR, index=ind)
 
@@ -675,15 +723,17 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
 
         # Interpolate over age and year
         interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+        interp_data = interp_data.groupby(
+            level=1).apply(lambda x: x.interpolate())
 
         interp_data['sex_id'] = sex_id
 
-        output_df = output_df.append(extrapolate_ages(interp_data, 151, year_end +1))
+        output_df = output_df.append(
+            extrapolate_ages(interp_data, 151, year_end + 1))
 
         # need to back calculate relative risk to earlier ages for risks that don't start
         # until a certain age
-        output_df = output_df.apply(lambda x: x.fillna(1),axis = 0)
+        output_df = output_df.apply(lambda x: x.fillna(1), axis=0)
 
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
@@ -694,7 +744,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
 # ### 6. PAFs
 
 def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
-    
     """
     Parameters
     ----------
@@ -723,8 +772,8 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     for sex_id in (1, 2):
 
-        pafs = pd.read_csv("/share/costeffectiveness/CEAM/cache/PAFs_for_{c}_in_{l}.csv".\
-        format(c=cause_id, l=location_id))
+        pafs = pd.read_csv("/share/costeffectiveness/CEAM/cache/PAFs_for_{c}_in_{l}.csv".
+                           format(c=cause_id, l=location_id))
 
         # only want metric id 2 (percentages or pafs)
         pafs = pafs.query("metric_id == 2")
@@ -736,13 +785,14 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
         pafs = pafs.query("sex_id == {s}".format(s=sex_id))
 
-        all_ages = range(1, 81) 
+        all_ages = range(1, 81)
         all_years = range(year_start, year_end + 1)
 
         # Set indexes of year_id and age
         pafs = pafs.set_index(['year_id', 'age']).sortlevel()
 
-        ind = pd.MultiIndex.from_product([all_years,all_ages], names=['year_id', 'age'])
+        ind = pd.MultiIndex.from_product(
+            [all_years, all_ages], names=['year_id', 'age'])
 
         expanded_data = pd.DataFrame(pafs, index=ind)
 
@@ -751,15 +801,17 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
         # Interpolate over age and year
         interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+        interp_data = interp_data.groupby(
+            level=1).apply(lambda x: x.interpolate())
 
         interp_data['sex_id'] = sex_id
 
-        output_df = output_df.append(extrapolate_ages(interp_data, 151, year_end +1))
+        output_df = output_df.append(
+            extrapolate_ages(interp_data, 151, year_end + 1))
 
         # need to back calculate PAFS to earlier ages for risks that don't start
         # until a certain age
-        output_df = output_df.apply(lambda x: x.fillna(0),axis = 0)
+        output_df = output_df.apply(lambda x: x.fillna(0), axis=0)
 
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -770,7 +822,6 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 # 8. Exposures
 
 def get_exposures(location_id, year_start, year_end, risk_id):
-    
     """
     Parameters
     ----------
@@ -795,8 +846,8 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     for sex_id in (1, 2):
 
-        exposure = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/Exposure_of_risk{r}_in_location{l}.csv".\
-        format(r=risk_id, l=location_id))
+        exposure = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/Exposure_of_risk{r}_in_location{l}.csv".
+                               format(r=risk_id, l=location_id))
 
         exposure = get_age_from_age_group_id(exposure)
 
@@ -810,14 +861,15 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
         # Set ages and years of interest
         all_ages = range(1, 81)
-        all_years = range(year_start, year_end+1)
+        all_years = range(year_start, year_end + 1)
 
         # Set indexes of year_id and age
         exposure = exposure.set_index(['year_id', 'age']).sortlevel()
 
-        ind = pd.MultiIndex.from_product([all_years, all_ages], names=['year_id', 'age'])
+        ind = pd.MultiIndex.from_product(
+            [all_years, all_ages], names=['year_id', 'age'])
 
-        expanded_data = pd.DataFrame(exposure,index=ind)
+        expanded_data = pd.DataFrame(exposure, index=ind)
 
         # Keep only draw columns
         keepcol = ['draw_{i}'.format(i=i) for i in range(0, 1000)]
@@ -825,15 +877,17 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
         # Interpolate over age and year
         interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+        interp_data = interp_data.groupby(
+            level=1).apply(lambda x: x.interpolate())
 
         interp_data['sex_id'] = sex_id
 
-        output_df = output_df.append(extrapolate_ages(interp_data, 151, year_end +1))
+        output_df = output_df.append(
+            extrapolate_ages(interp_data, 151, year_end + 1))
 
         keepcol += ['year_id', 'sex_id', 'age']
 
-        output_df = output_df.apply(lambda x: x.fillna(0),axis = 0)
+        output_df = output_df.apply(lambda x: x.fillna(0), axis=0)
 
     return output_df[keepcol]
 
@@ -868,14 +922,16 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 # ### 11. Load data from cache
 
 from joblib import Memory
-memory = Memory(cachedir=config.get('input_data', 'intermediary_data_cache_path'), verbose=1)
+memory = Memory(cachedir=config.get(
+    'input_data', 'intermediary_data_cache_path'), verbose=1)
+
 
 @memory.cache
 def _inner_cached_call(funct, *args, **kwargs):
     return funct(*args, **kwargs)
 
+
 def load_data_from_cache(funct, col_name, *args, **kwargs):
-    
     """
     load_data_from_cache is a functor that will
     check a cache to see if data exists in that cache.
@@ -901,7 +957,8 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
     df with input data for CEAM
     """
 
-    # This causes the files that the cache writes to be both readable and writeable by other users
+    # This causes the files that the cache writes to be both readable and
+    # writeable by other users
     old_umask = os.umask(0)
 
     function_output = _inner_cached_call(funct, *args, **kwargs)
@@ -909,10 +966,12 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
     os.umask(old_umask)
 
     if col_name:
-        keepcol = ['year_id', 'age', 'sex_id', 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
+        keepcol = ['year_id', 'age', 'sex_id', 'draw_{i}'.format(
+            i=config.getint('run_configuration', 'draw_number'))]
 
         function_output = function_output[keepcol]
-        function_output = function_output.rename(columns={'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number')) : col_name})
+        function_output = function_output.rename(columns={'draw_{i}'.format(
+            i=config.getint('run_configuration', 'draw_number')): col_name})
 
         return normalize_for_simulation(function_output)
     return function_output
@@ -942,8 +1001,8 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
     for sex_id in [1, 2]:
         draws = pd.DataFrame()
         for year_id in np.arange(year_start, year_end + 1, 5):
-            one_year_file = pd.read_stata("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".\
-                                         format(l=location_id, y=year_id, s=sex_id))
+            one_year_file = pd.read_stata("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".
+                                          format(l=location_id, y=year_id, s=sex_id))
             one_year_file['year_id'] = year_id
             draws = draws.append(one_year_file)
 
@@ -951,12 +1010,13 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
 
         # Set ages and years of interest
         all_ages = range(25, 81)
-        all_years = range(year_start, year_end+1)
+        all_years = range(year_start, year_end + 1)
 
         # Set indexes of year_id and age
         draws = draws.set_index(['year_id', 'age']).sortlevel()
 
-        ind = pd.MultiIndex.from_product([all_years, all_ages], names=['year_id', 'age'])
+        ind = pd.MultiIndex.from_product(
+            [all_years, all_ages], names=['year_id', 'age'])
 
         expanded_data = pd.DataFrame(draws, index=ind)
 
@@ -968,17 +1028,20 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
 
         # Interpolate over age and year
         interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+        interp_data = interp_data.groupby(
+            level=1).apply(lambda x: x.interpolate())
 
         interp_data['sex_id'] = sex_id
 
-        interp_data['log_mean'] = np.log(interp_data['exp_mean_{i}'.format(i=draw_number)])
-        interp_data['log_sd'] = (interp_data['exp_sd_{i}'.format(i=draw_number)] / \
+        interp_data['log_mean'] = np.log(
+            interp_data['exp_mean_{i}'.format(i=draw_number)])
+        interp_data['log_sd'] = (interp_data['exp_sd_{i}'.format(i=draw_number)] /
                                  interp_data['exp_mean_{i}'.format(i=draw_number)])
 
-        output_df = output_df.append(extrapolate_ages(interp_data, 151, year_end+1))
+        output_df = output_df.append(
+            extrapolate_ages(interp_data, 151, year_end + 1))
 
-    keepcol = ['year_id','sex_id','age', 'log_mean', 'log_sd']
+    keepcol = ['year_id', 'sex_id', 'age', 'log_mean', 'log_sd']
 
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
