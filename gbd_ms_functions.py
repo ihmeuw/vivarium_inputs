@@ -261,7 +261,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
         # Read in a csv of cause data that is produced by the get_outputs Stata
         # function
-        all_cause_deaths = pd.read_csv("/share/costeffectiveness/CEAM/cache/draws_for_location{l}_for_all_cause_mortality_rate.csv".
+        all_cause_deaths = pd.read_csv("/share/costeffectiveness/CEAM/cache/draws_for_location{l}_for_all_cause_mortality_rate.csv".\
                                        format(l=location_id))
 
         # filter so that only metric id 1 (deaths) is in our dataframe
@@ -399,8 +399,8 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
         prevalence_draws_dictionary[key] = \
             pd.merge(prevalence_draws_dictionary[key], prevalence_df, on=['age', 'sex_id', 'year_id'],
                      suffixes=('_single', '_total'))
-        prevalence_draws_dictionary[key]['scaled_prevalence'] = prevalence_draws_dictionary[key]['draw_{}_single'.format(draw_number)] / \
-            prevalence_draws_dictionary[key][
+        prevalence_draws_dictionary[key]['scaled_prevalence'] = prevalence_draws_dictionary[key]['draw_{}_single'.format(draw_number)]\
+            / prevalence_draws_dictionary[key][
                 'draw_{}_total'.format(draw_number)]
 
     for sex_id in new_sim_file.sex_id.unique():
@@ -772,7 +772,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     for sex_id in (1, 2):
 
-        pafs = pd.read_csv("/share/costeffectiveness/CEAM/cache/PAFs_for_{c}_in_{l}.csv".
+        pafs = pd.read_csv("/share/costeffectiveness/CEAM/cache/PAFs_for_{c}_in_{l}.csv".\
                            format(c=cause_id, l=location_id))
 
         # only want metric id 2 (percentages or pafs)
@@ -846,7 +846,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     for sex_id in (1, 2):
 
-        exposure = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/Exposure_of_risk{r}_in_location{l}.csv".
+        exposure = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/Exposure_of_risk{r}_in_location{l}.csv".\
                                format(r=risk_id, l=location_id))
 
         exposure = get_age_from_age_group_id(exposure)
@@ -1001,7 +1001,7 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
     for sex_id in [1, 2]:
         draws = pd.DataFrame()
         for year_id in np.arange(year_start, year_end + 1, 5):
-            one_year_file = pd.read_stata("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".
+            one_year_file = pd.read_stata("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".\
                                           format(l=location_id, y=year_id, s=sex_id))
             one_year_file['year_id'] = year_id
             draws = draws.append(one_year_file)
@@ -1035,8 +1035,8 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
 
         interp_data['log_mean'] = np.log(
             interp_data['exp_mean_{i}'.format(i=draw_number)])
-        interp_data['log_sd'] = (interp_data['exp_sd_{i}'.format(i=draw_number)] /
-                                 interp_data['exp_mean_{i}'.format(i=draw_number)])
+        interp_data['log_sd'] = (interp_data['exp_sd_{i}'.format(i=draw_number)] \
+                                 / interp_data['exp_mean_{i}'.format(i=draw_number)])
 
         output_df = output_df.append(
             extrapolate_ages(interp_data, 151, year_end + 1))
