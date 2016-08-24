@@ -9,6 +9,7 @@ from numpy.random import choice
 import os.path
 from hashlib import md5
 import os
+import pdb
 
 from ceam import config
 
@@ -17,9 +18,10 @@ _log = logging.getLogger(__name__)
 
 
 # # Microsim functions
-# This notebook contains version 2.0 of the functions that will be used to re-format GBD data into a format that can be used for the cost-effectiveness microsim.
-# Wherever possible, these functions will leverage the existing central comp functions (please see this link for more information on the central computation
-# functions
+# This notebook contains version 2.0 of the functions that will be used to 
+# re-format GBD data into a format that can be used for the cost-effectiveness microsim.
+# Wherever possible, these functions will leverage the existing central comp functions 
+# (please see this link for more information on the central computation functions
 # https://hub.ihme.washington.edu/display/G2/Central+Function+Documentation)
 
 # # Section 1 - Define auxilliary functions
@@ -231,6 +233,15 @@ def assign_sex_id(simulants_df, location_id, year_start):
             lambda x: choice(elements, p=weights))
 
         new_sim_file = new_sim_file.append(one_age)
+    
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert new_sim_file.isnull().values.any() == False, "there are nulls in the dataframe that assign_sex_id just tried to output. check the population file that you pulled in from the GBD database"
+
+    # change sex_id column name to be an integer
+    new_sim_file.sex_id = new_sim_file.sex_id.astype(int)
+
+    # assert an error that only sex_id 1 and 2 are in the new_sim_file
+    assert new_sim_file.sex_id.isin([1, 2]).all() == True, "something went wrong with assign_sex_id. function tried to assign a sex id other than 1 or 2"
 
     return new_sim_file
 
@@ -326,6 +337,17 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
     output_df.location_id = output_df.location_id.astype(int)
 
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_all_cause_mortality just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_all_cause_mortality_rate just tried to output. check the cache to make sure that the data you're pulling is correct"
+
+    # assert that non of the all-cause mortality rate values are greater than 1
+    draw_number = config.getint('run_configuration', 'draw_number')
+    assert output_df['all_cause_mortality_rate_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_all_cause_mortality_rate calculation. all-cause mortality can't be GT 0"   
+    
     return output_df
 
 
@@ -418,6 +440,15 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
             new_sim_file.loc[with_ihd, 'condition_state'] = np.random.choice(
                 list_of_keys, p=list_of_weights, size=with_ihd.sum())
 
+    new_sim_file = new_sim_file.apply(lambda x: x.fillna('healthy'), axis=0)
+
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert new_sim_file.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
+
+    # assert an error if there are duplicate rows
+    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
+
     return new_sim_file[['simulant_id', 'condition_state']]
 
 
@@ -431,6 +462,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
 
 # ### 1. Generate a population of simulants with age, sex, and disease prevalence characteristics according to
 # # TODO: Figure out if we can assign ages at 5 year intervals
+
 
 def generate_ceam_population(location_id, year_start, number_of_simulants):
     """
@@ -474,6 +506,16 @@ def generate_ceam_population(location_id, year_start, number_of_simulants):
     simulants['age'] = simulant_ages.rvs(size=number_of_simulants)
 
     simulants = assign_sex_id(simulants, location_id, year_start)
+    
+    # TODO: Design and implement test that makes sure CEAM population looks like population file pulled from GBD
+    # TODO: Design and implement test that makes sure population has been smoothed out-- JIRA TIC CE-213
+    
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert simulants.isnull().values.any() == False, "there are nulls in the dataframe that generate_ceam_population just tried to output. check the function and its auxiliary functions (get_populations and assign_sex_id)"
+
+    # assert an error if there are duplicate rows
+    assert simulants.duplicated(['simulant_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that generate_ceam_population just tried to output. check the function and its auxiliary functions (get_populations and assign_sex_id)"
 
     return simulants
 
@@ -516,12 +558,21 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
 
     for i in range(0, 1000):
         cause_del_mr['cause_deleted_mortality_rate_{}'.format(i)] = cause_del_mr['all_cause_mortality_rate_{}'.format(i)]\
-            - cause_del_mr['draw_{}'.format(i)]
+            - cause_del_mr['draw_{}'.format(i)]    
+    
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
-    keepcol = ['age', 'year_id', 'sex_id']
-    keepcol.extend(['cause_deleted_mortality_rate_{i}'.format(
-        i=config.getint('run_configuration', 'draw_number'))])
-    return cause_del_mr[keepcol]
+    # assert an error if there are duplicate rows
+    assert cause_del_mr.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
+
+    # assert that non of the cause-deleted mortality rate values are less than or equal to 0
+    draw_number = config.getint('run_configuration', 'draw_number')
+    assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. all-cause mortality can't be <= 0"
+    
+    return cause_del_mr
+
 
 # ### 3. Get modelable entity draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
@@ -601,6 +652,13 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
 
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
+    
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_modelable_entity_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_modelable_entity_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
@@ -655,7 +713,19 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id):
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert cause_of_hf.isnull().values.any() == False, "there are nulls in the dataframe that get_heart_failure_incidence_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert cause_of_hf.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_heart_failure_incidence_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
+
+    # assert that none of the incidence rate values are greater than 1 (basically ensuring that the numerator and demoniator weren't flipped)
+    draw_number = config.getint('run_configuration', 'draw_number')
+    assert cause_of_hf['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_heart_failure_incidence_draws calculation. incidence rate can't be GT 1. Check to see if the numerator/denominator were flipped"
+
     return cause_of_hf[keepcol]
+
 
 # ### 5. Get Relative Risks
 
@@ -738,6 +808,18 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
 
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_relative_risks just tried to output. check the cache to make sure that the data you're pulling is correct"
+
+    # assert that none of the rr values are less than 1
+    draw_number = config.getint('run_configuration', 'draw_number')
+    assert output_df['rr_{}'.format(draw_number)].all() >= 1, "something went wrong with get_relative_risks. RR can't be LT 1. Check the data that you're pulling in and the function. Sometimes, the database doesn't have\
+RR estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
+    
     return output_df[keepcol]
 
 
@@ -816,10 +898,23 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_pafs just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_pafs just tried to output. check the cache to make sure that the data you're pulling is correct"
+
+    # assert that none of the paf values are greater than 1
+    draw_number = config.getint('run_configuration', 'draw_number')
+    assert output_df['draw_{}'.format(draw_number)].all() =< 1, "something went wrong with get_pafs. pafs can't be GT 1. Check the data that you're pulling in and the function. Sometimes, the database doesn't have\
+paf estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
+
     return output_df[keepcol]
 
 
 # 8. Exposures
+
 
 def get_exposures(location_id, year_start, year_end, risk_id):
     """
@@ -889,7 +984,15 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
         output_df = output_df.apply(lambda x: x.fillna(0), axis=0)
 
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_exposures just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_relative_risks just tried to output. check the cache to make sure that the data you're pulling is correct"
+    
     return output_df[keepcol]
+
 
 # ### 10. TMREDs
 # # TODO: Confirm that TMREDs are being calculated correct
