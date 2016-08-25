@@ -12,9 +12,9 @@ import os
 import pdb
 
 from ceam import config
-from gbd_ms_auxiliary_functions import normalize_for_simulation, get_age_from_age_group_id 
-from gbd_ms_auxiliary_functions import expand_grid, extrapolate_ages, get_populations
-from gbd_ms_auxiliary_functions import assign_sex_id, get_all_cause_mortality_rate
+from .gbd_ms_auxiliary_functions import normalize_for_simulation, get_age_from_age_group_id 
+from .gbd_ms_auxiliary_functions import expand_grid, extrapolate_ages, get_populations
+from .gbd_ms_auxiliary_functions import assign_sex_id, get_all_cause_mortality_rate
 
 import logging
 _log = logging.getLogger(__name__)
