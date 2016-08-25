@@ -187,7 +187,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
     assert new_sim_file.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
     
     # assert an error if there are duplicate rows
-    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    assert new_sim_file.duplicated(['age', 'year_id', 'sex_id']).sum(
     ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
 
     return new_sim_file[['simulant_id', 'condition_state']]
