@@ -16,6 +16,9 @@ from ceam import config
 import logging
 _log = logging.getLogger(__name__)
 
+# cache_path = config.getstr('input_data', 'intermediary_data_cache_path') # TODO: After closing CE-241, we should be able to use this line
+									    # until then, the central function scripts put all data in /share/costeffectiveness/CEAM/cache
+cache_path = /share/costeffectiveness/CEAM/cache
 
 # # Microsim functions
 # This notebook contains version 2.0 of the functions that will be used to 
@@ -82,7 +85,7 @@ def expand_grid(a, y):
     return pd.DataFrame({'age': aG, 'year_id': yG})  # return a dataframe
 
 
-def extrapolate_ages(df, age_end, year_end):
+def extrapolate_ages(df, age_end, year_start, year_end):
     """
     Extrapolates GBD data for simulants over the age of 80
     Necessary because GBD's estimates only go to "80+" and we
@@ -105,7 +108,7 @@ def extrapolate_ages(df, age_end, year_end):
     """
 
     expand_ages = range(81, age_end + 1)
-    expand_years = range(1990, year_end + 1)
+    expand_years = range(year_start, year_end + 1)
 
     # use expand_grid auxilliary function to create a table
     # of expanded ages and years
@@ -137,7 +140,7 @@ def get_populations(location_id, year_start, sex_id):
         location_id takes same location_id values as are used for GBD
 
     year_start : int, year
-        year_start is the year in which you want to start the simulatioN
+        year_start is the year in which you want to start the simulation
 
     sex_id: str, sex
         sex_id takes values 1, 2, or 3
@@ -150,12 +153,11 @@ def get_populations(location_id, year_start, sex_id):
 
     # Read in a csv of population data that is produced by the get_populations
     # Stata function
-    pop = pd.read_csv(
-        "/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(l=location_id))
-
+    pop = pd.read_csv(cache_path + "pop_{l}.csv".format(l=location_id))
+    
     # assert an error to see if the population data was pulled from the
     # database
-    assert os.path.isfile("/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(
+    assert os.path.isfile(cache_path + "pop_{l}.csv".format(
         l=location_id)) == True, "the population information for location_id {l} has not been pulled from the database or it is not in the correct place".format(l=location_id)
 
     # use auxilliary function extract_age_from_age_group_name to create an age
@@ -272,7 +274,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
         # Read in a csv of cause data that is produced by the get_outputs Stata
         # function
-        all_cause_deaths = pd.read_csv("/share/costeffectiveness/CEAM/cache/draws_for_location{l}_for_all_cause_mortality_rate.csv".\
+        all_cause_deaths = pd.read_csv(cache_path + "draws_for_location{l}_for_all_cause_mortality_rate.csv".\
                                        format(l=location_id))
 
         # filter so that only metric id 1 (deaths) is in our dataframe
@@ -281,8 +283,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         # read in and merge the population file to file with all_cause deaths to calculate the rate
         # rate = # of all cause deaths / population for every age, sex, year
         # combination
-        pop = pd.read_csv(
-            "/share/costeffectiveness/CEAM/cache/pop_{l}.csv".format(l=location_id))
+        pop = pd.read_csv(cache_path + "pop_{l}.csv".format(l=location_id))
 
         # merge all cause deaths and pop to get all cause mortality rate
         all_cause_mr = pd.merge(all_cause_deaths, pop, on=[
@@ -329,7 +330,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         interp_data['sex_id'] = sex_id
 
         all_cause_mr_dict[sex_id] = extrapolate_ages(
-            interp_data, 151, year_end + 1)
+            interp_data, 151, year_start, year_end + 1)
 
     output_df = all_cause_mr_dict[1].append(all_cause_mr_dict[2])
 
@@ -609,8 +610,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
 
     for sex_id in (1, 2):
 
-        draws = pd.read_csv(
-            "/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
+        draws = pd.read_csv(cache_path + "draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
 
         draws = draws[draws.measure_id == measure]
 
@@ -648,7 +648,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_end + 1))
+            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
 
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -760,8 +760,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
 
         # Read in a csv of cause data that is produced by the get_outputs Stata
         # function
-        RR = pd.read_csv(
-            "/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/rel_risk_of_risk{r}_in_location{l}.csv".format(r=risk_id, l=location_id))
+        RR = pd.read_csv(cache_path + "rel_risk_of_risk{r}_in_location{l}.csv".format(r=risk_id, l=location_id))
 
         RR = get_age_from_age_group_id(RR)
 
@@ -799,7 +798,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_end + 1))
+            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
 
         # need to back calculate relative risk to earlier ages for risks that don't start
         # until a certain age
@@ -817,7 +816,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
 
     # assert that none of the rr values are less than 1
     draw_number = config.getint('run_configuration', 'draw_number')
-    assert output_df['rr_{}'.format(draw_number)].all() >= 1, "something went wrong with get_relative_risks. RR can't be LT 1. Check the data that you're pulling in and the function. Sometimes, the database doesn't have\
+    assert output_df['rr_{}'.format(draw_number)].all() >= 1, "something went wrong with get_relative_risks. RR cannot be LT 1. Check the data that you are pulling in and the function. Sometimes, the database does not have\
 RR estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
     
     return output_df[keepcol]
@@ -854,7 +853,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     for sex_id in (1, 2):
 
-        pafs = pd.read_csv("/share/costeffectiveness/CEAM/cache/PAFs_for_{c}_in_{l}.csv".\
+        pafs = pd.read_csv(cache_path + "PAFs_for_{c}_in_{l}.csv".\
                            format(c=cause_id, l=location_id))
 
         # only want metric id 2 (percentages or pafs)
@@ -889,7 +888,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_end + 1))
+            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
 
         # need to back calculate PAFS to earlier ages for risks that don't start
         # until a certain age
@@ -907,7 +906,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     # assert that none of the paf values are greater than 1
     draw_number = config.getint('run_configuration', 'draw_number')
-    assert output_df['draw_{}'.format(draw_number)].all() =< 1, "something went wrong with get_pafs. pafs can't be GT 1. Check the data that you're pulling in and the function. Sometimes, the database doesn't have\
+    assert output_df['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with get_pafs. pafs cannot be GT 1. Check the data that you are pulling in and the function. Sometimes, the database does not have\
 paf estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
 
     return output_df[keepcol]
@@ -941,8 +940,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     for sex_id in (1, 2):
 
-        exposure = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/Exposure_of_risk{r}_in_location{l}.csv".\
-                               format(r=risk_id, l=location_id))
+        exposure = pd.read_csv(cache_path + "Exposure_of_risk{r}_in_location{l}.csv".format(r=risk_id, l=location_id))
 
         exposure = get_age_from_age_group_id(exposure)
 
@@ -978,7 +976,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_end + 1))
+            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
 
         keepcol += ['year_id', 'sex_id', 'age']
 
@@ -1142,7 +1140,7 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
                                  / interp_data['exp_mean_{i}'.format(i=draw_number)])
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_end + 1))
+            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
 
     keepcol = ['year_id', 'sex_id', 'age', 'log_mean', 'log_sd']
 
