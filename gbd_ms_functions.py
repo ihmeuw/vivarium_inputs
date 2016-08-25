@@ -31,7 +31,7 @@ cache_path = "/share/costeffectiveness/CEAM/cache/"
 # (please see this link for more information on the central computation functions
 # https://hub.ihme.washington.edu/display/G2/Central+Function+Documentation)
 
-# ### 1. Generate a population of simulants with age, sex, and disease prevalence characteristics according to
+# ### 1. generate_ceam_population
 # # TODO: Figure out if we can assign ages at 5 year intervals
 
 
@@ -91,6 +91,108 @@ def generate_ceam_population(location_id, year_start, number_of_simulants):
     return simulants
 
 
+# 2. assign_cause_at_beginning_of_simulation
+
+def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_start, states):
+    """
+    Function that assigns chronic ihd status to starting population of simulants
+    Parameters
+    ----------
+    simulants_df : dataframe
+        dataframe of simulants that is made earlier in the function
+
+    location_id : int, location id
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    states : dict
+        dict with keys = name of cause, values = modelable entity id of cause
+
+    Returns
+    -------
+    Creates a new column for a df of simulants with a column called chronic_ihd
+        chronic_ihd takes values 0 or 1
+            1 indicates that the simulant has chronic ihd
+            0 indicates that the simulant does not have chronic ihd
+    """
+
+    prevalence_df = pd.DataFrame()
+
+    new_sim_file = pd.DataFrame()
+
+    draw_number = config.getint('run_configuration', 'draw_number')
+    keepcol = ['year_id', 'sex_id', 'age', 'draw_{}'.format(draw_number)]
+    prevalence_draws_dictionary = {}
+
+    for key, value in states.items():
+        prevalence_draws_dictionary[key] = get_modelable_entity_draws(location_id,
+                                                                      year_start, year_start, 5, value)
+        prevalence_draws_dictionary[
+            key] = prevalence_draws_dictionary[key][keepcol]
+        prevalence_df = prevalence_df.append(prevalence_draws_dictionary[key])
+
+    prevalence_df = prevalence_df.groupby(
+        ['year_id', 'sex_id', 'age'], as_index=False).sum()
+
+    for sex_id in simulants_df.sex_id.unique():
+        for age in simulants_df.age.unique():
+            elements = [0, 1]
+            probability_of_disease = prevalence_df.\
+                query("age=={a} and sex_id=={s}".format(a=age, s=sex_id))[
+                    'draw_{}'.format(draw_number)]
+            probability_of_NOT_having_disease = 1 - probability_of_disease
+            weights = [float(probability_of_NOT_having_disease),
+                       float(probability_of_disease)]
+
+            one_age = simulants_df.query(
+                "age=={a} and sex_id=={s}".format(a=age, s=sex_id)).copy()
+            one_age['condition_envelope'] = one_age['age'].map(
+                lambda x: choice(elements, p=weights))
+            new_sim_file = new_sim_file.append(one_age)
+
+    # produce a column of strings with nulls for healty, everyone else gets key value from states
+    # add up to get total, divide each prevalence by total and then use that as the weights for np choice
+    # need to ensure that only people with the cause can get a specific
+    # sequelae
+
+    # TODO: Should we be using groupby for these loops to ensure that we're not looping over an age/sex combo that
+    # doesn't exist
+    for key in states.keys():
+        prevalence_draws_dictionary[key] = \
+            pd.merge(prevalence_draws_dictionary[key], prevalence_df, on=['age', 'sex_id', 'year_id'],
+                     suffixes=('_single', '_total'))
+        single = prevalence_draws_dictionary[key]['draw_{}_single'.format(draw_number)]
+        total = prevalence_draws_dictionary[key]['draw_{}_total'.format(draw_number)]
+        prevalence_draws_dictionary[key]['scaled_prevalence'] = single / total
+
+    for sex_id in new_sim_file.sex_id.unique():
+        for age in new_sim_file.age.unique():
+            list_of_weights = []
+            for key, dataframe in states.items():
+                weight_scale_prev_tuple = (key, prevalence_draws_dictionary[key].
+                                           query("sex_id == {s} and age== {a}".format(s=sex_id, a=age))['scaled_prevalence'].values[0])
+                list_of_weights.append(weight_scale_prev_tuple)
+
+            list_of_keys, list_of_weights = zip(*list_of_weights)
+            with_ihd = (new_sim_file.condition_envelope == 1) & (new_sim_file.age == age) & \
+                       (new_sim_file.sex_id == sex_id)
+
+            new_sim_file.loc[with_ihd, 'condition_state'] = np.random.choice(
+                list_of_keys, p=list_of_weights, size=with_ihd.sum())
+
+    new_sim_file = new_sim_file.apply(lambda x: x.fillna('healthy'), axis=0)
+
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert new_sim_file.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
+    
+    # assert an error if there are duplicate rows
+    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
+
+    return new_sim_file[['simulant_id', 'condition_state']]
+
 
 
 ihd = [1814, 1817, 3233, 2412]
@@ -99,7 +201,7 @@ list_of_me_ids_in_microsim = chronic_hemorrhagic_stroke + ihd
 
 
 
-# ### 2. get cause-deleted mortality rate
+# ### 3. get_cause_deleted_mortality_rate
 
 def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
     '''Returns the cause-delted mortality rate for a given time period and location
@@ -136,8 +238,9 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
                             'age', 'sex_id', 'year_id'])
 
     for i in range(0, 1000):
-        cause_del_mr['cause_deleted_mortality_rate_{}'.format(i)] = cause_del_mr['all_cause_mortality_rate_{}'.format(i)]\
-            - cause_del_mr['draw_{}'.format(i)]    
+        all_cause = cause_del_mr['all_cause_mortality_rate_{}'.format(i)]
+        summed_csmr_of_sim_causes = cause_del_mr['draw_{}'.format(i)]
+        cause_del_mr['cause_deleted_mortality_rate_{}'.format(i)] = all_cause - summed_csmr_of_sim_causes
     
     # assert an error to make sure data is dense (i.e. no missing data)
     assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
@@ -156,7 +259,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
     return cause_del_mr[keepcol]
 
 
-# ### 3. Get modelable entity draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
+# ### 4. get_modelable_entity_draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
 
 def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id):
@@ -248,7 +351,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
-# ### 4. Get heart failure draws
+# ### 5. get_heart_failure_incidence_draws
 
 def get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id):
     """
@@ -292,8 +395,9 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id):
                            'age', 'year_id', 'sex_id'], suffixes=('_env', '_prop'))
 
     for i in range(0, 1000):
-        cause_of_hf['draw_{i}'.format(i=i)] = cause_of_hf['draw_{i}_env'.format(
-            i=i)] * cause_of_hf['draw_{i}_prop'.format(i=i)]
+        envelope = cause_of_hf['draw_{i}_env'.format(i=i)]
+        proportion = cause_of_hf['draw_{i}_prop'.format(i=i)]
+        cause_of_hf['draw_{i}'.format(i=i)] = envelope * proportion
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -312,7 +416,7 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id):
     return cause_of_hf[keepcol]
 
 
-# ### 5. Get Relative Risks
+# ### 6. get_relative_risks
 
 
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
@@ -411,7 +515,7 @@ RR estimates for every age, so check to see that the function is correctly assig
     return output_df[keepcol]
 
 
-# ### 6. PAFs
+# ### 7. get_pafs
 
 def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     """
@@ -506,7 +610,7 @@ paf estimates for every age, so check to see that the function is correctly assi
     return output_df[keepcol]
 
 
-# 8. Exposures
+# 8. get_exposures
 
 
 def get_exposures(location_id, year_start, year_end, risk_id):
@@ -590,7 +694,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     return output_df[keepcol]
 
 
-# ### 10. TMREDs
+# ### 9. TMREDs
 # # TODO: Confirm that TMREDs are being calculated correct
 
 # tmred_df = pd.read_excel('/snfs1/Project/Cost_Effectiveness/dev/data/gbd/risk_data/risk_variables.xlsx')
@@ -618,7 +722,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 # risk_tmrel['metab_sbp']
 
 
-# ### 11. Load data from cache
+# ### 10. load_data_from_cache
 
 from joblib import Memory
 memory = Memory(cachedir=config.get(
@@ -676,9 +780,10 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
     return function_output
 
 
-# ### 12. Severity Splits
+# ### 11. get_severity_splits
 
-# 13. sbp mean and sd
+
+# ### 12. get_sbp_mean_sd
 
 def get_sbp_mean_sd(location_id, year_start, year_end):
     ''' Returns a dataframe of mean and sd of sbp in LOG SPACE
@@ -741,11 +846,12 @@ if the data is truly not in the file -- /share/epi/risk/paf/metab_sbp_interm/-- 
         interp_data['sex_id'] = sex_id
 
         for i in range(0,1000):
+            exp_mean = interp_data['exp_mean_{}'.format(i)]
+            exp_sd = interp_data['exp_sd_{}'.format(i)]
             interp_data['log_mean_{}'.format(i)] = np.log(
-                interp_data['exp_mean_{}'.format(i)])
-            interp_data['log_sd_{}'.format(i)] = (interp_data['exp_sd_{}'.format(i)] \
-                                 / interp_data['exp_mean_{}'.format(i)])
-
+                exp_mean)
+            interp_data['log_sd_{}'.format(i)] = (exp_sd / exp_mean)
+                              
         output_df = output_df.append(
             extrapolate_ages(interp_data, 151, year_start, year_end + 1))
 
