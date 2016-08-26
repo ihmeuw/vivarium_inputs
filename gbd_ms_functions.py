@@ -531,12 +531,6 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
 # for now are content using Python's built in linear interpolation function
 
 
-#TODO: Think of a more eloquent way to get all of the causes into a list
-ihd = [1814, 2412, 1817, 3233]
-chronic_hemorrhagic_stroke = [9311, 9310, 9312]
-list_of_me_ids_in_microsim = chronic_hemorrhagic_stroke + ihd
-
-
 # # Section 4 - Define main functions
 # These functions will be used to re-format GBD data that will be used in the cost-effectiveness microsim.
 
@@ -590,7 +584,7 @@ def generate_ceam_population(location_id,year_start,number_of_simulants):
 
 # ### 2. get cause-deleted mortality rate
 
-def get_cause_deleted_mortality_rate(location_id,year_start,year_end):
+def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_me_ids_in_microsim):
     '''Returns the cause-delted mortality rate for a given time period and location
 
     Parameters
