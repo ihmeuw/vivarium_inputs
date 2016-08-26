@@ -12,9 +12,9 @@ import os
 import pdb
 
 from ceam import config
-from .gbd_ms_auxiliary_functions import normalize_for_simulation, get_age_from_age_group_id 
-from .gbd_ms_auxiliary_functions import expand_grid, extrapolate_ages, get_populations
-from .gbd_ms_auxiliary_functions import assign_sex_id, get_all_cause_mortality_rate
+from ceam.gbd_data.gbd_ms_auxiliary_functions import normalize_for_simulation, get_age_from_age_group_id
+from ceam.gbd_data.gbd_ms_auxiliary_functions import expand_grid, extrapolate_ages, get_populations
+from ceam.gbd_data.gbd_ms_auxiliary_functions import assign_sex_id, get_all_cause_mortality_rate
 
 import logging
 _log = logging.getLogger(__name__)
@@ -187,7 +187,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
     assert new_sim_file.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
     
     # assert an error if there are duplicate rows
-    assert new_sim_file.duplicated(['age', 'year_id', 'sex_id']).sum(
+    assert new_sim_file.duplicated(['simulant_id']).sum(
     ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
 
     return new_sim_file[['simulant_id', 'condition_state']]
