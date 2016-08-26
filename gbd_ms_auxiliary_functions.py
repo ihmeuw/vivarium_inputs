@@ -16,6 +16,127 @@ from ceam import config
 cache_path = "/share/costeffectiveness/CEAM/cache/"
 
 
+def set_age_year_index(df, age_start, age_end, year_start, year_end):
+    """
+    Return a dataframe with age and year indexes. Preps the data for
+        interpolation
+
+    Parameters
+    ----------
+    df: df
+        df contains raw inputs from GBD, so the data only contains info
+        for age groups and GBD years
+
+    age_start: int
+        earliest age for which you want data
+
+    age_end: int
+        end point of the interpolation. all ages after this will have the
+        same constant estimate of the quantity of interest that you are
+        studying (see extrapolate_ages for more info)
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    measure : int, measure
+        defines which measure (e.g. prevalence) you want to pull. Use central
+        comp's get_ids functions to learn about which measures are available
+        and what numbers correspond with each measure
+
+    me_id: int, modelable entity id
+        modelable_entity_id takes same me_id values as are used for GBD
+
+    Returns
+    -------
+    df with year_id, sex_id, age and 1k draws. many of the draw columns have
+    nulls at this point which will be filled in by interpolation function
+    """
+
+    # Set ages and years of interest
+    ages = range(age_start, age_end + 1)
+    years = range(year_start, year_end + 1)
+
+    # Set indexes of year_id and age
+    df = df.set_index(['year_id', 'age']).sortlevel()
+
+    age_sex_index = pd.MultiIndex.from_product(
+        [years, ages], names=['year_id', 'age'])
+
+    expanded_data = pd.DataFrame(df, index=age_sex_index)
+
+    return expanded_data
+
+
+def interpolate_linearly_over_years_then_ages(df, col_prefix1,
+                                              col_prefix2=None):
+    """
+    Returns a dataframe with interpolated draw values
+
+    Parameters
+    ----------
+    df: df
+        df with columns year_id, sex_id, age, and 1k draws of a quantity of
+        interest
+
+    col_prefix: str
+        prefix of the draw column that you will interpolate over (e.g. the
+        col_prefix of 'rr_0' is 'rr')
+
+    Returns
+    -------
+    df with year_id, sex_id, age and 1k draws. null values in the input file
+    are now filled because we interpolated between the age/year combinations
+    that we did have data for
+    """
+
+    keepcol = ["{c}_{i}".format(c=col_prefix1, i=i) for i in range(0, 1000)]
+
+    if col_prefix2 is not None:
+        keepcol += ["{c}_{i}".format(c=col_prefix2, i=i) for i in range(0, 1000)]
+
+    interp_columns = df[keepcol]
+    interp_data = interp_columns.groupby(level=0).apply(lambda x: x.interpolate())
+    interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+
+    return interp_data
+
+
+def create_age_column(simulants_file, population_file, number_of_simulants):
+    """
+    Returns a df with a simulant_id and age column
+
+    Parameters
+    ----------
+    simulants_file : df
+        dataframe onto which we want to add an age column
+
+    population_file : df
+        population file for location/year of interest for both sexes
+
+    number_of_simulants : int
+        number of simulants in simulants_file
+
+    Returns
+    -------
+    df with columns simulant_id and age
+    """
+
+    # use stats package to assign ages to simulants according to proportions in
+    # the population file
+    # TODO: potential improvement could be to use np.random.choice and assign
+    # age/sex at the same time
+
+    ages = population_file.age.values
+    proportions = population_file.proportion_of_total_pop.values
+    simulant_ages = stats.rv_discrete(values=(ages, proportions))
+    simulants_file['age'] = simulant_ages.rvs(size=number_of_simulants)
+
+    return simulants_file
+
+
 def normalize_for_simulation(df):
     # Convert sex_id to a categorical
     df['sex'] = df.sex_id.map(
@@ -27,6 +148,7 @@ def normalize_for_simulation(df):
 
 
 def get_age_from_age_group_id(df):
+    # TODO: Start using age midpoints and producing results for under 1 yr olds
     """Creates an "age" column from the "age_group_id" column
 
     Parameters
@@ -85,11 +207,6 @@ def extrapolate_ages(df, age_end, year_start, year_end):
     Returns
     -------
     df with extrapolated values
-
-    TODO: Need to develop more sophisticated ways of extrapolating
-          to higher ages and need to extrapolate farther into the
-          future (currently doesn't forecast into the future and
-          just uses data for 80 year olds for all ages GT 80)
     """
 
     expand_ages = range(81, age_end + 1)
@@ -159,10 +276,8 @@ def get_populations(location_id, year_start, sex_id):
     pop = pop.query("age != 0")  # TODO: Bring in EN, NN, PN eventually
 
     # Keep only the relevant columns
-    keepcol = ['year_id', 'location_name',
-               'location_id', 'age', 'sex_id', 'pop_scaled']
-
-    pop = pop[keepcol]
+    pop = pop[['year_id', 'location_name',
+               'location_id', 'age', 'sex_id', 'pop_scaled']]
 
     # assert an error if there are duplicate rows
     assert pop.duplicated(['age', 'year_id', 'sex_id']).sum(
@@ -171,12 +286,12 @@ def get_populations(location_id, year_start, sex_id):
     # assert an error to make sure data is dense (i.e. no missing data)
     assert pop.isnull().values.any() == False, "there are nulls in the dataframe that get_populations just tried to output. check the population file that you pulled in from the GBD database"
 
-    # Return a dataframe
     return pop
 
 
 def assign_sex_id(simulants_df, location_id, year_start):
-    """Assigns sex to a population of simulants so that age and sex are correlated
+    """
+    Assigns sex to a population of simulants so that age and sex are correlated
 
     Parameters
     ----------
@@ -276,7 +391,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
         # merge all cause deaths and pop to get all cause mortality rate
         all_cause_mr = pd.merge(all_cause_deaths, pop, on=[
-                                'age_group_id', 'year_id', 'sex_id'])
+                                'age_group_id', 'year_id', 'sex_id', 'location_id'])
 
         # Need to divide # of all cause deaths by population
         for i in range(0, 1000):
@@ -289,12 +404,19 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.
                                           format(ys=year_start, ye=year_end))
 
+
+        # TODO: Figure out how to interpolate to the early, pre, and post
+        # neonatal groups
+        all_cause_mr = all_cause_mr.query("age != 0")
+
+        all_cause_mr = all_cause_mr.query('sex_id == {s}'.format(s=sex_id))
+
         all_cause_mr = set_age_year_index(all_cause_mr, all_cause_mr.age.min(),
                                           all_cause_mr.age.max(), year_start,
                                           year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(all_cause_mr,
-                                                                'draw')
+                                                                'all_cause_mortality_rate')
 
         interp_data['sex_id'] = sex_id
 

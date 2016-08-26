@@ -12,6 +12,9 @@ import os
 import pdb
 
 from ceam import config
+from ceam.gbd_data.gbd_ms_auxiliary_functions import set_age_year_index
+from ceam.gbd_data.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
+from ceam.gbd_data.gbd_ms_auxiliary_functions import create_age_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import normalize_for_simulation
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_age_from_age_group_id
 from ceam.gbd_data.gbd_ms_auxiliary_functions import expand_grid
@@ -19,6 +22,7 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import extrapolate_ages
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
 from ceam.gbd_data.gbd_ms_auxiliary_functions import assign_sex_id
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
+from joblib import Memory
 
 import logging
 _log = logging.getLogger(__name__)
@@ -37,41 +41,85 @@ cache_path = "/share/costeffectiveness/CEAM/cache/"
 # central computation functions
 # https://hub.ihme.washington.edu/display/G2/Central+Function+Documentation)
 
-# ### 1. generate_ceam_population
-# # TODO: Figure out if we can assign ages at 5 year intervals
+
+# 1. get_modelable_entity_draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
 
-def create_age_column(simulants_file, population_file, number_of_simulants):
+def get_modelable_entity_draws(location_id, year_start, year_end, measure,
+                               me_id):
     """
-    Returns a df with a simulant_id and age column
+    Returns draws for a given measure and modelable entity
 
     Parameters
     ----------
-    simulants_file : df
-        dataframe onto which we want to add an age column
+    location_id : int
+        location_id takes same location_id values as are used for GBD
 
-    population_file : df
-        population file for location/year of interest for both sexes
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
 
-    number_of_simulants : int
-        number of simulants in simulants_file
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    measure : int, measure
+        defines which measure (e.g. prevalence) you want to pull. Use central
+        comp's get_ids functions to learn about which measures are available
+        and what numbers correspond with each measure
+
+    me_id: int, modelable entity id
+        modelable_entity_id takes same me_id values as are used for GBD
 
     Returns
     -------
-    df with columns simulant_id and age
+    df with year_id, sex_id, age and 1k draws
     """
 
-    # use stats package to assign ages to simulants according to proportions in
-    # the population file
-    # TODO: potential improvement could be to use np.random.choice and assign
-    # age/sex at the same time
+    output_df = pd.DataFrame()
 
-    ages = population_file.age.values
-    proportions = population_file.proportion_of_total_pop.values
-    simulant_ages = stats.rv_discrete(values=(ages, proportions))
-    simulants_file['age'] = simulant_ages.rvs(size=number_of_simulants)
+    for sex_id in (1, 2):
 
-    return simulants_file
+        # assert an error to see if the data was pulled from the database
+        assert os.path.isfile(cache_path + "draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id)
+        ) == True, "the draw info for me_id {m} in location_id {l} has not been pulled from the database or it is not in the correct place".format(m=me_id, l=location_id)
+
+        draws = pd.read_csv(cache_path + "draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
+
+        draws = draws[draws.measure_id == measure]
+
+        draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
+            ys=year_start, ye=year_end)).copy()
+
+        draws = get_age_from_age_group_id(draws)
+
+        draws = draws.query("sex_id == {s}".format(s=sex_id))
+
+        # For now, do not include information on early, pre, and post neonatal
+        draws = draws.query("age != 0")
+
+        draws = set_age_year_index(draws, 1, 80, year_start, year_end)
+
+        interp_data = interpolate_linearly_over_years_then_ages(draws, 'draw')
+
+        interp_data['sex_id'] = sex_id
+
+        output_df = output_df.append(
+            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
+
+        keepcol = ['year_id', 'sex_id', 'age']
+        keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
+
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_modelable_entity_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_modelable_entity_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
+
+    return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
+
+
+# 2. generate_ceam_population
+# TODO: Figure out if we can assign ages at 5 year intervals
 
 
 def generate_ceam_population(location_id, year_start, number_of_simulants):
@@ -126,7 +174,8 @@ def generate_ceam_population(location_id, year_start, number_of_simulants):
     return simulants
 
 
-# 2. assign_cause_at_beginning_of_simulation
+# 3. assign_cause_at_beginning_of_simulation
+
 
 def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
                                             year_start, states):
@@ -245,6 +294,8 @@ chronic_hemorrhagic_stroke = [9311, 9312]
 list_of_me_ids_in_microsim = chronic_hemorrhagic_stroke + ihd
 
 
+# 4. get_cause_deleted_mortality_rate
+
 def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,
                                             year_start, year_end):
     '''
@@ -283,8 +334,6 @@ def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,
 
     return df
 
-
-# ### 3. get_cause_deleted_mortality_rate
 
 def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
     '''Returns the cause-delted mortality rate for a given time period and location
@@ -340,164 +389,8 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
     return cause_del_mr[keepcol]
 
 
-def set_age_year_index(df, age_start, age_end, year_start, year_end):
-    """
-    Return a dataframe with age and year indexes. Preps the data for
-        interpolation
+# 5. get_heart_failure_incidence_draws
 
-    Parameters
-    ----------
-    df: df
-        df contains raw inputs from GBD, so the data only contains info
-        for age groups and GBD years
-
-    age_start: int
-        earliest age for which you want data
-
-    age_end: int
-        end point of the interpolation. all ages after this will have the
-        same constant estimate of the quantity of interest that you are
-        studying (see extrapolate_ages for more info)
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-
-    measure : int, measure
-        defines which measure (e.g. prevalence) you want to pull. Use central
-        comp's get_ids functions to learn about which measures are available
-        and what numbers correspond with each measure
-
-    me_id: int, modelable entity id
-        modelable_entity_id takes same me_id values as are used for GBD
-
-    Returns
-    -------
-    df with year_id, sex_id, age and 1k draws. many of the draw columns have
-    nulls at this point which will be filled in by interpolation function
-    """
-
-    # Set ages and years of interest
-    ages = range(age_start, age_end + 1)
-    years = range(year_start, year_end + 1)
-
-    # Set indexes of year_id and age
-    df = df.set_index(['year_id', 'age']).sortlevel()
-
-    age_sex_index = pd.MultiIndex.from_product(
-        [years, ages], names=['year_id', 'age'])
-
-    expanded_data = pd.DataFrame(df, index=age_sex_index)
-
-    return expanded_data
-
-
-def interpolate_linearly_over_years_then_ages(df, col_prefix):
-    """
-    Returns a dataframe with interpolated draw values
-
-    Parameters
-    ----------
-    df: df
-        df with columns year_id, sex_id, age, and 1k draws of a quantity of
-        interest
-
-    col_prefix: str
-        prefix of the draw column that you will interpolate over (e.g. the
-        col_prefix of 'rr_0' is 'rr')
-
-    Returns
-    -------
-    df with year_id, sex_id, age and 1k draws. null values in the input file
-    are now filled because we interpolated between the age/year combinations
-    that we did have data for
-    """
-
-    interp_columns = df[["{c}_{i}".format(c=col_prefix, i=i) for i in range(0, 1000)]]
-    interp_data = interp_columns.groupby(level=0).apply(lambda x: x.interpolate())
-    interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
-
-    return interp_data
-
-# ### 4. get_modelable_entity_draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
-
-
-def get_modelable_entity_draws(location_id, year_start, year_end, measure,
-                               me_id):
-    """
-    Returns draws for a given measure and modelable entity
-
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-
-    measure : int, measure
-        defines which measure (e.g. prevalence) you want to pull. Use central
-        comp's get_ids functions to learn about which measures are available
-        and what numbers correspond with each measure
-
-    me_id: int, modelable entity id
-        modelable_entity_id takes same me_id values as are used for GBD
-
-    Returns
-    -------
-    df with year_id, sex_id, age and 1k draws
-    """
-
-    output_df = pd.DataFrame()
-
-    for sex_id in (1, 2):
-
-        # assert an error to see if the data was pulled from the database
-        assert os.path.isfile(cache_path + "draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id)
-        ) == True, "the draw info for me_id {m} in location_id {l} has not been pulled from the database or it is not in the correct place".format(m=me_id, l=location_id)
-
-        draws = pd.read_csv(cache_path + "draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
-
-        draws = draws[draws.measure_id == measure]
-
-        draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
-            ys=year_start, ye=year_end)).copy()
-
-        draws = get_age_from_age_group_id(draws)
-
-        draws = draws.query("sex_id == {s}".format(s=sex_id))
-
-        # For now, do not include information on early, pre, and post neonatal
-        draws = draws.query("age != 0")
-
-        draws = set_age_year_index(draws, 1, 80, year_start, year_end)
-
-        interp_data = interpolate_linearly_over_years_then_ages(draws, 'draw')
-
-        interp_data['sex_id'] = sex_id
-
-        output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
-
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
-
-    # assert an error to make sure data is dense (i.e. no missing data)
-    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_modelable_entity_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
-
-    # assert an error if there are duplicate rows
-    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_modelable_entity_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
-
-    return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
-
-
-# ### 5. get_heart_failure_incidence_draws
 
 def get_heart_failure_incidence_draws(location_id, year_start, year_end,
                                       me_id):
@@ -563,7 +456,7 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end,
     return cause_of_hf[keepcol]
 
 
-# ### 6. get_relative_risks
+# 6. get_relative_risks
 
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
     """
@@ -615,7 +508,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
 
         rr = set_age_year_index(rr, 1, 80, year_start, year_end)
 
-        interp_data = interpolate_linearly_over_years_then_ages(RR, 'rr')
+        interp_data = interpolate_linearly_over_years_then_ages(rr, 'rr')
 
         interp_data['sex_id'] = sex_id
 
@@ -644,7 +537,7 @@ RR estimates for every age, so check to see that the function is correctly assig
     return output_df[keepcol]
 
 
-# ### 7. get_pafs
+# 7. get_pafs
 
 def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     """
@@ -693,7 +586,7 @@ it is also possible that you are trying to pull a risk/cause combination that do
 
         pafs = pafs.query("sex_id == {s}".format(s=sex_id))
 
-        pafs = set_age_year_index(pafs, 1, 81, year_start, year_end)
+        pafs = set_age_year_index(pafs, 1, 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(pafs, 'draw')
 
@@ -780,6 +673,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         output_df = output_df.append(
             extrapolate_ages(interp_data, 151, year_start, year_end + 1))
 
+        keepcol = ['draw_{i}'.format(i=i) for i in range(0, 1000)]
         keepcol += ['year_id', 'sex_id', 'age']
 
         output_df = output_df.apply(lambda x: x.fillna(0), axis=0)
@@ -822,9 +716,9 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 # risk_tmrel['metab_sbp']
 
 
-# ### 10. load_data_from_cache
+# 10. load_data_from_cache
 
-from joblib import Memory
+
 memory = Memory(cachedir=config.get(
     'input_data', 'intermediary_data_cache_path'), verbose=1)
 
@@ -880,12 +774,16 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
     return function_output
 
 
-# ### 11. get_severity_splits
+# 11. get_severity_splits
 
 
-# ### 12. get_sbp_mean_sd
+# 12. get_sbp_mean_sd
+
 
 def get_sbp_mean_sd(location_id, year_start, year_end):
+    # TODO: Consider moving in the code from the blood pressure module
+    # to here (i.e. interpolate from age 1 - 80, and fillna with the SBP values
+    # we're using for under 25 yr olds)
     ''' Returns a dataframe of mean and sd of sbp in LOG SPACE
 
     Parameters
@@ -920,13 +818,12 @@ if the data is truly not in the file -- /share/epi/risk/paf/metab_sbp_interm/-- 
 
         draws = get_age_from_age_group_id(draws)
 
-        draws = set_age_year_index(draws, draws.age.min(), draws.age.max(),
+        draws = set_age_year_index(draws, 25, 80,
                                    year_start, year_end)
-        mean_interp = interpolate_linearly_over_years_then_ages(draws,
-                                                                'exp_mean')
-        sd_interp = interpolate_linearly_over_years_then_ages(draws, 'exp_sd')
-        interp_data = pd.merge(mean_interp, sd_interp, on=['age', 'sex_id',
-                                                           'year_id'])
+
+        interp_data = interpolate_linearly_over_years_then_ages(draws,
+                                                                'exp_mean',
+                                                                col_prefix2='exp_sd')
 
         interp_data['sex_id'] = sex_id
 
