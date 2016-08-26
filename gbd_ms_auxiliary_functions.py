@@ -9,8 +9,10 @@ from ceam import config
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam
 
-# cache_path = config.getstr('input_data', 'intermediary_data_cache_path') # TODO: After closing CE-241, we should be able to use this line
-# until then, the central function scripts put all data in /share/costeffectiveness/CEAM/cache
+# cache_path = config.getstr('input_data', 'intermediary_data_cache_path')
+# TODO: After closing CE-241, we should be able to use this line
+# until then, the central function scripts put all data in
+# /share/costeffectiveness/CEAM/cache
 cache_path = "/share/costeffectiveness/CEAM/cache/"
 
 
@@ -37,10 +39,10 @@ def get_age_from_age_group_id(df):
     """
 
     df = df.copy()
-    df['age'] = df['age_group_id'].map({2: 0, 3: 0, 4: 0, 5: 1, 6: 5, 7: 10, 8: 15,
-                                        9: 20, 10: 25, 11: 30, 12: 35, 13: 40,
-                                        14: 45, 15: 50, 16: 55, 17: 60, 18: 65,
-                                        19: 70, 20: 75, 21: 80})
+    df['age'] = df['age_group_id'].map({2: 0, 3: 0, 4: 0, 5: 1, 6: 5, 7: 10,
+                                        8: 15, 9: 20, 10: 25, 11: 30, 12: 35,
+                                        13: 40, 14: 45, 15: 50, 16: 55, 17: 60,
+                                        18: 65, 19: 70, 20: 75, 21: 80})
 
     return df
 
@@ -130,7 +132,8 @@ def get_populations(location_id, year_start, sex_id):
 
     Returns
     -------
-    df with columns year_id, location_name, location_id, age, sex_id, and pop_scaled
+    df with columns year_id, location_name, location_id, age, sex_id, and
+        pop_scaled
         pop_scaled is the population for a given age/year/sex
     """
 
@@ -194,8 +197,8 @@ def assign_sex_id(simulants_df, location_id, year_start):
 
     new_sim_file = pd.DataFrame()
 
-    # pull in male and female populations so that we can assign sex according to
-    # GBD population estimates (with age/sex correlation)
+    # pull in male and female populations so that we can assign sex according
+    # to GBD population estimates (with age/sex correlation)
     male_pop = get_populations(location_id, year_start, 1)
     female_pop = get_populations(location_id, year_start, 2)
 
@@ -286,32 +289,12 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.
                                           format(ys=year_start, ye=year_end))
 
-        # TODO: Figure out how to interpolate to the early, pre, and post
-        # neonatal groups
-        all_cause_mr = all_cause_mr.query("age != 0")
+        all_cause_mr = set_age_year_index(all_cause_mr, all_cause_mr.age.min(),
+                                          all_cause_mr.age.max(), year_start,
+                                          year_end)
 
-        all_cause_mr = all_cause_mr.query('sex_id == {s}'.format(s=sex_id))
-
-        # create list of all ages/years we want
-        all_ages = range(1, 81)
-        all_years = range(year_start, year_end + 1)
-
-        # Set indexes on year_id and age
-        all_cause_mr = all_cause_mr.set_index(['year_id', 'age']).sortlevel()
-
-        ind = pd.MultiIndex.from_product(
-            [all_years, all_ages], names=['year_id', 'age'])
-
-        expanded_data = pd.DataFrame(all_cause_mr, index=ind)
-
-        # Keep only relevant columns
-        mx = expanded_data[
-            ['all_cause_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)]]
-
-        # Interpolate over age and year
-        interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(
-            level=1).apply(lambda x: x.interpolate())
+        interp_data = interpolate_linearly_over_years_then_ages(all_cause_mr,
+                                                                'draw')
 
         interp_data['sex_id'] = sex_id
 
