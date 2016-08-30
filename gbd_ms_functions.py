@@ -8,6 +8,7 @@ from numpy.random import choice
 import os.path
 from hashlib import md5
 import os
+import shutil
 
 from ceam import config
 
@@ -1075,7 +1076,16 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
         for year_id in np.arange(year_start, year_end + 1, 5):
             # TODO: How do we make sure we have these files when we need them?
             # See: https://jira.ihme.washington.edu/servicedesk/customer/portal/9/CMH-1809
-            path = os.path.join(sbp_dir, "exp_{l}_{y}_{s}.dta".format(l=location_id, y=year_id, s=sex_id))
+            file_name = "exp_{l}_{y}_{s}.dta".format(l=location_id, y=year_id, s=sex_id)
+            path = os.path.join(sbp_dir, file_name)
+            if not os.path.exists(path):
+                # This is a fall back and will not work from most places other than the cluster.
+                # We do this because the SBP data isn't a standard GBD product and is instead an
+                # intermediate step so we have to copy it around ourself.
+
+                # If you're looking at this and wondering how to fix your error, try running
+                # this code in the cluster environment.
+                shutil.copyfile(os.path.join('/share/epi/risk/paf/metab_sbp_interm/', file_name), path)
             one_year_file = pd.read_stata(path)
             one_year_file['year_id'] = year_id
             draws = draws.append(one_year_file)
