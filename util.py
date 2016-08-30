@@ -12,7 +12,7 @@ def stata_wrapper(do_file_name, out_file_name, *args):
     path = os.path.join(cache_path, 'gbd_to_microsim_unprocessed_data', out_file_name)
     if not os.path.exists(path):
         try:
-            os.makedirs(os.dirname(path))
+            os.makedirs(os.path.dirname(path))
         except FileExistsError:
             # Directory already exists, which is fine
             pass
