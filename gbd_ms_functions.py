@@ -1085,6 +1085,11 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
 
                 # If you're looking at this and wondering how to fix your error, try running
                 # this code in the cluster environment.
+                try:
+                    os.makedirs(os.dirname(path))
+                except FileExistsError:
+                    # Directory already exists, which is fine
+                    pass
                 shutil.copyfile(os.path.join('/share/epi/risk/paf/metab_sbp_interm/', file_name), path)
             one_year_file = pd.read_stata(path)
             one_year_file['year_id'] = year_id
