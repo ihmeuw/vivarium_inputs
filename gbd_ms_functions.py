@@ -179,7 +179,7 @@ def get_populations(location_id,year_start,sex_id):
     """
 
     # Read in a csv of population data that is produced by the get_populations Stata function
-    pop = stata_wrapper('costeffectiveness/CEAM/cache/pop_{l}.csv'.format(l = location_id), location_id)
+    pop = stata_wrapper('get_populations.do', 'costeffectiveness/CEAM/cache/pop_{l}.csv'.format(l = location_id), location_id)
 
     # use auxilliary function extract_age_from_age_group_name to create an age column
     pop['age'] = pop['age_group_name'].map(extract_age_from_age_group_name)
@@ -389,7 +389,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     for sex_id in (1,2):
 
         # Read in a csv of cause data that is produced by the get_outputs Stata function
-        all_cause_mr = stata_wrapper('all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), 'get_all_cause_mortality_rate.do', location_id, 2015) # TODO: parameterize gbd round
+        all_cause_mr = stata_wrapper('get_all_cause_mortality_rate.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id, 2015) # TODO: parameterize gbd round
 
         # only get years we care about and only get "Rate" rows, since we want the mortality rate
         all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.                                          format(ys=year_start, ye=year_end)).copy()
@@ -651,7 +651,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
 
     '''
     output_df = pd.DataFrame()
-    source_draws = stata_wrapper('draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), 'get_modelable_entity_draws.do', location_id, me_id, 'best')
+    source_draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, 'best')
 
     source_draws = source_draws[source_draws.measure_id == measure]
 
@@ -776,7 +776,7 @@ def get_relative_risks(location_id,year_start,year_end,risk_id,cause_id):
     for sex_id in (1,2):
 
         # Read in a csv of cause data that is produced by the get_outputs Stata function
-        RR = stata_wrapper('rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), 'get_relative_risks.do', location_id, risk_id)
+        RR = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id)
 
         RR = get_age_from_age_group_id(RR)
 
@@ -855,8 +855,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     for sex_id in (1,2):
 
-        pafs = stata_wrapper('PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
-        format(c=cause_id, l=location_id))
+        pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
 
         # only want metric id 2 (percentages or pafs)
         pafs = pafs.query("metric_id == 2")
@@ -922,7 +921,7 @@ def get_exposures(location_id,year_start,year_end,risk_id):
 
     for sex_id in (1,2):
 
-        exposure = stata_wrapper('Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
+        exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
 
         exposure = get_age_from_age_group_id(exposure)
 

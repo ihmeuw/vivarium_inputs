@@ -1,3 +1,14 @@
+// Use home/J if running on the cluster, J: if running locally
+if c(os) == "Unix" {
+                global prefix "/home/j"
+                set odbcmgr unixodbc
+        }
+        else if c(os) == "Windows" {
+                global prefix "J:"
+        }
+// Connect to J Drive for shared function
+adopath + "$prefix/WORK/10_gbd/00_library/functions"
+
 // clear current data set and set more off
 clear all
 set more off
