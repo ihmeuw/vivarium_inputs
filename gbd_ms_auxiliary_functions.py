@@ -5,6 +5,7 @@ import os.path
 import os
 import pdb
 from ceam import config
+from scipy import stats
 
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam
@@ -289,7 +290,7 @@ def get_populations(location_id, year_start, sex_id):
     return pop
 
 
-def assign_sex_id(simulants_df, location_id, year_start):
+def assign_sex_id(simulants_df, male_pop, female_pop):
     """
     Assigns sex to a population of simulants so that age and sex are correlated
 
@@ -298,24 +299,18 @@ def assign_sex_id(simulants_df, location_id, year_start):
     simulants_df : dataframe
         dataframe of simulants that is made earlier in the function
 
-    location_id : int, location id
-        location_id takes same location_id values as are used for GBD
+    male_pop : dataframe
+        dataframe containing info on a male pop in location of interest
 
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
+    female_pop : dataframe
+        dataframe containing info on a female pop in location of interest
 
     Returns
     -------
-    Produces a dataframe with sex values
-        Sex values are correlated with age
+    A dataframe with a sex_id column with age/sex correlated
+
     """
-
     new_sim_file = pd.DataFrame()
-
-    # pull in male and female populations so that we can assign sex according
-    # to GBD population estimates (with age/sex correlation)
-    male_pop = get_populations(location_id, year_start, 1)
-    female_pop = get_populations(location_id, year_start, 2)
 
     # do for each age in population dataframes (same ages in male_pop and
     # female_pop)
@@ -335,6 +330,37 @@ def assign_sex_id(simulants_df, location_id, year_start):
             lambda x: choice(elements, p=weights))
 
         new_sim_file = new_sim_file.append(one_age)
+
+    return new_sim_file
+ 
+def create_sex_id_column(simulants_df, location_id, year_start):
+    """
+    creates a sex_id column and ensures correlation between age and sex
+
+    Parameters
+    ----------
+    simulants_df : dataframe
+        dataframe of simulants that is made earlier in the function
+
+    location_id : int, location id
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    Returns
+    -------
+    Produces a dataframe with sex values
+        Sex values are correlated with age
+    """
+
+    # pull in male and female populations so that we can assign sex according
+    # to GBD population estimates (with age/sex correlation)
+    male_pop = get_populations(location_id, year_start, 1)
+    female_pop = get_populations(location_id, year_start, 2)
+
+    # assign sex_id according to proportions calculated from GBD data
+    new_sim_file = assign_sex_id(simulants_df, male_pop, female_pop)
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert new_sim_file.isnull().values.any() == False, "there are nulls in the dataframe that assign_sex_id just tried to output. check the population file that you pulled in from the GBD database"
