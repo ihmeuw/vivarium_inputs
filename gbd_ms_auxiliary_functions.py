@@ -9,9 +9,7 @@ from ceam import config
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam
 
-# cache_path = config.getstr('input_data', 'intermediary_data_cache_path') # TODO: After closing CE-241, we should be able to use this line
-# until then, the central function scripts put all data in /share/costeffectiveness/CEAM/cache
-cache_path = "/share/costeffectiveness/CEAM/cache/"
+cache_path = config.getstr('input_data', 'intermediary_data_cache_path')
 
 
 def normalize_for_simulation(df):

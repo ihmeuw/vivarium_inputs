@@ -11,6 +11,8 @@ import os
 
 from ceam import config
 
+from .util import stata_wrapper
+
 import logging
 _log = logging.getLogger(__name__)
 
@@ -177,10 +179,7 @@ def get_populations(location_id,year_start,sex_id):
     """
 
     # Read in a csv of population data that is produced by the get_populations Stata function
-    pop = pd.read_csv("/share/costeffectiveness/CEAM/cache/pop_{l}.csv"                      .format(l = location_id))
-
-    # assert an error to see if the population data was pulled from the database
-    assert os.path.isfile("/share/costeffectiveness/CEAM/cache/pop_{l}.csv"                      .format(l = location_id)) == True, "the population information for location_id {l} has not been pulled from the database or it is not in the correct place".    format(l=location_id)
+    pop = stata_wrapper('costeffectiveness/CEAM/cache/pop_{l}.csv'.format(l = location_id), location_id)
 
     # use auxilliary function extract_age_from_age_group_name to create an age column
     pop['age'] = pop['age_group_name'].map(extract_age_from_age_group_name)
@@ -390,7 +389,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     for sex_id in (1,2):
 
         # Read in a csv of cause data that is produced by the get_outputs Stata function
-        all_cause_mr = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/all_cause_mortality_causeid294_in_country{l}.csv".format(l = location_id))
+        all_cause_mr = stata_wrapper('all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), 'get_all_cause_mortality_rate.do', location_id, 2015) # TODO: parameterize gbd round
 
         # only get years we care about and only get "Rate" rows, since we want the mortality rate
         all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.                                          format(ys=year_start, ye=year_end)).copy()
@@ -652,7 +651,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
 
     '''
     output_df = pd.DataFrame()
-    source_draws = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
+    source_draws = stata_wrapper('draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), 'get_modelable_entity_draws.do', location_id, me_id, 'best')
 
     source_draws = source_draws[source_draws.measure_id == measure]
 
@@ -777,7 +776,7 @@ def get_relative_risks(location_id,year_start,year_end,risk_id,cause_id):
     for sex_id in (1,2):
 
         # Read in a csv of cause data that is produced by the get_outputs Stata function
-        RR = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/rel_risk_of_risk{r}_in_location{l}.csv".format(r=risk_id,l=location_id))
+        RR = stata_wrapper('rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), 'get_relative_risks.do', location_id, risk_id)
 
         RR = get_age_from_age_group_id(RR)
 
@@ -856,7 +855,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     for sex_id in (1,2):
 
-        pafs = pd.read_csv("/share/costeffectiveness/CEAM/cache/PAFs_for_{c}_in_{l}.csv".\
+        pafs = stata_wrapper('PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
         format(c=cause_id, l=location_id))
 
         # only want metric id 2 (percentages or pafs)
@@ -923,8 +922,7 @@ def get_exposures(location_id,year_start,year_end,risk_id):
 
     for sex_id in (1,2):
 
-        exposure = pd.read_csv("/share/costeffectiveness/CEAM/gbd_to_microsim_unprocessed_data/Exposure_of_risk{r}_in_location{l}.csv".\
-        format(r=risk_id, l=location_id))
+        exposure = stata_wrapper('Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
 
         exposure = get_age_from_age_group_id(exposure)
 
@@ -1070,13 +1068,16 @@ def get_sbp_mean_sd(location_id, year_start, year_end, draw_number):
     -------
     df with mean and sd values in LOG space
     '''
+    sbp_dir = os.path.join(config.get('input_data', 'intermediary_data_cache_path'), 'sbp')
     output_df = pd.DataFrame()
 
     for sex_id in [1,2]:
         draws = pd.DataFrame()
         for year_id in np.arange(year_start, year_end + 1, 5):
-            one_year_file = pd.read_stata("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".\
-                                         format(l=location_id, y=year_id, s=sex_id))
+            # TODO: How do we make sure we have these files when we need them?
+            # See: https://jira.ihme.washington.edu/servicedesk/customer/portal/9/CMH-1809
+            path = os.path.join(sbp_dir, "exp_{l}_{y}_{s}.dta".format(l=location_id, y=year_id, s=sex_id))
+            one_year_file = pd.read_stata(path)
             one_year_file['year_id'] = year_id
             draws = draws.append(one_year_file)
 
