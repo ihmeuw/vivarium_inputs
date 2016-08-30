@@ -179,7 +179,7 @@ def get_populations(location_id,year_start,sex_id):
     """
 
     # Read in a csv of population data that is produced by the get_populations Stata function
-    pop = stata_wrapper('get_populations.do', 'costeffectiveness/CEAM/cache/pop_{l}.csv'.format(l = location_id), location_id)
+    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
 
     # use auxilliary function extract_age_from_age_group_name to create an age column
     pop['age'] = pop['age_group_name'].map(extract_age_from_age_group_name)
