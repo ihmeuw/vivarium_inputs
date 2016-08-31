@@ -7,6 +7,7 @@ import pdb
 from ceam import config
 from scipy import stats
 
+
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam
 
@@ -332,6 +333,7 @@ def assign_sex_id(simulants_df, male_pop, female_pop):
         new_sim_file = new_sim_file.append(one_age)
 
     return new_sim_file
+
  
 def create_sex_id_column(simulants_df, location_id, year_start):
     """
