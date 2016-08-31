@@ -390,7 +390,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     for sex_id in (1,2):
 
         # Read in a csv of cause data that is produced by the get_outputs Stata function
-        all_cause_mr = stata_wrapper('get_all_cause_mortality_rate.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id, 2015) # TODO: parameterize gbd round
+        all_cause_mr = stata_wrapper('get_all_cause_mortality_rate_draws.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id) # TODO: parameterize gbd round
 
         # only get years we care about and only get "Rate" rows, since we want the mortality rate
         all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.                                          format(ys=year_start, ye=year_end)).copy()
