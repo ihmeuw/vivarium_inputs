@@ -58,7 +58,7 @@ def set_age_year_index(df, age_start, age_end, year_start, year_end):
     """
 
     # Set ages and years of interest
-    ages = range(age_start, age_end + 1)
+    ages = [(.01917808/2), ((0.01917808+0.07671233)/2), ((0.07671233+1)/2)] + np.arange(1, 80.5, .5).tolist()
     years = range(year_start, year_end + 1)
 
     # Set indexes of year_id and age
@@ -163,10 +163,13 @@ def get_age_from_age_group_id(df):
     """
 
     df = df.copy()
-    df['age'] = df['age_group_id'].map({2: 0, 3: 0, 4: 0, 5: 1, 6: 5, 7: 10,
-                                        8: 15, 9: 20, 10: 25, 11: 30, 12: 35,
-                                        13: 40, 14: 45, 15: 50, 16: 55, 17: 60,
-                                        18: 65, 19: 70, 20: 75, 21: 80})
+    # TODO: use SQL to pull numbers from database
+    # TODO: figure out what number to use for 80+ group 
+    df['age'] = df['age_group_id'].map({2: (.01917808/2), 3: ((0.01917808+0.07671233)/2), 
+                                        4: ((0.07671233+1)/2), 5: 3, 6: 7.5, 7: 12.5,
+                                        8: 17.5, 9: 22.5, 10: 27.5, 11: 32.5, 12: 37.5,
+                                        13: 42.5, 14: 47.5, 15: 52.5, 16: 57.5, 17: 62.5,
+                                        18: 67.5, 19: 72.5, 20: 77.5, 21: 80})
 
     return df
 

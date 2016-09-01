@@ -96,7 +96,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
         # For now, do not include information on early, pre, and post neonatal
         draws = draws.query("age != 0")
 
-        draws = set_age_year_index(draws, 1, 80, year_start, year_end)
+        draws = set_age_year_index(draws, 0, 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(draws, 'draw')
 
@@ -601,7 +601,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
         if risk_id == 166:
             rr = rr.query("parameter == 'cat1'")
 
-        rr = set_age_year_index(rr, 1, 80, year_start, year_end)
+        rr = set_age_year_index(rr, 0, 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(rr, 'rr')
 
@@ -681,7 +681,7 @@ it is also possible that you are trying to pull a risk/cause combination that do
 
         pafs = pafs.query("sex_id == {s}".format(s=sex_id))
 
-        pafs = set_age_year_index(pafs, 1, 80, year_start, year_end)
+        pafs = set_age_year_index(pafs, 0, 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(pafs, 'draw')
 
@@ -758,7 +758,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         if risk_id == 166:
             exposure = exposure.query("parameter == 'cat1'")
 
-        exposure = set_age_year_index(exposure, 1, 80, year_start, year_end)
+        exposure = set_age_year_index(exposure, 0, 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(exposure,
                                                                 'draw')
