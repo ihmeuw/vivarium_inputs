@@ -18,6 +18,7 @@ def stata_wrapper(do_file_name, out_file_name, *args):
             pass
 
         dofile = os.path.join(STATA_PATH, do_file_name)
-        cmd = ["stata", "-b", "do", dofile] + [str(a) for a in args] + [path]
-        subprocess.call(cmd)
+        cmd = "stata -q do {} {}, nostop".format(dofile, ' '.join([str(a) for a in args] + [path]))
+        print(cmd)
+        subprocess.run(cmd, shell=True, check=True)
     return pd.read_csv(path)
