@@ -1,18 +1,14 @@
 import numpy as np
 import pandas as pd
-from numpy.random import choice
-import os.path
-import os
-import pdb
-from ceam import config
+
 from scipy import stats
 
+from ceam import config
+
+from ceam.gbd_data.util import stata_wrapper
 
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam
-
-cache_path = config.getstr('input_data', 'intermediary_data_cache_path')
-
 
 def set_age_year_index(df, age_start, age_end, year_start, year_end):
     """
@@ -252,13 +248,8 @@ def get_populations(location_id, year_start, sex_id):
         pop_scaled is the population for a given age/year/sex
     """
 
-    # Read in a csv of population data that is produced by the get_populations
-    # Stata function
-    pop = pd.read_csv(cache_path + "pop_{l}.csv".format(l=location_id))
+    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
 
-    # assert an error to see if the data was pulled from the database
-    assert os.path.isfile(cache_path + "pop_{l}.csv".format(
-        l=location_id)) == True, "the population information for location_id {l} has not been pulled from the database or it is not in the correct place".format(l=location_id)
 
     # use auxilliary function extract_age_from_age_group_name to create an age
     # column
@@ -324,7 +315,7 @@ def assign_sex_id(simulants_df, male_pop, female_pop):
 
         one_age = simulants_df.query("age == {a}".format(a=age)).copy()
         one_age['sex_id'] = one_age['age'].map(
-            lambda x: choice(elements, p=weights))
+            lambda x: np.random.choice(elements, p=weights))
 
         new_sim_file = new_sim_file.append(one_age)
 
@@ -395,15 +386,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     all_cause_mr_dict = {}
 
     for sex_id in (1, 2):
-
-        # assert an error to see if the data was pulled from the database
-        assert os.path.isfile(cache_path + "draws_for_location{}_for_all_cause_mortality_rate.csv".format(location_id)
-        ) == True, "the all-cause mortality file for location_id {} has not been pulled from the database or it is not in the correct place".format(location_id)
-
-        # Read in a csv of cause data that is produced by the get_outputs Stata
-        # function
-        all_cause_deaths = pd.read_csv(cache_path + "draws_for_location{l}_for_all_cause_mortality_rate.csv".\
-                                       format(l=location_id))
+        all_cause_mr = stata_wrapper('get_all_cause_mortality_rate_draws.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id)
 
         # filter so that only metric id 1 (deaths) is in our dataframe
         all_cause_deaths = all_cause_deaths.query("metric_id == 1").copy()
@@ -411,7 +394,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         # read in and merge the population file to file with all_cause deaths to calculate the rate
         # rate = # of all cause deaths / population for every age, sex, year
         # combination
-        pop = pd.read_csv(cache_path + "pop_{l}.csv".format(l=location_id))
+        pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
 
         # merge all cause deaths and pop to get all cause mortality rate
         all_cause_mr = pd.merge(all_cause_deaths, pop, on=[

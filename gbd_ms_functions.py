@@ -1,17 +1,18 @@
 # ~/ceam/ceam/gbd_data/gbd_ms_functions.py
 # coding: utf-8
 
+import os.path
+import os
 
 import numpy as np
 import pandas as pd
-from scipy import stats
-from numpy.random import choice
-import os.path
-from hashlib import md5
-import os
-import pdb
+
+from joblib import Memory
 
 from ceam import config
+
+from ceam.gbd_data.util import stata_wrapper
+
 from ceam.gbd_data.gbd_ms_auxiliary_functions import set_age_year_index
 from ceam.gbd_data.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
 from ceam.gbd_data.gbd_ms_auxiliary_functions import create_age_column
@@ -22,16 +23,9 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import extrapolate_ages
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
 from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-from joblib import Memory
 
 import logging
 _log = logging.getLogger(__name__)
-
-# cache_path = config.getstr('input_data', 'intermediary_data_cache_path')
-# TODO: After closing CE-241, we should be able to use line above
-# until then, the central function scripts put all data in
-# /share/costeffectiveness/CEAM/cache
-cache_path = "/share/costeffectiveness/CEAM/cache/"
 
 # # Microsim functions
 # This notebook contains the functions that will be used to
@@ -77,12 +71,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
     output_df = pd.DataFrame()
 
     for sex_id in (1, 2):
-
-        # assert an error to see if the data was pulled from the database
-        assert os.path.isfile(cache_path + "draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id)
-        ) == True, "the draw info for me_id {m} in location_id {l} has not been pulled from the database or it is not in the correct place".format(m=me_id, l=location_id)
-
-        draws = pd.read_csv(cache_path + "draws_for_location{l}_for_meid{m}.csv".format(m=me_id, l=location_id))
+        draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, 'best')
 
         draws = draws[draws.measure_id == measure]
 
@@ -248,7 +237,7 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
             one_age = simulants_df.query(
                 "age=={a} and sex_id=={s}".format(a=age, s=sex_id)).copy()
             one_age['condition_envelope'] = one_age['age'].map(
-                lambda x: choice(elements, p=weights))
+                lambda x: np.random.choice(elements, p=weights))
             new_sim_file = new_sim_file.append(one_age)
 
     return new_sim_file
@@ -580,14 +569,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
     output_df = pd.DataFrame()
 
     for sex_id in (1, 2):
-
-        # assert an error to see if the data was pulled from the database
-        assert os.path.isfile(cache_path + "rel_risk_of_risk{r}_in_location{l}.csv".format(r=risk_id, l=location_id)
-        ) == True, "the draw info for relative risk {r} in location_id {l} has not been pulled from the database or it is not in the correct place".format(r=risk_id, l=location_id)
-
-        # Read in a csv of cause data that is produced by the get_outputs Stata
-        # function
-        rr = pd.read_csv(cache_path + "rel_risk_of_risk{r}_in_location{l}.csv".format(r=risk_id, l=location_id))
+        rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id)
 
         rr = get_age_from_age_group_id(rr)
 
@@ -662,14 +644,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     output_df = pd.DataFrame()
 
     for sex_id in (1, 2):
-
-        # assert an error to see if the data was pulled from the database
-        assert os.path.isfile(cache_path + "PAFs_for_{c}_in_{l}.csv".format(c=cause_id, l=location_id)
-        ) == True, "the pafs info for risk id {r} and cause id {c} in location_id {l} has not been pulled from the database or it is not in the correct place\
-it is also possible that you are trying to pull a risk/cause combination that does not exist in GBD".format(r=risk_id, l=location_id, c=cause_id)
-
-        pafs = pd.read_csv(cache_path + "PAFs_for_{c}_in_{l}.csv".\
-                           format(c=cause_id, l=location_id))
+        pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
 
         # only want metric id 2 (percentages or pafs)
         pafs = pafs.query("metric_id == 2")
@@ -739,12 +714,8 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     output_df = pd.DataFrame()
 
     for sex_id in (1, 2):
+        exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
 
-        # assert an error to see if the data was pulled from the database
-        assert os.path.isfile(cache_path + "Exposure_of_risk{r}_in_location{l}.csv".format(r=risk_id, l=location_id)
-        ) == True, "the exposure info for risk id {r} in location_id {l} has not been pulled from the database or it is not in the correct place".format(r=risk_id, l=location_id)
-
-        exposure = pd.read_csv(cache_path + "Exposure_of_risk{r}_in_location{l}.csv".format(r=risk_id, l=location_id))
 
         exposure = get_age_from_age_group_id(exposure)
 
