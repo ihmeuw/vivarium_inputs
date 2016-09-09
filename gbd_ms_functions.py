@@ -71,7 +71,14 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
     output_df = pd.DataFrame()
 
     for sex_id in (1, 2):
-        draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, 'best')
+        model_version = 'best'
+        if me_id == 3233:
+            #TODO: This is really terrible. We need to figure out how we can get the best version of this ME to work for us
+            # Or, if that's impossible, find a cleaner way of expressing this versioning.
+            # See https://jira.ihme.washington.edu/browse/CE-269
+            model_version = 84852
+
+        draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
 
         draws = draws[draws.measure_id == measure]
 
