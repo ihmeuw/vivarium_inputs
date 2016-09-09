@@ -794,7 +794,7 @@ def _inner_cached_call(funct, *args, **kwargs):
     return funct(*args, **kwargs)
 
 
-def load_data_from_cache(funct, col_name, *args, **kwargs):
+def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     """
     load_data_from_cache is a functor that will
     check a cache to see if data exists in that cache.
@@ -828,13 +828,20 @@ def load_data_from_cache(funct, col_name, *args, **kwargs):
 
     os.umask(old_umask)
 
+    draw = config.getint('run_configuration', 'draw_number')
     if col_name:
-        keepcol = ['year_id', 'age', 'sex_id', 'draw_{i}'.format(
-            i=config.getint('run_configuration', 'draw_number'))]
+        if src_column is not None:
+            if isinstance(src_column, str):
+                column_map = {src_column.format(draw=draw): col_name}
+            else:
+                column_map = {src.format(draw=draw):dest for src, dest in zip(src_column, col_name)}
+        else:
+            column_map = {'draw_{draw}'.format(draw=draw): col_name}
+
+        keepcol = ['year_id', 'age', 'sex_id'] + list(column_map.keys())
 
         function_output = function_output[keepcol]
-        function_output = function_output.rename(columns={'draw_{i}'.format(
-            i=config.getint('run_configuration', 'draw_number')): col_name})
+        function_output = function_output.rename(columns=column_map)
 
         return normalize_for_simulation(function_output)
     return function_output
