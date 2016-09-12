@@ -368,7 +368,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
  
     post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions,  post_cause_assignment_population, states)
 
-    post_sequela_assignmnet_population =  post_sequela_assignmnet_population.apply(lambda x: x.fillna('healthy'), axis=0)
+    post_sequela_assignmnet_population.condition_state =  post_sequela_assignmnet_population.condition_state.fillna('healthy')
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert  post_sequela_assignmnet_population.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
