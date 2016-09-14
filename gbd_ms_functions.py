@@ -118,7 +118,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
 # TODO: Figure out if we can assign ages at 5 year intervals
 
 
-def generate_ceam_population(location_id, year_start, number_of_simulants):
+def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None):
     """
     Returns a population of simulants to be fed into CEAM
 
@@ -132,6 +132,10 @@ def generate_ceam_population(location_id, year_start, number_of_simulants):
 
     number of simulants : int, number
         year_end is the year in which you want to end the simulation
+
+    initial_age : int
+        If not None simulants will all be set to this age otherwise their
+        ages will come from the population distribution
 
     Returns
     -------
@@ -151,8 +155,10 @@ def generate_ceam_population(location_id, year_start, number_of_simulants):
     # create a dataframe of 50k simulants
     simulants = pd.DataFrame({'simulant_id': range(0, number_of_simulants)})
 
-    simulants = create_age_column(simulants, pop, number_of_simulants)
-
+    if initial_age is None:
+        simulants = create_age_column(simulants, pop, number_of_simulants)
+    else:
+        simulants['age'] = initial_age
     simulants = create_sex_id_column(simulants, location_id, year_start)
 
     # TODO: Design and implement test that makes sure CEAM population looks

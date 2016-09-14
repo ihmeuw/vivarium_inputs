@@ -343,6 +343,10 @@ def create_sex_id_column(simulants_df, location_id, year_start):
         Sex values are correlated with age
     """
 
+    # Force the year to be a multiple of five because that's the granularity
+    # of GBD data
+    year_start = int(year_start/5)*5
+
     # pull in male and female populations so that we can assign sex according
     # to GBD population estimates (with age/sex correlation)
     male_pop = get_populations(location_id, year_start, 1)
