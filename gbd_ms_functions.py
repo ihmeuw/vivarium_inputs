@@ -380,10 +380,6 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     return post_sequela_assignmnet_population[['simulant_id', 'condition_state']]
 
 
-ihd = [1814, 1817, 3233, 2412]
-chronic_hemorrhagic_stroke = [9311, 9312]
-list_of_me_ids_in_microsim = chronic_hemorrhagic_stroke + ihd
-
 
 # 4. get_cause_deleted_mortality_rate
 
@@ -426,7 +422,7 @@ def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,
     return df
 
 
-def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
+def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_me_ids_in_microsim):
     '''Returns the cause-delted mortality rate for a given time period and location
 
     Parameters
@@ -445,39 +441,49 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end):
     df with columns age, year_id, sex_id, and 1k draws of cause deleted
         mortality rate
     '''
-    all_me_id_draws = pd.DataFrame()
-
-    all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(all_me_id_draws, list_of_me_ids_in_microsim,
-                                                              location_id, year_start, year_end)
 
     all_cause_mr = get_all_cause_mortality_rate(
         location_id, year_start, year_end)
 
-    cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=[
-                            'age', 'sex_id', 'year_id'])
+    if list_of_me_ids_in_microsim:
+        all_me_id_draws = pd.DataFrame()
 
-    # get cause-deleted mortality rate by subtracting out all of the csmrs from
-    # all-cause mortality rate
-    for i in range(0, 1000):
-        all_cause = cause_del_mr['all_cause_mortality_rate_{}'.format(i)]
-        summed_csmr_of_sim_causes = cause_del_mr['draw_{}'.format(i)]
-        cause_del_mr['cause_deleted_mortality_rate_{}'.format(i)] = all_cause - summed_csmr_of_sim_causes
+        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(all_me_id_draws, list_of_me_ids_in_microsim,
+                                                                  location_id, year_start, year_end)
 
-    # assert an error to make sure data is dense (i.e. no missing data)
-    assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
-    # assert an error if there are duplicate rows
-    assert cause_del_mr.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
+        cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=[
+                                'age', 'sex_id', 'year_id'])
 
-    # assert that non of the cause-deleted mortality rate values are less than or equal to 0
-    draw_number = config.getint('run_configuration', 'draw_number')
-    assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. all-cause mortality can't be <= 0"
+        # get cause-deleted mortality rate by subtracting out all of the csmrs from
+        # all-cause mortality rate
+        for i in range(0, 1000):
+            all_cause = cause_del_mr['all_cause_mortality_rate_{}'.format(i)]
+            summed_csmr_of_sim_causes = cause_del_mr['draw_{}'.format(i)]
+            cause_del_mr['cause_deleted_mortality_rate_{}'.format(i)] = all_cause - summed_csmr_of_sim_causes
 
-    keepcol = ['year_id', 'sex_id', 'age']
-    keepcol.extend(('cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
+        # assert an error to make sure data is dense (i.e. no missing data)
+        assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
-    return cause_del_mr[keepcol]
+        # assert an error if there are duplicate rows
+        assert cause_del_mr.duplicated(['age', 'year_id', 'sex_id']).sum(
+        ) == 0, "there are duplicates in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
+
+        # assert that non of the cause-deleted mortality rate values are less than or equal to 0
+        draw_number = config.getint('run_configuration', 'draw_number')
+        assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. all-cause mortality can't be <= 0"
+
+        keepcol = ['year_id', 'sex_id', 'age']
+        keepcol.extend(('cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
+
+        return cause_del_mr[keepcol]
+    else:
+        keepcol = ['year_id', 'sex_id', 'age']
+        keepcol.extend(('all_cause_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
+        df = all_cause_mr[keepcol]
+        df = df.rename(columns={'all_cause_mortality_rate_{i}'.format(i=i):'cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)})
+
+        return df
 
 
 # 5. get_heart_failure_incidence_draws

@@ -389,7 +389,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         all_cause_mr = stata_wrapper('get_all_cause_mortality_rate_draws.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id)
 
         # filter so that only metric id 1 (deaths) is in our dataframe
-        all_cause_deaths = all_cause_deaths.query("metric_id == 1").copy()
+        all_cause_deaths = all_cause_mr.query("metric_id == 1").copy()
 
         # read in and merge the population file to file with all_cause deaths to calculate the rate
         # rate = # of all cause deaths / population for every age, sex, year
