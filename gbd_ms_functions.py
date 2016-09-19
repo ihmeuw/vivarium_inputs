@@ -3,6 +3,7 @@
 
 import os.path
 import os
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -891,6 +892,7 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     df with mean and sd values in LOG space
     '''
     output_df = pd.DataFrame()
+    sbp_dir = os.path.join(config.get('input_data', 'intermediary_data_cache_path'), 'sbp')
 
     for sex_id in [1, 2]:
         draws = pd.DataFrame()
