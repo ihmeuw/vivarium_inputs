@@ -895,16 +895,19 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     for sex_id in [1, 2]:
         draws = pd.DataFrame()
         for year_id in np.arange(year_start, year_end + 1, 5):
+            file_name = "exp_{l}_{y}_{s}.dta".format(l=location_id, y=year_id, s=sex_id)
+            path = os.path.join(sbp_dir, file_name)
+            if not os.path.exists(path):
+                # This is a fall back and will not work from most places other than the cluster.
+                # We do this because the SBP data isn't a standard GBD product and is instead an
+                # intermediate step so we have to copy it around ourselves.
 
-            # assert an error to see if the data was pulled from the database
-            assert os.path.isfile("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".\
-                                          format(l=location_id, y=year_id, s=sex_id)
-            ) == True, "the sbp distribution files for location_id {l} do not seem to exist. we have had issues with pulling distribution data for some countries.\
-if the data is truly not in the file -- /share/epi/risk/paf/metab_sbp_interm/-- then reach out to central comp to ask them to produce the data".format(l=location_id)
+                # If you're looking at this and wondering how to fix your error, try running
+                # this code in the cluster environment.
+                shutil.copyfile(os.path.join('/share/epi/risk/paf/metab_sbp_interm/', file_name), path)
 
 
-            one_year_file = pd.read_stata("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".\
-                                          format(l=location_id, y=year_id, s=sex_id))
+            one_year_file = pd.read_stata(path)
             one_year_file['year_id'] = year_id
             draws = draws.append(one_year_file)
 
