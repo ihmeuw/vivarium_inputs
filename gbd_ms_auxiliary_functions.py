@@ -210,7 +210,6 @@ def normalize_for_simulation(df):
 
 
 def get_age_from_age_group_id(df):
-    # TODO: Start using age midpoints and producing results for under 1 yr olds
     """Creates an "age" column from the "age_group_id" column
 
     Parameters

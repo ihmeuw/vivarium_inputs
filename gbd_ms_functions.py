@@ -23,6 +23,7 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
 from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from joblib import Memory
+import warnings
 
 import logging
 _log = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
         # For now, do not include information on early, pre, and post neonatal
         draws = draws.query("age != 0")
 
-        draws = set_age_year_index(draws, 0, 80, year_start, year_end)
+        draws = set_age_year_index(draws, 'early neonatal', 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(draws, 'draw')
 
@@ -384,11 +385,6 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     return post_sequela_assignmnet_population[['simulant_id', 'condition_state']]
 
 
-ihd = [1814, 1817, 3233, 2412]
-chronic_hemorrhagic_stroke = [9311, 9312]
-list_of_me_ids_in_microsim = chronic_hemorrhagic_stroke + ihd
-
-
 # 4. get_cause_deleted_mortality_rate
 
 def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,
@@ -553,6 +549,7 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end,
 
 # 6. get_relative_risks
 
+
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
     """
     Parameters
@@ -600,8 +597,8 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
         # need to treat risks with category parameters specially
         if risk_id == 166:
             rr = rr.query("parameter == 'cat1'")
-
-        rr = set_age_year_index(rr, 0, 80, year_start, year_end)
+        
+        rr = set_age_year_index(rr, 'early neonatal', 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(rr, 'rr')
 
@@ -681,7 +678,7 @@ it is also possible that you are trying to pull a risk/cause combination that do
 
         pafs = pafs.query("sex_id == {s}".format(s=sex_id))
 
-        pafs = set_age_year_index(pafs, 0, 80, year_start, year_end)
+        pafs = set_age_year_index(pafs, 'early neonatal', 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(pafs, 'draw')
 
@@ -758,7 +755,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         if risk_id == 166:
             exposure = exposure.query("parameter == 'cat1'")
 
-        exposure = set_age_year_index(exposure, 0, 80, year_start, year_end)
+        exposure = set_age_year_index(exposure, 'early neonatal', 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(exposure,
                                                                 'draw')
@@ -899,12 +896,10 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
         draws = pd.DataFrame()
         for year_id in np.arange(year_start, year_end + 1, 5):
 
-            # assert an error to see if the data was pulled from the database
-            assert os.path.isfile("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".\
-                                          format(l=location_id, y=year_id, s=sex_id)
-            ) == True, "the sbp distribution files for location_id {l} do not seem to exist. we have had issues with pulling distribution data for some countries.\
-if the data is truly not in the file -- /share/epi/risk/paf/metab_sbp_interm/-- then reach out to central comp to ask them to produce the data".format(l=location_id)
-
+            # give the user a warning if the sbp file does not exist
+            if not os.path.isfile("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".\
+                                          format(l=location_id, y=year_id, s=sex_id)):
+                warnings.warn("""the sbp distribution files for location_id {l} do not seem to exist. we have had issues with pulling distribution data for some countries.if the data is truly not in the file -- /share/epi/risk/paf/metab_sbp_interm/-- then reach out to central comp to ask them to produce the data)""".format(l=location_id), UserWarning)
 
             one_year_file = pd.read_stata("/share/epi/risk/paf/metab_sbp_interm/exp_{l}_{y}_{s}.dta".\
                                           format(l=location_id, y=year_id, s=sex_id))
@@ -913,7 +908,7 @@ if the data is truly not in the file -- /share/epi/risk/paf/metab_sbp_interm/-- 
 
         draws = get_age_from_age_group_id(draws)
 
-        draws = set_age_year_index(draws, 25, 80,
+        draws = set_age_year_index(draws, 27.5, 80,
                                    year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(draws,
