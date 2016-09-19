@@ -22,8 +22,6 @@ def get_disease_states(population, states):
     condition_column = load_data_from_cache(assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex_id']], location_id=location_id, year_start=year_start, states=states)
     condition_column = condition_column.set_index('simulant_id')
 
-    condition_column = condition_column.fillna('healthy')
-
     return condition_column
 
 
