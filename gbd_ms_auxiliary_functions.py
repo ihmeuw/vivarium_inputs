@@ -29,13 +29,23 @@ def set_age_year_index(df, age_start, age_end, year_start, year_end):
         df contains raw inputs from GBD, so the data only contains info
         for age groups and GBD years
 
-    age_start: int
+    age_start: int or str
         earliest age for which you want data
+            NOTE: If you want your age range to start with early, late, or
+            post neonatal, then enter "early neonatal", "late neonatal",
+            or "post neonatal" for age_start
+            # TODO: Confirm with someone that this is the best way to get
+            data for en, ln, and pn
 
-    age_end: int
+    age_end: int or strt
         end point of the interpolation. all ages after this will have the
         same constant estimate of the quantity of interest that you are
         studying (see extrapolate_ages for more info)
+            NOTE: If you want your age range to end with early, late, or
+            post neonatal, then enter "early neonatal", "late neonatal",
+            or "post neonatal" for age_end
+            # TODO: Confirm with someone that this is the best way to get
+            data for en, ln, and pn
 
     year_start : int, year
         year_start is the year in which you want to start the simulation
@@ -58,16 +68,66 @@ def set_age_year_index(df, age_start, age_end, year_start, year_end):
     """
 
     # Set ages and years of interest
-    ages = [(.01917808/2), ((0.01917808+0.07671233)/2), ((0.07671233+1)/2)] + np.arange(1, 80.5, .5).tolist()
+        # need to use special handling if age_start or age_end is early, late, 
+        # or post neonatal
+    
+    # TODO: Use dbtools to grab en, ln, and pn midpts straight from the database
+    en_midpt = (.01917808 / 2)
+    ln_midpt = ((0.01917808 + 0.07671233) / 2)
+    pn_midpt = ((0.07671233 + 1) / 2)
+    
+    # if age_start is <1 but age_end >1 
+    if type(age_end) is int and type(age_start) is str:
+        if age_start == "early neonatal":
+            ages = [en_midpt, ln_midpt, pn_midpt] + np.arange(1, age_end + .5, .5).tolist()
+        elif age_start == "late neonatal":
+            ages = [ln_midpt, pn_midpt] + np.arange(1, age_end + .5, .5).tolist()
+        elif age_start == "post neonatal":
+            ages = [pn_midpt] + np.arange(1, age_end + .5, .5).tolist()
+        else:
+            raise ValueError("""you supplied an incorrect age_start value. you wrote {}
+ which is invalid. valid entries for age_start are 'early neonatal', 'late neonatal',
+ 'post neonatal', or a number that is a multiple of .5 between 1 and 80 (inclusive)""".
+format(age_start))
+
+    # if age_start <1 and age_end <1
+    elif type(age_end) and type(age_start) is str:        
+        if age_start == "early neonatal" and age_end == "early neonatal":
+            ages = [en_midpt] 
+        if age_start == "early neonatal" and age_end == "late neonatal":
+            ages = [en_midpt, ln_midpt]
+        if age_start == "early neonatal" and age_end == "post neonatal":
+            ages = [en_midpt, ln_midpt, pn_midpt]        
+        elif age_start == "late neonatal" and age_end == "late neonatal":
+            ages = [ln_midpt]
+        elif age_start == "late neonatal" and age_end == "post neonatal":
+            ages = [ln_midpt, pn_midpt]
+        elif age_start == "post neonatal" and age_end =="post neonatal":
+            ages = [pn_midpt]
+        else:
+            raise ValueError("""you supplied an incorrect age_start or age_end value.
+ you wrote {s} and {e}, at least one of  which is invalid. valid entries for age_start 
+ and age_end are early neonatal, late neonatal, post neonatal, or a number that is
+ a multiple of .5 between 1 and 80 (inclusive)""".format(a=age_start, e=age_end))
+
+    else:
+        ages = np.arange(age_start, age_end + .5, .5).tolist()
+
     years = range(year_start, year_end + 1)
 
     # Set indexes of year_id and age
-    df = df.set_index(['year_id', 'age']).sortlevel()
+    indexed_df = df.set_index(['year_id', 'age']).sortlevel().copy()
 
     age_sex_index = pd.MultiIndex.from_product(
         [years, ages], names=['year_id', 'age'])
 
-    expanded_data = pd.DataFrame(df, index=age_sex_index)
+    expanded_data = pd.DataFrame(indexed_df, index=age_sex_index)
+
+    if type(age_start) is int:
+        assert age_start >= 1, """age_start cannot be an integer less than 1. if 
+                                  you want age_start to be <1, state that it is
+                                  equal to 'early neonatal', 'late neonatal', or
+                                  'post neonatal'"""
 
     return expanded_data
 
@@ -133,8 +193,8 @@ def create_age_column(simulants_file, population_file, number_of_simulants):
 
     ages = population_file.age.values
     proportions = population_file.proportion_of_total_pop.values
-    simulant_ages = stats.rv_discrete(values=(ages, proportions))
-    simulants_file['age'] = simulant_ages.rvs(size=number_of_simulants)
+    simulant_ages = np.random.choice(ages, number_of_simulants, p=list(proportions))
+    simulants_file['age'] = simulant_ages    
 
     return simulants_file
 
