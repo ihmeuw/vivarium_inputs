@@ -500,7 +500,6 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
 def get_heart_failure_incidence_draws(location_id, year_start, year_end,
                                       me_id):
     """
-def get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id):
     '''Returns incidence draws for a given cause of heart failure
     Since GBD 2015 does not have full models for specific causes of heart failure,
     get_heart_failure_draws approximates full models through reading in data for
