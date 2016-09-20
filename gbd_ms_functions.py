@@ -25,9 +25,10 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
 from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 
+from ceam.framework.util import from_yearly, rate_to_probability
+
 import logging
 _log = logging.getLogger(__name__)
-from ceam.util import from_yearly, rate_to_probability
 
 # # Microsim functions
 # This notebook contains the functions that will be used to
