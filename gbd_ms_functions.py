@@ -544,7 +544,7 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end,
         envelope = cause_of_hf['draw_{i}_env'.format(i=i)]
         proportion = cause_of_hf['draw_{i}_prop'.format(i=i)]
         cause_of_hf['draw_{i}'.format(i=i)] = envelope * proportion
-    
+
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
@@ -985,7 +985,7 @@ def get_angina_proportions(year_start, year_end):
 
         indexed_ang = set_age_year_index(ang, 'early neonatal', 80, year_start, year_end)
 
-        interp_data = interpolate_linearly_over_years_then_ages(indexed_ang, 'anginga_prop')
+        interp_data = interpolate_linearly_over_years_then_ages(indexed_ang, 'angina_prop')
 
         interp_data['sex_id'] = sex_id
 

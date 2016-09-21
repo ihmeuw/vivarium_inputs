@@ -86,7 +86,7 @@ def interpolate_linearly_over_years_then_ages(df, col_prefix1,
     are now filled because we interpolated between the age/year combinations
     that we did have data for
     """
-    if col_prefix == "angina_prop":
+    if col_prefix1 == "angina_prop":
         keepcol = ["angina_prop"]
 
     else:
