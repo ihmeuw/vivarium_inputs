@@ -61,7 +61,7 @@ def get_disease_states(population, states):
 
     return condition_column
 
-def get_cause_deleted_mortality_rate(meids):
+def get_cause_deleted_mortality_rate(meids=[]):
     """Get the all cause mortality rate with the excess mortality rate of explicitly modeled
     modelable entity ids deleted out.
 
@@ -110,7 +110,11 @@ def generate_ceam_population(number_of_simulants, initial_age=None, year_start=N
     if year_start is None:
         year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    return functions.load_data_from_cache(functions.generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=number_of_simulants, initial_age=initial_age)
+    population = functions.load_data_from_cache(functions.generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=number_of_simulants, initial_age=initial_age)
+    population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
+    population['alive'] = True
+    return population
+
 
 
 # End.
