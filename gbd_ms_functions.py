@@ -24,7 +24,7 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import extrapolate_ages
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
 from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-
+# em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
 from ceam.framework.util import from_yearly, rate_to_probability
 
 import logging
@@ -950,14 +950,15 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
-# Angina proportion splits
+# 13 get_angina_proportions
 
-def angina_proportions(year_start, year_end):
+
+def get_angina_proportions(year_start, year_end):
     '''Format the angina proportions so that we can use them in CEAM.
     This is messy. The proportions were produced by Catherine Johnson.
     The proportion differs by age, but not by sex, location, or time.
     This will likely change post GBD-2016.
-    
+
     Parameters
     ----------
     location_id : int
@@ -973,39 +974,29 @@ def angina_proportions(year_start, year_end):
     '''
 
     output_df = pd.DataFrame()
-    
+
     for sex_id in [1, 2]:
-        
+
+        # TODO: Everett created csv below from a file that Catherine Johnson created
+        # Catherine's original doc located here -- /snfs1/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv
+        # Need to figure out a way to check to see if this file is ever updated
         ang = pd.read_csv("/snfs1/Project/Cost_Effectiveness/dev/data_processed/angina_props.csv")
-        ang = ang.query("sex_id == {s}".format(s = sex_id))
+        ang = ang.query("sex_id == {s}".format(s=sex_id))
 
-        # Set ages and years of interest
-        all_ages = range(1, 81)
-        all_years = range(year_start,year_end+1)
+        indexed_ang = set_age_year_index(ang, 'early neonatal', 80, year_start, year_end)
 
-        # Set indexes of year_id and age
-        ang = ang.set_index(['year_id','age']).sortlevel()
-
-        ind = pd.MultiIndex.from_product([all_years,all_ages],names=['year_id','age'])
-
-        expanded_data = pd.DataFrame(ang, index=ind)
-
-        keepcol = ['angina_prop']
-        mx = expanded_data[keepcol]
-
-        # Interpolate over age and year
-        interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+        interp_data = interpolate_linearly_over_years_then_ages(indexed_ang, 'anginga_prop')
 
         interp_data['sex_id'] = sex_id
 
-        output_df = output_df.append(extrapolate_ages(interp_data, 151, year_end +1))
-        
-        # we don't have estimates under age 20, so I'm filling all ages under 20 with
-        # the same proportion that we have for 20 year olds
-        output_df = output_df.apply(lambda x: x.fillna(0.254902),axis = 0)
+        output_df = output_df.append(
+            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
 
-        return output_df
+        # we don't have estimates under age 20, so I'm filling all ages under
+        # 20 with the same proportion that we have for 20 year olds
+        # TODO: Should check this assumption w/ Abie
+    output_df = output_df.apply(lambda x: x.fillna(0.254902), axis=0)
 
+    return output_df
 
 # End.

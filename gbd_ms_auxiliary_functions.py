@@ -10,6 +10,7 @@ from ceam.gbd_data.util import stata_wrapper
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam
 
+
 def set_age_year_index(df, age_start, age_end, year_start, year_end):
     """
     Return a dataframe with age and year indexes. Preps the data for
@@ -85,8 +86,11 @@ def interpolate_linearly_over_years_then_ages(df, col_prefix1,
     are now filled because we interpolated between the age/year combinations
     that we did have data for
     """
+    if col_prefix == "angina_prop":
+        keepcol = ["angina_prop"]
 
-    keepcol = ["{c}_{i}".format(c=col_prefix1, i=i) for i in range(0, 1000)]
+    else:
+        keepcol = ["{c}_{i}".format(c=col_prefix1, i=i) for i in range(0, 1000)]
 
     if col_prefix2 is not None:
         keepcol += ["{c}_{i}".format(c=col_prefix2, i=i) for i in range(0, 1000)]
@@ -247,9 +251,7 @@ def get_populations(location_id, year_start, sex_id):
         pop_scaled
         pop_scaled is the population for a given age/year/sex
     """
-
     pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
-
 
     # use auxilliary function extract_age_from_age_group_name to create an age
     # column
@@ -321,7 +323,7 @@ def assign_sex_id(simulants_df, male_pop, female_pop):
 
     return new_sim_file
 
- 
+
 def create_sex_id_column(simulants_df, location_id, year_start):
     """
     creates a sex_id column and ensures correlation between age and sex
@@ -414,7 +416,6 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         # only get years we care about
         all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.
                                           format(ys=year_start, ye=year_end))
-
 
         # TODO: Figure out how to interpolate to the early, pre, and post
         # neonatal groups
