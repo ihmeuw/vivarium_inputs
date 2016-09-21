@@ -24,10 +24,10 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import extrapolate_ages
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
 from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
+from ceam.framework.util import from_yearly, rate_to_probability
 
 import logging
 _log = logging.getLogger(__name__)
-from ceam.util import from_yearly, rate_to_probability
 
 # # Microsim functions
 # This notebook contains the functions that will be used to
@@ -815,7 +815,7 @@ def _inner_cached_call(funct, *args, **kwargs):
     return funct(*args, **kwargs)
 
 
-def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
+def load_data_from_cache(funct, col_name, src_column=None, *args, **kwargs):
     """
     load_data_from_cache is a functor that will
     check a cache to see if data exists in that cache.
