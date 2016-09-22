@@ -983,7 +983,8 @@ def get_angina_proportions(year_start, year_end):
         ang = pd.read_csv("/snfs1/Project/Cost_Effectiveness/dev/data_processed/angina_props.csv")
         ang = ang.query("sex_id == {s}".format(s=sex_id))
 
-        indexed_ang = set_age_year_index(ang, 'early neonatal', 80, year_start, year_end)
+        # TODO: After merging in pull request that allows for under 1 yr old estimation, change line below to read 'early neonatal' for age_start as opposed to 1
+        indexed_ang = set_age_year_index(ang, 1, 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(indexed_ang, 'angina_prop')
 
@@ -998,5 +999,38 @@ def get_angina_proportions(year_start, year_end):
     output_df = output_df.apply(lambda x: x.fillna(0.254902), axis=0)
 
     return output_df
+
+
+# 14. get_post_mi_asympt_ihd_proportion
+# TODO: Write a unit test for this function
+
+def get_post_mi_asympt_ihd_proportion(hf_prop_df, angina_prop_df):
+    """
+    Gets the proportion of post-mi simulants that will get asymptomatic ihd.
+    Proportion that will get asymptomatic ihd is equal to 1 - proportion of 
+    mi 1 month survivors that get angina + proportion of mi 1 month survivors
+    that get heart failure
+
+    Parameters
+    ----------
+    hf_prop_df : df
+        df with post-mi hf proportions
+
+    angina_prop_df : df
+        df with post-mi angina proportions
+
+    Returns
+    -------
+    df with post-mi asymptomatic ihd proportions
+    """
+    asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year', 'sex'])
+    
+    for i in range(0, 1000):
+        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - asympt_prop_df['draw_{}'.format(i)] - asympt_prop_df['angina_prop']
+    
+    keepcol = ['year', 'sex', 'age']
+    keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
+
+    return asympt_prop_df[keepcol]    
 
 # End.
