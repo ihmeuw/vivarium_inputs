@@ -323,9 +323,6 @@ def get_populations(location_id, year_start, sex_id):
     # Determine gender of interest. Can be 1, 2, or 3
     pop = pop.query("sex_id == {s}".format(s=sex_id))
 
-    # For now, don't include population for early, pre, post neonates
-    pop = pop.query("age != 0")  # TODO: Bring in EN, NN, PN eventually
-
     # Keep only the relevant columns
     pop = pop[['year_id', 'location_name',
                'location_id', 'age', 'sex_id', 'pop_scaled']]
