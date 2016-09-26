@@ -474,16 +474,10 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.
                                           format(ys=year_start, ye=year_end))
 
-
-        # TODO: Figure out how to interpolate to the early, pre, and post
-        # neonatal groups
-        all_cause_mr = all_cause_mr.query("age != 0")
-
         all_cause_mr = all_cause_mr.query('sex_id == {s}'.format(s=sex_id))
 
-        all_cause_mr = set_age_year_index(all_cause_mr, all_cause_mr.age.min(),
-                                          all_cause_mr.age.max(), year_start,
-                                          year_end)
+        all_cause_mr = set_age_year_index(all_cause_mr, 'early neonatal',
+                                          80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(all_cause_mr,
                                                                 'all_cause_mortality_rate')
@@ -491,7 +485,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         interp_data['sex_id'] = sex_id
 
         all_cause_mr_dict[sex_id] = extrapolate_ages(
-            interp_data, 151, year_start, year_end + 1)
+            interp_data, 105, year_start, year_end + 1)
 
     output_df = all_cause_mr_dict[1].append(all_cause_mr_dict[2])
 
