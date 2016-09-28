@@ -57,7 +57,7 @@ def get_model_versions():
     JOIN epi.model_version USING (model_version_id)
     JOIN shared.publication USING (publication_id)
     WHERE publication_id in ({})
-    '''.format(','.join(publication_ids))
+    '''.format(','.join([str(pid) for pid in publication_ids]))
     , database='epi')
 
     mapping = dict(mapping[['modelable_entity_id', 'model_version_id']].values)
