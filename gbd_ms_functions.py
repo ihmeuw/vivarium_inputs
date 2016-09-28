@@ -818,7 +818,7 @@ def _inner_cached_call(funct, *args, **kwargs):
     return funct(*args, **kwargs)
 
 
-def load_data_from_cache(funct, col_name, src_column=None, *args, **kwargs):
+def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     """
     load_data_from_cache is a functor that will
     check a cache to see if data exists in that cache.
