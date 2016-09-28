@@ -12,7 +12,7 @@ from joblib import Memory
 
 from ceam import config
 
-from ceam.gbd_data.util import stata_wrapper
+from ceam.gbd_data.util import stata_wrapper, get_cache_directory
 
 from ceam.gbd_data.gbd_ms_auxiliary_functions import set_age_year_index
 from ceam.gbd_data.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
@@ -810,8 +810,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 # 10. load_data_from_cache
 
 
-memory = Memory(cachedir=config.get(
-    'input_data', 'intermediary_data_cache_path').format(username=getpass.getuser()), verbose=1)
+memory = Memory(cachedir=get_cache_directory, verbose=1)
 
 
 @memory.cache
@@ -897,7 +896,7 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     df with mean and sd values in LOG space
     '''
     output_df = pd.DataFrame()
-    sbp_dir = os.path.join(config.get('input_data', 'intermediary_data_cache_path').format(username=getpass.getuser()), 'sbp')
+    sbp_dir = os.path.join(get_cache_directory(), 'sbp')
 
     for sex_id in [1, 2]:
         draws = pd.DataFrame()
