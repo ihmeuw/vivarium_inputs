@@ -810,7 +810,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 # 10. load_data_from_cache
 
 
-memory = Memory(cachedir=get_cache_directory, verbose=1)
+memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 
 @memory.cache

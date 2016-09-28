@@ -3,12 +3,14 @@ import subprocess
 
 import pandas as pd
 
+from getpass import getuser
+
 from ceam import config
 
 STATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'cen_functions_scripts')
 
 def get_cache_directory():
-    return config.get('input_data', 'intermediary_data_cache_path').format(username=getpass.getuser())
+    return config.get('input_data', 'intermediary_data_cache_path').format(username=getuser())
 
 def stata_wrapper(do_file_name, out_file_name, *args):
     cache_path = get_cache_directory()
