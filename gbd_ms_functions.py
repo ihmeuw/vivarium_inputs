@@ -927,6 +927,10 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
                 # If you're looking at this and wondering how to fix your error, try running
                 # this code in the cluster environment.
+
+                # Make a directory to contain the files if it doesn't exist.
+                os.makedirs(sbp_dir, exist_ok=True)
+
                 shutil.copyfile(os.path.join('/share/epi/risk/paf/metab_sbp_interm/', file_name), path)
 
 
