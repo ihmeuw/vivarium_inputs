@@ -897,7 +897,7 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     df with mean and sd values in LOG space
     '''
     output_df = pd.DataFrame()
-    sbp_dir = os.path.join(config.get('input_data', 'intermediary_data_cache_path'), 'sbp')
+    sbp_dir = os.path.join(config.get('input_data', 'intermediary_data_cache_path').format(username=getpass.getuser()), 'sbp')
 
     for sex_id in [1, 2]:
         draws = pd.DataFrame()
@@ -928,9 +928,10 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
         interp_data['sex_id'] = sex_id
 
         #TODO: Need to rethink setting ages for this function. Since sbp estimates start for the age 25-29 group, it should start at age 25, not 27.5.
+        # TODO: em python question -> best way to subset an index?
         for i in range(0, 1000):
-            interp_data.loc[interp_data.age < 27.5, 'log_mean_{}'.format(i)] = np.log(112)
-            interp_data.loc[interp_data.age < 27.5, 'log_sd_{}'.format(i)] = .001
+            interp_data.ix[interp_data.index['age'] < 27.5, 'log_mean_{}'.format(i)] = np.log(112)
+            interp_data.ix[interp_data.index['age'] < 27.5, 'log_sd_{}'.format(i)] = .001
 
         for i in range(0, 1000):
             exp_mean = interp_data['exp_mean_{}'.format(i)]
