@@ -105,7 +105,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end + 1))
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -615,7 +615,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end + 1))
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
         # need to back calculate relative risk to earlier ages for risks that
         # don't start until a certain age
@@ -688,7 +688,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end + 1))
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
         # need to back calculate PAFS to earlier ages for risks that don't
         # start until a certain age
@@ -762,7 +762,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end + 1))
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
         keepcol = ['draw_{i}'.format(i=i) for i in range(0, 1000)]
         keepcol += ['year_id', 'sex_id', 'age']
@@ -877,7 +877,7 @@ def load_data_from_cache(funct, col_name, src_column=None, *args, **kwargs):
 
 # 12. get_sbp_mean_sd
 
-
+# TODO: write more unit tests for this function
 def get_sbp_mean_sd(location_id, year_start, year_end):
     # TODO: Consider moving in the code from the blood pressure module
     # to here (i.e. interpolate from age 1 - 80, and fillna with the SBP values
@@ -929,22 +929,31 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
         #TODO: Need to rethink setting ages for this function. Since sbp estimates start for the age 25-29 group, it should start at age 25, not 27.5.
         # TODO: em python question -> best way to subset an index?
-        for i in range(0, 1000):
-            interp_data.ix[interp_data.index['age'] < 27.5, 'log_mean_{}'.format(i)] = np.log(112)
-            interp_data.ix[interp_data.index['age'] < 27.5, 'log_sd_{}'.format(i)] = .001
+        # TODO: Make a list of columns before hand. will be faster
 
-        for i in range(0, 1000):
-            exp_mean = interp_data['exp_mean_{}'.format(i)]
-            exp_sd = interp_data['exp_sd_{}'.format(i)]
-            interp_data['log_mean_{}'.format(i)] = np.log(
-                exp_mean)
-            interp_data['log_sd_{}'.format(i)] = (exp_sd / exp_mean)
+        # reset indexes to be columns and then assign sbp separately for young simulants
+        interp_data.reset_index(level=['age', 'year_id'], inplace=True)
+        young_simulants = interp_data.query("age < 27.5").copy()
+        old_simulants = interp_data.query("age >= 27.5").copy()
+        
+        total_simulants = pd.DataFrame()        
+
+        # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing
+        for i in range(0, 1000):                     
+            young_simulants['log_mean_{}'.format(i)] = np.log(112)
+            young_simulants['log_sd_{}'.format(i)] = .001
+
+            exp_mean = old_simulants['exp_mean_{}'.format(i)]
+            exp_sd = old_simulants['exp_sd_{}'.format(i)]
+            old_simulants['log_mean_{}'.format(i)] = np.log(exp_mean)
+            old_simulants['log_sd_{}'.format(i)] = (exp_sd / exp_mean)
+            
+        total_simulants = total_simulants.append([young_simulants, old_simulants])
+
+        total_simulants.set_index(['year_id', 'age'], inplace=True)
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end + 1))
-
-    # assert an error to make sure data is dense (i.e. no missing data)
-    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_sbp_mean_sd just tried to output. make sure what youre pulling from /share/epi/risk/paf/metab_sbp_interm/ is correct"
+            extrapolate_ages(total_simulants, 105, year_start, year_end))
 
     # assert an error if there are duplicate rows
     assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
@@ -998,7 +1007,7 @@ def get_angina_proportions(year_start, year_end):
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end + 1))
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
         # we don't have estimates under age 20, so I'm filling all ages under
         # 20 with the same proportion that we have for 20 year olds

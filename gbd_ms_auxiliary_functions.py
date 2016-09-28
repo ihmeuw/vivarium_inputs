@@ -485,7 +485,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
         interp_data['sex_id'] = sex_id
 
         all_cause_mr_dict[sex_id] = extrapolate_ages(
-            interp_data, 105, year_start, year_end + 1)
+            interp_data, 105, year_start, year_end)
 
     output_df = all_cause_mr_dict[1].append(all_cause_mr_dict[2])
 
