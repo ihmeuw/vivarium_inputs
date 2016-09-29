@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from joblib import Memory
+import filelock
 
 import db_tools
 
@@ -865,7 +866,10 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     # writeable by other users
     old_umask = os.umask(0)
 
-    function_output = _inner_cached_call(funct, *args, **kwargs)
+    lock_location = _inner_cached_call.get_output_dir(funct, *args, **kwargs)[0] + '.lock'
+    with filelock.FileLock(lock_location):
+        function_output = _inner_cached_call(funct, *args, **kwargs)
+
 
     os.umask(old_umask)
 
