@@ -10,6 +10,8 @@ import pandas as pd
 
 from joblib import Memory
 
+import db_tools
+
 from ceam import config
 
 from ceam.gbd_data.util import stata_wrapper, get_cache_directory
@@ -32,6 +34,10 @@ from ceam.framework.util import from_yearly, rate_to_probability
 import logging
 _log = logging.getLogger(__name__)
 
+memory = Memory(cachedir=config.get(
+    'input_data', 'intermediary_data_cache_path'), verbose=1)
+
+
 # # Microsim functions
 # This notebook contains the functions that will be used to
 # re-format GBD data into a format that can be used for the cost-effectiveness
@@ -40,6 +46,24 @@ _log = logging.getLogger(__name__)
 # central computation functions
 # https://hub.ihme.washington.edu/display/G2/Central+Function+Documentation)
 
+@memory.cache
+def get_model_versions():
+    """Return a mapping from modelable_entity_id to the version of that entity 
+    associated with the GBD publications currently configured.
+    """
+    publication_ids = [int(pid) for pid in config.get('input_data', 'gbd_publication_ids').split(',')]
+    mapping = db_tools.query('''
+    SELECT modelable_entity_id, model_version_id
+    FROM epi.publication_model_version
+    JOIN epi.model_version USING (model_version_id)
+    JOIN shared.publication USING (publication_id)
+    WHERE publication_id in ({})
+    '''.format(','.join([str(pid) for pid in publication_ids]))
+    , database='epi')
+
+    mapping = dict(mapping[['modelable_entity_id', 'model_version_id']].values)
+
+    return mapping
 
 # 1. get_modelable_entity_draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
@@ -74,14 +98,11 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
     """
 
     output_df = pd.DataFrame()
+    meid_version_map = get_model_versions()
+    model_version = meid_version_map[me_id]
 
     for sex_id in (1, 2):
-        model_version = 'best'
-        if me_id == 3233:
-            #TODO: This is really terrible. We need to figure out how we can get the best version of this ME to work for us
-            # Or, if that's impossible, find a cleaner way of expressing this versioning.
-            # See https://jira.ihme.washington.edu/browse/CE-269
-            model_version = 84852
+
 
         draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
 
@@ -850,6 +871,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
 
     function_output = _inner_cached_call(funct, *args, **kwargs)
 
+
     os.umask(old_umask)
 
     draw = config.getint('run_configuration', 'draw_number')
@@ -909,6 +931,10 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
                 # intermediate step so we have to copy it around ourselves.
                 # If you're looking at this and wondering how to fix your error, try running
                 # this code in the cluster environment.
+
+                # Make a directory to contain the files if it doesn't exist.
+                os.makedirs(sbp_dir, exist_ok=True)
+
                 shutil.copyfile(os.path.join('/share/epi/risk/paf/metab_sbp_interm/', file_name), path)
 
             one_year_file = pd.read_stata(path)
