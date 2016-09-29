@@ -26,7 +26,6 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from joblib import Memory
 import warnings
-import getpass
 
 from ceam.framework.util import from_yearly, rate_to_probability
 
@@ -94,9 +93,6 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
         draws = get_age_from_age_group_id(draws)
 
         draws = draws.query("sex_id == {s}".format(s=sex_id))
-
-        # For now, do not include information on early, pre, and post neonatal
-        draws = draws.query("age != 0")
 
         draws = set_age_year_index(draws, 'early neonatal', 80, year_start, year_end)
 
@@ -178,6 +174,9 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     # assert an error if there are duplicate rows
     assert simulants.duplicated(['simulant_id']).sum(
     ) == 0, "there are duplicates in the dataframe that generate_ceam_population just tried to output. check the function and its auxiliary functions (get_populations and assign_sex_id)"
+
+    # TODO: WILL WANT TO DELETE LINE BELOW AFTER IMPLEMENTING SPLINES
+    simulants.loc[simulants.age < 1, 'age'] = 1  
 
     return simulants
 
@@ -285,6 +284,7 @@ def get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence,
     """
     sequela_proportions = {}
 
+    # TODO: I do not think we want to be specifying draw_number here
     draw_number = config.getint('run_configuration', 'draw_number')
 
     for key in states.keys():
