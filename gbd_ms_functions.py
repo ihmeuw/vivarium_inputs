@@ -34,8 +34,7 @@ from ceam.framework.util import from_yearly, rate_to_probability
 import logging
 _log = logging.getLogger(__name__)
 
-memory = Memory(cachedir=config.get(
-    'input_data', 'intermediary_data_cache_path'), verbose=1)
+memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 
 # # Microsim functions
