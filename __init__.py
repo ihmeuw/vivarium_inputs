@@ -1,7 +1,7 @@
 # ~/ceam/ceam/gbd_data/__init__.py
 
 from ceam import config
-
+from ceam.gbd_data.gbd_ms_functions import get_disability_weight
 from ceam.gbd_data import gbd_ms_functions as functions
 
 def get_excess_mortality(modelable_entity_id):

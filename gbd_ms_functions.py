@@ -1052,9 +1052,9 @@ def get_angina_proportions(year_start, year_end):
     return output_df
 
 
-# 14 get_healthstate_id_draws
+# 14 get_disability_weight
 
-def get_healthstate_id_draws(draws_modelable_entity_id):
+def get_disability_weight(draws_modelable_entity_id):
     """Returns a dataframe with disability weight draws for a given healthstate id
 
     Parameters
