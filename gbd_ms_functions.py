@@ -4,11 +4,13 @@
 import os.path
 import os
 import shutil
+from datetime import timedelta
 
 import numpy as np
 import pandas as pd
 
 from joblib import Memory
+from flufl.lock import Lock
 
 import db_tools
 
@@ -865,8 +867,15 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     # writeable by other users
     old_umask = os.umask(0)
 
-    function_output = _inner_cached_call(funct, *args, **kwargs)
-
+    # Set a lock around the cache object so we don't recompute it multiple times
+    lock_location = _inner_cached_call.get_output_dir(funct, *args, **kwargs)[0] + '.lock'
+    lock = Lock(lock_location)
+    lock.lifetime = timedelta(hours=1)
+    lock.lock()
+    try:
+        function_output = _inner_cached_call(funct, *args, **kwargs)
+    finally:
+        lock.unlock()
 
     os.umask(old_umask)
 
