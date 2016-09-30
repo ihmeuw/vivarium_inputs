@@ -16,7 +16,7 @@ import db_tools
 
 from ceam import config
 
-from ceam.gbd_data.util import stata_wrapper
+from ceam.gbd_data.util import stata_wrapper, get_cache_directory
 
 from ceam.gbd_data.gbd_ms_auxiliary_functions import set_age_year_index
 from ceam.gbd_data.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
@@ -28,15 +28,15 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import extrapolate_ages
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
 from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-from ceam.framework.util import from_yearly, rate_to_probability
+from joblib import Memory
+import warnings
 
 from ceam.framework.util import from_yearly, rate_to_probability
 
 import logging
 _log = logging.getLogger(__name__)
 
-memory = Memory(cachedir=config.get(
-    'input_data', 'intermediary_data_cache_path'), verbose=1)
+memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 
 # # Microsim functions
@@ -116,17 +116,14 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
 
         draws = draws.query("sex_id == {s}".format(s=sex_id))
 
-        # For now, do not include information on early, pre, and post neonatal
-        draws = draws.query("age != 0")
-
-        draws = set_age_year_index(draws, 1, 80, year_start, year_end)
+        draws = set_age_year_index(draws, 'early neonatal', 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(draws, 'draw')
 
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -199,6 +196,9 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     # assert an error if there are duplicate rows
     assert simulants.duplicated(['simulant_id']).sum(
     ) == 0, "there are duplicates in the dataframe that generate_ceam_population just tried to output. check the function and its auxiliary functions (get_populations and assign_sex_id)"
+
+    # TODO: WILL WANT TO DELETE LINE BELOW AFTER IMPLEMENTING SPLINES
+    simulants.loc[simulants.age < 1, 'age'] = 1  
 
     return simulants
 
@@ -306,6 +306,7 @@ def get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence,
     """
     sequela_proportions = {}
 
+    # TODO: I do not think we want to be specifying draw_number here
     draw_number = config.getint('run_configuration', 'draw_number')
 
     for key in states.keys():
@@ -411,7 +412,6 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
 
     return post_sequela_assignmnet_population[['simulant_id', 'condition_state']]
-
 
 
 # 4. get_cause_deleted_mortality_rate
@@ -588,6 +588,7 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end,
 
 # 6. get_relative_risks
 
+
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
     """
     Parameters
@@ -628,15 +629,15 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
         # need to treat risks with category parameters specially
         if risk_id == 166:
             rr = rr.query("parameter == 'cat1'")
-
-        rr = set_age_year_index(rr, 1, 80, year_start, year_end)
+        
+        rr = set_age_year_index(rr, 'early neonatal', 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(rr, 'rr')
 
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
         # need to back calculate relative risk to earlier ages for risks that
         # don't start until a certain age
@@ -702,14 +703,14 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
         pafs = pafs.query("sex_id == {s}".format(s=sex_id))
 
-        pafs = set_age_year_index(pafs, 1, 80, year_start, year_end)
+        pafs = set_age_year_index(pafs, 'early neonatal', 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(pafs, 'draw')
 
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
         # need to back calculate PAFS to earlier ages for risks that don't
         # start until a certain age
@@ -775,7 +776,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         if risk_id == 166:
             exposure = exposure.query("parameter == 'cat1'")
 
-        exposure = set_age_year_index(exposure, 1, 80, year_start, year_end)
+        exposure = set_age_year_index(exposure, 'early neonatal', 80, year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(exposure,
                                                                 'draw')
@@ -783,7 +784,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
         keepcol = ['draw_{i}'.format(i=i) for i in range(0, 1000)]
         keepcol += ['year_id', 'sex_id', 'age']
@@ -830,6 +831,8 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
 # 10. load_data_from_cache
 
+
+memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 
 @memory.cache
@@ -903,7 +906,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
 
 # 12. get_sbp_mean_sd
 
-
+# TODO: write more unit tests for this function
 def get_sbp_mean_sd(location_id, year_start, year_end):
     # TODO: Consider moving in the code from the blood pressure module
     # to here (i.e. interpolate from age 1 - 80, and fillna with the SBP values
@@ -923,7 +926,7 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     df with mean and sd values in LOG space
     '''
     output_df = pd.DataFrame()
-    sbp_dir = os.path.join(config.get('input_data', 'intermediary_data_cache_path'), 'sbp')
+    sbp_dir = os.path.join(get_cache_directory(), 'sbp')
 
     for sex_id in [1, 2]:
         draws = pd.DataFrame()
@@ -934,7 +937,6 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
                 # This is a fall back and will not work from most places other than the cluster.
                 # We do this because the SBP data isn't a standard GBD product and is instead an
                 # intermediate step so we have to copy it around ourselves.
-
                 # If you're looking at this and wondering how to fix your error, try running
                 # this code in the cluster environment.
 
@@ -943,14 +945,13 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
                 shutil.copyfile(os.path.join('/share/epi/risk/paf/metab_sbp_interm/', file_name), path)
 
-
             one_year_file = pd.read_stata(path)
             one_year_file['year_id'] = year_id
             draws = draws.append(one_year_file)
 
         draws = get_age_from_age_group_id(draws)
 
-        draws = set_age_year_index(draws, 25, 80,
+        draws = set_age_year_index(draws, 'early neonatal', 80,
                                    year_start, year_end)
 
         interp_data = interpolate_linearly_over_years_then_ages(draws,
@@ -959,18 +960,33 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
         interp_data['sex_id'] = sex_id
 
-        for i in range(0, 1000):
-            exp_mean = interp_data['exp_mean_{}'.format(i)]
-            exp_sd = interp_data['exp_sd_{}'.format(i)]
-            interp_data['log_mean_{}'.format(i)] = np.log(
-                exp_mean)
-            interp_data['log_sd_{}'.format(i)] = (exp_sd / exp_mean)
+        #TODO: Need to rethink setting ages for this function. Since sbp estimates start for the age 25-29 group, it should start at age 25, not 27.5.
+        # TODO: em python question -> best way to subset an index?
+        # TODO: Make a list of columns before hand. will be faster
+
+        # reset indexes to be columns and then assign sbp separately for young simulants
+        interp_data.reset_index(level=['age', 'year_id'], inplace=True)
+        young_simulants = interp_data.query("age < 27.5").copy()
+        old_simulants = interp_data.query("age >= 27.5").copy()
+        
+        total_simulants = pd.DataFrame()        
+
+        # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing
+        for i in range(0, 1000):                     
+            young_simulants['log_mean_{}'.format(i)] = np.log(112)
+            young_simulants['log_sd_{}'.format(i)] = .001
+
+            exp_mean = old_simulants['exp_mean_{}'.format(i)]
+            exp_sd = old_simulants['exp_sd_{}'.format(i)]
+            old_simulants['log_mean_{}'.format(i)] = np.log(exp_mean)
+            old_simulants['log_sd_{}'.format(i)] = (exp_sd / exp_mean)
+            
+        total_simulants = total_simulants.append([young_simulants, old_simulants])
+
+        total_simulants.set_index(['year_id', 'age'], inplace=True)
 
         output_df = output_df.append(
-            extrapolate_ages(interp_data, 151, year_start, year_end + 1))
-
-    # assert an error to make sure data is dense (i.e. no missing data)
-    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_sbp_mean_sd just tried to output. make sure what youre pulling from /share/epi/risk/paf/metab_sbp_interm/ is correct"
+            extrapolate_ages(total_simulants, 105, year_start, year_end))
 
     # assert an error if there are duplicate rows
     assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
@@ -983,14 +999,15 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
-# Angina proportion splits
+# 13 get_angina_proportions
 
-def angina_proportions(year_start, year_end):
+
+def get_angina_proportions(year_start, year_end):
     '''Format the angina proportions so that we can use them in CEAM.
     This is messy. The proportions were produced by Catherine Johnson.
     The proportion differs by age, but not by sex, location, or time.
     This will likely change post GBD-2016.
-    
+
     Parameters
     ----------
     location_id : int
@@ -1006,39 +1023,31 @@ def angina_proportions(year_start, year_end):
     '''
 
     output_df = pd.DataFrame()
-    
+
     for sex_id in [1, 2]:
-        
+
+        # TODO: Everett created csv below from a file that Catherine Johnson created
+        # Catherine's original doc located here -- /snfs1/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv
+        # Need to figure out a way to check to see if this file is ever updated
         ang = pd.read_csv("/snfs1/Project/Cost_Effectiveness/dev/data_processed/angina_props.csv")
-        ang = ang.query("sex_id == {s}".format(s = sex_id))
+        ang = ang.query("sex_id == {s}".format(s=sex_id))
 
-        # Set ages and years of interest
-        all_ages = range(1, 81)
-        all_years = range(year_start,year_end+1)
+        # TODO: After merging in pull request that allows for under 1 yr old estimation, change line below to read 'early neonatal' for age_start as opposed to 1
+        indexed_ang = set_age_year_index(ang, 'early neonatal', 80, year_start, year_end)
 
-        # Set indexes of year_id and age
-        ang = ang.set_index(['year_id','age']).sortlevel()
-
-        ind = pd.MultiIndex.from_product([all_years,all_ages],names=['year_id','age'])
-
-        expanded_data = pd.DataFrame(ang, index=ind)
-
-        keepcol = ['angina_prop']
-        mx = expanded_data[keepcol]
-
-        # Interpolate over age and year
-        interp_data = mx.groupby(level=0).apply(lambda x: x.interpolate())
-        interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
+        interp_data = interpolate_linearly_over_years_then_ages(indexed_ang, 'angina_prop')
 
         interp_data['sex_id'] = sex_id
 
-        output_df = output_df.append(extrapolate_ages(interp_data, 151, year_end +1))
-        
-        # we don't have estimates under age 20, so I'm filling all ages under 20 with
-        # the same proportion that we have for 20 year olds
-        output_df = output_df.apply(lambda x: x.fillna(0.254902),axis = 0)
+        output_df = output_df.append(
+            extrapolate_ages(interp_data, 105, year_start, year_end))
 
-        return output_df
+        # we don't have estimates under age 20, so I'm filling all ages under
+        # 20 with the same proportion that we have for 20 year olds
+        # TODO: Should check this assumption w/ Abie
+    output_df = output_df.apply(lambda x: x.fillna(0.254902), axis=0)
 
+    return output_df
 
 # End.
+
