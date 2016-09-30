@@ -1054,46 +1054,42 @@ def get_angina_proportions(year_start, year_end):
 
 # 14 get_disability_weight
 
-def get_disability_weight(draws_modelable_entity_id):
+def get_disability_weight(dis_weight_modelable_entity_id):
     """Returns a dataframe with disability weight draws for a given healthstate id
 
     Parameters
     ----------
-    draws_modelable_entity_id : int
+    dis_weight_modelable_entity_id : int
 
     Returns
     -------
     df with disability weight draws
     """
     
-    healthstate_id = get_healthstate_id(draws_modelable_entity_id)
+    healthstate_id = get_healthstate_id(dis_weight_modelable_entity_id)
     
     dws_look_here_first = pd.read_csv("/home/j/WORK/04_epi/03_outputs/01_code/02_dw/02_standard/dw.csv")
     dws_look_here_second = pd.read_csv("/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv")
     
     if healthstate_id in dws_look_here_first.healthstate_id.tolist():
         df = dws_look_here_first.query("healthstate_id == @healthstate_id")
-        df['modelable_entity_id'] = draws_modelable_entity_id
-        # for i in range(0, 1000):
-        #    df.rename(columns={'draw{}'.format(i):'draw_{}'.format(i)}, inplace=True)
+        df['modelable_entity_id'] = dis_weight_modelable_entity_id
             
     elif healthstate_id in dws_look_here_second.healthstate_id.tolist():
         df = dws_look_here_second.query("healthstate_id == @healthstate_id")
-        df['modelable_entity_id'] = draws_modelable_entity_id
-        # for i in range(0, 1000):
-        #    df.rename(columns={'draw{}'.format(i):'draw_{}'.format(i)}, inplace=True)
+        df['modelable_entity_id'] = dis_weight_modelable_entity_id
         
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequala get this healthstate_id
     elif healthstate_id == 799:
         df = pd.DataFrame({'healthstate_id': [799], 'healthstate': ['asymptomatic']})
         for i in range (0, 1000):
             df['draw{}'.format(i)] = 0
-        df['modelable_entity_id'] = draws_modelable_entity_id
+        df['modelable_entity_id'] = dis_weight_modelable_entity_id
     else:
         raise ValueError("""the modelable entity id {m} has a healthstate_id of {h}. it looks like there 
         are no draws for this healthstate_id in the csvs that get_healthstate_id_draws checked.
         look in this folder for the draws for healthstate_id{h}: /home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom.
-        if you can't find draws there, talk w/ central comp""".format(m=draws_modelable_entity_id, h=healthstate_id)) 
+        if you can't find draws there, talk w/ central comp""".format(m=dis_weight_modelable_entity_id, h=healthstate_id)) 
     
     return df['draw{}'.format(config.getint('run_configuration', 'draw_number'))].iloc[0]
 

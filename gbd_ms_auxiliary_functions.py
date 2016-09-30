@@ -509,12 +509,12 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
 
 # TODO: write healthstate functions tests
-def get_healthstate_id(draws_modelable_entity_id):
+def get_healthstate_id(dis_weight_modelable_entity_id):
     """Returns a healthstate_id for a given modelable entity id
 
     Parameters
     ----------
-    draws_modelable_entity_id : int
+    dis_weight_modelable_entity_id : int
 
     Returns
     -------
@@ -525,13 +525,13 @@ def get_healthstate_id(draws_modelable_entity_id):
     SELECT modelable_entity_id, healthstate_id
     FROM epi.sequela
     WHERE modelable_entity_id = {}
-    '''.format(draws_modelable_entity_id)
+    '''.format(dis_weight_modelable_entity_id)
     , database='epi')
     
     if healthstate_id_df.empty:
         raise ValueError("""modelable entity id {} does not have a healthstate id. 
         there is not a disability weight associated with this sequela, 
-        so you should not try to pull draws for it""".format(draws_modelable_entity_id))
+        so you should not try to pull draws for it""".format(dis_weight_modelable_entity_id))
     
     healthstate_id = healthstate_id_df.at[0,'healthstate_id']
 
