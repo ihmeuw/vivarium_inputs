@@ -1087,7 +1087,7 @@ def get_disability_weight(draws_modelable_entity_id):
     elif healthstate_id == 799:
         df = pd.DataFrame({'healthstate_id': [799], 'healthstate': ['asymptomatic']})
         for i in range (0, 1000):
-            df['draw_{}'.format(i)] = 0
+            df['draw{}'.format(i)] = 0
         df['modelable_entity_id'] = draws_modelable_entity_id
     else:
         raise ValueError("""the modelable entity id {m} has a healthstate_id of {h}. it looks like there 
