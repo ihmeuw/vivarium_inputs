@@ -525,7 +525,7 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
     SELECT modelable_entity_id, healthstate_id
     FROM epi.sequela
     WHERE modelable_entity_id = {}
-    '''.format(dis_weight_modelable_entity_id)
+    '''.format(int(dis_weight_modelable_entity_id))
     , database='epi')
     
     if healthstate_id_df.empty:

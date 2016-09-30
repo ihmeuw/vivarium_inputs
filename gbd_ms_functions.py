@@ -1081,9 +1081,10 @@ def get_disability_weight(dis_weight_modelable_entity_id):
         
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequala get this healthstate_id
     elif healthstate_id == 799:
-        df = pd.DataFrame({'healthstate_id': [799], 'healthstate': ['asymptomatic']})
-        for i in range (0, 1000):
-            df['draw{}'.format(i)] = 0
+        columns = ['draw{i}'.format(i=i) for i in range(0,1000)]
+        df = pd.DataFrame(np.zeros((1, len(columns))), columns=columns) 
+        df['healthstate_id'] = 799
+        df['healthstate'] = 'asymptomatic'
         df['modelable_entity_id'] = dis_weight_modelable_entity_id
     else:
         raise ValueError("""the modelable entity id {m} has a healthstate_id of {h}. it looks like there 
