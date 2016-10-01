@@ -1081,11 +1081,7 @@ def get_disability_weight(dis_weight_modelable_entity_id):
         
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequala get this healthstate_id
     elif healthstate_id == 799:
-        columns = ['draw{i}'.format(i=i) for i in range(0,1000)]
-        df = pd.DataFrame(np.zeros((1, len(columns))), columns=columns) 
-        df['healthstate_id'] = 799
-        df['healthstate'] = 'asymptomatic'
-        df['modelable_entity_id'] = dis_weight_modelable_entity_id
+        df = pd.DataFrame({'healthstate_id':[799], 'healthstate': ['asymptomatic'], 'modelable_entity_id':[dis_weight_modelable_entity_id], 'draw{}'.format(config.getint('run_configuration', 'draw_number')) : [0]})  
     else:
         raise ValueError("""the modelable entity id {m} has a healthstate_id of {h}. it looks like there 
         are no draws for this healthstate_id in the csvs that get_healthstate_id_draws checked.
