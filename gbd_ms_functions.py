@@ -519,17 +519,12 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
         return df
 
 
-# 5. get_heart_failure_incidence_draws
+# 5. get_post_mi_heart_failure_proportion_draws
 
 
-def get_heart_failure_incidence_draws(location_id, year_start, year_end,
-                                      me_id):
+def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end):
     """
-    Returns incidence draws for a given cause of heart failure
-    Since GBD 2015 does not have full models for specific causes of heart failure,
-    get_heart_failure_draws approximates full models through reading in data for
-    the entire heart failure impairment envelope and then multipying the envelope
-    by the proportion of hf due to specific causes
+    Returns post-mi proportion draws for hf due to ihd
 
     Parameters
     ----------
@@ -558,7 +553,7 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end,
 
     # read in proportion of the cause of heart failure of interest
     proportion_draws = get_modelable_entity_draws(
-        location_id, year_start, year_end, 18, me_id)
+        location_id, year_start, year_end, 18, 2414)
 
     # merge and then multiply envelope draws by proportion draws
     cause_of_hf = pd.merge(hf_envelope, proportion_draws, on=[
@@ -877,6 +872,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     os.umask(old_umask)
 
     draw = config.getint('run_configuration', 'draw_number')
+
     if col_name:
         if src_column is not None:
             if isinstance(src_column, str):
@@ -1031,6 +1027,7 @@ def get_angina_proportions(year_start, year_end):
 
         interp_data = interpolate_linearly_over_years_then_ages(indexed_ang, 'angina_prop')
 
+        interp_data['sex_id'] = sex_id        
 
         output_df = output_df.append(
             extrapolate_ages(interp_data, 105, year_start, year_end))
@@ -1046,7 +1043,7 @@ def get_angina_proportions(year_start, year_end):
 # 14. get_post_mi_asympt_ihd_proportion
 # TODO: Write a unit test for this function
 
-def get_post_mi_asympt_ihd_proportion(hf_prop_df, angina_prop_df):
+def get_asympt_ihd_proportions(location_id, year_start, year_end):
     """
     Gets the proportion of post-mi simulants that will get asymptomatic ihd.
     Proportion that will get asymptomatic ihd is equal to 1 - proportion of 
@@ -1055,22 +1052,23 @@ def get_post_mi_asympt_ihd_proportion(hf_prop_df, angina_prop_df):
 
     Parameters
     ----------
-    hf_prop_df : df
-        df with post-mi hf proportions
-
-    angina_prop_df : df
-        df with post-mi angina proportions
+    Feed in parameters required by get_post_mi_heart_failure_proportion_draws and get_angina_proportion_draws
 
     Returns
     -------
     df with post-mi asymptomatic ihd proportions
     """
-    asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year', 'sex'])
+
+    hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end)
+
+    angina_prop_df = get_angina_proportions(year_start, year_end)
+
+    asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
     
     for i in range(0, 1000):
         asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - asympt_prop_df['draw_{}'.format(i)] - asympt_prop_df['angina_prop']
     
-    keepcol = ['year', 'sex', 'age']
+    keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
 
     return asympt_prop_df[keepcol]    
