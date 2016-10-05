@@ -26,13 +26,11 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import extrapolate_ages
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
 from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-<<<<<<< HEAD
 # em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
-=======
+# TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
 from joblib import Memory
 import warnings
 
->>>>>>> develop
 from ceam.framework.util import from_yearly, rate_to_probability
 
 import logging
@@ -569,7 +567,8 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end,
     for i in range(0, 1000):
         envelope = cause_of_hf['draw_{i}_env'.format(i=i)]
         proportion = cause_of_hf['draw_{i}_prop'.format(i=i)]
-        cause_of_hf['draw_{i}'.format(i=i)] = envelope * proportion
+        # TODO: Make this block faster, have it calculate all probs for all draws in a single operation
+        cause_of_hf['draw_{i}'.format(i=i)] = rate_to_probability(envelope * proportion)
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
