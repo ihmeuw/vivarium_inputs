@@ -868,7 +868,6 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
 
     function_output = _inner_cached_call(funct, *args, **kwargs)
 
-
     os.umask(old_umask)
 
     draw = config.getint('run_configuration', 'draw_number')
@@ -1037,6 +1036,10 @@ def get_angina_proportions(year_start, year_end):
         # TODO: Should check this assumption w/ Abie
     output_df = output_df.apply(lambda x: x.fillna(0.254902), axis=0)
 
+    # little bit awkward below, but we're renaming the col name to have the draw number attached to it so that we can load it from the cache
+
+    output_df.rename(columns={'angina_prop': 'angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))}, inplace=True)
+
     return output_df
 
 
@@ -1066,7 +1069,7 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
     asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
     
     for i in range(0, 1000):
-        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - asympt_prop_df['draw_{}'.format(i)] - asympt_prop_df['angina_prop']
+        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - asympt_prop_df['draw_{}'.format(i)] - asympt_prop_df['angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))]
     
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
