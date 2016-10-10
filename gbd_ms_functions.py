@@ -872,15 +872,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     # writeable by other users
     old_umask = os.umask(0)
 
-    # Set a lock around the cache object so we don't recompute it multiple times
-    lock_location = _inner_cached_call.get_output_dir(funct, *args, **kwargs)[0] + '.lock'
-    lock = Lock(lock_location)
-    lock.lifetime = timedelta(hours=1)
-    lock.lock()
-    try:
-        function_output = _inner_cached_call(funct, *args, **kwargs)
-    finally:
-        lock.unlock()
+    function_output = _inner_cached_call(funct, *args, **kwargs)
 
     os.umask(old_umask)
 
