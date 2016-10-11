@@ -523,6 +523,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
 
 
 def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end):
+    # TODO: NEED TO WRITE TESTS TO MAKE SURE THAT POST_MI TRANSITIONS SCALE TO 1
     """
     Returns post-mi proportion draws for hf due to ihd
 
@@ -535,12 +536,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
         year_start is the year in which you want to start the simulation
 
     year_end : int
-        year_end is the year in which you want to end the simulation
-
-    me_id: int
-        modelable_entity_id takes same me_id values as are used for GBD
-        corresponds with the me_id of the cause of heart failure that is
-        of interest
+        year_end is the year in which you want to end the 
 
     Returns
     -------
@@ -560,6 +556,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
                            'age', 'year_id', 'sex_id'], suffixes=('_env', '_prop'))
 
     for i in range(0, 1000):
+        # TODO: Manual calculation of the multiplication below gave a little bit different values. Should I be using np.multiply or somethig else to make sure python is handling these floats correctly?
         envelope = cause_of_hf['draw_{i}_env'.format(i=i)]
         proportion = cause_of_hf['draw_{i}_prop'.format(i=i)]
         # TODO: Make this block faster, have it calculate all probs for all draws in a single operation
@@ -569,15 +566,15 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert cause_of_hf.isnull().values.any() == False, "there are nulls in the dataframe that get_heart_failure_incidence_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert cause_of_hf.isnull().values.any() == False, "there are nulls in the dataframe that get_post_mi_heart_failure_proportion_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
     assert cause_of_hf.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_heart_failure_incidence_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
+    ) == 0, "there are duplicates in the dataframe that get_post_mi_heart_failure_proportion_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     # assert that none of the incidence rate values are greater than 1 (basically ensuring that the numerator and demoniator weren't flipped)
     draw_number = config.getint('run_configuration', 'draw_number')
-    assert cause_of_hf['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_heart_failure_incidence_draws calculation. incidence rate can't be GT 1. Check to see if the numerator/denominator were flipped"
+    assert cause_of_hf['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_post_mi_heart_failure_proportion_draws calculation. incidence rate can't be GT 1. Check to see if the numerator/denominator were flipped"
 
     return cause_of_hf[keepcol]
 
@@ -1068,14 +1065,20 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
 
     asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
     
+    # TODO: RAISE AN ERROR IF PROPORTIONS ARE GREATER THAN 1 FOR NOW. MAY WANT TO DELETE
+    # ERROR IN THE FUTURE AND SCALE DOWN TO 1 INSTEAD
+    angina_values = asympt_prop_df['angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))]
+
     for i in range(0, 1000):
-        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - asympt_prop_df['draw_{}'.format(i)] - asympt_prop_df['angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))]
+        hf_values = asympt_prop_df['draw_{}'.format(i)]
+        assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
+        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - hf_values - angina_values
     
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
 
-    return asympt_prop_df[keepcol]    
-        
+    return asympt_prop_df[keepcol] 
+
 
 # End.
 
