@@ -1040,7 +1040,7 @@ def get_angina_proportions(year_start, year_end):
     return output_df
 
 
-# 14. get_post_mi_asympt_ihd_proportion
+# 14. get_asympt_ihd_proportions
 # TODO: Write a unit test for this function
 
 def get_asympt_ihd_proportions(location_id, year_start, year_end):
