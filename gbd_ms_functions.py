@@ -1026,7 +1026,7 @@ def get_angina_proportions(year_start, year_end):
 
         interp_data = interpolate_linearly_over_years_then_ages(indexed_ang, 'angina_prop')
 
-        interp_data['sex_id'] = sex_id        
+        interp_data['sex_id'] = sex_id
 
         output_df = output_df.append(
             extrapolate_ages(interp_data, 105, year_start, year_end))
