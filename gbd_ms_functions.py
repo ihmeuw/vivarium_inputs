@@ -29,6 +29,8 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
 from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam.gbd_data.gbd_ms_auxiliary_functions import get_healthstate_id
+# em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
+# TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
 from joblib import Memory
 import warnings
 
@@ -521,17 +523,13 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
         return df
 
 
-# 5. get_heart_failure_incidence_draws
+# 5. get_post_mi_heart_failure_proportion_draws
 
 
-def get_heart_failure_incidence_draws(location_id, year_start, year_end,
-                                      me_id):
+def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end):
+    # TODO: NEED TO WRITE TESTS TO MAKE SURE THAT POST_MI TRANSITIONS SCALE TO 1
     """
-    Returns incidence draws for a given cause of heart failure
-    Since GBD 2015 does not have full models for specific causes of heart failure,
-    get_heart_failure_draws approximates full models through reading in data for
-    the entire heart failure impairment envelope and then multipying the envelope
-    by the proportion of hf due to specific causes
+    Returns post-mi proportion draws for hf due to ihd
 
     Parameters
     ----------
@@ -542,12 +540,7 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end,
         year_start is the year in which you want to start the simulation
 
     year_end : int
-        year_end is the year in which you want to end the simulation
-
-    me_id: int
-        modelable_entity_id takes same me_id values as are used for GBD
-        corresponds with the me_id of the cause of heart failure that is
-        of interest
+        year_end is the year in which you want to end the 
 
     Returns
     -------
@@ -560,30 +553,32 @@ def get_heart_failure_incidence_draws(location_id, year_start, year_end,
 
     # read in proportion of the cause of heart failure of interest
     proportion_draws = get_modelable_entity_draws(
-        location_id, year_start, year_end, 18, me_id)
+        location_id, year_start, year_end, 18, 2414)
 
     # merge and then multiply envelope draws by proportion draws
     cause_of_hf = pd.merge(hf_envelope, proportion_draws, on=[
                            'age', 'year_id', 'sex_id'], suffixes=('_env', '_prop'))
 
     for i in range(0, 1000):
+        # TODO: Manual calculation of the multiplication below gave a little bit different values. Should I be using np.multiply or somethig else to make sure python is handling these floats correctly?
         envelope = cause_of_hf['draw_{i}_env'.format(i=i)]
         proportion = cause_of_hf['draw_{i}_prop'.format(i=i)]
-        cause_of_hf['draw_{i}'.format(i=i)] = envelope * proportion
-    
+        # TODO: Make this block faster, have it calculate all probs for all draws in a single operation
+        cause_of_hf['draw_{i}'.format(i=i)] = rate_to_probability(envelope * proportion)
+
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert cause_of_hf.isnull().values.any() == False, "there are nulls in the dataframe that get_heart_failure_incidence_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert cause_of_hf.isnull().values.any() == False, "there are nulls in the dataframe that get_post_mi_heart_failure_proportion_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
     assert cause_of_hf.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_heart_failure_incidence_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
+    ) == 0, "there are duplicates in the dataframe that get_post_mi_heart_failure_proportion_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     # assert that none of the incidence rate values are greater than 1 (basically ensuring that the numerator and demoniator weren't flipped)
     draw_number = config.getint('run_configuration', 'draw_number')
-    assert cause_of_hf['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_heart_failure_incidence_draws calculation. incidence rate can't be GT 1. Check to see if the numerator/denominator were flipped"
+    assert cause_of_hf['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_post_mi_heart_failure_proportion_draws calculation. incidence rate can't be GT 1. Check to see if the numerator/denominator were flipped"
 
     return cause_of_hf[keepcol]
 
@@ -877,6 +872,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     os.umask(old_umask)
 
     draw = config.getint('run_configuration', 'draw_number')
+
     if col_name:
         if src_column is not None:
             if isinstance(src_column, str):
@@ -1041,6 +1037,10 @@ def get_angina_proportions(year_start, year_end):
         # TODO: Should check this assumption w/ Abie
     output_df = output_df.apply(lambda x: x.fillna(0.254902), axis=0)
 
+    # little bit awkward below, but we're renaming the col name to have the draw number attached to it so that we can load it from the cache
+
+    output_df.rename(columns={'angina_prop': 'angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))}, inplace=True)
+
     return output_df
 
 
@@ -1081,6 +1081,45 @@ def get_disability_weight(dis_weight_modelable_entity_id):
         if you can't find draws there, talk w/ central comp""".format(m=dis_weight_modelable_entity_id, h=healthstate_id)) 
     
     return df['draw{}'.format(config.getint('run_configuration', 'draw_number'))].iloc[0]
+
+# 15. get_asympt_ihd_proportions
+# TODO: Write a unit test for this function
+
+def get_asympt_ihd_proportions(location_id, year_start, year_end):
+    """
+    Gets the proportion of post-mi simulants that will get asymptomatic ihd.
+    Proportion that will get asymptomatic ihd is equal to 1 - proportion of 
+    mi 1 month survivors that get angina + proportion of mi 1 month survivors
+    that get heart failure
+
+    Parameters
+    ----------
+    Feed in parameters required by get_post_mi_heart_failure_proportion_draws and get_angina_proportion_draws
+
+    Returns
+    -------
+    df with post-mi asymptomatic ihd proportions
+    """
+
+    hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end)
+
+    angina_prop_df = get_angina_proportions(year_start, year_end)
+
+    asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
+    
+    # TODO: RAISE AN ERROR IF PROPORTIONS ARE GREATER THAN 1 FOR NOW. MAY WANT TO DELETE
+    # ERROR IN THE FUTURE AND SCALE DOWN TO 1 INSTEAD
+    angina_values = asympt_prop_df['angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))]
+
+    for i in range(0, 1000):
+        hf_values = asympt_prop_df['draw_{}'.format(i)]
+        assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
+        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - hf_values - angina_values
+    
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
+
+    return asympt_prop_df[keepcol] 
 
 
 # End.
