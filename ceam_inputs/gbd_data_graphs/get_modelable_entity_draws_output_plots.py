@@ -12,8 +12,8 @@ import numpy as np, pandas as pd, matplotlib.pyplot as plt, seaborn as sns
 # # Function Output Plots
 # This notebook plots the outputs of the gbd_ms_functions. We need plots to ensure that our data match what is coming from DisMod (can check that the outputs match by using the epi viz tool -- http://epimodeling-web-p01.ihme.washington.edu/2015/). More importantly, for the causes/measures that we can't pull straight from DisMod (e.g. excess mortality of heart failure due to ihd), these plots will serve as a sanity check for the numbers which we are producing.
 
-from ceam.gbd_data.gbd_ms_functions import *
-from ceam.gbd_data.gbd_ms_auxiliary_functions import *
+from ceam_inputs.gbd_ms_functions import *
+from ceam_inputs.gbd_ms_auxiliary_functions import *
 
 
 def plots(me_id, measure):

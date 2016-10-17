@@ -14,8 +14,8 @@ import pandas as pd
 # from matplotlib.backends.backend_pdf import PdfPages  
 
 
-from ceam.gbd_data.gbd_ms_functions import *
-from ceam.gbd_data.gbd_ms_auxiliary_functions import *
+from ceam_inputs.gbd_ms_functions import *
+from ceam_inputs.gbd_ms_auxiliary_functions import *
 
 
 pop = generate_ceam_population(180, 1990, 100000)

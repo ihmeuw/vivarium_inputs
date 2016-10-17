@@ -5,7 +5,7 @@ from scipy import stats
 
 from ceam import config
 import db_tools
-from ceam.gbd_data.util import stata_wrapper
+from ceam_inputs.util import stata_wrapper
 
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam

@@ -16,19 +16,19 @@ import db_tools
 
 from ceam import config
 
-from ceam.gbd_data.util import stata_wrapper, get_cache_directory
+from ceam_inputs.util import stata_wrapper, get_cache_directory
 
-from ceam.gbd_data.gbd_ms_auxiliary_functions import set_age_year_index
-from ceam.gbd_data.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
-from ceam.gbd_data.gbd_ms_auxiliary_functions import create_age_column
-from ceam.gbd_data.gbd_ms_auxiliary_functions import normalize_for_simulation
-from ceam.gbd_data.gbd_ms_auxiliary_functions import get_age_from_age_group_id
-from ceam.gbd_data.gbd_ms_auxiliary_functions import expand_grid
-from ceam.gbd_data.gbd_ms_auxiliary_functions import extrapolate_ages
-from ceam.gbd_data.gbd_ms_auxiliary_functions import get_populations
-from ceam.gbd_data.gbd_ms_auxiliary_functions import create_sex_id_column
-from ceam.gbd_data.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-from ceam.gbd_data.gbd_ms_auxiliary_functions import get_healthstate_id
+from ceam_inputs.gbd_ms_auxiliary_functions import set_age_year_index
+from ceam_inputs.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
+from ceam_inputs.gbd_ms_auxiliary_functions import create_age_column
+from ceam_inputs.gbd_ms_auxiliary_functions import normalize_for_simulation
+from ceam_inputs.gbd_ms_auxiliary_functions import get_age_from_age_group_id
+from ceam_inputs.gbd_ms_auxiliary_functions import expand_grid
+from ceam_inputs.gbd_ms_auxiliary_functions import extrapolate_ages
+from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
+from ceam_inputs.gbd_ms_auxiliary_functions import create_sex_id_column
+from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
+from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
 # em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
 # TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
 from joblib import Memory
