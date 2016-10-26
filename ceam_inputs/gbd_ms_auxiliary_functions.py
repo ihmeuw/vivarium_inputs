@@ -4,7 +4,9 @@ import pandas as pd
 from scipy import stats
 
 from ceam import config
-import db_tools
+
+from db_tools import ezfuncs
+
 from ceam_inputs.util import stata_wrapper
 
 # This file contains auxiliary functions that are used
@@ -523,12 +525,12 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
     integer specifying healthstate_id for modelable entity id that was supplied
     """
     
-    healthstate_id_df = db_tools.query('''
+    healthstate_id_df = ezfuncs.query('''
     SELECT modelable_entity_id, healthstate_id
     FROM epi.sequela
     WHERE modelable_entity_id = {}
     '''.format(int(dis_weight_modelable_entity_id))
-    , database='epi')
+    , conn_def='epi')
     
     if healthstate_id_df.empty:
         raise ValueError("""modelable entity id {} does not have a healthstate id. 

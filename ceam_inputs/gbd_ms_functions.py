@@ -12,7 +12,7 @@ import pandas as pd
 from joblib import Memory
 from flufl.lock import Lock
 
-import db_tools
+from db_tools import ezfuncs
 
 from ceam import config
 
@@ -57,14 +57,14 @@ def get_model_versions():
     associated with the GBD publications currently configured.
     """
     publication_ids = [int(pid) for pid in config.get('input_data', 'gbd_publication_ids').split(',')]
-    mapping = db_tools.query('''
+    mapping = ezfuncs.query('''
     SELECT modelable_entity_id, model_version_id
     FROM epi.publication_model_version
     JOIN epi.model_version USING (model_version_id)
     JOIN shared.publication USING (publication_id)
     WHERE publication_id in ({})
     '''.format(','.join([str(pid) for pid in publication_ids]))
-    , database='epi')
+    , conn_def='epi')
 
     mapping = dict(mapping[['modelable_entity_id', 'model_version_id']].values)
 
