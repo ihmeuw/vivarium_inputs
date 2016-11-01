@@ -34,6 +34,22 @@ def get_incidence(modelable_entity_id):
     """
     return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=6, me_id=modelable_entity_id)
 
+def get_continuous(modelable_entity_id):
+    """Get the continuous measure from a modelable entity. This measure is used
+    for things like the distribution of BMI in a population.
+
+    Parameters
+    ----------
+    modelable_entity_id : int
+                          The entity to retrieve
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table with 'age', 'sex', 'year' and 'value' columns
+    """
+    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'value', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=19, me_id=modelable_entity_id)
+
 def get_proportion(modelable_entity_id):
     """Get proportion data for a modelable entity. This is used for entities that represent
     outcome splits like severities of heart failure after an infarction.
