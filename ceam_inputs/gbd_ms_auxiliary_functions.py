@@ -223,6 +223,7 @@ def get_age_from_age_group_id(df):
     idx = df.index
     mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
     mapping = mapping.set_index('age_group_id')
+    # TODO: figure out what number to use for 80+ group
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     df = df.set_index('age_group_id')
     df['age'] = mapping['age']
