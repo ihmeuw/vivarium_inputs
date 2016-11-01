@@ -366,22 +366,25 @@ def assign_sex_id(simulants_df, male_pop, female_pop):
 
     # do for each age in population dataframes (same ages in male_pop and
     # female_pop)
+    prev_age = -1
     for age in male_pop.age.values:
         male_pop_value = male_pop.query(
-            "age == {a}".format(a=age)).pop_scaled.values
+            "age > @prev_age and age <= @age").pop_scaled.values
         female_pop_value = female_pop.query(
-            "age == {a}".format(a=age)).pop_scaled.values
+            "age > @prev_age and age <= @age").pop_scaled.values
 
         elements = [1, 2]
         male_prop = male_pop_value / (male_pop_value + female_pop_value)
         female_prop = 1 - male_prop
         weights = [float(male_prop), float(female_prop)]
 
-        one_age = simulants_df.query("age == {a}".format(a=age)).copy()
+        one_age = simulants_df.query('age > @prev_age and age <= @age').copy()
         one_age['sex_id'] = one_age['age'].map(
             lambda x: np.random.choice(elements, p=weights))
 
         new_sim_file = new_sim_file.append(one_age)
+
+        prev_age = age
 
     return new_sim_file
 

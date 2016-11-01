@@ -189,6 +189,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
         simulants['age'] = initial_age
     simulants = create_sex_id_column(simulants, location_id, year_start)
 
+
     # TODO: Design and implement test that makes sure CEAM population looks
     # like population file pulled from GBD
     # TODO: Design and implement test that makes sure population has been
@@ -200,9 +201,6 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     # assert an error if there are duplicate rows
     assert simulants.duplicated(['simulant_id']).sum(
     ) == 0, "there are duplicates in the dataframe that generate_ceam_population just tried to output. check the function and its auxiliary functions (get_populations and assign_sex_id)"
-
-    # TODO: WILL WANT TO DELETE LINE BELOW AFTER IMPLEMENTING SPLINES
-    simulants.loc[simulants.age < 1, 'age'] = 1  
 
     return simulants
 
