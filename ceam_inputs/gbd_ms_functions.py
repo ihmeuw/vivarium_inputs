@@ -1120,5 +1120,16 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
     return asympt_prop_df[keepcol] 
 
 
+def get_age_specific_fertility_rates(location_id, year_start, year_end):
+    #TODO: I'm loading this from disk because central comp doesn't have a good
+    # tool for ingesting covariates from python and I don't feel like writing
+    # any more stata. They say there should be something in a couple of weeks
+    # and we should switch to it asap. -Alec 11/01/2016
+    asfr = pd.read_csv("/home/j/Project/Cost_Effectiveness/dev/data_processed/ASFR.csv", encoding='latin1')
+
+    asfr = asfr.query('location_id == @location_id and year_id >= @year_start and year_id <= @year_end')
+    asfr = get_age_from_age_group_id(asfr)
+
+    return asfr
 # End.
 

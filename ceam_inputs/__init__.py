@@ -131,6 +131,10 @@ def generate_ceam_population(number_of_simulants, initial_age=None, year_start=N
     population['alive'] = True
     return population
 
-
+def get_age_specific_fertility_rates():
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+    return functions.load_data_from_cache(functions.get_age_specific_fertility_rates, col_name=['mean_value', 'lower_value', 'upper_value'], src_column=['mean_value', 'lower_value', 'upper_value'], location_id=location_id, year_start=year_start, year_end=year_end)
 
 # End.
