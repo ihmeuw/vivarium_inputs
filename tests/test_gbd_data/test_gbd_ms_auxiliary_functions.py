@@ -78,8 +78,8 @@ def test_normalize_for_simulation():
 def test_get_age_from_age_group_id():
     df = pd.DataFrame({'age_group_id': np.arange(2, 22)})
     df = get_age_from_age_group_id(df)
-    assert df.columns.tolist() == ['age_group_id', 'age'], "get_age_from_age_group_id did not work. did not create an age column"
-    assert df.age.tolist() == [(.01917808/2), ((0.01917808+0.07671233)/2), ((0.07671233+1)/2), 3] + [x for x in np.arange(7.5, 78, 5)] + [80], "get_age_from_age_group_id did not return the expect"
+    assert 'age' in df.columns.tolist(), "get_age_from_age_group_id did not work. did not create an age column"
+    assert df.age.tolist() == [(.01917808/2), ((0.01917808+0.07671233)/2), ((0.07671233+1)/2), 3] + [x for x in np.arange(7.5, 78, 5)] + [102.5], "get_age_from_age_group_id did not return the expect"
 
 #6. expand_grid
 def test_expand_grid():
