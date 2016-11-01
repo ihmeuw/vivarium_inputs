@@ -17,6 +17,7 @@ from db_tools import ezfuncs
 from ceam import config
 
 from ceam_inputs.util import stata_wrapper, get_cache_directory
+from ceam_inputs.auxiliary_files import open_auxiliary_file
 
 from ceam_inputs.gbd_ms_auxiliary_functions import set_age_year_index
 from ceam_inputs.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
@@ -1017,7 +1018,8 @@ def get_angina_proportions(year_start, year_end):
         # TODO: Everett created csv below from a file that Catherine Johnson created
         # Catherine's original doc located here -- /snfs1/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv
         # Need to figure out a way to check to see if this file is ever updated
-        ang = pd.read_csv("/snfs1/Project/Cost_Effectiveness/dev/data_processed/angina_props.csv")
+        with open_auxiliary_file('Angina Proportions') as f:
+            ang = pd.read_csv(f)
         ang = ang.query("sex_id == {s}".format(s=sex_id))
 
         # TODO: After merging in pull request that allows for under 1 yr old estimation, change line below to read 'early neonatal' for age_start as opposed to 1
@@ -1058,8 +1060,11 @@ def get_disability_weight(dis_weight_modelable_entity_id):
     
     healthstate_id = get_healthstate_id(dis_weight_modelable_entity_id)
     
-    dws_look_here_first = pd.read_csv("/home/j/WORK/04_epi/03_outputs/01_code/02_dw/02_standard/dw.csv")
-    dws_look_here_second = pd.read_csv("/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv")
+    with open_auxiliary_file('Disability Weights') as f:
+        dws_look_here_first = pd.read_csv(f)
+
+    with open_auxiliary_file('Combined Disability Weights') as f:
+        dws_look_here_second = pd.read_csv(f)
     
     if healthstate_id in dws_look_here_first.healthstate_id.tolist():
         df = dws_look_here_first.query("healthstate_id == @healthstate_id")
@@ -1125,7 +1130,8 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     # tool for ingesting covariates from python and I don't feel like writing
     # any more stata. They say there should be something in a couple of weeks
     # and we should switch to it asap. -Alec 11/01/2016
-    asfr = pd.read_csv("/home/j/Project/Cost_Effectiveness/dev/data_processed/ASFR.csv", encoding='latin1')
+    with open_auxiliary_file('Age-Specific Fertility Rates') as f:
+        asfr = pd.read_csv(f)
 
     asfr = asfr.query('location_id == @location_id and year_id >= @year_start and year_id <= @year_end')
     asfr = get_age_from_age_group_id(asfr)
