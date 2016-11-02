@@ -16,7 +16,7 @@ setup(name='ceam_inputs',
             'db_tools',
         ],
         dependency_links=[
-            'git+ssh://git@stash.ihme.washington.edu:7999/cp/db_tools.git#egg=db_tools-999',
+            'git+ssh://git@stash.ihme.washington.edu:7999/cp/db_tools.git@develop#egg=db_tools',
         ]
      )
 
