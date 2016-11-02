@@ -13,10 +13,10 @@ setup(name='ceam_inputs',
             'numpy',
             'scipy',
             'joblib',
-            'db_tools',
+            'db_tools==dev',
         ],
         dependency_links=[
-            'ssh://git@stash.ihme.washington.edu:7999/cp/db_tools.git#egg=db_tools',
+            'ssh://git@stash.ihme.washington.edu:7999/cp/db_tools.git#egg=db_tools-dev',
         ]
      )
 
