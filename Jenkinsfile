@@ -15,10 +15,7 @@ EOF
        stage 'Tests'
        sh '''
            source /ihme/costeffectiveness/conda_env/bin/activate /ihme/costeffectiveness/conda_env
-           export PYTHONPATH=`pwd`
-
-           python scripts/clear_cache.py
-           py.test
+           tox --recreate -e py35
        '''
 
        stage 'Notify'
