@@ -930,21 +930,11 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     for sex_id in [1, 2]:
         draws = pd.DataFrame()
         for year_id in np.arange(year_start, year_end + 1, 5):
-            file_name = "exp_{l}_{y}_{s}.dta".format(l=location_id, y=year_id, s=sex_id)
-            path = os.path.join(sbp_dir, file_name)
-            if not os.path.exists(path):
-                # This is a fall back and will not work from most places other than the cluster.
-                # We do this because the SBP data isn't a standard GBD product and is instead an
-                # intermediate step so we have to copy it around ourselves.
-                # If you're looking at this and wondering how to fix your error, try running
-                # this code in the cluster environment.
-
-                # Make a directory to contain the files if it doesn't exist.
-                os.makedirs(sbp_dir, exist_ok=True)
-
-                shutil.copyfile(os.path.join('/share/epi/risk/paf/metab_sbp_interm/', file_name), path)
-
-            one_year_file = pd.read_stata(path)
+            with open_auxiliary_file('Systolic Blood Pressure Distributions',
+                                     location_id=location_id,
+                                     year_id=year_id,
+                                     sex_id=sex_id) as f:
+                one_year_file = pd.read_stata(f)
             one_year_file['year_id'] = year_id
             draws = draws.append(one_year_file)
 
