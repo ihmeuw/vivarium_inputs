@@ -269,16 +269,21 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
     new_sim_file = pd.DataFrame()
     for sex_id in simulants_df.sex_id.unique():
         for age in simulants_df.age.unique():
+            #TODO: Proper interpolation for neonates
+            if age < 1:
+                effective_age = 1
+            else:
+                effective_age = age
             elements = [0, 1]
             probability_of_disease = cause_level_prevalence.\
-                query("age=={a} and sex_id=={s}".format(a=age, s=sex_id))[
+                query("age==@effective_age and sex_id==@sex_id")[
                     'draw_{}'.format(draw_number)]
             probability_of_NOT_having_disease = 1 - probability_of_disease
             weights = [float(probability_of_NOT_having_disease),
                        float(probability_of_disease)]
 
             one_age = simulants_df.query(
-                "age=={a} and sex_id=={s}".format(a=age, s=sex_id)).copy()
+                "age==@age and sex_id==@sex_id").copy()
             one_age['condition_envelope'] = one_age['age'].map(
                 lambda x: np.random.choice(elements, p=weights))
             new_sim_file = new_sim_file.append(one_age)
@@ -348,10 +353,15 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, stat
 
     for sex_id in new_sim_file.sex_id.unique():
         for age in new_sim_file.age.unique():
+            #TODO: Proper interpolation for neonates
+            if age < 1:
+                effective_age = 1
+            else:
+                effective_age = age
             list_of_weights = []
             for key, dataframe in states.items():
                 weight_scale_prev_tuple = (key, sequela_proportions[key].\
-                                           query("sex_id == {s} and age== {a}".format(s=sex_id, a=age))['scaled_prevalence'].values[0])
+                                           query("sex_id == @sex_id and age== @effective_age")['scaled_prevalence'].values[0])
                 list_of_weights.append(weight_scale_prev_tuple)
 
             list_of_keys, list_of_weights = zip(*list_of_weights)
