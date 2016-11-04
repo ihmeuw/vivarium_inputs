@@ -991,6 +991,10 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
+
+def _bmi_ppf(parameters):
+   return beta(a=parameters['a'], b=parameters['b'], scale=parameters['scale'], loc=parameters['loc']).ppf
+
 @memory.cache
 def get_bmi_distributions(location_id, year_start, year_end, draw):
     a = pd.DataFrame()
@@ -1041,14 +1045,11 @@ def get_bmi_distributions(location_id, year_start, year_end, draw):
     distributions.loc[distributions.sex_id == 1, 'sex'] = 'Male'
     distributions.loc[distributions.sex_id == 2, 'sex'] = 'Female'
 
-    def bmi_ppf(parameters):
-        return beta(a=parameters['a'], b=parameters['b'], scale=parameters['scale'], loc=parameters['loc']).ppf
-
     return Interpolation(
             distributions[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']],
             categorical_parameters=('sex',),
             continuous_parameters=('age', 'year'),
-            func=bmi_ppf
+            func=_bmi_ppf
             )
 
 
