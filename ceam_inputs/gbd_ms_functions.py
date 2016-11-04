@@ -9,12 +9,15 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
+from scipy.stats import beta
+
 from joblib import Memory
 from flufl.lock import Lock
 
 from db_tools import ezfuncs
 
 from ceam import config
+from ceam.interpolation import Interpolation
 
 from ceam_inputs.util import stata_wrapper, get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file
@@ -986,6 +989,67 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     keepcol.extend(('log_sd_{i}'.format(i=i) for i in range(0, 1000)))
 
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
+
+
+@memory.cache
+def get_bmi_distributions(location_id, year_start, year_end, draw):
+    a = pd.DataFrame()
+    b = pd.DataFrame()
+    loc = pd.DataFrame()
+    scale = pd.DataFrame()
+    for sex_id in [1,2]:
+        for year_id in np.arange(year_start, year_end + 1, 5):
+            with open_auxiliary_file('Body Mass Index Distributions',
+                                     parameter='bshape1',
+                                     location_id=location_id,
+                                     year_id=year_id,
+                                     sex_id=sex_id) as f:
+                a = a.append(pd.read_csv(f))
+            with open_auxiliary_file('Body Mass Index Distributions',
+                                     parameter='bshape2',
+                                     location_id=location_id,
+                                     year_id=year_id,
+                                     sex_id=sex_id) as f:
+                b = b.append(pd.read_csv(f))
+            with open_auxiliary_file('Body Mass Index Distributions',
+                                     parameter='mm',
+                                     location_id=location_id,
+                                     year_id=year_id,
+                                     sex_id=sex_id) as f:
+                loc = loc.append(pd.read_csv(f))
+            with open_auxiliary_file('Body Mass Index Distributions',
+                                     parameter='scale',
+                                     location_id=location_id,
+                                     year_id=year_id,
+                                     sex_id=sex_id) as f:
+                scale = scale.append(pd.read_csv(f))
+
+    a = a.set_index(['age_group_id', 'sex_id', 'year_id'])
+    b = b.set_index(['age_group_id', 'sex_id', 'year_id'])
+    loc = loc.set_index(['age_group_id', 'sex_id', 'year_id'])
+    scale = scale.set_index(['age_group_id', 'sex_id', 'year_id'])
+
+    distributions = pd.DataFrame()
+    distributions['a'] = a['draw_{}'.format(draw)]
+    distributions['b'] = b['draw_{}'.format(draw)]
+    distributions['loc'] = loc['draw_{}'.format(draw)]
+    distributions['scale'] = scale['draw_{}'.format(draw)]
+
+    distributions = distributions.reset_index()
+    distributions = get_age_from_age_group_id(distributions)
+    distributions['year'] = distributions.year_id
+    distributions.loc[distributions.sex_id == 1, 'sex'] = 'Male'
+    distributions.loc[distributions.sex_id == 2, 'sex'] = 'Female'
+
+    def bmi_ppf(parameters):
+        return beta(a=parameters['a'], b=parameters['b'], scale=parameters['scale'], loc=parameters['loc']).ppf
+
+    return Interpolation(
+            distributions[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']],
+            categorical_parameters=('sex',),
+            continuous_parameters=('age', 'year'),
+            func=bmi_ppf
+            )
 
 
 # 13 get_angina_proportions
