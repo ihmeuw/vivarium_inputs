@@ -7,7 +7,7 @@ set more off
 
 qui do "/home/j/WORK/10_gbd/00_library/functions/get_draws.ado"
 qui do "/home/j/WORK/10_gbd/00_library/functions/get_location_metadata.ado"
-i
+
 
 // cache results
 local outpath `2'
