@@ -1137,5 +1137,53 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     asfr = get_age_from_age_group_id(asfr)
 
     return asfr
+
+
+def assign_diarrhea_etiology(population, etiology_name):
+    """
+    Gets the proportion of diarrhea cases that are associated with a specific etiology
+
+    Parameters
+    ----------
+    population: df
+        population is a df of the entire population of simulants  
+
+    etiology_name: str
+        etiology_name is the name of the etiology of interest
+
+    Returns
+    -------
+    A df with a new column for the etiology_name
+    Values in the new column are 1 (etiology is present) and 2 (etiology isnt present)
+    """
+    population_with_diarrhea = population.query("")
+
+    population_without_diarrhea = population.query("")
+
+    population_without_diarrhea['{}'].format(etiology_name) = 0
+
+    etiology_proportion_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/{}_eti_draw_proportion.dta".format(etiology_name))
+
+    for sex_id in pop_with_diarrhea.sex.unique():
+        for age in pop_with_diarrhea.age.unique():
+            elements = [0, 1]
+            probability_of_etiology = etiology_proportion_draws.\
+                query("age=={a} and sex_id=={s}".format(a=age, s=sex_id))[
+                    'draw_{}'.format(draw_number)]
+            probability_of_NOT_etiology = 1 - probability_of_etiology
+            weights = [float(probability_of_NOT_etiology),
+                       float(probability_of_etiology)]
+
+            one_age = pop_with_diarrhea.query(
+                "age=={a} and sex_id=={s}".format(a=age, s=sex_id)).copy()
+            one_age['{}'.format(etiology_name)] = one_age['age'].map(
+                lambda x: np.random.choice(elements, p=weights))
+            new_sim_file = new_sim_file.append(one_age)
+
+    new_sim_file = new_sim_file.append(population_without_diarrhea)
+
+    return new_sim_file.sort_values(by=["simulant_id"])
+
+
 # End.
 
