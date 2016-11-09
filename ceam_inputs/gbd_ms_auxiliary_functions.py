@@ -273,14 +273,14 @@ def extrapolate_ages(df, age_end, year_start, year_end):
     df with extrapolated values
     """
 
-    expand_ages = range(81, age_end + 1)
+    expand_ages = range(df.age.max() + 1, age_end + 1)
     expand_years = range(year_start, year_end + 1)
 
     # use expand_grid auxilliary function to create a table
     # of expanded ages and years
     expand_table = expand_grid(expand_ages, expand_years)
 
-    dup_table = df.query("age == 80")
+    dup_table = df.query("age == {}".format(df.age.max()))
 
     # Do this only for the 80 plus year olds so that we can extend our
     # cause-deleted mortality rates to the older ages

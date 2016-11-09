@@ -1139,7 +1139,7 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     return asfr
 
 
-def assign_diarrhea_etiology(population, etiology_name):
+def get_etiology_probability(population, etiology_name):
     """
     Gets the proportion of diarrhea cases that are associated with a specific etiology
 
@@ -1156,33 +1156,32 @@ def assign_diarrhea_etiology(population, etiology_name):
     A df with a new column for the etiology_name
     Values in the new column are 1 (etiology is present) and 2 (etiology isnt present)
     """
-    population_with_diarrhea = population.query("")
 
-    population_without_diarrhea = population.query("")
+    etiology_df = pd.DataFrame()
 
-    population_without_diarrhea['{}'].format(etiology_name) = 0
+    population_with_diarrhea = population.query("condition_stae == 'diarrhea'")
 
-    etiology_proportion_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/{}_eti_draw_proportion.dta".format(etiology_name))
+    population_without_diarrhea = population.query("diarrhea == 'diarrhea'")
 
-    for sex_id in pop_with_diarrhea.sex.unique():
-        for age in pop_with_diarrhea.age.unique():
-            elements = [0, 1]
-            probability_of_etiology = etiology_proportion_draws.\
-                query("age=={a} and sex_id=={s}".format(a=age, s=sex_id))[
-                    'draw_{}'.format(draw_number)]
-            probability_of_NOT_etiology = 1 - probability_of_etiology
-            weights = [float(probability_of_NOT_etiology),
-                       float(probability_of_etiology)]
+    population_without_diarrhea['{}'.format(etiology_name)] = 0
 
-            one_age = pop_with_diarrhea.query(
-                "age=={a} and sex_id=={s}".format(a=age, s=sex_id)).copy()
-            one_age['{}'.format(etiology_name)] = one_age['age'].map(
-                lambda x: np.random.choice(elements, p=weights))
-            new_sim_file = new_sim_file.append(one_age)
+    # TODO: Ask Chris T. if this works for cholera and c diff, since they are modeled differently than the other etiologies
+    # TODO: Will want to cache this data in the future instead of pulling it from Chris Troeger's J Temp file
+    etiology_proportion_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/diarrhea_{}_eti_draw_proportion.dta".format(etiology_name))
 
-    new_sim_file = new_sim_file.append(population_without_diarrhea)
+    etiology_proportion_draws = etiology_proportion_draws.query("location_id == {}".format(config.getint('simulation_parameters', 'location_id')))
 
-    return new_sim_file.sort_values(by=["simulant_id"])
+    etiology_proportion_draws = get_age_from_age_group_id(etiology_proportion_draws)
+
+    etiology_proportion_draws = etiology_proportion_draws.query("sex_id == {s}".format(s=sex_id))
+
+        # TODO: Figure out if we want to get info from the config in this script or elsewhere
+    etiology_proportion_draws = set_age_year_index(etiology_proportion_draws, 'early neonatal', 3, config.getint('simulation_parameters', 'year_start') , config.getint('simulation_parameters', 'year_end'))
+
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))))
+
+    return etiology_df[keepcol]
 
 
 # End.
