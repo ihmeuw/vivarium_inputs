@@ -155,4 +155,9 @@ def get_age_specific_fertility_rates():
     year_end = config.getint('simulation_parameters', 'year_end')
     return functions.load_data_from_cache(functions.get_age_specific_fertility_rates, col_name=['mean_value', 'lower_value', 'upper_value'], src_column=['mean_value', 'lower_value', 'upper_value'], location_id=location_id, year_start=year_start, year_end=year_end)
 
+
+def get_etiology_probability(etiology):
+    return functions.load_data_from_cache(functions.get_etiology_probability, etiology, col_name='probability', src_column='draw_{}'.format(config.getint('run_simulation','draw_number')))
+
+
 # End.
