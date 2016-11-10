@@ -1139,7 +1139,7 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     return asfr
 
 
-def get_etiology_probability(population, etiology_name):
+def get_etiology_probability(etiology_name):
     """
     Gets the proportion of diarrhea cases that are associated with a specific etiology
 
@@ -1159,12 +1159,6 @@ def get_etiology_probability(population, etiology_name):
 
     etiology_df = pd.DataFrame()
 
-    population_with_diarrhea = population.query("condition_stae == 'diarrhea'")
-
-    population_without_diarrhea = population.query("diarrhea == 'diarrhea'")
-
-    population_without_diarrhea['{}'.format(etiology_name)] = 0
-
     # TODO: Ask Chris T. if this works for cholera and c diff, since they are modeled differently than the other etiologies
     # TODO: Will want to cache this data in the future instead of pulling it from Chris Troeger's J Temp file
     etiology_proportion_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/diarrhea_{}_eti_draw_proportion.dta".format(etiology_name))
@@ -1173,13 +1167,16 @@ def get_etiology_probability(population, etiology_name):
 
     etiology_proportion_draws = get_age_from_age_group_id(etiology_proportion_draws)
 
-    etiology_proportion_draws = etiology_proportion_draws.query("sex_id == {s}".format(s=sex_id))
-
+    for sex in (1, 2):
+        one_sex = etiology_proportion_draws.query("sex_id == @sex")
         # TODO: Figure out if we want to get info from the config in this script or elsewhere
-    etiology_proportion_draws = set_age_year_index(etiology_proportion_draws, 'early neonatal', 3, config.getint('simulation_parameters', 'year_start') , config.getint('simulation_parameters', 'year_end'))
+        one_sex = set_age_year_index(one_sex, 'early neonatal', 3, config.getint('simulation_parameters', 'year_start') , config.getint('simulation_parameters', 'year_end'))
 
-    keepcol = ['year_id', 'sex_id', 'age']
-    keepcol.extend(('draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))))
+        etiology_df = etiology_df.append(one_sex)
+
+    etiology_df.reset_index(level=['age', 'year_id'], inplace=True)
+
+    keepcol = ['year_id', 'sex_id', 'age', 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
 
     return etiology_df[keepcol]
 

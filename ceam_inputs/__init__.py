@@ -1,7 +1,6 @@
 # ~/ceam/ceam/gbd_data/__init__.py
 
 from ceam import config
-from ceam_inputs.gbd_ms_functions import get_disability_weight
 from ceam_inputs import gbd_ms_functions as functions
 
 def get_excess_mortality(modelable_entity_id):
@@ -157,7 +156,7 @@ def get_age_specific_fertility_rates():
 
 
 def get_etiology_probability(etiology):
-    return functions.load_data_from_cache(functions.get_etiology_probability, etiology, col_name='probability', src_column='draw_{}'.format(config.getint('run_simulation','draw_number')))
+    return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology, col_name='probability')
 
 
 # End.
