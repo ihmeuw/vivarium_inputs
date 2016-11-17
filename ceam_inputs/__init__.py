@@ -66,6 +66,21 @@ def get_proportion(modelable_entity_id):
     """
     return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'proportion', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=18, me_id=modelable_entity_id)
 
+def get_prevalence(modelable_entity_id):
+    """Get prevalence data for a modelable entity.
+
+    Parameters
+    ----------
+    modelable_entity_id : int
+                          The entity to retrieve
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table with 'age', 'sex', 'year' and 'prevalence' columns
+    """
+    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'prevalence', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=5, me_id=modelable_entity_id)
+
 def get_disease_states(population, states):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
