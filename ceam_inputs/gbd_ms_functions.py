@@ -20,7 +20,7 @@ from ceam import config
 from ceam.interpolation import Interpolation
 
 from ceam_inputs.util import stata_wrapper, get_cache_directory
-from ceam_inputs.auxiliary_files import open_auxiliary_file
+from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
 
 from ceam_inputs.gbd_ms_auxiliary_functions import set_age_year_index
 from ceam_inputs.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
@@ -933,11 +933,11 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     for sex_id in [1, 2]:
         draws = pd.DataFrame()
         for year_id in np.arange(year_start, year_end + 1, 5):
-            with open_auxiliary_file('Systolic Blood Pressure Distributions',
+            path = auxiliary_file_path('Systolic Blood Pressure Distributions',
                                      location_id=location_id,
                                      year_id=year_id,
-                                     sex_id=sex_id) as f:
-                one_year_file = pd.read_stata(f)
+                                     sex_id=sex_id)
+            one_year_file = pd.read_stata(path)
             one_year_file['year_id'] = year_id
             draws = draws.append(one_year_file)
 
