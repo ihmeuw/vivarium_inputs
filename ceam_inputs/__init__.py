@@ -158,5 +158,7 @@ def get_age_specific_fertility_rates():
 def get_etiology_probability(etiology):
     return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology, col_name='probability')
 
+def get_etiology_pafs(etiology):
+    return functions.load_data_from_cache(functions.get_etiology_pafs, etiology_name=etiology, col_name='paf')
 
 # End.
