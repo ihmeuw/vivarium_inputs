@@ -1145,16 +1145,11 @@ def get_etiology_probability(etiology_name):
 
     Parameters
     ----------
-    population: df
-        population is a df of the entire population of simulants  
-
     etiology_name: str
         etiology_name is the name of the etiology of interest
 
     Returns
     -------
-    A df with a new column for the etiology_name
-    Values in the new column are 1 (etiology is present) and 2 (etiology isnt present)
     """
 
     etiology_df = pd.DataFrame()
@@ -1169,6 +1164,45 @@ def get_etiology_probability(etiology_name):
 
     for sex in (1, 2):
         one_sex = etiology_proportion_draws.query("sex_id == @sex")
+        # TODO: Figure out if we want to get info from the config in this script or elsewhere
+        one_sex = set_age_year_index(one_sex, 'early neonatal', 3, config.getint('simulation_parameters', 'year_start') , config.getint('simulation_parameters', 'year_end'))
+
+        etiology_df = etiology_df.append(one_sex)
+
+    etiology_df.reset_index(level=['age', 'year_id'], inplace=True)
+
+    keepcol = ['year_id', 'sex_id', 'age', 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
+
+    return etiology_df[keepcol]
+
+def get_etiology_pafs(etiology_name):
+    """
+    Gets the paf of diarrhea cases that are associated with a specific etiology
+
+    Parameters
+    ----------
+    etiology_name: str
+        etiology_name is the name of the etiology of interest
+
+    Returns
+    -------
+    """
+
+    etiology_df = pd.DataFrame()
+
+    # TODO: Ask Chris T. if this works for cholera and c diff, since they are modeled differently than the other etiologies
+    # TODO: Will want to cache this data in the future instead of pulling it from Chris Troeger's J Temp file
+    etiology_paf_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/diarrhea_{}_eti_draw_pafs.dta".format(etiology_name))
+
+    etiology_paf_draws = etiology_paf_draws.query("location_id == {}".format(config.getint('simulation_parameters', 'location_id')))
+
+    if etiology_name != "adenovirus":
+        etiology_paf_draws = etiology_paf_draws.query("cause_id == 302")
+
+    etiology_paf_draws = get_age_from_age_group_id(etiology_paf_draws)
+
+    for sex in (1, 2):
+        one_sex = etiology_paf_draws.query("sex_id == @sex")
         # TODO: Figure out if we want to get info from the config in this script or elsewhere
         one_sex = set_age_year_index(one_sex, 'early neonatal', 3, config.getint('simulation_parameters', 'year_start') , config.getint('simulation_parameters', 'year_end'))
 
