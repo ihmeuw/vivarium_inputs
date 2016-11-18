@@ -1111,7 +1111,7 @@ def get_angina_proportions(year_start, year_end):
 
 # 14 get_disability_weight
 
-def get_disability_weight(dis_weight_modelable_entity_id):
+def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=None):
     """Returns a dataframe with disability weight draws for a given healthstate id
 
     Parameters
@@ -1122,32 +1122,33 @@ def get_disability_weight(dis_weight_modelable_entity_id):
     -------
     df with disability weight draws
     """
-    
-    healthstate_id = get_healthstate_id(dis_weight_modelable_entity_id)
-    
+
+    if healthstate_id is None:
+        healthstate_id = get_healthstate_id(dis_weight_modelable_entity_id)
+
     with open_auxiliary_file('Disability Weights') as f:
         dws_look_here_first = pd.read_csv(f)
 
     with open_auxiliary_file('Combined Disability Weights') as f:
         dws_look_here_second = pd.read_csv(f)
-    
+
     if healthstate_id in dws_look_here_first.healthstate_id.tolist():
         df = dws_look_here_first.query("healthstate_id == @healthstate_id")
         df['modelable_entity_id'] = dis_weight_modelable_entity_id
-            
+
     elif healthstate_id in dws_look_here_second.healthstate_id.tolist():
         df = dws_look_here_second.query("healthstate_id == @healthstate_id")
         df['modelable_entity_id'] = dis_weight_modelable_entity_id
-        
+
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequala get this healthstate_id
     elif healthstate_id == 799:
-        df = pd.DataFrame({'healthstate_id':[799], 'healthstate': ['asymptomatic'], 'modelable_entity_id':[dis_weight_modelable_entity_id], 'draw{}'.format(config.getint('run_configuration', 'draw_number')) : [0]})  
+        df = pd.DataFrame({'healthstate_id':[799], 'healthstate': ['asymptomatic'], 'modelable_entity_id':[dis_weight_modelable_entity_id], 'draw{}'.format(config.getint('run_configuration', 'draw_number')) : [0]})
     else:
         raise ValueError("""the modelable entity id {m} has a healthstate_id of {h}. it looks like there 
         are no draws for this healthstate_id in the csvs that get_healthstate_id_draws checked.
         look in this folder for the draws for healthstate_id{h}: /home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom.
         if you can't find draws there, talk w/ central comp""".format(m=dis_weight_modelable_entity_id, h=healthstate_id)) 
-    
+
     return df['draw{}'.format(config.getint('run_configuration', 'draw_number'))].iloc[0]
 
 # 15. get_asympt_ihd_proportions
