@@ -1251,5 +1251,41 @@ def get_etiology_specific_incidence(etiology_name):
     return etiology_specific_incidence[keepcol]
 
 
+def get_etiology_prevalence(etiology_name):
+    """
+    Gets draws of prevalence of diarrhea due to a specific specific etiology
+
+    Parameters
+    ----------
+    etiology_name: str
+        etiology_name is the name of the etiology of interest
+
+    Returns
+    -------
+    A dataframe of etiology specific prevalence draws. 
+        Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
+    """
+    
+    # TODO: Confirm with Chris Troeger that this is how we should get diarrhea etiology prevalence
+    
+    diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id=config.getint('simulation_parameters', 'location_id'), 
+                                                           year_start=config.getint('simulation_parameters', 'year_start'),
+                                                           year_end=config.getint('simulation_parameters', 'year_end'),
+                                                           measure=5, me_id=1181) # measure=prevalence, me_id=diarrhea envelope
+    
+    etiology_paf = get_etiology_pafs(etiology_name)
+
+    etiology_specific_prevalence= pd.merge(etiology_paf, diarrhea_envelope_prevalence, on=['age', 'year_id', 'sex_id'], 
+                                          suffixes=('_pafs', '_envelope'))
+
+    for i in range(0, 1000):
+        inc = etiology_specific_prevalence['draw_{}_pafs'.format(i)] * etiology_specific_prevalence['draw_{}_envelope'.format(i)]
+        etiology_specific_prevalence['{e}_prevalence_{i}'.format(e=etiology_name, i=i)] = inc
+
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('{e}_prevalence_{i}'.format(e=etiology_name, i=i) for i in range(0, 1000)))
+
+    return etiology_specific_prevalence[keepcol]
+
 # End.
 
