@@ -1104,8 +1104,6 @@ def get_angina_proportions(year_start, year_end):
 
     # little bit awkward below, but we're renaming the col name to have the draw number attached to it so that we can load it from the cache
 
-    output_df.rename(columns={'angina_prop': 'angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))}, inplace=True)
-
     return output_df
 
 
