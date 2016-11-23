@@ -699,9 +699,6 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     for sex_id in (1, 2):
         pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
 
-        # only want metric id 2 (percentages or pafs)
-        pafs = pafs.query("metric_id == 2")
-
         # only want one risk at a time
         pafs = pafs.query("rei_id == {r}".format(r=risk_id))
 
@@ -1176,46 +1173,6 @@ def get_etiology_probability(etiology_name):
     return etiology_df[keepcol]
 
 
-def get_etiology_pafs(etiology_name):
-    """
-    Gets the paf of diarrhea cases that are associated with a specific etiology
-
-    Parameters
-    ----------
-    etiology_name: str
-        etiology_name is the name of the etiology of interest
-
-    Returns
-    -------
-    """
-
-    # C Diff has its own full model, so don't use this function to model clostridium difficile
-    
-    etiology_df = pd.DataFrame()
-
-    # TODO: Ask Chris T. if this works for cholera and c diff, since they are modeled differently than the other etiologies
-    # TODO: Will want to cache this data in the future instead of pulling it from Chris Troeger's J Temp file
-    etiology_paf_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/diarrhea_{}_eti_draw_pafs.dta".format(etiology_name))
-
-    etiology_paf_draws = etiology_paf_draws.query("location_id == {}".format(config.getint('simulation_parameters', 'location_id')))
-
-    if etiology_name != "adenovirus":
-        etiology_paf_draws = etiology_paf_draws.query("cause_id == 302")
-
-    etiology_paf_draws = get_age_from_age_group_id(etiology_paf_draws)
-
-    for sex in (1, 2):
-        one_sex = etiology_paf_draws.query("sex_id == @sex")
-        # TODO: Figure out if we want to get info from the config in this script or elsewhere
-        one_sex = set_age_year_index(one_sex, 'early neonatal', 3, config.getint('simulation_parameters', 'year_start') , config.getint('simulation_parameters', 'year_end'))
-
-        etiology_df = etiology_df.append(one_sex)
-
-    etiology_df.reset_index(level=['age', 'year_id'], inplace=True)
-
-    return etiology_df
-
-
 def get_etiology_specific_incidence(etiology_name):
     """
     Gets the paf of diarrhea cases that are associated with a specific etiology
@@ -1227,23 +1184,24 @@ def get_etiology_specific_incidence(etiology_name):
 
     Returns
     -------
-    A dataframe of etiology specific incidence draws. 
+    A dataframe of etiology specific incidence draws.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    
-    diarrhea_envelope_incidence = get_modelable_entity_draws(location_id=config.getint('simulation_parameters', 'location_id'), 
+
+    diarrhea_envelope_incidence = get_modelable_entity_draws(location_id=config.getint('simulation_parameters', 'location_id'),
                                                            year_start=config.getint('simulation_parameters', 'year_start'),
                                                            year_end=config.getint('simulation_parameters', 'year_end'),
                                                            measure=6, me_id=1181) # measure=incidence, me_id=diarrhea envelope
 
     etiology_paf = get_etiology_pafs(etiology_name)
 
-    etiology_specific_incidence= pd.merge(etiology_paf, diarrhea_envelope_incidence, on=['age', 'year_id', 'sex_id'], 
+    etiology_specific_incidence= pd.merge(etiology_paf, diarrhea_envelope_incidence, on=['age', 'year_id', 'sex_id'],
                                           suffixes=('_pafs', '_envelope'))
 
     for i in range(0, 1000):
-        inc = etiology_specific_incidence['draw_{}_pafs'.format(i)] * etiology_specific_incidence['draw_{}_envelope'.format(i)]
-        etiology_specific_incidence['{e}_incidence_{i}'.format(e=etiology_name, i=i)] = inc
+        paf = etiology_specific_incidence['draw_{}_pafs'.format(i)]
+        env_inc = etiology_specific_incidence['draw_{}_envelope'.format(i)]
+        etiology_specific_incidence['{e}_incidence_{i}'.format(e=etiology_name, i=i)] = paf * env_inc
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('{e}_incidence_{i}'.format(e=etiology_name, i=i) for i in range(0, 1000)))
@@ -1279,13 +1237,15 @@ def get_etiology_prevalence(etiology_name):
                                           suffixes=('_pafs', '_envelope'))
 
     for i in range(0, 1000):
-        inc = etiology_specific_prevalence['draw_{}_pafs'.format(i)] * etiology_specific_prevalence['draw_{}_envelope'.format(i)]
-        etiology_specific_prevalence['{e}_prevalence_{i}'.format(e=etiology_name, i=i)] = inc
+        paf = etiology_specific_prevalence['draw_{}_pafs'.format(i)]
+        env_prev = etiology_specific_prevalence['draw_{}_envelope'.format(i)]
+        etiology_specific_prevalence['{e}_prevalence_{i}'.format(e=etiology_name, i=i)] = paf * env_prev
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('{e}_prevalence_{i}'.format(e=etiology_name, i=i) for i in range(0, 1000)))
 
     return etiology_specific_prevalence[keepcol]
+
 
 # End.
 
