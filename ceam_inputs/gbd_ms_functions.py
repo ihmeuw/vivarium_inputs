@@ -276,7 +276,7 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
     results = simulants_df.copy()
-    results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.index, [False, True])
+    results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.index, [False, True], weights)
 
     return results
 
