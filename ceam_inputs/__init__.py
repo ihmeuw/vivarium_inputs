@@ -156,18 +156,24 @@ def get_age_specific_fertility_rates():
 
 
 def get_etiology_probability(etiology_name):
-    return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name, col_name='probability')
+    return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name)
 
 
-def get_etiology_pafs(etiology_name):
-    return functions.load_data_from_cache(functions.get_etiology_pafs, etiology_name=etiology_name, col_name='paf')
-
-
-def get_etiology_prevalence(etiology_name):
-    return functions.load_data_from_cache(functions.get_etiology_prevalence, etiology_name=etiology_name, col_name='prevalence')
+def get_etiology_specific_prevalence(risk_id, cause_id):
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+    return functions.load_data_from_cache(functions.get_etiology_prevalence, location_id=location_id,
+                                          year_start=year_start, year_end=year_end, risk_id=risk_id,
+                                          cause_id=cause_id)
 
 
 def get_etiology_specific_incidence(etiology_name):
-    return functions.load_data_from_cache(functions.get_etiology_specific_incidence, etiology_name=etiology_name, col_name='incidence')
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+    return functions.load_data_from_cache(functions.get_etiology_prevalence, location_id=location_id,
+                                          year_start=year_start, year_end=year_end, risk_id=risk_id,
+                                          cause_id=cause_id)
 
 # End.
