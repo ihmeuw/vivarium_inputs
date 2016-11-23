@@ -18,6 +18,7 @@ from db_tools import ezfuncs
 
 from ceam import config
 from ceam.interpolation import Interpolation
+from ceam.framework.randomness import choice
 
 from ceam_inputs.util import stata_wrapper, get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
@@ -269,29 +270,15 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
     -------
     df with indication of whether or not simulant is healthy
     """
-    new_sim_file = pd.DataFrame()
-    for sex_id in simulants_df.sex_id.unique():
-        for age in simulants_df.age.unique():
-            #TODO: Proper interpolation for neonates
-            if age < 1:
-                effective_age = 1
-            else:
-                effective_age = age
-            elements = [0, 1]
-            probability_of_disease = cause_level_prevalence.\
-                query("age==@effective_age and sex_id==@sex_id")[
-                    'draw_{}'.format(draw_number)]
-            probability_of_NOT_having_disease = 1 - probability_of_disease
-            weights = [float(probability_of_NOT_having_disease),
-                       float(probability_of_disease)]
+    cause_level_prevalence = Interpolation(cause_level_prevalence[['sex_id', 'age', 'draw_{}'.format(draw_number)]], ['sex_id'], ['age'])
+    probability_of_disease = cause_level_prevalence(simulants_df[['age', 'sex_id']])
+    probability_of_NOT_having_disease = 1 - probability_of_disease
+    weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
-            one_age = simulants_df.query(
-                "age==@age and sex_id==@sex_id").copy()
-            one_age['condition_envelope'] = one_age['age'].map(
-                lambda x: np.random.choice(elements, p=weights))
-            new_sim_file = new_sim_file.append(one_age)
+    results = simulants_df.copy()
+    results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.index, [False, True])
 
-    return new_sim_file
+    return results
 
 
 def get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence, states, draw_number):
@@ -354,29 +341,14 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, stat
     dataframe of simulants with new column condition_state that indicates if simulant which sequela simulant has or indicates that they are healthy (i.e. they do not have the disease)
     """
 
-    for sex_id in new_sim_file.sex_id.unique():
-        for age in new_sim_file.age.unique():
-            #TODO: Proper interpolation for neonates
-            if age < 1:
-                effective_age = 1
-            else:
-                effective_age = age
-            list_of_weights = []
-            for key, dataframe in states.items():
-                weight_scale_prev_tuple = (key, sequela_proportions[key].\
-                                           query("sex_id == @sex_id and age== @effective_age")['scaled_prevalence'].values[0])
-                list_of_weights.append(weight_scale_prev_tuple)
+    sequela_proportions = [(key, Interpolation(data[['sex_id', 'age', 'scaled_prevalence']], ['sex_id'], ['age'])) for key, data in sequela_proportions.items()]
+    sub_pop = new_sim_file.query('condition_envelope == 1')
+    list_of_keys, list_of_weights = zip(*[(key,data(sub_pop)) for key, data in sequela_proportions])
 
-            list_of_keys, list_of_weights = zip(*list_of_weights)
-            with_ihd = (new_sim_file.condition_envelope == 1) & (
-                        new_sim_file.age == age) & \
-                       (new_sim_file.sex_id == sex_id)
-
-            new_sim_file.loc[with_ihd, 'condition_state'] = np.random.choice(
-                list_of_keys, p=list_of_weights, size=with_ihd.sum())
+    results = choice('determine_which_seq_diseased_sim_has', sub_pop.index, list_of_keys, np.array(list_of_weights).T)
+    new_sim_file.loc[sub_pop.index, 'condition_state'] = results
 
     return new_sim_file
-
 
 def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
                                             year_start, states):
@@ -413,9 +385,9 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     # not looping over an age/sex combo that does not exist
 
     post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number)    
-   
+
     sequela_proportions = get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence, states, draw_number)
- 
+
     post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions,  post_cause_assignment_population, states)
 
     post_sequela_assignmnet_population.condition_state =  post_sequela_assignmnet_population.condition_state.fillna('healthy')
@@ -506,10 +478,10 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
 
         # get cause-deleted mortality rate by subtracting out all of the csmrs from
         # all-cause mortality rate
-        for i in range(0, 1000):
-            all_cause = cause_del_mr['all_cause_mortality_rate_{}'.format(i)]
-            summed_csmr_of_sim_causes = cause_del_mr['draw_{}'.format(i)]
-            cause_del_mr['cause_deleted_mortality_rate_{}'.format(i)] = all_cause - summed_csmr_of_sim_causes
+        all_cause = cause_del_mr[['all_cause_mortality_rate_{}'.format(i) for i in range(1000)]].values
+        summed_csmr_of_sim_causes = cause_del_mr[['draw_{}'.format(i) for i in range(1000)]].values
+        deleted = pd.DataFrame(all_cause - summed_csmr_of_sim_causes, columns=['cause_deleted_mortality_rate_{}'.format(i) for i in range(1000)], index=cause_del_mr.index)
+        cause_del_mr = cause_del_mr.merge(deleted, left_index=True, right_index=True)
 
         # assert an error to make sure data is dense (i.e. no missing data)
         assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
