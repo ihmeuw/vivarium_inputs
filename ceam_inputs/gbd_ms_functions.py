@@ -1173,14 +1173,26 @@ def get_etiology_probability(etiology_name):
     return etiology_df[keepcol]
 
 
-def get_etiology_specific_incidence(etiology_name):
+def get_etiology_specific_incidence(location_id, year_start, year_end, risk_id, cause_id):
     """
     Gets the paf of diarrhea cases that are associated with a specific etiology
 
     Parameters
     ----------
-    etiology_name: str
-        etiology_name is the name of the etiology of interest
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    risk_id: int, risk id
+        risk_id takes same risk_id values as are used for GBD
+
+    cause_id: int, cause id
+        cause_id takes same cause_id values as are used for GBD
 
     Returns
     -------
@@ -1188,23 +1200,26 @@ def get_etiology_specific_incidence(etiology_name):
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
 
-    diarrhea_envelope_incidence = get_modelable_entity_draws(location_id=config.getint('simulation_parameters', 'location_id'),
-                                                           year_start=config.getint('simulation_parameters', 'year_start'),
-                                                           year_end=config.getint('simulation_parameters', 'year_end'),
+    # TODO: Figure out what we want to do regarding caching data. If we are using only one draw number, should we 
+    # cache the data? If we cache the data, will we actually pull a different value for each draw
+    draw_number = config.getint('run_configuration', 'draw_number')
+    
+    diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=6, me_id=1181) # measure=incidence, me_id=diarrhea envelope
 
-    etiology_paf = get_etiology_pafs(etiology_name)
+    etiology_paf = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
+    
+    # TODO: Figure out if the interpolation should happen before the merge or in the simulation
+    # merge interpolated pafs and interpolated incidence
+    etiology_specific_incidence= pd.merge(diarrhea_envelope_incidence, etiology_paf, on=['age', 'year_id', 'sex_id'],
+                                          suffixes=('_envelope', '_pafs'))
+    
+    # TODO: Do all 1,000 draws at once or just return 1 draw?
+    paf = etiology_specific_incidence['draw_{}_pafs'.format(draw_number)]
+    env_inc = etiology_specific_incidence['draw_{}_envelope'.format(number)]
+    etiology_specific_incidence['{e}_incidence'.format(e=etiology_name)] = paf * env_inc
 
-    etiology_specific_incidence= pd.merge(etiology_paf, diarrhea_envelope_incidence, on=['age', 'year_id', 'sex_id'],
-                                          suffixes=('_pafs', '_envelope'))
-
-    for i in range(0, 1000):
-        paf = etiology_specific_incidence['draw_{}_pafs'.format(i)]
-        env_inc = etiology_specific_incidence['draw_{}_envelope'.format(i)]
-        etiology_specific_incidence['{e}_incidence_{i}'.format(e=etiology_name, i=i)] = paf * env_inc
-
-    keepcol = ['year_id', 'sex_id', 'age']
-    keepcol.extend(('{e}_incidence_{i}'.format(e=etiology_name, i=i) for i in range(0, 1000)))
+    keepcol = ['year_id', 'sex_id', 'age', '{e}_incidence'.format(e=etiology_name)]
 
     return etiology_specific_incidence[keepcol]
 
