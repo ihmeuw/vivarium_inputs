@@ -1251,7 +1251,9 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, risk_id,
     A dataframe of etiology specific prevalence draws. 
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    
+
+    draw_number = config.getint('run_configuration', 'draw_number')   
+ 
     # TODO: Confirm with Chris Troeger that this is how we should get diarrhea etiology prevalence
     
     diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
@@ -1263,7 +1265,7 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, risk_id,
                                           suffixes=('_envelope', '_pafs'))
 
     paf = etiology_specific_prevalence['draw_{}_pafs'.format(draw_number)]
-    env_prev = etiology_specific_prevalence['draw_{}_envelope'.format(draw_number))]
+    env_prev = etiology_specific_prevalence['draw_{}_envelope'.format(draw_number)]
     etiology_specific_prevalence['draw_{}'.format(draw_number)] = np.multiply(paf, env_prev)
 
     keepcol = ['year_id', 'sex_id', 'age', 'draw_{}'.format(draw_number)]

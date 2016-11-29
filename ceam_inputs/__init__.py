@@ -163,17 +163,17 @@ def get_etiology_specific_prevalence(risk_id, cause_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    return functions.load_data_from_cache(functions.get_etiology_prevalence, location_id=location_id,
+    return functions.load_data_from_cache(functions.get_etiology_specific_prevalence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, risk_id=risk_id,
-                                          cause_id=cause_id)
+                                          cause_id=cause_id, col_name='eti_prev')
 
 
-def get_etiology_specific_incidence(etiology_name):
+def get_etiology_specific_incidence(risk_id, cause_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    return functions.load_data_from_cache(functions.get_etiology_prevalence, location_id=location_id,
+    return functions.load_data_from_cache(functions.get_etiology_specific_incidence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, risk_id=risk_id,
-                                          cause_id=cause_id)
+                                          cause_id=cause_id, col_name='eti_inc')
 
 # End.
