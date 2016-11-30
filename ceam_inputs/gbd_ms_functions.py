@@ -821,7 +821,8 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         # need to treat risks with category parameters specially
         # TODO: write test that outputs error if there is more than 1 parameter
         #       and there is no exception for the risk
-        if risk_id == 166:
+        # TODO: Figure out a better way to handle multiple parameter risk factors
+        if risk_id in [166, 238]:
             exposure = exposure.query("parameter == 'cat1'")
 
         exposure = set_age_year_index(exposure, 'early neonatal', 80, year_start, year_end)
