@@ -4,6 +4,8 @@ from ceam import config
 from ceam_inputs.gbd_ms_functions import get_disability_weight
 from ceam_inputs import gbd_ms_functions as functions
 
+from ceam_public_health.util.risk import RiskEffect
+
 def get_excess_mortality(modelable_entity_id):
     """Get excess mortality associated with a modelable entity.
 
@@ -159,4 +161,14 @@ def get_bmi_distributions():
     draw = config.getint('run_configuration', 'draw_number')
 
     return functions.get_bmi_distributions(location_id, year_start, year_end, draw)
+
+def make_gbd_risk_effects(risk_id, causes, effect_function):
+    return [RiskEffect(
+        get_relative_risks(risk_id=risk_id, cause_id=cause_id),
+        get_pafs(risk_id=risk_id, cause_id=cause_id),
+        cause_name,
+        effect_function)
+        for cause_id, cause_name in causes]
+
+
 # End.
