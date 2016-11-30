@@ -266,29 +266,15 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
     -------
     df with indication of whether or not simulant is healthy
     """
-    new_sim_file = pd.DataFrame()
-    for sex_id in simulants_df.sex_id.unique():
-        for age in simulants_df.age.unique():
-            #TODO: Proper interpolation for neonates
-            if age < 1:
-                effective_age = 1
-            else:
-                effective_age = age
-            elements = [0, 1]
-            probability_of_disease = cause_level_prevalence.\
-                query("age==@effective_age and sex_id==@sex_id")[
-                    'draw_{}'.format(draw_number)]
-            probability_of_NOT_having_disease = 1 - probability_of_disease
-            weights = [float(probability_of_NOT_having_disease),
-                       float(probability_of_disease)]
+    cause_level_prevalence = Interpolation(cause_level_prevalence[['sex_id', 'age', 'draw_{}'.format(draw_number)]], ['sex_id'], ['age'])
+    probability_of_disease = cause_level_prevalence(simulants_df[['age', 'sex_id']])
+    probability_of_NOT_having_disease = 1 - probability_of_disease
+    weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
-            one_age = simulants_df.query(
-                "age==@age and sex_id==@sex_id").copy()
-            one_age['condition_envelope'] = one_age['age'].map(
-                lambda x: np.random.choice(elements, p=weights))
-            new_sim_file = new_sim_file.append(one_age)
+    results = simulants_df.copy()
+    results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.index, [False, True], weights)
 
-    return new_sim_file
+    return results
 
 
 def get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence, states, draw_number):
