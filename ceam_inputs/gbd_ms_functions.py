@@ -375,7 +375,7 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, stat
     return new_sim_file
 
 
-def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
+def assign_cause_at_beginning_of_simulation_with_modelable_entity_id(simulants_df, location_id,
                                             year_start, states):
     """
     Function that assigns chronic ihd status to starting population of
@@ -416,6 +416,50 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions,  post_cause_assignment_population, states)
 
     post_sequela_assignmnet_population.condition_state =  post_sequela_assignmnet_population.condition_state.fillna('healthy')
+
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert  post_sequela_assignmnet_population.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
+
+    # assert an error if there are duplicate rows
+    assert  post_sequela_assignmnet_population.duplicated(['simulant_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
+
+    return post_sequela_assignmnet_population[['simulant_id', 'condition_state']]
+
+
+def assign_cause_at_beginning_of_simulation_with_prevalence_df():
+    """
+    Function that assigns prevalence at the beginning according to a dataframe of prevalences
+
+    Parameters
+    ----------
+    simulants_df : dataframe
+        dataframe of simulants that is made by generate_ceam_population
+
+    location_id : int, location id
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    prevalence_df : dataframe
+        dataframe with cols age, sex, year and 1k prevalence draws
+
+    Returns
+    -------
+    Creates a new column for a df of simulants with a new, boolean column indicating whether or not they have the disease
+    """
+
+    draw_number = config.getint('run_configuration', 'draw_number')
+
+    # TODO: Should we be using groupby for these loops to ensure that we're
+    # not looping over an age/sex combo that does not exist
+
+    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, prevalence_df, draw_number)
+
+    output_df = post_cause_assignment_population.rename(columns={"condition_envelope": "condition_state"})[['simulant_id', 'condition_state']]
+
+    output_df =  output_df.condition_state.fillna('healthy')
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert  post_sequela_assignmnet_population.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
@@ -633,7 +677,8 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
         rr = rr.query("age != 0")
 
         # need to treat risks with category parameters specially
-        if risk_id == 166:
+        # TODO: Figure out how to do this in a more flexible manner. Touch base with someone on risk factors to see if we can always use cat1 for binary, categorical parameters
+        if risk_id in [166, 238]:
             rr = rr.query("parameter == 'cat1'")
         
         rr = set_age_year_index(rr, 'early neonatal', 80, year_start, year_end)
@@ -1173,7 +1218,7 @@ def get_etiology_probability(etiology_name):
     return etiology_df[keepcol]
 
 
-def get_etiology_specific_incidence(location_id, year_start, year_end, risk_id, cause_id):
+def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_id, cause_id):
     """
     Gets the paf of diarrhea cases that are associated with a specific etiology
 
@@ -1188,8 +1233,8 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, risk_id, 
     year_end : int, end year
         year_end is the year in which you want to end the simulation
 
-    risk_id: int, risk id
-        risk_id takes same risk_id values as are used for GBD
+    eti_risk_id: int, risk id
+        eti_risk_id takes same rei id values as are used for GBD
 
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
@@ -1205,9 +1250,9 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, risk_id, 
     draw_number = config.getint('run_configuration', 'draw_number')
     
     diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end,
-                                                           measure=6, me_id=1181) # measure=incidence, me_id=diarrhea envelope
+                                                           measure=6, me_id=1181) # measure=incidence, me_id=diarrhea envelope TODO: Make me_id an argument to be passed into the fucntion (i.e. make this function more flexible than just diarrhea)
 
-    etiology_paf = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
+    etiology_paf = get_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
     
     # TODO: Figure out if the interpolation should happen before the merge or in the simulation
     # merge interpolated pafs and interpolated incidence
@@ -1254,8 +1299,6 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, risk_id,
 
     draw_number = config.getint('run_configuration', 'draw_number')   
  
-    # TODO: Confirm with Chris Troeger that this is how we should get diarrhea etiology prevalence
-    
     diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=5, me_id=1181) # measure=prevalence, me_id=diarrhea envelope
     
