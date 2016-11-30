@@ -1269,7 +1269,7 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
     return etiology_specific_incidence[keepcol]
 
 
-def get_etiology_specific_prevalence(location_id, year_start, year_end, risk_id, cause_id):
+def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk_id, cause_id):
     """
     Gets draws of prevalence of diarrhea due to a specific specific etiology
 
@@ -1302,7 +1302,7 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, risk_id,
     diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=5, me_id=1181) # measure=prevalence, me_id=diarrhea envelope
     
-    etiology_paf = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
+    etiology_paf = get_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
 
     etiology_specific_prevalence= pd.merge(etiology_paf, diarrhea_envelope_prevalence, on=['age', 'year_id', 'sex_id'], 
                                           suffixes=('_envelope', '_pafs'))

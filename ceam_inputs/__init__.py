@@ -3,6 +3,8 @@
 from ceam import config
 from ceam_inputs import gbd_ms_functions as functions
 
+# TODO: None of these functions can be run from an ipython notebook. ipython notebook is not currently able to submit Stata scripts. See if there is a way to make ipython notebooks submit Stata scripts
+
 def get_excess_mortality(modelable_entity_id):
     """Get excess mortality associated with a modelable entity.
 
@@ -159,21 +161,21 @@ def get_etiology_probability(etiology_name):
     return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name)
 
 
-def get_etiology_specific_prevalence(risk_id, cause_id):
+def get_etiology_specific_prevalence(eti_risk_id, cause_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
     return functions.load_data_from_cache(functions.get_etiology_specific_prevalence, location_id=location_id,
-                                          year_start=year_start, year_end=year_end, risk_id=risk_id,
+                                          year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
                                           cause_id=cause_id, col_name='eti_prev')
 
 
-def get_etiology_specific_incidence(risk_id, cause_id):
+def get_etiology_specific_incidence(eti_risk_id, cause_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
     return functions.load_data_from_cache(functions.get_etiology_specific_incidence, location_id=location_id,
-                                          year_start=year_start, year_end=year_end, risk_id=risk_id,
+                                          year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
                                           cause_id=cause_id, col_name='eti_inc')
 
 # End.
