@@ -361,7 +361,7 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, stat
     return new_sim_file
 
 
-def assign_cause_at_beginning_of_simulation_with_modelable_entity_id(simulants_df, location_id,
+def assign_cause_at_beginning_of_simulation_using_modelable_entity_id(simulants_df, location_id,
                                             year_start, states):
     """
     Function that assigns chronic ihd status to starting population of
@@ -413,7 +413,8 @@ def assign_cause_at_beginning_of_simulation_with_modelable_entity_id(simulants_d
     return post_sequela_assignmnet_population[['simulant_id', 'condition_state']]
 
 
-def assign_cause_at_beginning_of_simulation_with_prevalence_df():
+def assign_cause_at_beginning_of_simulation_using_prevalence_df(simulants_df, location_id,
+                                            year_start, prevalence_df):
     """
     Function that assigns prevalence at the beginning according to a dataframe of prevalences
 
@@ -443,6 +444,7 @@ def assign_cause_at_beginning_of_simulation_with_prevalence_df():
 
     post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, prevalence_df, draw_number)
 
+    # change the name of condition envelope to condition state in assign_cause_at_beginning_of_simulation_using_prevalence_df since there is no need to assign prevalence at a lower level than the condition envelope level
     output_df = post_cause_assignment_population.rename(columns={"condition_envelope": "condition_state"})[['simulant_id', 'condition_state']]
 
     output_df =  output_df.condition_state.fillna('healthy')
@@ -808,6 +810,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         # TODO: write test that outputs error if there is more than 1 parameter
         #       and there is no exception for the risk
         # TODO: Figure out a better way to handle multiple parameter risk factors
+        # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
         if risk_id in [166, 238]:
             exposure = exposure.query("parameter == 'cat1'")
 
