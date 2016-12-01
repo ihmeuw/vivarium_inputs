@@ -669,20 +669,20 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     """
 
-    output_df = pd.DataFrame()
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
+    output_df = pd.DataFrame(columns=keepcol)
 
     for sex_id in (1, 2):
         pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
 
-        # only want metric id 2 (percentages or pafs)
-        pafs = pafs.query("metric_id == 2")
+        # only want one risk at a time and only metric id 2 (percentages or pafs)
+        pafs = pafs.query("rei_id == @risk_id and sex_id == @sex_id and metric_id == 2")
 
-        # only want one risk at a time
-        pafs = pafs.query("rei_id == {r}".format(r=risk_id))
+        if pafs.empty:
+            continue
 
         pafs = get_age_from_age_group_id(pafs)
-
-        pafs = pafs.query("sex_id == {s}".format(s=sex_id))
 
         pafs = set_age_year_index(pafs, 'early neonatal', 80, year_start, year_end)
 
@@ -697,8 +697,6 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
         # start until a certain age
         output_df = output_df.apply(lambda x: x.fillna(0), axis=0)
 
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_pafs just tried to output. check that the cache to make sure the data you're pulling is correct"
