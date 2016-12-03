@@ -30,6 +30,8 @@ from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
 from ceam_inputs.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
+from ceam.interpolation import Interpolation
+from ceam.framework.randomness import choice
 # em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
 # TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
 from joblib import Memory
@@ -208,7 +210,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
 # 3. assign_cause_at_beginning_of_simulation
 
-
+# TODO: Want to refactor the next few functions to assign prevalence at the beginning of the simulation in a better way
 def get_cause_level_prevalence(states, location_id, year_start, draw_number):
     """
     Takes all of the sequela in 'states' and adds them up to get a total prevalence for the cause
@@ -247,7 +249,7 @@ def get_cause_level_prevalence(states, location_id, year_start, draw_number):
     return cause_level_prevalence, prevalence_draws_dictionary
 
 
-def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number):
+def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number, choices=[False, True]):
     """
     returns a dataframe with new column 'condition_envelope' that will indicate whether the simulant has the cause or is healthy (healthy is where condition_envelope = NaN at this point)
 
@@ -266,13 +268,13 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
     -------
     df with indication of whether or not simulant is healthy
     """
-    cause_level_prevalence = Interpolation(cause_level_prevalence[['sex_id', 'age', 'draw_{}'.format(draw_number)]], ['sex_id'], ['age'])
-    probability_of_disease = cause_level_prevalence(simulants_df[['age', 'sex_id']])
+    cause_level_prevalence = Interpolation(cause_level_prevalence[['sex', 'age', 'draw_{}'.format(draw_number)]], ['sex'], ['age'])
+    probability_of_disease = cause_level_prevalence(simulants_df[['age', 'sex']])
     probability_of_NOT_having_disease = 1 - probability_of_disease
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
     results = simulants_df.copy()
-    results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.index, [False, True], weights)
+    results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.index, choices, weights)
 
     return results
 
@@ -414,7 +416,7 @@ def assign_cause_at_beginning_of_simulation_using_modelable_entity_id(simulants_
 
 
 def assign_cause_at_beginning_of_simulation_using_prevalence_df(simulants_df, location_id,
-                                            year_start, prevalence_df):
+                                            year_start, state_map, choices=[False, True]):
     """
     Function that assigns prevalence at the beginning according to a dataframe of prevalences
 
@@ -439,24 +441,24 @@ def assign_cause_at_beginning_of_simulation_using_prevalence_df(simulants_df, lo
 
     draw_number = config.getint('run_configuration', 'draw_number')
 
+
+    for prevalence_df in state_map.values():
+        post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, prevalence_df, draw_number, choices=[False, True])
+
     # TODO: Should we be using groupby for these loops to ensure that we're
     # not looping over an age/sex combo that does not exist
-
-    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, prevalence_df, draw_number)
 
     # change the name of condition envelope to condition state in assign_cause_at_beginning_of_simulation_using_prevalence_df since there is no need to assign prevalence at a lower level than the condition envelope level
     output_df = post_cause_assignment_population.rename(columns={"condition_envelope": "condition_state"})[['simulant_id', 'condition_state']]
 
-    output_df =  output_df.condition_state.fillna('healthy')
-
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert  post_sequela_assignmnet_population.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
+    assert  output_df.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
 
     # assert an error if there are duplicate rows
-    assert  post_sequela_assignmnet_population.duplicated(['simulant_id']).sum(
+    assert  output_df.duplicated(['simulant_id']).sum(
     ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
 
-    return post_sequela_assignmnet_population[['simulant_id', 'condition_state']]
+    return output_df[['simulant_id', 'condition_state']]
 
 
 # 4. get_cause_deleted_mortality_rate
@@ -627,7 +629,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 # 6. get_relative_risks
 
 
-def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
+def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd_round=1):
     """
     Parameters
     ----------
@@ -646,6 +648,14 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
 
+    gbd_round: int
+        # TODO: We'll need to update this when GBD 2016 is out. 
+        generally set the gbd_round to 1 since this corresponds with GBD 2015
+        there are some cases (e.g. pulling relative risks for unsafe sanitation)
+        where the most recent (i.e. is best) model was updated in 2013 so we need
+        to pass in the gbd_round variable to make sure that we're pulling the best
+        model from that previous GBD round
+
     Returns
     -------
     df with columns year_id, sex_id, age, 1k relative risk draws
@@ -654,7 +664,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id):
     output_df = pd.DataFrame()
 
     for sex_id in (1, 2):
-        rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id)
+        rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, gbd_round)
 
         rr = get_age_from_age_group_id(rr)
 
@@ -1169,6 +1179,41 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     asfr = get_age_from_age_group_id(asfr)
 
     return asfr
+
+
+def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
+        """
+    Parameters
+    ----------
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    risk_id: int, risk id
+        risk_id takes same risk_id values as are used for GBD
+
+    cause_id: int, cause id
+        cause_id takes same cause_id values as are used for GBD
+
+    -------
+    Returns
+        df with columns year_id, sex_id, age, val, upper, and lower
+
+    """
+    # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
+
+    eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
+ 
+    # now make the negative etiology paf draws 0
+    draws = eti_pafs._get_numeric_data()
+    draws[draws < 0] = 0
+
+    return eti_pafs
 
 
 def get_etiology_probability(etiology_name):

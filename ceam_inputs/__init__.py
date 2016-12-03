@@ -97,13 +97,13 @@ def get_disease_states_using_modelable_entity_id(population, states):
     return condition_column
 
 
-def get_disease_states_using_prevalence_df(population, prevalence_df):
+def get_disease_states_using_prevalence_df(population, state_map, choices=[False, True]):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
 
     population = population.reset_index()
     population['simulant_id'] = population['index']
-    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation_using_prevalence_df, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex_id']], location_id=location_id, year_start=year_start, prevalence_df=prevalence_df)
+    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation_using_prevalence_df, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], location_id=location_id, year_start=year_start, state_map=state_map, choices=choices)
     condition_column = condition_column.set_index('simulant_id')
 
     return condition_column
@@ -180,7 +180,7 @@ def get_etiology_specific_prevalence(eti_risk_id, cause_id):
     year_end = config.getint('simulation_parameters', 'year_end')
     return functions.load_data_from_cache(functions.get_etiology_specific_prevalence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
-                                          cause_id=cause_id, col_name='eti_prev')
+                                          cause_id=cause_id, col_name='draw_{}'.format(config.getint('run_configuration','draw_number')))
 
 
 def get_etiology_specific_incidence(eti_risk_id, cause_id):
