@@ -398,51 +398,6 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     return post_sequela_assignmnet_population[['simulant_id', 'condition_state']]
 
 
-def assign_cause_at_beginning_of_simulation_using_prevalence_df(simulants_df, location_id,
-                                            year_start, state_map):
-    """
-    Function that assigns prevalence at the beginning according to a dataframe of prevalences
-
-    Parameters
-    ----------
-    simulants_df : dataframe
-        dataframe of simulants that is made by generate_ceam_population
-
-    location_id : int, location id
-        location_id takes same location_id values as are used for GBD
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    prevalence_df : dataframe
-        dataframe with cols age, sex, year and 1k prevalence draws
-
-    Returns
-    -------
-    Creates a new column for a df of simulants with a new, boolean column indicating whether or not they have the disease
-    """
-
-    draw_number = config.getint('run_configuration', 'draw_number')
-
-    prevalence_df = state_map.values()    
-
-    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, prevalence_df, draw_number)
-
-    output_df = post_cause_assignment_population.loc[post_cause_assignment_population.condition_envelope == True, 'condition_state'] = 'diarrhea_due_to_rotavirus'
-    output_df = post_cause_assignment_population.loc[output_df.condition_envelope == False, 'condition_state'] = 'healthy'
-
-    output_df.rename(columns={'condition_envelope': 'condition_state'}, inplace=True)
-
-    # assert an error to make sure data is dense (i.e. no missing data)
-    assert  output_df.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
-
-    # assert an error if there are duplicate rows
-    assert  output_df.duplicated(['simulant_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
-
-    return output_df[['simulant_id', 'condition_state']]
-
-
 # 4. get_cause_deleted_mortality_rate
 
 def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,

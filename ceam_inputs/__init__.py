@@ -97,18 +97,6 @@ def get_disease_states(population, states):
     return condition_column
 
 
-def get_disease_states_using_prevalence_df(population, state_map):
-    location_id = config.getint('simulation_parameters', 'location_id')
-    year_start = config.getint('simulation_parameters', 'year_start')
-
-    population = population.reset_index()
-    population['simulant_id'] = population['index']
-    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation_using_prevalence_df, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], location_id=location_id, year_start=year_start, state_map=state_map)
-    condition_column = condition_column.set_index('simulant_id')
-
-    return condition_column
-
-
 def get_cause_deleted_mortality_rate(meids=[]):
     """Get the all cause mortality rate with the excess mortality rate of explicitly modeled
     modelable entity ids deleted out.
