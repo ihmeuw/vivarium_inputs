@@ -9,12 +9,16 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
+from scipy.stats import beta
+
 from joblib import Memory
 from flufl.lock import Lock
 
 from db_tools import ezfuncs
 
 from ceam import config
+from ceam.interpolation import Interpolation
+from ceam.framework.randomness import choice
 
 from ceam_inputs.util import stata_wrapper, get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
@@ -345,7 +349,6 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, stat
 
     return new_sim_file
 
-
 def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
                                             year_start, states):
     """
@@ -381,9 +384,9 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     # not looping over an age/sex combo that does not exist
 
     post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number)    
-   
+
     sequela_proportions = get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence, states, draw_number)
- 
+
     post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions,  post_cause_assignment_population, states)
 
     post_sequela_assignmnet_population.condition_state = post_sequela_assignmnet_population.condition_state.fillna('healthy')
@@ -474,10 +477,10 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
 
         # get cause-deleted mortality rate by subtracting out all of the csmrs from
         # all-cause mortality rate
-        for i in range(0, 1000):
-            all_cause = cause_del_mr['all_cause_mortality_rate_{}'.format(i)]
-            summed_csmr_of_sim_causes = cause_del_mr['draw_{}'.format(i)]
-            cause_del_mr['cause_deleted_mortality_rate_{}'.format(i)] = all_cause - summed_csmr_of_sim_causes
+        all_cause = cause_del_mr[['all_cause_mortality_rate_{}'.format(i) for i in range(1000)]].values
+        summed_csmr_of_sim_causes = cause_del_mr[['draw_{}'.format(i) for i in range(1000)]].values
+        deleted = pd.DataFrame(all_cause - summed_csmr_of_sim_causes, columns=['cause_deleted_mortality_rate_{}'.format(i) for i in range(1000)], index=cause_del_mr.index)
+        cause_del_mr = cause_del_mr.merge(deleted, left_index=True, right_index=True)
 
         # assert an error to make sure data is dense (i.e. no missing data)
         assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
@@ -674,17 +677,20 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     """
 
-    output_df = pd.DataFrame()
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
+    output_df = pd.DataFrame(columns=keepcol)
 
     for sex_id in (1, 2):
         pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
 
-        # only want one risk at a time
-        pafs = pafs.query("rei_id == {r}".format(r=risk_id))
+        # only want one risk at a time and only metric id 2 (percentages or pafs)
+        pafs = pafs.query("rei_id == @risk_id and sex_id == @sex_id and metric_id == 2")
+
+        if pafs.empty:
+            continue
 
         pafs = get_age_from_age_group_id(pafs)
-
-        pafs = pafs.query("sex_id == {s}".format(s=sex_id))
 
         pafs = set_age_year_index(pafs, 'early neonatal', 80, year_start, year_end)
 
@@ -699,8 +705,6 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
         # start until a certain age
         output_df = output_df.apply(lambda x: x.fillna(0), axis=0)
 
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_pafs just tried to output. check that the cache to make sure the data you're pulling is correct"
@@ -967,6 +971,68 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
+
+def _bmi_ppf(parameters):
+   return beta(a=parameters['a'], b=parameters['b'], scale=parameters['scale'], loc=parameters['loc']).ppf
+
+@memory.cache
+def get_bmi_distributions(location_id, year_start, year_end, draw):
+    a = pd.DataFrame()
+    b = pd.DataFrame()
+    loc = pd.DataFrame()
+    scale = pd.DataFrame()
+    for sex_id in [1,2]:
+        for year_id in np.arange(year_start, year_end + 1, 5):
+            with open_auxiliary_file('Body Mass Index Distributions',
+                                     parameter='bshape1',
+                                     location_id=location_id,
+                                     year_id=year_id,
+                                     sex_id=sex_id) as f:
+                a = a.append(pd.read_csv(f))
+            with open_auxiliary_file('Body Mass Index Distributions',
+                                     parameter='bshape2',
+                                     location_id=location_id,
+                                     year_id=year_id,
+                                     sex_id=sex_id) as f:
+                b = b.append(pd.read_csv(f))
+            with open_auxiliary_file('Body Mass Index Distributions',
+                                     parameter='mm',
+                                     location_id=location_id,
+                                     year_id=year_id,
+                                     sex_id=sex_id) as f:
+                loc = loc.append(pd.read_csv(f))
+            with open_auxiliary_file('Body Mass Index Distributions',
+                                     parameter='scale',
+                                     location_id=location_id,
+                                     year_id=year_id,
+                                     sex_id=sex_id) as f:
+                scale = scale.append(pd.read_csv(f))
+
+    a = a.set_index(['age_group_id', 'sex_id', 'year_id'])
+    b = b.set_index(['age_group_id', 'sex_id', 'year_id'])
+    loc = loc.set_index(['age_group_id', 'sex_id', 'year_id'])
+    scale = scale.set_index(['age_group_id', 'sex_id', 'year_id'])
+
+    distributions = pd.DataFrame()
+    distributions['a'] = a['draw_{}'.format(draw)]
+    distributions['b'] = b['draw_{}'.format(draw)]
+    distributions['loc'] = loc['draw_{}'.format(draw)]
+    distributions['scale'] = scale['draw_{}'.format(draw)]
+
+    distributions = distributions.reset_index()
+    distributions = get_age_from_age_group_id(distributions)
+    distributions['year'] = distributions.year_id
+    distributions.loc[distributions.sex_id == 1, 'sex'] = 'Male'
+    distributions.loc[distributions.sex_id == 2, 'sex'] = 'Female'
+
+    return Interpolation(
+            distributions[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']],
+            categorical_parameters=('sex',),
+            continuous_parameters=('age', 'year'),
+            func=_bmi_ppf
+            )
+
+
 # 13 get_angina_proportions
 
 
@@ -1018,14 +1084,12 @@ def get_angina_proportions(year_start, year_end):
 
     # little bit awkward below, but we're renaming the col name to have the draw number attached to it so that we can load it from the cache
 
-    output_df.rename(columns={'angina_prop': 'angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))}, inplace=True)
-
     return output_df
 
 
 # 14 get_disability_weight
 
-def get_disability_weight(dis_weight_modelable_entity_id):
+def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=None):
     """Returns a dataframe with disability weight draws for a given healthstate id
 
     Parameters
@@ -1036,32 +1100,33 @@ def get_disability_weight(dis_weight_modelable_entity_id):
     -------
     df with disability weight draws
     """
-    
-    healthstate_id = get_healthstate_id(dis_weight_modelable_entity_id)
-    
+
+    if healthstate_id is None:
+        healthstate_id = get_healthstate_id(dis_weight_modelable_entity_id)
+
     with open_auxiliary_file('Disability Weights') as f:
         dws_look_here_first = pd.read_csv(f)
 
     with open_auxiliary_file('Combined Disability Weights') as f:
         dws_look_here_second = pd.read_csv(f)
-    
+
     if healthstate_id in dws_look_here_first.healthstate_id.tolist():
         df = dws_look_here_first.query("healthstate_id == @healthstate_id")
         df['modelable_entity_id'] = dis_weight_modelable_entity_id
-            
+
     elif healthstate_id in dws_look_here_second.healthstate_id.tolist():
         df = dws_look_here_second.query("healthstate_id == @healthstate_id")
         df['modelable_entity_id'] = dis_weight_modelable_entity_id
-        
+
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequala get this healthstate_id
     elif healthstate_id == 799:
-        df = pd.DataFrame({'healthstate_id':[799], 'healthstate': ['asymptomatic'], 'modelable_entity_id':[dis_weight_modelable_entity_id], 'draw{}'.format(config.getint('run_configuration', 'draw_number')) : [0]})  
+        df = pd.DataFrame({'healthstate_id':[799], 'healthstate': ['asymptomatic'], 'modelable_entity_id':[dis_weight_modelable_entity_id], 'draw{}'.format(config.getint('run_configuration', 'draw_number')) : [0]})
     else:
         raise ValueError("""the modelable entity id {m} has a healthstate_id of {h}. it looks like there 
         are no draws for this healthstate_id in the csvs that get_healthstate_id_draws checked.
         look in this folder for the draws for healthstate_id{h}: /home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom.
         if you can't find draws there, talk w/ central comp""".format(m=dis_weight_modelable_entity_id, h=healthstate_id)) 
-    
+
     return df['draw{}'.format(config.getint('run_configuration', 'draw_number'))].iloc[0]
 
 # 15. get_asympt_ihd_proportions

@@ -4,6 +4,7 @@ from ceam import config
 from ceam_inputs import gbd_ms_functions as functions
 
 # TODO: None of these functions can be run from an ipython notebook. ipython notebook is not currently able to submit Stata scripts. See if there is a way to make ipython notebooks submit Stata scripts
+from ceam_public_health.util.risk import RiskEffect
 
 def get_excess_mortality(modelable_entity_id):
     """Get excess mortality associated with a modelable entity.
@@ -84,6 +85,21 @@ def get_proportion(modelable_entity_id):
         Table with 'age', 'sex', 'year' and 'proportion' columns
     """
     return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'proportion', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=18, me_id=modelable_entity_id)
+
+def get_prevalence(modelable_entity_id):
+    """Get prevalence data for a modelable entity.
+
+    Parameters
+    ----------
+    modelable_entity_id : int
+                          The entity to retrieve
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table with 'age', 'sex', 'year' and 'prevalence' columns
+    """
+    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'prevalence', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=5, me_id=modelable_entity_id)
 
 def get_disease_states(population, states):
     location_id = config.getint('simulation_parameters', 'location_id')
@@ -178,5 +194,21 @@ def get_etiology_specific_incidence(eti_risk_id, cause_id):
     return functions.load_data_from_cache(functions.get_etiology_specific_incidence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
                                           cause_id=cause_id, col_name='eti_inc')
+def get_bmi_distributions():
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+    draw = config.getint('run_configuration', 'draw_number')
+
+    return functions.get_bmi_distributions(location_id, year_start, year_end, draw)
+
+def make_gbd_risk_effects(risk_id, causes, effect_function):
+    return [RiskEffect(
+        get_relative_risks(risk_id=risk_id, cause_id=cause_id),
+        get_pafs(risk_id=risk_id, cause_id=cause_id),
+        cause_name,
+        effect_function)
+        for cause_id, cause_name in causes]
+
 
 # End.
