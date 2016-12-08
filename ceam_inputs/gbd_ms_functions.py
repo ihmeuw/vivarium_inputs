@@ -601,7 +601,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
     output_df = pd.DataFrame()
 
     for sex_id in (1, 2):
-        rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, gbd_round)
+        rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id)
 
         rr = get_age_from_age_group_id(rr)
 
