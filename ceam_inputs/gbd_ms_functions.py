@@ -236,20 +236,18 @@ def get_cause_level_prevalence(states, location_id, year_start, draw_number):
     prevalence_df = pd.DataFrame()
     prevalence_draws_dictionary = {}
 
-    for key, value in states.items():
-        prevalence_draws_dictionary[key] = get_modelable_entity_draws(
-            location_id, year_start, year_start, 5, value)
-        prevalence_draws_dictionary[
-            key] = prevalence_draws_dictionary[key][['year_id', 'sex_id', 'age', 'draw_{}'.format(draw_number)]]
-        prevalence_df = prevalence_df.append(prevalence_draws_dictionary[key])
+    for key in states.keys():
+        states[key] = states[key].query("year == {}".format(year_start))
+        states[key] = states[key][['year', 'sex', 'age', 'draw_{}'.format(draw_number)]]
+        prevalence_df = prevalence_df.append(states[key])
 
     cause_level_prevalence = prevalence_df.groupby(
-        ['year_id', 'sex_id', 'age'], as_index=False).sum()
+        ['year', 'sex', 'age'], as_index=False).sum()
 
-    return cause_level_prevalence, prevalence_draws_dictionary
+    return cause_level_prevalence, states
 
 
-def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number, choices=[False, True]):
+def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number):
     """
     returns a dataframe with new column 'condition_envelope' that will indicate whether the simulant has the cause or is healthy (healthy is where condition_envelope = NaN at this point)
 
@@ -268,13 +266,13 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
     -------
     df with indication of whether or not simulant is healthy
     """
-    cause_level_prevalence = Interpolation(cause_level_prevalence[['sex', 'age', 'draw_{}'.format(draw_number)]], ['sex'], ['age'])
-    probability_of_disease = cause_level_prevalence(simulants_df[['age', 'sex']])
+    merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
+    probability_of_disease = merged['draw_{}'.format(draw_number)]
     probability_of_NOT_having_disease = 1 - probability_of_disease
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
     results = simulants_df.copy()
-    results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.index, choices, weights)
+    results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.simulant_id, [False, True], weights)
 
     return results
 
@@ -308,7 +306,7 @@ def get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence,
     for key in states.keys():
         sequela_proportions[key] = \
             pd.merge(prevalence_draws_dictionary[key], cause_level_prevalence, on=[
-                'age', 'sex_id', 'year_id'], suffixes=('_single', '_total'))
+                'age', 'sex'], suffixes=('_single', '_total'))
         single = sequela_proportions[key][
             'draw_{}_single'.format(draw_number)]
         total = sequela_proportions[key][
@@ -338,32 +336,17 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, stat
     -------
     dataframe of simulants with new column condition_state that indicates if simulant which sequela simulant has or indicates that they are healthy (i.e. they do not have the disease)
     """
+    sequela_proportions = [(key, Interpolation(data[['sex', 'age', 'scaled_prevalence']], ['sex'], ['age'])) for key, data in sequela_proportions.items()]
+    sub_pop = new_sim_file.query('condition_envelope == 1')
+    list_of_keys, list_of_weights = zip(*[(key,data(sub_pop)) for key, data in sequela_proportions])
 
-    for sex_id in new_sim_file.sex_id.unique():
-        for age in new_sim_file.age.unique():
-            #TODO: Proper interpolation for neonates
-            if age < 1:
-                effective_age = 1
-            else:
-                effective_age = age
-            list_of_weights = []
-            for key, dataframe in states.items():
-                weight_scale_prev_tuple = (key, sequela_proportions[key].\
-                                           query("sex_id == @sex_id and age== @effective_age")['scaled_prevalence'].values[0])
-                list_of_weights.append(weight_scale_prev_tuple)
-
-            list_of_keys, list_of_weights = zip(*list_of_weights)
-            with_ihd = (new_sim_file.condition_envelope == 1) & (
-                        new_sim_file.age == age) & \
-                       (new_sim_file.sex_id == sex_id)
-
-            new_sim_file.loc[with_ihd, 'condition_state'] = np.random.choice(
-                list_of_keys, p=list_of_weights, size=with_ihd.sum())
+    results = choice('determine_which_seq_diseased_sim_has', sub_pop.index, list_of_keys, np.array(list_of_weights).T)
+    new_sim_file.loc[sub_pop.index, 'condition_state'] = results
 
     return new_sim_file
 
 
-def assign_cause_at_beginning_of_simulation_using_modelable_entity_id(simulants_df, location_id,
+def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
                                             year_start, states):
     """
     Function that assigns chronic ihd status to starting population of
@@ -403,7 +386,7 @@ def assign_cause_at_beginning_of_simulation_using_modelable_entity_id(simulants_
  
     post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions,  post_cause_assignment_population, states)
 
-    post_sequela_assignmnet_population.condition_state =  post_sequela_assignmnet_population.condition_state.fillna('healthy')
+    post_sequela_assignmnet_population.condition_state = post_sequela_assignmnet_population.condition_state.fillna('healthy')
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert  post_sequela_assignmnet_population.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
@@ -416,7 +399,7 @@ def assign_cause_at_beginning_of_simulation_using_modelable_entity_id(simulants_
 
 
 def assign_cause_at_beginning_of_simulation_using_prevalence_df(simulants_df, location_id,
-                                            year_start, state_map, choices=[False, True]):
+                                            year_start, state_map):
     """
     Function that assigns prevalence at the beginning according to a dataframe of prevalences
 
@@ -441,15 +424,14 @@ def assign_cause_at_beginning_of_simulation_using_prevalence_df(simulants_df, lo
 
     draw_number = config.getint('run_configuration', 'draw_number')
 
+    prevalence_df = state_map.values()    
 
-    for prevalence_df in state_map.values():
-        post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, prevalence_df, draw_number, choices=[False, True])
+    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, prevalence_df, draw_number)
 
-    # TODO: Should we be using groupby for these loops to ensure that we're
-    # not looping over an age/sex combo that does not exist
+    output_df = post_cause_assignment_population.loc[post_cause_assignment_population.condition_envelope == True, 'condition_state'] = 'diarrhea_due_to_rotavirus'
+    output_df = post_cause_assignment_population.loc[output_df.condition_envelope == False, 'condition_state'] = 'healthy'
 
-    # change the name of condition envelope to condition state in assign_cause_at_beginning_of_simulation_using_prevalence_df since there is no need to assign prevalence at a lower level than the condition envelope level
-    output_df = post_cause_assignment_population.rename(columns={"condition_envelope": "condition_state"})[['simulant_id', 'condition_state']]
+    output_df.rename(columns={'condition_envelope': 'condition_state'}, inplace=True)
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert  output_df.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
@@ -1207,13 +1189,13 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
     """
     # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
 
-    eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
+    # eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
  
     # now make the negative etiology paf draws 0
-    draws = eti_pafs._get_numeric_data()
-    draws[draws < 0] = 0
+    # draws = eti_pafs._get_numeric_data()
+    # draws[draws < 0] = 0
 
-    return eti_pafs
+    # return eti_pafs
 
 
 def get_etiology_probability(etiology_name):

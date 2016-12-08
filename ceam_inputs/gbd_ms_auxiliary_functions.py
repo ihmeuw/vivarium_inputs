@@ -227,6 +227,8 @@ def get_age_from_age_group_id(df):
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     df = df.set_index('age_group_id')
     df['age'] = mapping['age']
+    # TODO: Set the end age midpoint to 80 for now. Abie wants to set it to 82.5 unless we think of something better. Setting to 80 for now, will set to 82.5 after cleaning up the age_extrapolation code
+    df.loc[df.age == 102.5, 'age'] = 80 
     df = df.set_index(idx)
 
 

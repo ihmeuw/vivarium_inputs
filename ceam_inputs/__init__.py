@@ -85,25 +85,25 @@ def get_proportion(modelable_entity_id):
     """
     return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'proportion', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=18, me_id=modelable_entity_id)
 
-def get_disease_states_using_modelable_entity_id(population, states):
+def get_disease_states(population, states):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
 
     population = population.reset_index()
     population['simulant_id'] = population['index']
-    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation_using_modelable_entity_id, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex_id']], location_id=location_id, year_start=year_start, states=states)
+    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], location_id=location_id, year_start=year_start, states=states)
     condition_column = condition_column.set_index('simulant_id')
 
     return condition_column
 
 
-def get_disease_states_using_prevalence_df(population, state_map, choices=[False, True]):
+def get_disease_states_using_prevalence_df(population, state_map):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
 
     population = population.reset_index()
     population['simulant_id'] = population['index']
-    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation_using_prevalence_df, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], location_id=location_id, year_start=year_start, state_map=state_map, choices=choices)
+    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation_using_prevalence_df, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], location_id=location_id, year_start=year_start, state_map=state_map)
     condition_column = condition_column.set_index('simulant_id')
 
     return condition_column
