@@ -603,44 +603,25 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
 
     output_df = pd.DataFrame()
 
-    for sex_id in (1, 2):
-        rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id)
+    rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, cause_id)
 
-        rr = get_age_from_age_group_id(rr)
+    rr = get_age_from_age_group_id(rr)
 
-        rr = rr.query("cause_id == {c}".format(c=cause_id))
-
-        rr = rr.query("sex_id == {s}".format(s=sex_id))
-
-        rr = rr.query("age != 0")
-
-        # need to treat risks with category parameters specially
-        # TODO: Figure out how to do this in a more flexible manner. Touch base with someone on risk factors to see if we can always use cat1 for binary, categorical parameters
-        if risk_id in [166, 238]:
-            rr = rr.query("parameter == 'cat1'")
+    # need to treat risks with category parameters specially
+    # TODO: Figure out how to do this in a more flexible manner. Touch base with someone on risk factors to see if we can always use cat1 for binary, categorical parameters
+    # if risk_id in [166, 238]:
+    #    rr = rr.query("parameter == 'cat1'")
         
-        rr = set_age_year_index(rr, 'early neonatal', 80, year_start, year_end)
+    # need to back calculate relative risk to earlier ages for risks that
+    # don't start until a certain age.
+    # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
+    output_df = rr.apply(lambda x: x.fillna(1), axis=0)
 
-        interp_data = interpolate_linearly_over_years_then_ages(rr, 'rr')
-
-        interp_data['sex_id'] = sex_id
-
-        output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end))
-
-        # need to back calculate relative risk to earlier ages for risks that
-        # don't start until a certain age
-        output_df = output_df.apply(lambda x: x.fillna(1), axis=0)
-
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
-
-    # assert an error if there are duplicate rows
-    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_relative_risks just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     # assert that none of the rr values are less than 1
     draw_number = config.getint('run_configuration', 'draw_number')
