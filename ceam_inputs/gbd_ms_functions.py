@@ -607,17 +607,12 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
 
     rr = get_age_from_age_group_id(rr)
 
-    # need to treat risks with category parameters specially
-    # TODO: Figure out how to do this in a more flexible manner. Touch base with someone on risk factors to see if we can always use cat1 for binary, categorical parameters
-    # if risk_id in [166, 238]:
-    #    rr = rr.query("parameter == 'cat1'")
-        
     # need to back calculate relative risk to earlier ages for risks that
     # don't start until a certain age.
-    # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
+    # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. It assumes that there is no risk of the risk factor on the exposure for those ages. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
     output_df = rr.apply(lambda x: x.fillna(1), axis=0)
 
-    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol = ['year_id', 'sex_id', 'age', 'parameter']
     keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
@@ -855,7 +850,11 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
         else:
             column_map = {'draw_{draw}'.format(draw=draw): col_name}
 
-        keepcol = ['year_id', 'age', 'sex_id'] + list(column_map.keys())
+        # if 'parameter' is in columns, then keep it, else do not keep it (need parameter for the relative risk estimations)
+        if 'parameter' in function_output.columns:
+            keepcol = ['year_id', 'age', 'sex_id', 'parameter'] + list(column_map.keys())
+        else:
+            keepcol = ['year_id', 'age', 'sex_id'] + list(column_map.keys())
 
         function_output = function_output[keepcol]
         function_output = function_output.rename(columns=column_map)
