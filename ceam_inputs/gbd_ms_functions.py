@@ -723,44 +723,23 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     output_df = pd.DataFrame()
 
-    for sex_id in (1, 2):
-        exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
 
+    exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
 
-        exposure = get_age_from_age_group_id(exposure)
+    exposure = get_age_from_age_group_id(exposure)
 
-        exposure = exposure.query("sex_id == {s}".format(s=sex_id))
+    # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
 
-        exposure = exposure.query("age != 0")
+    # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
+    output_df = exposure.apply(lambda x: x.fillna(0), axis=0)
 
-        # need to treat risks with category parameters specially
-        # TODO: write test that outputs error if there is more than 1 parameter
-        #       and there is no exception for the risk
-        # TODO: Figure out a better way to handle multiple parameter risk factors
-        # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
-        if risk_id in [166, 238]:
-            exposure = exposure.query("parameter == 'cat1'")
-
-        exposure = set_age_year_index(exposure, 'early neonatal', 80, year_start, year_end)
-
-        interp_data = interpolate_linearly_over_years_then_ages(exposure,
-                                                                'draw')
-
-        interp_data['sex_id'] = sex_id
-
-        output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end))
-
-        keepcol = ['draw_{i}'.format(i=i) for i in range(0, 1000)]
-        keepcol += ['year_id', 'sex_id', 'age']
-
-        output_df = output_df.apply(lambda x: x.fillna(0), axis=0)
+    keepcol = ['year_id', 'sex_id', 'age', 'parameter'] + ['draw_{i}'.format(i=i) for i in range(0, 1000)]
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_exposures just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
-    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    assert output_df.duplicated(['age', 'year_id', 'sex_id', 'parameter']).sum(
     ) == 0, "there are duplicates in the dataframe that get_relative_risks just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     return output_df[keepcol]
