@@ -610,10 +610,16 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
     # need to back calculate relative risk to earlier ages for risks that
     # don't start until a certain age.
     # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. It assumes that there is no risk of the risk factor on the exposure for those ages. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
-    output_df = rr.apply(lambda x: x.fillna(1), axis=0)
+    rr2 = rr.apply(lambda x: x.fillna(1), axis=0)
 
     keepcol = ['year_id', 'sex_id', 'age', 'parameter']
     keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
+
+    output_df = (rr2.pivot_table(index=['age', 'year', 'sex'], columns=[rr2.parameter.values], values=['exposure']))
+
+    output_df = output_df.columns.droplevel()
+
+    output_df.reset_index(inplace=True)
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
@@ -1143,7 +1149,7 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
 
 
 def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
-        """
+    """
     Parameters
     ----------
     location_id : int
@@ -1166,15 +1172,16 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
         df with columns year_id, sex_id, age, val, upper, and lower
 
     """
+    # For some of the diarrhea etiologies, PAFs are negative. Wouldn't make sense for the simulation to use negative pafs (i.e. incidence * PAF returns a negative incidence if PAF is negative), so we'll clip to 0. Guessing that any other diseases that deal with etiologies in the future won't need to be treated this way. --EM 12/13
     # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
 
-    # eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
+    eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
  
     # now make the negative etiology paf draws 0
-    # draws = eti_pafs._get_numeric_data()
-    # draws[draws < 0] = 0
+    draws = eti_pafs._get_numeric_data()
+    draws[draws < 0] = 0
 
-    # return eti_pafs
+    return eti_pafs
 
 
 def get_etiology_probability(etiology_name):
@@ -1248,7 +1255,7 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
     diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=6, me_id=1181) # measure=incidence, me_id=diarrhea envelope TODO: Make me_id an argument to be passed into the fucntion (i.e. make this function more flexible than just diarrhea)
 
-    etiology_paf = get_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
+    etiology_paf = get_etiology_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
     
     # TODO: Figure out if the interpolation should happen before the merge or in the simulation
     # merge interpolated pafs and interpolated incidence
