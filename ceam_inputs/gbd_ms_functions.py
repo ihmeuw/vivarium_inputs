@@ -615,12 +615,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
     keepcol = ['year_id', 'sex_id', 'age', 'parameter']
     keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
 
-    output_df = (rr2.pivot_table(index=['age', 'year', 'sex'], columns=[rr2.parameter.values], values=['exposure']))
-
-    output_df = output_df.columns.droplevel()
-
-    output_df.reset_index(inplace=True)
-
     # assert an error to make sure data is dense (i.e. no missing data)
     assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
 
@@ -737,7 +731,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
 
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
-    output_df = exposure.apply(lambda x: x.fillna(0), axis=0)
+    exposure2 = exposure.apply(lambda x: x.fillna(0), axis=0)
 
     keepcol = ['year_id', 'sex_id', 'age', 'parameter'] + ['draw_{i}'.format(i=i) for i in range(0, 1000)]
 
