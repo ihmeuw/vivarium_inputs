@@ -731,7 +731,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
 
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
-    exposure2 = exposure.apply(lambda x: x.fillna(0), axis=0)
+    output_df = exposure.apply(lambda x: x.fillna(0), axis=0)
 
     keepcol = ['year_id', 'sex_id', 'age', 'parameter'] + ['draw_{i}'.format(i=i) for i in range(0, 1000)]
 

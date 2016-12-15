@@ -146,12 +146,11 @@ def get_relative_risks(risk_id, cause_id):
     funct_output = functions.load_data_from_cache(functions.get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id)
 
     # need to reshape the funct output since there can be multiple categories
-    output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['rr'])
+    output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['exposure'])
     output.columns = output.columns.droplevel()
     output.reset_index(inplace=True)
 
     return output
-
 
 def get_pafs(risk_id, cause_id):
     location_id = config.getint('simulation_parameters', 'location_id')
