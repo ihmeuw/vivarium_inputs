@@ -442,70 +442,6 @@ def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,
     return df
 
 
-def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_me_ids_in_microsim):
-    '''Returns the cause-delted mortality rate for a given time period and location
-
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-
-    Returns
-    -------
-    df with columns age, year_id, sex_id, and 1k draws of cause deleted
-        mortality rate
-    '''
-
-    all_cause_mr = get_all_cause_mortality_rate(
-        location_id, year_start, year_end)
-
-    if list_of_me_ids_in_microsim:
-        all_me_id_draws = pd.DataFrame()
-
-        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(all_me_id_draws, list_of_me_ids_in_microsim,
-                                                                  location_id, year_start, year_end)
-
-
-        cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=[
-                                'age', 'sex_id', 'year_id'])
-
-        # get cause-deleted mortality rate by subtracting out all of the csmrs from
-        # all-cause mortality rate
-        all_cause = cause_del_mr[['all_cause_mortality_rate_{}'.format(i) for i in range(1000)]].values
-        summed_csmr_of_sim_causes = cause_del_mr[['draw_{}'.format(i) for i in range(1000)]].values
-        deleted = pd.DataFrame(all_cause - summed_csmr_of_sim_causes, columns=['cause_deleted_mortality_rate_{}'.format(i) for i in range(1000)], index=cause_del_mr.index)
-        cause_del_mr = cause_del_mr.merge(deleted, left_index=True, right_index=True)
-
-        # assert an error to make sure data is dense (i.e. no missing data)
-        assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
-
-        # assert an error if there are duplicate rows
-        assert cause_del_mr.duplicated(['age', 'year_id', 'sex_id']).sum(
-        ) == 0, "there are duplicates in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
-
-        # assert that non of the cause-deleted mortality rate values are less than or equal to 0
-        draw_number = config.getint('run_configuration', 'draw_number')
-        assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. all-cause mortality can't be <= 0"
-
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
-
-        return cause_del_mr[keepcol]
-    else:
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('all_cause_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
-        df = all_cause_mr[keepcol]
-        df = df.rename(columns={'all_cause_mortality_rate_{i}'.format(i=i):'cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)})
-
-        return df
-
-
 # 5. get_post_mi_heart_failure_proportion_draws
 
 
@@ -610,7 +546,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
     # need to back calculate relative risk to earlier ages for risks that
     # don't start until a certain age.
     # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. It assumes that there is no risk of the risk factor on the exposure for those ages. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
-    rr2 = rr.apply(lambda x: x.fillna(1), axis=0)
+    output_df = rr.apply(lambda x: x.fillna(1), axis=0)
 
     keepcol = ['year_id', 'sex_id', 'age', 'parameter']
     keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
@@ -1311,6 +1247,21 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     keepcol = ['year_id', 'sex_id', 'age', 'draw_{}'.format(draw_number)]
 
     return etiology_specific_prevalence[keepcol]
+
+
+# TODO: Figure out if we need to do anything to the remission rates. We have remission for all diarrhea.
+# Do we need to split out remission to get remission from the different severity states?7
+def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
+    if severity_split == 'severe':
+        # FIXME: Need to use severity split draws. Manually setting proportions for now
+        severe_diarrhea_proportion = .14
+        excess_mortality_dataframe['rate'] = excess_mortality_dataframe['rate'] / severe_diarrhea_proportion
+    elif severity_split in ['mild', 'moderate']:
+        # set the excess mortality rate to 0
+        excess_mortality_dataframe['rate'] = 0
+    else:
+        raise ValueError("you supplied an invalid value for severity split argument. you wrote '{}'. acceptable severity splits are mild, moderate, or severe".format(severity_split))
+    return excess_mortality_dataframe
 
 
 # End.

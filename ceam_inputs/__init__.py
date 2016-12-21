@@ -37,6 +37,22 @@ def get_incidence(modelable_entity_id):
     return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=6, me_id=modelable_entity_id)
 
 
+def get_cause_specific_mortality(modelable_entity_id):
+    """Get excess mortality associated with a modelable entity.
+
+    Parameters
+    ----------
+    modelable_entity_id : int
+                          The entity to retrieve
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table with 'age', 'sex', 'year' and 'rate' columns
+    """
+    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=15, me_id=modelable_entity_id)
+
+
 def get_remission(modelable_entity_id):
     """Get remission rates for a modelable entity.
 
@@ -70,6 +86,7 @@ def get_continuous(modelable_entity_id):
     """
     return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'value', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=19, me_id=modelable_entity_id)
 
+
 def get_proportion(modelable_entity_id):
     """Get proportion data for a modelable entity. This is used for entities that represent
     outcome splits like severities of heart failure after an infarction.
@@ -86,6 +103,7 @@ def get_proportion(modelable_entity_id):
     """
     return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'proportion', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=18, me_id=modelable_entity_id)
 
+
 def get_prevalence(modelable_entity_id):
     """Get prevalence data for a modelable entity.
 
@@ -101,6 +119,7 @@ def get_prevalence(modelable_entity_id):
     """
     return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'prevalence', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=5, me_id=modelable_entity_id)
 
+
 def get_disease_states(population, states):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
@@ -113,14 +132,9 @@ def get_disease_states(population, states):
     return condition_column
 
 
-def get_cause_deleted_mortality_rate(meids=[]):
-    """Get the all cause mortality rate with the excess mortality rate of explicitly modeled
-    modelable entity ids deleted out.
+def get_all_cause_mortality_rate():
+    """Get the all cause mortality rate.
 
-    Parameters
-    ----------
-    meids : [int]
-            A list of modelable entity ids to delete from the all cause rate
 
     Returns
     -------
@@ -131,13 +145,13 @@ def get_cause_deleted_mortality_rate(meids=[]):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    return functions.load_data_from_cache(functions.get_cause_deleted_mortality_rate, \
-            'cause_deleted_mortality_rate', \
+    return functions.load_data_from_cache(functions.get_all_cause_mortality_rate, \
+            'rate', \
             location_id,
             year_start,
             year_end,
-            meids,
-            src_column='cause_deleted_mortality_rate_{draw}')
+            src_column='all_cause_mortality_rate_{draw}')
+
 
 def get_relative_risks(risk_id, cause_id):
     location_id = config.getint('simulation_parameters', 'location_id')
@@ -146,17 +160,19 @@ def get_relative_risks(risk_id, cause_id):
     funct_output = functions.load_data_from_cache(functions.get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id)
 
     # need to reshape the funct output since there can be multiple categories
-    output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['exposure'])
+    output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['rr'])
     output.columns = output.columns.droplevel()
     output.reset_index(inplace=True)
 
     return output
+
 
 def get_pafs(risk_id, cause_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
     return functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id)
+
 
 def get_exposures(risk_id):
     location_id = config.getint('simulation_parameters', 'location_id')
@@ -181,6 +197,7 @@ def generate_ceam_population(number_of_simulants, initial_age=None, year_start=N
     population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
     population['alive'] = True
     return population
+
 
 def get_age_specific_fertility_rates():
     location_id = config.getint('simulation_parameters', 'location_id')
@@ -217,6 +234,7 @@ def get_bmi_distributions():
 
     return functions.get_bmi_distributions(location_id, year_start, year_end, draw)
 
+
 def make_gbd_risk_effects(risk_id, causes, effect_function):
     return [RiskEffect(
         get_relative_risks(risk_id=risk_id, cause_id=cause_id),
@@ -224,6 +242,7 @@ def make_gbd_risk_effects(risk_id, causes, effect_function):
         cause_name,
         effect_function)
         for cause_id, cause_name in causes]
-
+def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
+    return functions.get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split)
 
 # End.
