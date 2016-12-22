@@ -1151,7 +1151,7 @@ def get_etiology_probability(etiology_name):
     return etiology_df[keepcol]
 
 
-def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_id, cause_id):
+def get_etiology_and_severity_specific_incidence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id):
     """
     Gets the paf of diarrhea cases that are associated with a specific etiology
 
@@ -1172,6 +1172,9 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
 
+    me_id: int, modelable_entity_id
+        me_id takes modelable entity id of a cause
+
     Returns
     -------
     A dataframe of etiology specific incidence draws.
@@ -1183,7 +1186,7 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
     draw_number = config.getint('run_configuration', 'draw_number')
     
     diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end,
-                                                           measure=6, me_id=1181) # measure=incidence, me_id=diarrhea envelope TODO: Make me_id an argument to be passed into the fucntion (i.e. make this function more flexible than just diarrhea)
+                                                           measure=6, me_id=me_id) # measure=incidence, me_id=diarrhea envelope TODO: Make me_id an argument to be passed into the fucntion (i.e. make this function more flexible than just diarrhea)
 
     etiology_paf = get_etiology_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
     
@@ -1202,7 +1205,7 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
     return etiology_specific_incidence[keepcol]
 
 
-def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk_id, cause_id):
+def get_etiology_and_severity_specific_prevalence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id):
     """
     Gets draws of prevalence of diarrhea due to a specific specific etiology
 
@@ -1223,6 +1226,8 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
 
+    me_id: int, modelable_entity_id
+        me_id takes modelable entity id of a cause
 
     Returns
     -------
@@ -1233,7 +1238,7 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     draw_number = config.getint('run_configuration', 'draw_number')   
  
     diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
-                                                           measure=5, me_id=1181) # measure=prevalence, me_id=diarrhea envelope
+                                                           measure=5, me_id=me_id) # measure=prevalence, me_id=diarrhea envelope
     
     etiology_paf = get_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
 
@@ -1265,4 +1270,3 @@ def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, sev
 
 
 # End.
-

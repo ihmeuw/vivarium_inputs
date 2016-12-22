@@ -210,22 +210,22 @@ def get_etiology_probability(etiology_name):
     return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name)
 
 
-def get_etiology_specific_prevalence(eti_risk_id, cause_id):
+def get_etiology_and_severity_specific_prevalence(eti_risk_id, cause_id, me_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    return functions.load_data_from_cache(functions.get_etiology_specific_prevalence, location_id=location_id,
+    return functions.load_data_from_cache(functions.get_etiology_and_severity_specific_prevalence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
-                                          cause_id=cause_id, col_name='draw_{}'.format(config.getint('run_configuration','draw_number')))
+                                          cause_id=cause_id, me_id=me_id, col_name='draw_{}'.format(config.getint('run_configuration','draw_number')))
 
 
-def get_etiology_specific_incidence(eti_risk_id, cause_id):
+def get_etiology_and_severity_specific_incidence(eti_risk_id, cause_id, me_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    return functions.load_data_from_cache(functions.get_etiology_specific_incidence, location_id=location_id,
+    return functions.load_data_from_cache(functions.get_etiology_and_severity_specific_incidence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
-                                          cause_id=cause_id, col_name='eti_inc')
+                                          cause_id=cause_id, me_id=me_id, col_name='eti_inc')
 def get_bmi_distributions():
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
@@ -242,7 +242,10 @@ def make_gbd_risk_effects(risk_id, causes, effect_function):
         cause_name,
         effect_function)
         for cause_id, cause_name in causes]
+
+
 def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
     return functions.get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split)
+
 
 # End.
