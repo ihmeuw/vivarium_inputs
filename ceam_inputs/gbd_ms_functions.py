@@ -505,7 +505,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 # 6. get_relative_risks
 
 
-def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd_round=1):
+def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_type, gbd_round=1):
     """
     Parameters
     ----------
@@ -524,6 +524,9 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
 
+    rr_type: str
+        can specify morbidity if you want RRs for incidence or mortality if you want RRs for mortality
+
     gbd_round: int
         # TODO: We'll need to update this when GBD 2016 is out. 
         generally set the gbd_round to 1 since this corresponds with GBD 2015
@@ -540,6 +543,11 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
     output_df = pd.DataFrame()
 
     rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, cause_id)
+
+    if rr_type == 'morbidity':
+    elif rr_type == 'mortality':
+    else:
+        raise ValueError('rr type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
 
     rr = get_age_from_age_group_id(rr)
 
