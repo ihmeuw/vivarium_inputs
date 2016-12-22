@@ -153,11 +153,11 @@ def get_all_cause_mortality_rate():
             src_column='all_cause_mortality_rate_{draw}')
 
 
-def get_relative_risks(risk_id, cause_id):
+def get_relative_risks(risk_id, cause_id, rr_type):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    funct_output = functions.load_data_from_cache(functions.get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id)
+    funct_output = functions.load_data_from_cache(functions.get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id, rr_type=rr_type)
 
     # need to reshape the funct output since there can be multiple categories
     output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['rr'])

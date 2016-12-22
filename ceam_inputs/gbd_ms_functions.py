@@ -504,7 +504,6 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 
 # 6. get_relative_risks
 
-
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_type, gbd_round=1):
     """
     Parameters
@@ -528,7 +527,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
         can specify morbidity if you want RRs for incidence or mortality if you want RRs for mortality
 
     gbd_round: int
-        # TODO: We'll need to update this when GBD 2016 is out. 
+        # TODO: We'll need to update this when GBD 2016 is out.
         generally set the gbd_round to 1 since this corresponds with GBD 2015
         there are some cases (e.g. pulling relative risks for unsafe sanitation)
         where the most recent (i.e. is best) model was updated in 2013 so we need
@@ -545,10 +544,14 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, cause_id)
 
     if rr_type == 'morbidity':
+        rr = rr.query("moridity == 1")
     elif rr_type == 'mortality':
+        rr = rr.query("mortality == 1")
     else:
-        raise ValueError('rr type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
+        raise ValueError('rr_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
 
+    rr = rr.query('cause_id == {}'.format(cause_id))
+    
     rr = get_age_from_age_group_id(rr)
 
     # need to back calculate relative risk to earlier ages for risks that
