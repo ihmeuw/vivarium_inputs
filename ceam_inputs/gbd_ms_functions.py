@@ -687,7 +687,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     # assert an error if there are duplicate rows
     assert output_df.duplicated(['age', 'year_id', 'sex_id', 'parameter']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_relative_risks just tried to output. check the cache to make sure that the data you're pulling is correct"
+    ) == 0, "there are duplicates in the dataframe that get_exposures just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     return output_df[keepcol]
 

@@ -231,7 +231,6 @@ def get_age_from_age_group_id(df):
     df.loc[df.age == 102.5, 'age'] = 80 
     df = df.set_index(idx)
 
-
     return df
 
 
