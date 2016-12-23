@@ -544,7 +544,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, cause_id)
 
     if rr_type == 'morbidity':
-        rr = rr.query("moridity == 1")
+        rr = rr.query("morbidity == 1")
     elif rr_type == 'mortality':
         rr = rr.query("mortality == 1")
     else:
@@ -1162,7 +1162,7 @@ def get_etiology_probability(etiology_name):
     return etiology_df[keepcol]
 
 
-def get_etiology_and_severity_specific_incidence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id):
+def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id):
     """
     Gets the paf of diarrhea cases that are associated with a specific etiology
 
@@ -1216,7 +1216,7 @@ def get_etiology_and_severity_specific_incidence(location_id, year_start, year_e
     return etiology_specific_incidence[keepcol]
 
 
-def get_etiology_and_severity_specific_prevalence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id):
+def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id):
     """
     Gets draws of prevalence of diarrhea due to a specific specific etiology
 

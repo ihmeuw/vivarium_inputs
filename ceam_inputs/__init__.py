@@ -210,22 +210,24 @@ def get_etiology_probability(etiology_name):
     return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name)
 
 
-def get_etiology_and_severity_specific_prevalence(eti_risk_id, cause_id, me_id):
+def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    return functions.load_data_from_cache(functions.get_etiology_and_severity_specific_prevalence, location_id=location_id,
+    return functions.load_data_from_cache(functions.get_etiology_specific_prevalence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
                                           cause_id=cause_id, me_id=me_id, col_name='draw_{}'.format(config.getint('run_configuration','draw_number')))
 
 
-def get_etiology_and_severity_specific_incidence(eti_risk_id, cause_id, me_id):
+def get_etiology_specific_incidence(eti_risk_id, cause_id, me_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    return functions.load_data_from_cache(functions.get_etiology_and_severity_specific_incidence, location_id=location_id,
+    return functions.load_data_from_cache(functions.get_etiology_specific_incidence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
                                           cause_id=cause_id, me_id=me_id, col_name='eti_inc')
+
+
 def get_bmi_distributions():
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
@@ -235,9 +237,9 @@ def get_bmi_distributions():
     return functions.get_bmi_distributions(location_id, year_start, year_end, draw)
 
 
-def make_gbd_risk_effects(risk_id, causes, effect_function):
+def make_gbd_risk_effects(risk_id, causes, rr_type, effect_function):
     return [RiskEffect(
-        get_relative_risks(risk_id=risk_id, cause_id=cause_id),
+        get_relative_risks(risk_id=risk_id, cause_id=cause_id, rr_type=rr_type),
         get_pafs(risk_id=risk_id, cause_id=cause_id),
         cause_name,
         effect_function)
