@@ -550,6 +550,8 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     else:
         raise ValueError('rr_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
 
+    rr = rr.query('sex_id != 3')    
+
     rr = rr.query('cause_id == {}'.format(cause_id))
     
     rr = get_age_from_age_group_id(rr)
