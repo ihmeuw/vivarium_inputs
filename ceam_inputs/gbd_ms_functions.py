@@ -478,6 +478,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
 
         # get cause-deleted mortality rate by subtracting out all of the csmrs from
         # all-cause mortality rate
+        # TODO: Make sure this division is working properly for all draws
         all_cause = cause_del_mr[['all_cause_mortality_rate_{}'.format(i) for i in range(1000)]].values
         summed_csmr_of_sim_causes = cause_del_mr[['draw_{}'.format(i) for i in range(1000)]].values
         deleted = pd.DataFrame(all_cause - summed_csmr_of_sim_causes, columns=['cause_deleted_mortality_rate_{}'.format(i) for i in range(1000)], index=cause_del_mr.index)
