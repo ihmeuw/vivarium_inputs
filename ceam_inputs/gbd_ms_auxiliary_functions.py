@@ -13,6 +13,9 @@ from ceam_inputs.util import stata_wrapper
 # in gbd_ms_functions.py to prepare data for ceam
 
 
+# TODO: MAKE SURE NEW PYTHON FUNCTIONS ARE USING THE PUBLICATION IDS!!
+
+
 def create_age_column(simulants_file, population_file, number_of_simulants):
     """
     Returns a df with a simulant_id and age column
@@ -249,8 +252,9 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     pd.DataFrame with columns
     '''
 
+    # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
     # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
-    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=3)
+    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
     # filter so that only metric id 1 (deaths) is in our dataframe
     all_cause_deaths = all_cause_draws.query("metric_id == 1")
