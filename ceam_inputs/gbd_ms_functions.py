@@ -961,7 +961,7 @@ def get_bmi_distributions(location_id, year_start, year_end, draw):
 # 13 get_angina_proportions
 
 
-def get_angina_proportions(year_start, year_end):
+def get_angina_proportions():
     '''Format the angina proportions so that we can use them in CEAM.
     This is messy. The proportions were produced by Catherine Johnson.
     The proportion differs by age, but not by sex, location, or time.
@@ -981,20 +981,38 @@ def get_angina_proportions(year_start, year_end):
     df with year_id, sex_id, age and 1k draws
     '''
 
-    # TODO: Everett created csv below from a file that Catherine Johnson created
-    # Catherine's original doc located here -- /snfs1/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv
-    # Need to figure out a way to check to see if this file is ever updated
+    # TODO: Need to figure out a way to check to see if this file is ever updated. Would be nice if we could think of a better way to make sure we're using the most up to date data.
     with open_auxiliary_file('Angina Proportions') as f:
         ang = pd.read_csv(f)
 
-    # expand the ages so that we can assign proportions to people under age 20
+    # not sure why income is included in this file. estimates are the same for high and low income countries. we'll filter
+    # on high income to get rid of the superfluous rows.
+    ang = ang.query("income == 'high'")    
 
-    # we don't have estimates under age 20, so I'm filling all ages under
+    ang = get_age_group_midpoint_from_age_group_id(ang)
+
+    # we don't have estimates under age 22.5, so I'm filling all ages under
     # 20 with the same proportion that we have for 20 year olds
     # TODO: Should check this assumption w/ Abie
-    ang = ang.apply(lambda x: x.fillna(0.254902), axis=0)
+    # creating a copy of ang to use pd.get_value
+    ang_copy = ang.set_index('age').copy()  
+ 
+    # values are same for each sex, so we can grab the value 
+    # for the lowest age from either sex to apply to the younger age 
+    # groups for which we do not have data
+    value_at_youngest_age_for_which_we_have_data = ang_copy.query("sex_id == 1").get_value(22.5, 'angina_prop')
 
-    return output_df
+    # the data is not year specific. we can set year_id to any 
+    # year we want and the spline function will apply the values 
+    # to every year in the simulation
+    # TODO: Confirm the assumption above is true
+    ang['year_id'] = 1990    
+
+    ang = ang[['year_id', 'sex_id', 'age', 'angina_prop']]
+
+    ang = ang.apply(lambda x: x.fillna(value_at_youngest_age_for_which_we_have_data), axis=0)
+
+    return ang
 
 
 # 14. get_disability_weight

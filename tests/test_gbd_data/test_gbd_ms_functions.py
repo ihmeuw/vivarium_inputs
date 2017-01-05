@@ -7,6 +7,7 @@ from ceam.gbd_data.gbd_ms_functions import get_cause_level_prevalence
 from ceam.gbd_data.gbd_ms_functions import get_relative_risks
 from ceam.gbd_data.gbd_ms_functions import get_pafs
 from ceam.gbd_data.gbd_ms_functions import get_exposures
+from ceam.gbd_data.gbd_ms_functions import get_angina_proportions
 
 def test_get_sbp_mean_sd_Kenya_2000():
     # set the parameters
@@ -196,5 +197,16 @@ def test_get_cause_deleted_mortality_rate():
 
 
 def test_get_angina_proportions():
+    
+    angina_props = get_angina_proportions()
+
+    props.set_index('age', inplace=True)
+
+    props = props.query('sex_id == 1')
+
+    assert np.allclose(props.get_value(7.5, 'angina_prop'), props.get_value(22.5, 'angina_prop'), "get_angina_proportions needs to assign values for people younger than age group 9 to get the same value as people in age group 9"
+
+    assert np.allclose(props.get_value(82.5, 'angina_prop') == 0.128526646, "get_angina_proportions needs to return values that match input file" 
+
 
 # End.
