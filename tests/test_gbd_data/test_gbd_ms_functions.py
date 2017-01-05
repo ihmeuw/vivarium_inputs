@@ -8,6 +8,8 @@ from ceam.gbd_data.gbd_ms_functions import get_relative_risks
 from ceam.gbd_data.gbd_ms_functions import get_pafs
 from ceam.gbd_data.gbd_ms_functions import get_exposures
 from ceam.gbd_data.gbd_ms_functions import get_angina_proportions
+from ceam.gbd_data.gbd_ms_functions import get_disability_weight
+
 
 def test_get_sbp_mean_sd_Kenya_2000():
     # set the parameters
@@ -207,6 +209,12 @@ def test_get_angina_proportions():
     assert np.allclose(props.get_value(7.5, 'angina_prop'), props.get_value(22.5, 'angina_prop'), "get_angina_proportions needs to assign values for people younger than age group 9 to get the same value as people in age group 9"
 
     assert np.allclose(props.get_value(82.5, 'angina_prop') == 0.128526646, "get_angina_proportions needs to return values that match input file" 
+
+
+def test_get_disability_weight():
+    # me_id 2608 = mild diarrhea
+    assert np.allclose(get_disability_weight(dis_weight_modelable_entity_id=2608), 0.0983228), "get_disability_weight should return the correct disability weight from the flat files prepared by central comp"
+
 
 
 # End.

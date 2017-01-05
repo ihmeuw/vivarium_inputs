@@ -215,7 +215,7 @@ Assumptions -- The file does not have estimates for people under age 20. I've se
 
 Questions -- Is it valid to assign the angina proportion for 20 year olds to be the angina proportions for people under the age of 20? Who should we talk to about having these proportions stored in a better place (e.g. the database)? Who should we talk to about ensuring that this file doesn't move? How can we ensure that the file is updated if need be?
 
-Unit test in place? -- Not yet
+Unit test in place? -- Yes
 
 
 get_disability_weight
