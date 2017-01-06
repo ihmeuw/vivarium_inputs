@@ -198,7 +198,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 # 3. assign_cause_at_beginning_of_simulation
 
 
-def get_cause_level_prevalence(states, location_id, year_start, draw_number):
+def get_cause_level_prevalence(states, location_id, year_start):
     """
     Takes all of the sequela in 'states' and adds them up to get a total prevalence for the cause
 
@@ -257,11 +257,17 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     df with indication of whether or not simulant is healthy
     """
     merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
+    
+    # Need to sort merged df so that the weights are in the same order as results
+    merged.sort_values(by='simulant_id', inplace=True)
     probability_of_disease = merged['prevalence']
     probability_of_NOT_having_disease = 1 - probability_of_disease
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
     results = simulants_df.copy()
+    
+    # Need to sort results so that the simulants are in the same order as the weights
+    results.sort_values(by='simulant_id', inplace=True)
     results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.simulant_id, [False, True], weights)
 
     return results

@@ -2,6 +2,7 @@
 
 import pytest
 import numpy as np
+import pandas as pd
 from ceam_inputs.gbd_ms_functions import get_sbp_mean_sd
 from ceam_inputs.gbd_ms_functions import get_relative_risks
 from ceam_inputs.gbd_ms_functions import get_pafs
@@ -11,6 +12,7 @@ from ceam_inputs.gbd_ms_functions import get_disability_weight
 from ceam_inputs import generate_ceam_population
 from ceam_inputs.gbd_ms_functions import get_cause_level_prevalence
 from ceam_inputs import get_prevalence
+from ceam_inputs.gbd_ms_functions import determine_if_sim_has_cause
 
 def test_get_sbp_mean_sd_Kenya_2000():
     # set the parameters
@@ -74,6 +76,29 @@ def test_get_cause_level_prevalence():
     cause_prev = cause_level['prevalence'].values[0]    
     
     assert cause_prev == seq_prevalence_1 + seq_prevalence_2, 'get_cause_level_prevalence error. seq prevs need to add up to cause prev'
+    assert np.allclose(cause_prev, 0.00010368 + 0.00022846), 'get_cause_level prevalence should match data from database as of 1/5/2017' 
+
+# determine_if_sim_has_cause
+def test_determine_if_sim_has_cause():
+    prevalence_df = pd.DataFrame({"age": [0, 5, 10, 15], "sex": ['Male']*4 , "prevalence": [.25, .5, .75, 1]})
+
+    simulants_df = pd.DataFrame({'simulant_id': range(0, 500000), 'sex': ['Male']*500000, 'age': [0, 5, 10, 15]*125000})
+
+    results = determine_if_sim_has_cause(simulants_df, prevalence_df)
+
+    grouped_results = results.groupby('age')[['condition_envelope']].sum()
+
+    assert np.allclose(grouped_results.get_value(0, 'condition_envelope')/125000, .25, .01), "determine if sim has cause needs to appropriately assign causes based on prevalence"
+    
+    assert np.allclose(grouped_results.get_value(5, 'condition_envelope')/125000, .5, .01), "determine if sim has cause needs to appropriately assign causes based on prevalence"
+
+    assert np.allclose(grouped_results.get_value(10, 'condition_envelope')/125000, .75, .01), "determine if sim has cause needs to appropriately assign causes based on prevalence"
+
+    assert np.allclose(grouped_results.get_value(15, 'condition_envelope')/125000, 1), "determine if sim has cause needs to appropriately assign causes based on prevalence"  
+
+
+# get_sequela_proportions
+def test_get_sequela_proportions():
 
 
 # get_relative_risks
