@@ -4,7 +4,7 @@ GBD MS Functions Documentation
 
 get_modelable_entity_draws
 --------------------------
-Purpose -- Pulls all available draws (e.g. prevalence, incidence, proportion, etc.) for a given modelable entity id. 
+Purpose -- Pulls draws for a specific measure (e.g. prevalence, incidence, proportion, etc.) for a specific modelable entity id. 
 
 Functionality -- Uses central comp's get draws function.
 
@@ -14,7 +14,7 @@ Assumptions -- None
 
 Questions -- None
 
-Unit test in place? -- No. Have some code that produces graphs of the output of get_modelable_entity_draws, which we can manually compare to epi viz, but I would to figure out how to automatically compare the output of get_modelable_entity_draws to what's in epi viz.
+Unit test in place? -- No. Don't think it's necessary, since this function merely pulls draws from the database and then filters a dataframe so that only one measure is included in the output and that only the years in b/w the simulation year start and year end are included in the df.
 
 
 generate_ceam_population
@@ -29,7 +29,7 @@ Assumptions -- None
 
 Questions -- None
 
-Unit test in place? -- Not currently. Would be good to have a unit test here.
+Unit test in place? -- Yes
 
 TODO -- Need to smooth out initial ages (JIRA ticket - CE-213)
 

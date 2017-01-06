@@ -43,7 +43,7 @@ _log = logging.getLogger(__name__)
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
-from transmogrifier.draw_ops import get_draws
+# from transmogrifier.draw_ops import get_draws
 
 
 # # Microsim functions
@@ -72,6 +72,7 @@ def get_model_versions():
     mapping = dict(mapping[['modelable_entity_id', 'model_version_id']].values)
 
     return mapping
+
 
 # 1. get_modelable_entity_draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
@@ -108,7 +109,9 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
     meid_version_map = get_model_versions()
     model_version = meid_version_map[me_id]
 
-    draws = get_draws(gbd_id_field="modelable_entity_id", gbd_id=me_id, location_ids=location_id, source="epi", age_group_ids=list(range(2,22)), status=model_version, gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
+
+    # draws = get_draws(gbd_id_field="modelable_entity_id", gbd_id=me_id, location_ids=location_id, source="epi", age_group_ids=list(range(2,22)), status=model_version)
 
     draws = draws[draws.measure_id == measure]
 
@@ -225,7 +228,7 @@ def get_cause_level_prevalence(states, location_id, year_start, draw_number):
         states[key] = states[key].query("year == {}".format(year_start))
 
         # keep only the columns we need (demographic identifiers and one draw)
-        states[key] = states[key][['year', 'sex', 'age', 'draw_{}'.format(draw_number)]]
+        states[key] = states[key][['year', 'sex', 'age', 'prevalence']]
         prevalence_df = prevalence_df.append(states[key])
 
     cause_level_prevalence = prevalence_df.groupby(
@@ -234,7 +237,7 @@ def get_cause_level_prevalence(states, location_id, year_start, draw_number):
     return cause_level_prevalence, states
 
 
-def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number):
+def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     """
     returns a dataframe with new column 'condition_envelope' that will indicate whether the simulant has the cause or is healthy (healthy is where condition_envelope = NaN at this point)
 
@@ -254,7 +257,7 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
     df with indication of whether or not simulant is healthy
     """
     merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
-    probability_of_disease = merged['draw_{}'.format(draw_number)]
+    probability_of_disease = merged['prevalence']
     probability_of_NOT_having_disease = 1 - probability_of_disease
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
@@ -526,9 +529,13 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 
     proportion = cause_of_hf[['draw_{}_prop'.format(i) for i in range(0,1000)]].values
 
+    cause_of_hf.set_index(['year_id', 'sex_id', 'age'], inplace=True)
+
     # TODO: Manual calculation of the multiplication below gave a little bit different values. Should I be using np.multiply or somethig else to make sure python is handling these floats correctly?
     # TODO: Ensure rate_to_probability is calculating annual rates
-    output_df = pd.DataFrame(rate_to_probability(np.multiply(envelope, proportion)), columns=['draw_{}'.format(i) for i in range(1000)], index=cause_del_mr.index)  
+    output_df = pd.DataFrame(rate_to_probability(np.multiply(envelope, proportion)), columns=['draw_{}'.format(i) for i in range(1000)], index=cause_of_hf.index)  
+
+    output_df = output_df.reset_index()
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -579,13 +586,14 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
 
     output_df = pd.DataFrame()
 
+    rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id)
+
     # FIXME: Will want this pull to be linked to a publication id.
-    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    # rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
     # Not all rrs are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
     if rr.values == "error":
         rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
-
 
     if rr_type == 'morbidity':
         rr = rr.query("morbidity == 1")
@@ -648,7 +656,9 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     """
 
-    pafs = get_draws()
+    # pafs = get_draws()
+
+    pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -705,7 +715,9 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     df with columns year_id, sex_id, age and 1k exposure draws
     """
 
-    exposure = get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    # exposure = get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+
+    exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
     if exposure.values == "error":
@@ -1002,17 +1014,20 @@ def get_angina_proportions():
     # groups for which we do not have data
     value_at_youngest_age_for_which_we_have_data = ang_copy.query("sex_id == 1").get_value(22.5, 'angina_prop')
 
-    # the data is not year specific. we can set year_id to any 
-    # year we want and the spline function will apply the values 
-    # to every year in the simulation
-    # TODO: Confirm the assumption above is true
-    ang['year_id'] = 1990    
+    total_ang = pd.DataFrame()
 
-    ang = ang[['year_id', 'sex_id', 'age', 'angina_prop']]
+    # the data is not year specific. we manually add year_id values here
+    # TODO: Probably a more sophisticated way to do this
+    for year in [1990, 1995, 2000, 2005, 2010, 2013, 2015]: 
+        one_year = ang.copy()
+        one_year['year_id'] = year
+        total_ang = total_ang.append(one_year)    
 
-    ang = ang.apply(lambda x: x.fillna(value_at_youngest_age_for_which_we_have_data), axis=0)
+    total_ang = total_ang[['year_id', 'sex_id', 'age', 'angina_prop']]
 
-    return ang
+    total_ang = total_ang.apply(lambda x: x.fillna(value_at_youngest_age_for_which_we_have_data), axis=0)
+
+    return total_ang
 
 
 # 14. get_disability_weight
@@ -1081,19 +1096,18 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
 
     hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end)
 
-    angina_prop_df = get_angina_proportions(year_start, year_end)
+    angina_prop_df = get_angina_proportions()
 
     asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
     
+    hf_values = asympt_prop_df[['draw_{}'.format(i) for i in range(0, 1000)]].values
+    angina_values = asympt_prop_df[['angina_prop']].values
+
     # TODO: RAISE AN ERROR IF PROPORTIONS ARE GREATER THAN 1 FOR NOW. MAY WANT TO DELETE
     # ERROR IN THE FUTURE AND SCALE DOWN TO 1 INSTEAD
-    angina_values = asympt_prop_df['angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))]
+    assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
 
-    # TODO: Make the loop below faster
-    for i in range(0, 1000):
-        hf_values = asympt_prop_df['draw_{}'.format(i)]
-        assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
-        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - hf_values - angina_values
+    asympt_prop_df[['asympt_prop_{}'.format(i) for i in range(0, 1000)]] = 1 - hf_values - angina_values
     
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
@@ -1113,5 +1127,6 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     asfr = get_age_group_midpoint_from_age_group_id(asfr)
 
     return asfr
-# End.
 
+
+# End.

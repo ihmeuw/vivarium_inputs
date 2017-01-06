@@ -114,11 +114,12 @@ def get_populations(location_id, year_start, sex_id):
     """
     # use central comp's get_population function to get gbd populations
     # the age group id arguments get the age group ids for each age group up through age 95+
-    pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
+    # pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
+    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
 
     # use auxilliary function extract_age_from_age_group_name to create an age
     # column
-    pop = get_age_from_age_group_id(pop)
+    pop = get_age_group_midpoint_from_age_group_id(pop)
 
     # Grab population for year_start only (to initialize microsim population)
     pop = pop.query('year_id=={y}'.format(y=year_start))
