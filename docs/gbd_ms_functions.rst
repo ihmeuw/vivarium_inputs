@@ -59,9 +59,9 @@ Dependencies -- assign_cause_at_beginning_of_simulation
 
 Assumptions -- None
 
-Questions -- None
+Questions -- I sort the prevalence and simulants dataframes by simulant_id to make sure that the prevalence is being assigned correctly to each demographic group. Is there a better way to make sure that we're applying the correct prevalence rate to each simulant?
 
-Unit test in place? -- No. This function feeds into assign_cause_at_beginning_of_simulation, which is tested.
+Unit test in place? -- Yes
 
 
 get_sequela_proportions
@@ -74,7 +74,7 @@ Assumptions -- That the prevalence of a sequela can be divided by the prevalence
 
 Questions -- None
 
-Unit test in place? -- No. This function feeds into assign_cause_at_beginning_of_simulation, which is tested.
+Unit test in place? -- Yes
 
 
 determine_which_seq_diseased_sim_has
@@ -89,7 +89,7 @@ Assumptions -- None
 
 Questions -- None
 
-Unit test in place? -- No. This function feeds into assign_cause_at_beginning_of_simulation, which is tested.
+Unit test in place? -- Yes. 
 
 
 assign_cause_at_beginning_of_simulation

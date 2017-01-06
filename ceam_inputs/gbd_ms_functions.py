@@ -198,7 +198,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 # 3. assign_cause_at_beginning_of_simulation
 
 
-def get_cause_level_prevalence(states, location_id, year_start):
+def get_cause_level_prevalence(states, year_start):
     """
     Takes all of the sequela in 'states' and adds them up to get a total prevalence for the cause
 
@@ -207,23 +207,17 @@ def get_cause_level_prevalence(states, location_id, year_start):
     states : dict
         dict with keys = name of cause, values = modelable entity id of cause
 
-    location_id: int
-        location_id for location of interest
-
     year_start: int
         year_start is the year in which the simulation will begin
-
-    draw_number: int
-        draw_number for this simulation run (specified in config file)
 
     Returns
     -------
     df with 1k draws where draw values are the prevalence of the cause of interest
     """
     prevalence_df = pd.DataFrame()
-    prevalence_draws_dictionary = {}
 
     for key in states.keys():
+        assert list(states[key].columns) == ['year', 'age', 'prevalence', 'sex'], "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
         # get prevalence for the start year only
         states[key] = states[key].query("year == {}".format(year_start))
 
@@ -232,7 +226,7 @@ def get_cause_level_prevalence(states, location_id, year_start):
         prevalence_df = prevalence_df.append(states[key])
 
     cause_level_prevalence = prevalence_df.groupby(
-        ['year', 'sex', 'age'], as_index=False).sum()
+        ['year', 'sex', 'age'], as_index=False)[['prevalence']].sum()
 
     return cause_level_prevalence, states
 
@@ -248,9 +242,6 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
 
     cause_level_prevalence: df
         dataframe of 1k prevalence draws
-
-    draw_number: int
-        draw_number for this simulation run (specified in config file)
 
     Returns
     -------
@@ -273,20 +264,14 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     return results
 
 
-def get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence, states, draw_number):
+def get_sequela_proportions(cause_level_prevalence, states):
     """
     Returns a dictionary with keys that are modelable entity ids and values are dataframes with proportion data
 
     Parameters
     ----------
-    prevalence_draws_dictionary: df
-        dict of dataframes where values are draws of sequela prevalence and keys are me_ids
-
     cause_level_prevalence: df
         dataframe of 1k prevalence draws
-
-    draw_number: int
-        draw_number for this simulation run (specified in config file)
 
     states : dict
         dict with keys = name of cause, values = modelable entity id of cause
@@ -299,32 +284,26 @@ def get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence,
 
     for key in states.keys():
         sequela_proportions[key] = \
-            pd.merge(prevalence_draws_dictionary[key], cause_level_prevalence, on=[
-                'age', 'sex'], suffixes=('_single', '_total'))
+            pd.merge(states[key], cause_level_prevalence, on=[
+                'age', 'sex', 'year'], suffixes=('_single', '_total'))
         single = sequela_proportions[key][
-            'draw_{}_single'.format(draw_number)]
+            'prevalence_single']
         total = sequela_proportions[key][
-            'draw_{}_total'.format(draw_number)]
+            'prevalence_total']
         sequela_proportions[key]['scaled_prevalence'] = np.divide(single, total)
 
     return sequela_proportions
 
 
-def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, states):
+def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file):
     """
     Parameters
     ----------
     sequela_proportions: dict
         a dictionary of dataframes where each dataframe contains proportion of cause prevalence made up by a specific sequela
 
-    prevalence_draws_dictionary: df
-        dict of dataframes of simulants that contains where values are draws of sequela prevalence and keys are me_ids
-
     new_sim_file: df
         dataframe of simulants
-
-    states : dict
-        dict with keys = name of cause, values = modelable entity id of cause
 
     Returns
     -------
@@ -339,8 +318,8 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, stat
 
     return new_sim_file
 
-def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
-                                            year_start, states):
+
+def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
     """
     Function that assigns chronic ihd status to starting population of
     simulants
@@ -349,9 +328,6 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     ----------
     simulants_df : dataframe
         dataframe of simulants that is made by generate_ceam_population
-
-    location_id : int, location id
-        location_id takes same location_id values as are used for GBD
 
     year_start : int, year
         year_start is the year in which you want to start the simulation
@@ -366,18 +342,16 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
             1 indicates that the simulant has chronic ihd
             0 indicates that the simulant does not have chronic ihd
     """
-    draw_number = config.getint('run_configuration', 'draw_number') 
     
-    cause_level_prevalence, prevalence_draws_dictionary = get_cause_level_prevalence(states, location_id, year_start, draw_number) 
+    cause_level_prevalence, prevalence_draws_dictionary = get_cause_level_prevalence(states, year_start) 
 
     # TODO: Should we be using groupby for these loops to ensure that we're
     # not looping over an age/sex combo that does not exist
+    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, cause_level_prevalence)    
 
-    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number)    
+    sequela_proportions = get_sequela_proportions(prevalence_draws_dictionary, states)
 
-    sequela_proportions = get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence, states, draw_number)
-
-    post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions,  post_cause_assignment_population, states)
+    post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions, post_cause_assignment_population)
 
     post_sequela_assignmnet_population.condition_state = post_sequela_assignmnet_population.condition_state.fillna('healthy')
 
@@ -392,6 +366,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
 
 
 # 4. get_cause_deleted_mortality_rate
+
 
 def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
                                             year_start, year_end):
