@@ -120,6 +120,7 @@ Questions -- None
 Unit test in place? -- Yes
 
 
+
 get_cause_deleted_mortality_rate
 --------------------------------
 Purpose -- Need to calculate the cause-deleted mortality rate so that simulants can die from causes not explicitly modeled in the microsimulation.
@@ -134,6 +135,7 @@ Questions -- None
 
 Unit test in place? -- Yes
 
+
 get_post_mi_heart_failure_proportion_draws
 ------------------------------------------
 Purpose -- Estimating the incidence of heart failure after an MI. This solution definitely is not perfect. We take the incidence of all heart failure, then multiply it by the proportion of heart failure due to mi, to estimate the incidence of heart failure due to mi. The proportion is based on prevalence, which makes this method pretty imperfect. We also convert the rate to a probability within this function, using CEAM's rate to probability function (1-np.exp(-rate))
@@ -146,7 +148,7 @@ Assumptions -- That the proportional prevalence is a good enough estimation of t
 
 Questions -- More of a general python question -- should I be using np.multiply for multiplication? Maybe it has to do with python's floating point issues, but I was getting different results when using A*B instead of np.multiply(A,B).
 
-Unit test in place? --  No. The function uses get_modelable_entity draws (which is tested) twice and then just multiplies the values together. Should put in a test saying that it pulled the correct model version once I write the code to link the pull to the publication id.
+Unit test in place? --  Yes
 
 
 get_relative_risks
@@ -161,7 +163,7 @@ Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have 
 
 Questions -- Should we set the RR to 1 for age groups for which we do not have rr estimates?
 
-Unit test in place? -- No. But should put one in place to make sure correct model numbers are being pulled.
+Unit test in place? -- No. Just pulls relative risks from the database and then does some light processing (e.g. gets age group midpoints)
 
 
 get_pafs
@@ -174,7 +176,7 @@ Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have 
 
 Questions -- Should we set the PAF to 0 for age groups for which we do not have rr estimates? Need to submit an epihelp ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
 
-Unit test in place? -- No. But should put one in place to make sure correct model numbers are being pulled.
+Unit test in place? -- No. Just pulls pafs from the database and then does some light processing (e.g. gets age group midpoints)
 
 
 get_exposures
@@ -187,7 +189,8 @@ Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have 
 
 Questions -- Should we set the exposure to 0 for age groups for which we do not have rr estimates? Need to submit an epihelp ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
 
-Unit test in place? -- No. But should put one in place to make sure correct model numbers are being pulled.
+Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
+
 
 
 get_sbp_mean_sd
@@ -196,11 +199,11 @@ Purpose -- Need to pull the mean and standard deviation of sbp for demographic g
 
 Functionality -- Manually pulls from csvs created by central comp
 
-Assumptions -- 
+Assumptions -- That people under age 25 have the TMRED SBP 
 
 Questions -- We have estimates starting in the age 25-29 age group. Should we be using the midpoint or age 25 as the starting point?
 
-Unit test in place? -- 
+Unit test in place? -- Yes
 
 TRMED -- Might want to change the TMRED. Need to catch up with Stan regarding calculating TMREDs + write a function that will allow us to calculate TMREDs for a given risk.
 

@@ -111,7 +111,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
 
     draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
 
-    # draws = get_draws(gbd_id_field="modelable_entity_id", gbd_id=me_id, location_ids=location_id, source="epi", age_group_ids=list(range(2,22)), status=model_version)
+    # draws = python_wrapper('get_modelable_entity_draws.py', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
 
     draws = draws[draws.measure_id == measure]
 
@@ -217,12 +217,12 @@ def get_cause_level_prevalence(states, year_start):
     prevalence_df = pd.DataFrame()
 
     for key in states.keys():
-        assert list(states[key].columns) == ['year', 'age', 'prevalence', 'sex'], "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
+        assert states[key].columns.tolist() == ['year', 'age', 'prevalence', 'sex'], "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
         # get prevalence for the start year only
         states[key] = states[key].query("year == {}".format(year_start))
 
         # keep only the columns we need (demographic identifiers and one draw)
-        states[key] = states[key][['year', 'sex', 'age', 'prevalence']]
+        states[key] = states[key][['year', 'age', 'prevalence', 'sex']]
         prevalence_df = prevalence_df.append(states[key])
 
     cause_level_prevalence = prevalence_df.groupby(
@@ -274,7 +274,7 @@ def get_sequela_proportions(cause_level_prevalence, states):
         dataframe of 1k prevalence draws
 
     states : dict
-        dict with keys = name of cause, values = modelable entity id of cause
+        dict with keys = name of cause, values = dataframe of prevalence draws
 
     Returns
     -------
@@ -349,7 +349,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
     # not looping over an age/sex combo that does not exist
     post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, cause_level_prevalence)    
 
-    sequela_proportions = get_sequela_proportions(prevalence_draws_dictionary, states)
+    sequela_proportions = get_sequela_proportions(cause_level_prevalence, states)
 
     post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions, post_cause_assignment_population)
 
@@ -362,7 +362,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
     assert  post_sequela_assignmnet_population.duplicated(['simulant_id']).sum(
     ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
 
-    return post_sequela_assignmnet_population[['simulant_id', 'condition_state']]
+    return post_sequela_assignmnet_population
 
 
 # 4. get_cause_deleted_mortality_rate

@@ -15,6 +15,9 @@ from ceam_inputs import get_prevalence
 from ceam_inputs.gbd_ms_functions import determine_if_sim_has_cause
 from ceam_inputs.gbd_ms_functions import get_sequela_proportions
 from ceam_inputs.gbd_ms_functions import determine_which_seq_diseased_sim_has
+from ceam_inputs.gbd_ms_functions import 
+from ceam.framework.util import from_yearly, rate_to_probability
+
 
 def test_get_sbp_mean_sd_Kenya_2000():
     # set the parameters
@@ -80,6 +83,7 @@ def test_get_cause_level_prevalence():
     assert cause_prev == seq_prevalence_1 + seq_prevalence_2, 'get_cause_level_prevalence error. seq prevs need to add up to cause prev'
     assert np.allclose(cause_prev, 0.00010368 + 0.00022846), 'get_cause_level prevalence should match data from database as of 1/5/2017' 
 
+
 # determine_if_sim_has_cause
 def test_determine_if_sim_has_cause():
     prevalence_df = pd.DataFrame({"age": [0, 5, 10, 15], "sex": ['Male']*4 , "prevalence": [.25, .5, .75, 1]})
@@ -144,6 +148,17 @@ def test_determine_which_seq_diseased_sim_has():
     
     assert np.allclose(val1, .75, .1), "determine which seq diseased sim has needs to assign sequelas according to sequela prevalence"
     assert np.allclose(val2, .25, .1), "determine which seq diseased sim has needs to assign sequelas according to sequela prevalence" 
+
+
+# def test_get_post_mi_heart_failure_proportion_draws
+def test_get_post_mi_heart_failure_proportion_draws():
+    df = get_post_mi_heart_failure_proportion_draws(180, 1990, 2015)
+    
+    # manually check for 82.5 yr old women in 2010 in Kenya
+    assert df.get_value(199, 'draw_0') == rate_to_probability(np.multiply(0.16197485, 0.01165705)), "get_post_mi_heart_failure proportion draws needs to return the correct proportion of simulants that will have heart failure after suffering an mi"
+    
+    # manually check for 77.5 yr old men in 2000 in Kenya
+    assert df.get_value(116, 'draw_10') == rate_to_probability(np.multiply(0.00839225, 0.2061004)), "get_post_mi_heart_failure proportion draws needs to return the correct proportion of simulants that will have heart failure after suffering an mi"
 
 
 # get_relative_risks
