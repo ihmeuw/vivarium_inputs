@@ -7,7 +7,7 @@ if c(os) == "Unix" {
                 global prefix "J:"
         }
 // Connect to J Drive for shared function
-adopath + "$prefix/WORK/10_gbd/00_library/functions"
+adopath + "/home/j/temp/central_comp/libraries/current/stata/"
 
 // clear current data and set more off
 clear all
@@ -35,7 +35,7 @@ local ages "`ages' `i' "
 }
 
 // Use get_populations function to generate results
-get_populations, year_id(`years') location_id(`location_id') sex_id(`sex') age_group_id(`ages') include_names clear
+get_population, year_id(`years') location_id(`location_id') sex_id(`sex') age_group_id(`ages') clear
 
 // Output results to a csv file. Columns are age_group id, year_id, location_id, sex_id, and pop_scaled
 outsheet using `outpath', comma replace

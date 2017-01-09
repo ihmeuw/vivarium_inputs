@@ -15,33 +15,11 @@ from ceam_inputs import get_prevalence
 from ceam_inputs.gbd_ms_functions import determine_if_sim_has_cause
 from ceam_inputs.gbd_ms_functions import get_sequela_proportions
 from ceam_inputs.gbd_ms_functions import determine_which_seq_diseased_sim_has
-from ceam_inputs.gbd_ms_functions import 
+from ceam_inputs.gbd_ms_functions import get_post_mi_heart_failure_proportion_draws
 from ceam.framework.util import from_yearly, rate_to_probability
+from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
+from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 
-
-def test_get_sbp_mean_sd_Kenya_2000():
-    # set the parameters
-    location_id = 180 # Kenya
-    year_start = 2000
-    year_end = 2000
-
-    # load the sbp data
-    df = get_sbp_mean_sd(location_id, year_start, year_end)
-
-    df = df[['year_id', 'sex_id', 'age', 'log_mean_0']]
-
-    # reshape it so it is easy to access
-    df = df.groupby(['year_id', 'sex_id', 'age']).first()
-
-    # check if the value for 25 year old males matches the csv
-    assert np.allclose(df.loc[(2000, 1, 27.5), 'log_mean_0'], np.log(118.948299)), 'should match data loaded by @aflaxman on 8/4/2016. test changed by @emumford on 9/23 to account for change in gbd_ms_functions'
-
-
-@pytest.mark.xfail
-def test_get_sbp_mean_sd_2001():
-    # load the sbp data
-    df = ceam.gbd_data.gbd_ms_functions.get_sbp_mean_sd(80, 2001, 2001)
-    # would be nice if this worked
 
 # generate_ceam_population
 def test_generate_ceam_population():
@@ -59,12 +37,13 @@ def test_generate_ceam_population():
 
     assert np.allclose(val, 0.0823207075530383, .01), "there should be about 8.23% 7.5 year old males in Kenya in 1990, based on data uploaded by em 1/5/2017"
 
+
 # get_cause_level_prevalence
 def test_get_cause_level_prevalence():
     # pass in a states dict with only two sequela and make sure for one age/sex/year combo that the value in cause_level_prevalence is equal to the sum of the two seq prevalences
     dict_of_disease_states = {'severe_heart_failure' : get_prevalence(1823), 'moderate_heart_failure' : get_prevalence(1822)}    
      
-    cause_level, seq_level_dict = get_cause_level_prevalence(dict_of_disease_states, 180, 1990)
+    cause_level, seq_level_dict = get_cause_level_prevalence(dict_of_disease_states, 1990)
 
     # pick a random age and sex to test
     sex = "Male"
@@ -165,18 +144,19 @@ def test_get_post_mi_heart_failure_proportion_draws():
 def test_get_relative_risks():
     df = get_relative_risks(180, 1990, 1990, 107, 493)
 
-    # pick a random draw to test
     draw_number = 19
-    
-    # pick a random age under 25 and sex to test
-    sex = 2
-    age = 19
 
     # assert that relative risks are 1 for people under age 25 for high sbp
-    df_filter = df.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
-    rr = df_filter['rr_{}'.format(draw_number)].values[0]
+    df_filter1 = df.query("age == 7.5 and sex_id == 2")
+    df_filter1.set_index('age', inplace=True)
+    rr1 =  df_filter1.get_value(7.5, 'rr_{}'.format(draw_number))    
 
-    assert rr == 1.0, 'get_relative_risks should return rr=1 for younger ages for the risks which dont estimate relative risk for all ages'
+    df_filter2 = df.query("age == 82.5 and sex_id == 2")
+    df_filter2.set_index('age', inplace=True)
+    rr2 =  df_filter2.get_value(82.5, 'rr_{}'.format(draw_number))
+
+    assert rr1 == 1.0, 'get_relative_risks should return rr=1 for younger ages for the risks which dont estimate relative risk for all ages'
+    assert rr2 == 1.3506, 'get_relative risks should return rrs that match what is pulled from the database'
 
 
 # get_pafs
@@ -186,39 +166,39 @@ def test_get_pafs():
     # pick a random draw to test
     draw_number = 19
 
-    # pick a random age under 25 and sex to test
-    sex = 1
-    age = 19
-
     # assert that pafs are 0 for people under age 25 for high sbp
-    df_filter = df.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
+    df_filter1 = df.query("age == 7.5 and sex_id == 2")
+    df_filter1.set_index('age', inplace=True)
+    paf1 = df_filterq.get_value(7.5, 'draw_{}'.format(draw_number))
 
-    pafs = df_filter['draw_{}'.format(draw_number)].values[0]
+    df_filter2 = df.query("age == 82.5 and sex_id == 2")
+    df_filter2.set_index('age', inplace=True)
+    paf2 = df_filter2.get_value(82.5, 'draw_{}'.format(draw_number))
 
-    assert pafs == 0, 'get_pafs should return paf=0 for the ages for which we do not have GBD estimates'
+    assert paf1 == 0, 'get_pafs should return paf=0 for the ages for which we do not have GBD estimates'
+    assert paf2 == 0.64478935, 'get_pafs should return pafs that match what is pulled from the database'
 
 
 # get_exposures
 def test_get_exposures():
-    df = get_exposures(180, 1990, 1990, 107)
-
-    # pick a random draw to test
-    draw_number = 999
-
-    # pick a random age under 25 and sex to test
-    sex = 2
-    age = 19
+    df = get_exposures(180, 1990, 1990, 166)
 
     # assert that exposures are 0 for people under age 25 for high sbp
-    df_filter = df.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
+    df_filter1 = df.query("age == 7.5 and sex == 'Female'")
+    df_filter1.set_index('age', inplace=True)
+    exposure1 = df_filter1.get_value(7.5, 'draw_0')
 
-    exposure = df_filter['draw_{}'.format(draw_number)].values[0]
+    df_filter2 = df.query("age == 82.5 and sex == 'Female'")
+    df_filter2.set_index('age', inplace=True)
+    exposure2 = df_filter2.get_value(82.5, 'draw_0')
 
-    assert exposure == 0, 'get_exposure should return exposure=0 for the ages for which we do not have GBD estimates'
+    assert exposure1 == 0, 'get_exposure should return exposure=0 for the ages for which we do not have GBD estimates'
+    assert exposure2 == 0.03512375, 'get_exposures should return exposures that match what is pulled from the database'
 
 
+# tet_get_sbp_mean_sd
 def test_get_sbp_mean_sd():
-    df = get_sbp_mean_sd(163, 1990, 1990)
+    df = get_sbp_mean_sd(180, 1990, 1990)
 
     # pick a random draw to test
     draw_number = 114
@@ -236,15 +216,34 @@ def test_get_sbp_mean_sd():
     assert sd == .001, "sbp standard deviation should be .001 for simulants under age 27.5"
 
 
+def test_get_sbp_mean_sd_Kenya_2000():
+    # set the parameters
+    location_id = 180 # Kenya
+    year_start = 2000
+    year_end = 2000
+
+    # load the sbp data
+    df = get_sbp_mean_sd(location_id, year_start, year_end)
+
+    df = df[['year_id', 'sex_id', 'age', 'log_mean_0']]
+
+    # reshape it so it is easy to access
+    df = df.groupby(['year_id', 'sex_id', 'age']).first()
+
+    # check if the value for 25 year old males matches the csv
+    assert np.allclose(df.loc[(2000, 1, 27.5), 'log_mean_0'], np.log(118.948299)), 'should match data loaded by @aflaxman on 8/4/2016. test changed by @emumford on 9/23 to account for change in gbd_ms_functions'
+
+
+# sum_up_csmrs_for_all_causes_in_microsim
 def test_sum_up_csmrs_for_all_causes_in_microsim():
     csmr1 = get_modelable_entity_draws(
             180, 1990, 1990, 15, 3233)
 
     csmr2 = get_modelable_entity_draws(
-            180, 1990, 1990, 15, 1814)
+            180, 1990, 1990, 15, 9310)
 
     sex = 2
-    age = 72
+    age = 72.5
     draw_number = 77
 
     csmr1_filter = csmr1.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
@@ -268,7 +267,7 @@ def test_get_cause_deleted_mortality_rate():
     all_cause_mr = get_all_cause_mortality_rate(180, 1990, 1990)
 
     sex = 1 
-    age = 67
+    age = 67.5
     draw_number = 221
 
     all_cause_filter = all_cause_mr.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
@@ -292,7 +291,7 @@ def test_get_cause_deleted_mortality_rate():
 
 def test_get_angina_proportions():
     
-    angina_props = get_angina_proportions()
+    props = get_angina_proportions()
 
     props.set_index('age', inplace=True)
 
@@ -307,5 +306,27 @@ def test_get_disability_weight():
     # me_id 2608 = mild diarrhea
     assert np.allclose(get_disability_weight(dis_weight_modelable_entity_id=2608), 0.0983228), "get_disability_weight should return the correct disability weight from the flat files prepared by central comp"
 
+
+# get_asympt_ihd_proportions
+def get_asympt_ihd_proportions():
+    angina_proportions = get_angina_proportions()
+
+    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 1990)
+
+    ang_filter = angina_proportions.query("age = 32.5 and sex_id = 1 and year_id==1995")
+
+    hf_filter = heart_failure_proportions.query("age = 32.5 and sex_id = 1 and year_id==1995")
+
+    ang_value = ang_filter.set_index('age').get_value(32.5, 'angina_prop')
+
+    hf_value = hf_filter.set_index('age').get_value(32.5, 'draw_19')
+
+    asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000)
+   
+    asy_filter = asympt_ihd_proportions.query("age = 32.5 and sex_id = 1 and year_id==1995")
+     
+    asy_value = asy_filter.set_index('age').get_value(32.5, 'asympt_prop_19')
+
+    assert 1 - hf_value - ang_value == asy_value, "get_asympt_ihd_proportions needs to ensure that the sum of heart failure, angina, and asympt ihd add up to 1"
 
 # End.

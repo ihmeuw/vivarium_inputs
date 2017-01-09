@@ -254,16 +254,19 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     pd.DataFrame with columns
     '''
 
+    all_cause_draws = stata_wrapper('get_all_cause_mortality_rate_draws.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id, config.getint('simulation_parameters', 'gbd_round_id'))
+
     # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
     # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
-    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    # all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
     # filter so that only metric id 1 (deaths) is in our dataframe
     all_cause_deaths = all_cause_draws.query("metric_id == 1")
 
     # get population estimates for each age, sex, year group. population estimates will serve
     # as the estimates for # of Person Years in each age group
-    pop = get_population(age_group_id=list(range(2,22)), location_id=location_id, year_id=-1, sex_id=[1,2])
+    # pop = get_populations(age_group_id=list(range(2,22)), location_id=location_id, year_id=-1, sex_id=[1,2])
+    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
 
     # merge all cause deaths and pop to get all cause mortality rate
     merged = pd.merge(all_cause_deaths, pop, on=[
@@ -278,7 +281,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
     all_cause_mr = pd.DataFrame(np.divide(deaths, population), columns=['all_cause_mortality_rate_{}'.format(i) for i in range(0,1000)], index=merged.index)
 
-    all_cause_mortality_rate = get_age_from_age_group_id(all_cause_mr)
+    all_cause_mortality_rate = get_age_group_midpoint_from_age_group_id(all_cause_mr)
 
     # only get years we care about
     all_cause_mortality_rate = all_cause_mortality_rate.query('year_id>={ys} and year_id<={ye}'.
@@ -321,6 +324,52 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
     healthstate_id = healthstate_id_df.at[0,'healthstate_id']
 
     return healthstate_id
+
+
+def expand_grid(a, y):
+    """
+    Creates an expanded dataframe of ages and years
+    Mirrors the expand_grid function in R
+    See http://stackoverflow.com/questions/12130883/r-expand-grid-function-in-python
+    for more details
+
+    Parameters
+    ----------
+    a: age values that you on which you want to expand
+    y: year values that you on which you want to expand
+
+    Returns
+    -------
+    Dataframe of expanded ages and years
+    """
+
+    aG, yG = np.meshgrid(a, y)  # create the actual grid
+    aG = aG.flatten()  # make the grid 1d
+    yG = yG.flatten()  # make the grid 1d
+    df = pd.DataFrame({'age': aG, 'year_id': yG})  # return a dataframe
+    return df[['year_id', 'age']].sort_values(by=['year_id', 'age'])
+
+
+def expand_ages(df):
+    mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
+    mapping_filter = mapping.query('age_group_id >=2 and age_group_id <=21').copy()
+    mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
+    mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5
+    
+    expanded_data = expand_grid(mapping_filter.age.values, pd.unique(df.year_id.values))
+    expanded_indexed = expanded_data.set_index(['year_id', 'age'])
+    
+    indexed_df = df.set_index(['year_id', 'age']).sortlevel()
+    total_df = pd.DataFrame()
+    
+    for sex in pd.unique(df.sex_id.values):
+        for param in pd.unique(df.parameter.values):
+            one_df = pd.DataFrame(indexed_df.query('parameter == @param and sex_id == @sex'), index=expanded_indexed.index)
+            one_df['sex_id'] = sex
+            one_df['parameter'] = param
+            total_df = total_df.append(one_df)
+    
+    return total_df.reset_index()
 
 
 # End.

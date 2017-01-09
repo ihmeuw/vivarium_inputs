@@ -32,6 +32,7 @@ from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
 from ceam_inputs.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
+from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages
 from joblib import Memory
 import warnings
 
@@ -538,7 +539,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 # 6. get_relative_risks
 
 
-def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_type):
+def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_type='morbidity'):
     """
     Parameters
     ----------
@@ -567,14 +568,14 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
 
     output_df = pd.DataFrame()
 
-    rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id)
+    rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
     # FIXME: Will want this pull to be linked to a publication id.
     # rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
     # Not all rrs are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    if rr.values == "error":
-        rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
+    # if rr.values == "error":
+    #    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
 
     if rr_type == 'morbidity':
         rr = rr.query("morbidity == 1")
@@ -591,22 +592,24 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     
     rr = get_age_group_midpoint_from_age_group_id(rr)
 
+    rr = expand_ages(rr)
+
     # need to calculate relative risks for current implementation of CEAM. Some risks (e.g Zinc deficiency and high sbp) don't have estimates for all ages (e.g. no estimates for people over age 5 for zinc).
     # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. It assumes that there is no risk of the risk factor on the exposure for those ages. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
-    output_df = rr.apply(lambda x: x.fillna(1), axis=0)
+    rr[['rr_{}'.format(i) for i in range(0,1000)]] = rr[['rr_{}'.format(i) for i in range(0,1000)]].fillna(value=1)
 
     keepcol = ['year_id', 'sex_id', 'age', 'parameter']
     keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert rr[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert that none of the rr values are less than 1
     draw_number = config.getint('run_configuration', 'draw_number')
-    assert output_df['rr_{}'.format(draw_number)].all() >= 1, "something went wrong with get_relative_risks. RR cannot be LT 1. Check the data that you are pulling in and the function. Sometimes, the database does not have\
+    assert rr['rr_{}'.format(draw_number)].all() >= 1, "something went wrong with get_relative_risks. RR cannot be LT 1. Check the data that you are pulling in and the function. Sometimes, the database does not have\
 RR estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
 
-    return output_df[keepcol]
+    return rr[keepcol]
 
 
 # 7. get_pafs
@@ -639,13 +642,13 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     # pafs = get_draws()
 
-    pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
+    pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # only want one risk at a time and only metric id 2 (percentages or pafs)
-    pafs = pafs.query("rei_id == @risk_id and sex_id == @sex_id and metric_id == 2")
+    pafs = pafs.query("rei_id == @risk_id and metric_id == 2")
  
     # FIXME: Why continue if pafs is empty??
     # if pafs.empty:
@@ -698,11 +701,11 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     # exposure = get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
-    exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
+    exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    if exposure.values == "error":
-        exposure == get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
+    # if exposure.values == "error":
+    #    exposure == get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
 
@@ -821,11 +824,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
 
 # 12. get_sbp_mean_sd
 
-# TODO: write more unit tests for this function
 def get_sbp_mean_sd(location_id, year_start, year_end):
-    # TODO: Consider moving in the code from the blood pressure module
-    # to here (i.e. interpolate from age 1 - 80, and fillna with the SBP values
-    # we're using for under 25 yr olds)
     ''' Returns a dataframe of mean and sd of sbp in LOG SPACE
 
     Parameters
@@ -855,16 +854,14 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
             one_year_file['sex_id'] = sex_id
             draws = draws.append(one_year_file)
 
+        #TODO: Need to rethink setting ages for this function. Since sbp estimates start for the age 25-29 group, it should start at age 25, not 27.5.
         draws = get_age_group_midpoint_from_age_group_id(draws)
 
-        #TODO: Need to rethink setting ages for this function. Since sbp estimates start for the age 25-29 group, it should start at age 25, not 27.5.
-        # TODO: em python question -> best way to subset an index?
-        # TODO: Make a list of columns before hand. will be faster
-        
         # set index
         draws.set_index(['year_id', 'sex_id', 'age'], inplace=True)
  
         # set nulls to be 1 to keep from messing up the math below. the nulls are the younger age groups (simulants less than 27.5 years old) and they'll get an sbp of 112 and an sd of .001 because we want them to be at the TMRED
+        draws.apply(lambda x: x.fillna(1), axis=0)
 
         # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing        
         exp_mean = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].values
@@ -875,8 +872,9 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
    
         output_df = mean_df.join(sd_df)
 
-        output_df.loc[pd.IndexSlice[:,output_df.levels[2] < 27.5,:], 'log_mean_{}'.format(i)] = np.log(112)
-        output_df.loc[pd.IndexSlice[:,output_df.index.levels[2] < 27.5,:], 'log_sd_{}'.format(i)] = .001
+        for i in range(0,1000):
+            output_df.loc[pd.IndexSlice[:,output_df.labels[2] < 27.5,:], 'log_mean_{}'.format(i)] = np.log(112)
+            output_df.loc[pd.IndexSlice[:,output_df.index.labels[2] < 27.5,:], 'log_sd_{}'.format(i)] = .001
 
     # assert an error if there are duplicate rows
     assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
@@ -892,6 +890,7 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
 def _bmi_ppf(parameters):
    return beta(a=parameters['a'], b=parameters['b'], scale=parameters['scale'], loc=parameters['loc']).ppf
+
 
 @memory.cache
 def get_bmi_distributions(location_id, year_start, year_end, draw):
@@ -1056,7 +1055,6 @@ def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=No
 
 
 # 15. get_asympt_ihd_proportions
-# TODO: Write a unit test for this function
 
 
 def get_asympt_ihd_proportions(location_id, year_start, year_end):

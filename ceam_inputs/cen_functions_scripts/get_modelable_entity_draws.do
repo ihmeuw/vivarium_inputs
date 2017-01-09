@@ -1,13 +1,5 @@
-// Use home/J if running on the cluster, J: if running locally
-if c(os) == "Unix" {
-                global prefix "/home/j"
-                set odbcmgr unixodbc
-        }
-        else if c(os) == "Windows" {
-                global prefix "J:"
-        }
 // Connect to J Drive for shared function
-adopath + "$prefix/WORK/10_gbd/00_library/functions"
+adopath + "/home/j/temp/central_comp/libraries/current/stata/"
 
 // clear current data set and set more off
 clear all
@@ -22,6 +14,7 @@ local location_id `1'
 // Set modelable_id of interest
 local me_id `2'
 
+// Set status
 local status `3'
 
 // Get every GBD age group (5 year intervals... age_group_id = 2-21, 30-33)
