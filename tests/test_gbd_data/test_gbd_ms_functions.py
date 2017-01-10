@@ -185,7 +185,7 @@ def test_get_exposures():
     df = get_exposures(180, 1990, 1990, 166)
 
     # assert that exposures are 0 for people under age 25 for high sbp
-    df_filter1 = df.query("age == 7.5 and sex_id == 2 and parameter == 'cat2'")
+    df_filter1 = df.query("age == 7.5 and sex_id == 2 and parameter == 'cat1'")
     df_filter1.set_index('age', inplace=True)
     exposure1 = df_filter1.get_value(7.5, 'draw_0')
 
