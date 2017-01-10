@@ -19,7 +19,8 @@ from ceam_inputs.gbd_ms_functions import get_post_mi_heart_failure_proportion_dr
 from ceam.framework.util import from_yearly, rate_to_probability
 from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
 from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-
+from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
+from ceam_inputs.gbd_ms_functions import get_cause_deleted_mortality_rate
 
 # generate_ceam_population
 def test_generate_ceam_population():
@@ -169,7 +170,7 @@ def test_get_pafs():
     # assert that pafs are 0 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2")
     df_filter1.set_index('age', inplace=True)
-    paf1 = df_filterq.get_value(7.5, 'draw_{}'.format(draw_number))
+    paf1 = df_filter1.get_value(7.5, 'draw_{}'.format(draw_number))
 
     df_filter2 = df.query("age == 82.5 and sex_id == 2")
     df_filter2.set_index('age', inplace=True)
@@ -184,11 +185,11 @@ def test_get_exposures():
     df = get_exposures(180, 1990, 1990, 166)
 
     # assert that exposures are 0 for people under age 25 for high sbp
-    df_filter1 = df.query("age == 7.5 and sex == 'Female'")
+    df_filter1 = df.query("age == 7.5 and sex_id == 2 and parameter == 'cat2'")
     df_filter1.set_index('age', inplace=True)
     exposure1 = df_filter1.get_value(7.5, 'draw_0')
 
-    df_filter2 = df.query("age == 82.5 and sex == 'Female'")
+    df_filter2 = df.query("age == 82.5 and sex_id == 2 and parameter == 'cat1'")
     df_filter2.set_index('age', inplace=True)
     exposure2 = df_filter2.get_value(82.5, 'draw_0')
 
@@ -205,7 +206,7 @@ def test_get_sbp_mean_sd():
 
     # pick a random age under 25 and sex to test
     sex = 1
-    age = 9
+    age = 7.5
 
     # assert that sbp = log(112) and sd = .001 for people under age 25
     df_filter = df.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
@@ -254,7 +255,7 @@ def test_sum_up_csmrs_for_all_causes_in_microsim():
 
     csmr2_val = csmr2_filter['draw_{}'.format(draw_number)].values[0]
 
-    df = sum_up_csmrs_for_all_causes_in_microsim([1814, 3233], 180, 1990, 1990)
+    df = sum_up_csmrs_for_all_causes_in_microsim([9310, 3233], 180, 1990, 1990)
 
     df_filter = df.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
 
@@ -266,15 +267,14 @@ def test_sum_up_csmrs_for_all_causes_in_microsim():
 def test_get_cause_deleted_mortality_rate():
     all_cause_mr = get_all_cause_mortality_rate(180, 1990, 1990)
 
-    sex = 1 
     age = 67.5
     draw_number = 221
 
-    all_cause_filter = all_cause_mr.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
+    all_cause_filter = all_cause_mr.query("age == {a} and sex_id == 1".format(a=age))
 
     cause_csmr = sum_up_csmrs_for_all_causes_in_microsim([3233], 180, 1990, 1990)
 
-    csmr_filter = cause_csmr.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
+    csmr_filter = cause_csmr.query("age == {a} and sex_id == 1".format(a=age))
 
     all_cause_val = all_cause_filter['all_cause_mortality_rate_{}'.format(draw_number)].values[0]
     
@@ -282,7 +282,7 @@ def test_get_cause_deleted_mortality_rate():
 
     cause_deleted = get_cause_deleted_mortality_rate(180, 1990, 1990, [3233])
 
-    cause_deleted_filter = cause_deleted.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
+    cause_deleted_filter = cause_deleted.query("age == {a} and sex_id == 1".format(a=age))
 
     cause_deleted_val = cause_deleted_filter['cause_deleted_mortality_rate_{}'.format(draw_number)].values[0]
 

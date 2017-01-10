@@ -592,6 +592,10 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     
     rr = get_age_group_midpoint_from_age_group_id(rr)
 
+    # TODO: The 2 lines below will need to be deleted when the diarrhea branch is merged in. We figured out how to handle polytomous risk factors in the diarrhea branch
+    if risk_id == 166:
+        rr = rr.query("parameter == 'cat1'")
+
     rr = expand_ages(rr)
 
     # need to calculate relative risks for current implementation of CEAM. Some risks (e.g Zinc deficiency and high sbp) don't have estimates for all ages (e.g. no estimates for people over age 5 for zinc).
@@ -648,7 +652,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # only want one risk at a time and only metric id 2 (percentages or pafs)
-    pafs = pafs.query("rei_id == @risk_id and metric_id == 2")
+    pafs = pafs.query("rei_id == @risk_id and metric_id == 2 and year_id >= @year_start and year_id <= @year_end")
  
     # FIXME: Why continue if pafs is empty??
     # if pafs.empty:
@@ -656,13 +660,15 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     pafs = get_age_group_midpoint_from_age_group_id(pafs)
 
+    pafs = expand_ages(pafs)
+
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # need to back calculate PAFS to earlier ages for risks that don't
     # start until a certain age
-    pafs = pafs.apply(lambda x: x.fillna(0), axis=0)
+    pafs[['draw_{}'.format(i) for i in range(0,1000)]] = pafs[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)    
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert pafs.isnull().values.any() == False, "there are nulls in the dataframe that get_pafs just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert pafs[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_pafs just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
     assert pafs.duplicated(['age', 'year_id', 'sex_id']).sum(
@@ -672,7 +678,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     draw_number = config.getint('run_configuration', 'draw_number')
     assert pafs['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with get_pafs. pafs cannot be GT 1. Check the data that you are pulling in and the function. Sometimes, a risk does not have paf estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
 
-    return output_df[keepcol]
+    return pafs[keepcol]
 
 
 # 8. get_exposures
@@ -707,17 +713,25 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     # if exposure.values == "error":
     #    exposure == get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
 
+    exposure = exposure.query("year_id >= @year_start and year_id <= @year_end")
+
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
+
+    # TODO: The 2 lines below will need to be deleted when the diarrhea branch is merged in. We figured out how to handle polytomous risk factors in the diarrhea branch
+    if risk_id == 166:
+            exposure = exposure.query("parameter == 'cat1'")
 
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
-    exposure = exposure.apply(lambda x: x.fillna(0), axis=0)
+    exposure = expand_ages(exposure)
+
+    exposure[['draw_{}'.format(i) for i in range(0,1000)]] = exposure[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
 
     keepcol = ['year_id', 'sex_id', 'age', 'parameter'] + ['draw_{i}'.format(i=i) for i in range(0, 1000)]
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert exposure.isnull().values.any() == False, "there are nulls in the dataframe that get_exposures just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert exposure[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_exposures just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
     assert exposure.duplicated(['age', 'year_id', 'sex_id', 'parameter']).sum(
@@ -842,8 +856,9 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     output_df = pd.DataFrame()
     sbp_dir = os.path.join(get_cache_directory(), 'sbp')
 
+    draws = pd.DataFrame()
+
     for sex_id in [1, 2]:
-        draws = pd.DataFrame()
         for year_id in np.arange(year_start, year_end + 1, 5):
             path = auxiliary_file_path('Systolic Blood Pressure Distributions',
                                      location_id=location_id,
@@ -855,26 +870,31 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
             draws = draws.append(one_year_file)
 
         #TODO: Need to rethink setting ages for this function. Since sbp estimates start for the age 25-29 group, it should start at age 25, not 27.5.
-        draws = get_age_group_midpoint_from_age_group_id(draws)
+    draws = get_age_group_midpoint_from_age_group_id(draws)
 
-        # set index
-        draws.set_index(['year_id', 'sex_id', 'age'], inplace=True)
+    draws = expand_ages(draws)
+
+    # set index
+    draws.set_index(['year_id', 'sex_id', 'age'], inplace=True)
  
-        # set nulls to be 1 to keep from messing up the math below. the nulls are the younger age groups (simulants less than 27.5 years old) and they'll get an sbp of 112 and an sd of .001 because we want them to be at the TMRED
-        draws.apply(lambda x: x.fillna(1), axis=0)
+    # set nulls to be 1 to keep from messing up the math below. the nulls are the younger age groups (simulants less than 27.5 years old) and they'll get an sbp of 112 and an sd of .001 because we want them to be at the TMRED
+    draws[['exp_mean_{}'.format(i) for i in range(0,1000)]] = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].fillna(value=1) 
+    draws[['exp_sd_{}'.format(i) for i in range(0,1000)]] = draws[['exp_sd_{}'.format(i) for i in range(0,1000)]].fillna(value=1)
+    
+    # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing        
+    exp_mean = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].values
+    exp_sd = draws[['exp_sd_{}'.format(i) for i in range(0,1000)]].values
 
-        # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing        
-        exp_mean = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].values
-        exp_sd = draws[['exp_sd_{}'.format(i) for i in range(0,1000)]].values
-
-        mean_df = pd.DataFrame(np.log(exp_mean), columns=['log_mean_{}'.format(i) for i in range(1000)], index=draws.index)
-        sd_df = pd.DataFrame(np.divide(exp_sd, exp_mean), columns=['log_sd_{}'.format(i) for i in range(1000)], index=draws.index)
+    mean_df = pd.DataFrame(np.log(exp_mean), columns=['log_mean_{}'.format(i) for i in range(1000)], index=draws.index)
+    sd_df = pd.DataFrame(np.divide(exp_sd, exp_mean), columns=['log_sd_{}'.format(i) for i in range(1000)], index=draws.index)
    
-        output_df = mean_df.join(sd_df)
+    output_df = mean_df.join(sd_df)
 
-        for i in range(0,1000):
-            output_df.loc[pd.IndexSlice[:,output_df.labels[2] < 27.5,:], 'log_mean_{}'.format(i)] = np.log(112)
-            output_df.loc[pd.IndexSlice[:,output_df.index.labels[2] < 27.5,:], 'log_sd_{}'.format(i)] = .001
+    for i in range(0,1000):
+        output_df.loc[pd.IndexSlice[output_df.index.levels[2] < 27.5], 'log_mean_{}'.format(i)] = np.log(112)
+        output_df.loc[pd.IndexSlice[output_df.index.levels[2] < 27.5], 'log_sd_{}'.format(i)] = .001
+
+    output_df = output_df.reset_index()
 
     # assert an error if there are duplicate rows
     assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(

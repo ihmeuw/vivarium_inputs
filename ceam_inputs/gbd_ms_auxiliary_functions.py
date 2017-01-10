@@ -7,7 +7,6 @@ from ceam import config
 
 from db_tools import ezfuncs
 
-from ceam_inputs.util import python_wrapper
 from ceam_inputs.util import stata_wrapper
 
 # This file contains auxiliary functions that are used
@@ -277,9 +276,11 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     deaths = merged[['draw_{}'.format(i) for i in range(1000)]].values
     population = merged[['pop_scaled']].values
 
-    merged.set_index(['year_id', 'sex', 'age_group_id'], inplace=True)
+    merged.set_index(['year_id', 'sex_id', 'age_group_id'], inplace=True)
 
     all_cause_mr = pd.DataFrame(np.divide(deaths, population), columns=['all_cause_mortality_rate_{}'.format(i) for i in range(0,1000)], index=merged.index)
+
+    all_cause_mr = all_cause_mr.reset_index()
 
     all_cause_mortality_rate = get_age_group_midpoint_from_age_group_id(all_cause_mr)
 
@@ -294,7 +295,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     assert all_cause_mortality_rate.duplicated(['age', 'year_id', 'sex_id']).sum(
     ) == 0, "there are duplicates in the dataframe that get_all_cause_mortality_rate just tried to output. check the cache to make sure that the data you're pulling is correct"
 
-    return output_df
+    return all_cause_mortality_rate
 
 
 def get_healthstate_id(dis_weight_modelable_entity_id):
@@ -362,13 +363,21 @@ def expand_ages(df):
     indexed_df = df.set_index(['year_id', 'age']).sortlevel()
     total_df = pd.DataFrame()
     
-    for sex in pd.unique(df.sex_id.values):
-        for param in pd.unique(df.parameter.values):
-            one_df = pd.DataFrame(indexed_df.query('parameter == @param and sex_id == @sex'), index=expanded_indexed.index)
-            one_df['sex_id'] = sex
-            one_df['parameter'] = param
-            total_df = total_df.append(one_df)
+    # for rrs and exposures, there are multiple parameters
+    if 'parameter' in df.columns:
+        for sex in pd.unique(df.sex_id.values):
+            for param in pd.unique(df.parameter.values):
+                one_df = pd.DataFrame(indexed_df.query('parameter == @param and sex_id == @sex'), index=expanded_indexed.index)
+                one_df['sex_id'] = sex
+                one_df['parameter'] = param
+                total_df = total_df.append(one_df)
     
+    else:
+        for sex in pd.unique(df.sex_id.values):
+            one_df = pd.DataFrame(indexed_df.query('sex_id == @sex'), index=expanded_indexed.index)
+            one_df['sex_id'] = sex
+            total_df = total_df.append(one_df)
+
     return total_df.reset_index()
 
 
