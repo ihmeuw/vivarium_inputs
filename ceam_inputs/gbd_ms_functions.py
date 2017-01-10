@@ -259,6 +259,7 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     results = simulants_df.copy()
     
     # Need to sort results so that the simulants are in the same order as the weights
+    # TODO: @Alec proposed a more elegant way of sorting the simulant ids that EM should implement in this function
     results.sort_values(by='simulant_id', inplace=True)
     results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.simulant_id, [False, True], weights)
 
