@@ -59,7 +59,7 @@ def create_age_column(simulants_file, population_file, number_of_simulants):
     return simulants_file
 
 
-def normalize_for_simulation(df):i
+def normalize_for_simulation(df):
     """
     Parameters
     ----------
