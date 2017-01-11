@@ -34,6 +34,16 @@ def create_age_column(simulants_file, population_file, number_of_simulants):
     Returns
     -------
     df with columns simulant_id and age
+
+    Notes
+    -----
+    Used by -- generate_ceam_population
+
+    Assumptions -- None
+
+    Questions - None
+
+    Unit test in place? -- Yes
     """
 
     # use stats package to assign ages to simulants according to proportions in
@@ -49,7 +59,28 @@ def create_age_column(simulants_file, population_file, number_of_simulants):
     return simulants_file
 
 
-def normalize_for_simulation(df):
+def normalize_for_simulation(df):i
+    """
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe to change
+
+    Returns
+    -------
+    Returns a df with column year_id changed to year, sex_id changed to sex, and sex values changed from 1 and 2 to Male and Female
+
+    Notes
+    -----
+    Used by -- load_data_from_cache
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- Yes
+    """
+
     # Convert sex_id to a categorical
     df['sex'] = df.sex_id.map(
         {1: 'Male', 2: 'Female', 3: 'Both'}).astype('category')
@@ -69,6 +100,16 @@ def get_age_group_midpoint_from_age_group_id(df):
     Returns
     -------
     df with an age column
+
+    Notes
+    -----
+    Used by -- get_modelable_entity_draws, get_relative_risks, get_pafs, get_exposures, get_sbp_mean_sd, get_bmi_distributions, get_age_specific_fertility_rates, get_populations
+
+    Assumptions -- We assume that using a midpoint of age 82.5 for the 80+ year old age group is ok for the purposes of CEAM. Everett proposed that we could get the life expectancy at age 80 for each location and use that as the midpoint for the 80+ group, but Abie suggested that we keep the midpoint as 82.5 for now. GBD populations have data for each age group up until the age 95+ age group, at which point I'm assuming we can use 97.5 as the midpoint.
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     """
 
     df = df.copy()
@@ -111,7 +152,20 @@ def get_populations(location_id, year_start, sex_id):
     df with columns year_id, location_name, location_id, age, sex_id, and
         pop_scaled
         pop_scaled is the population for a given age/year/sex
+
+    Notes
+    -----
+    Used by -- generate_ceam_population, create_sex_id_column
+
+    Assumptions --  None
+
+    Questions -- None
+
+    Unit test in place? -- No. Don't think one is needed. We just use the central comp get_population function to get the population data and then select a specific year, specific sex, and use the get_age_group_midpoint_from_age_group_id function to get the age group midpoints.
+
+    Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using central comp's get_populations function.
     """
+
     # use central comp's get_population function to get gbd populations
     # the age group id arguments get the age group ids for each age group up through age 95+
     # pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
@@ -160,7 +214,17 @@ def assign_sex_id(simulants_df, male_pop, female_pop):
     -------
     A dataframe with a sex_id column with age/sex correlated
 
+    Notes
+    -----
+    Used by -- create_sex_id_column
+
+    Assumptions -- That we can assign ages/sexes at different times while still ensuring correlation.
+
+    Questions -- Currently, when we generate a population of simulants, we assign age and then assign sex. Should we be assigning age and sex at the same time?
+ 
+    Unit test in place? -- Yes
     """
+
     new_sim_file = pd.DataFrame()
 
     # do for each age in population dataframes (same ages in male_pop and
@@ -208,6 +272,14 @@ def create_sex_id_column(simulants_df, location_id, year_start):
     -------
     Produces a dataframe with sex values
         Sex values are correlated with age
+
+    Used by-- generate_ceam_population
+
+    Assumptions -- That we can assign ages/sexes at different times while still ensuring correlation.
+
+    Questions -- Currently, when we generate a population of simulants, we assign age and then assign sex. Should we be assigning age and sex at the same time?
+
+    Unit test in place? -- No. Don't think it's needed for this function, since this function just utilizes two of our other functions (get_populations and assign_sex_id) which are already tested.
     """
 
     # Force the year to be a multiple of five because that's the granularity
@@ -251,6 +323,16 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     Returns
     -------
     pd.DataFrame with columns
+
+    Notes
+    -----
+    Used by -- get_cause_deleted_mortality_rate
+
+    Assumptions -- None
+
+    Questions -- Is the dalynator the correct source for pulling the all-cause mortality rate? In some of the developing countries, the mortality rate is higher than 1 for the very young age groups. Should we be doing anything about this in the simulation?
+
+    Unit test in place? -- Not currently, but one does need to be put in place
     '''
 
     all_cause_draws = stata_wrapper('get_all_cause_mortality_rate_draws.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id, config.getint('simulation_parameters', 'gbd_round_id'))
@@ -308,6 +390,14 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
     Returns
     -------
     integer specifying healthstate_id for modelable entity id that was supplied
+
+    Used by -- get_disability_weight
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     """
     
     healthstate_id_df = ezfuncs.query('''

@@ -91,7 +91,7 @@ Purpose -- Creates a sex_id column for a population of simulants
 
 Functionality -- Uses get_populations to get proportions of men/women in each age group for a given location/year. Then uses assign_sex_id to assign sex to simulants while ensuring correlation between age/sex. Then ensures that the values in sex_id are integers.
 
-Dependencies -- generate_ceam_population
+Used by-- generate_ceam_population
 
 Assumptions -- That we can assign ages/sexes at different times while still ensuring correlation.
 
@@ -106,7 +106,7 @@ Purpose -- We need the all cause mortality rate as an input for cause-deleted mo
 
 Functionality -- Pulls in the number of deaths in a location, age, sex, year group and divides the number of deaths by the population in each location, age, sex, year group to get the mortality rate. 
 
-Dependencies -- get_cause_deleted_mortality_rate 
+Used by -- get_cause_deleted_mortality_rate 
 
 Assumptions -- None
 
@@ -121,7 +121,7 @@ Purpose -- Gets the health state id for a given modelable entity id. Disability 
 
 Functionality -- Uses central comp's db_tools.ezfuncs to connect to the epi database to get the healthstate_id that corresponds with a specific modelable entity id
 
-Dependencies -- get_disability_weight
+Used by -- get_disability_weight
 
 Assumptions -- None
 
