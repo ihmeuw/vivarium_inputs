@@ -105,6 +105,16 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
     Returns
     -------
     df with year_id, sex_id, age and 1k draws
+
+    Notes
+    -----
+    Used by -- get_cause_level_prevalence, sum_up_csmrs_for_all_causes_in_microsim, get_post_mi_heart_failure_proportion_draws, get_excess_mortality, get_incidence, get_continuous, get_proportion, get_prevalence
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- No. Don't think it's necessary, since this function merely pulls draws from the database and then filters a dataframe so that only one measure is included in the output and that only the years in b/w the simulation year start and year end are included in the df.
     """
 
     meid_version_map = get_model_versions()
@@ -160,6 +170,19 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     -------
     df with columns simulant_id, age, sex_id, and columns to indicate if
     simulant has different diseases
+
+    Notes
+    -----
+    Used by -- Creates a population in base_population.py
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- Yes
+
+    TODO -- Need to smooth out initial ages (JIRA ticket - CE-213)
+
     """
 
     # Use auxilliary get_populations function to bring in the both sex
@@ -214,6 +237,17 @@ def get_cause_level_prevalence(states, year_start):
     Returns
     -------
     df with 1k draws where draw values are the prevalence of the cause of interest
+
+    Notes
+    -----
+    Used by -- assign_cause_at_beginning_of_simulation
+
+    Assumptions -- That the sequela prevalences associated with a cause will add up to the cause level prevalence
+
+    Questions -- Would it be better to just pull cause level prevalence? I'm a bit worried that the sequela prevalences won't add up
+
+    Unit test in place? -- Yes
+
     """
     prevalence_df = pd.DataFrame()
 
@@ -247,7 +281,18 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     Returns
     -------
     df with indication of whether or not simulant is healthy
+
+    Notes
+    -----
+    Used by -- assign_cause_at_beginning_of_simulation
+
+    Assumptions -- None
+
+    Questions -- I sort the prevalence and simulants dataframes by simulant_id to make sure that the prevalence is being assigned correctly to each demographic group. Is there a better way to make sure that we're applying the correct prevalence rate to each simulant?
+
+    Unit test in place? -- Yes
     """
+
     merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
     
     # Need to sort merged df so that the weights are in the same order as results
@@ -279,7 +324,16 @@ def get_sequela_proportions(cause_level_prevalence, states):
     Returns
     -------
     A dictionary of dataframes where each dataframe contains proportion of cause prevalence made up by a specific sequela
+
+    Notes
+    -----
+    Used -- That the prevalence of a sequela can be divided by the prevalence of the cause associated with that sequela to get the proportional prevalence.
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     """
+
     sequela_proportions = {}
 
     for key in states.keys():
@@ -308,7 +362,18 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file):
     Returns
     -------
     dataframe of simulants with new column condition_state that indicates if simulant which sequela simulant has or indicates that they are healthy (i.e. they do not have the disease)
+
+    Notes
+    -----
+    Used by -- assign_cause_at_beginning_of_simulation
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     """
+
     sequela_proportions = [(key, Interpolation(data[['sex', 'age', 'scaled_prevalence']], ['sex'], ['age'])) for key, data in sequela_proportions.items()]
     sub_pop = new_sim_file.query('condition_envelope == 1')
     list_of_keys, list_of_weights = zip(*[(key,data(sub_pop)) for key, data in sequela_proportions])
@@ -341,6 +406,18 @@ def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
         chronic_ihd takes values 0 or 1
             1 indicates that the simulant has chronic ihd
             0 indicates that the simulant does not have chronic ihd
+    
+    Notes
+    -----
+    Used by -- get_disease_states
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- I wrote code to produce graphs to make sure we're assigning prevalence correctly at the beginning of the simulation. I need to figure out how to allow randomness back into the assign_cause_at_beginning_of_simulation so that I can get a distribution of prevalences. @Alecwd I could use your help on this.
+
+    TODO: Automate and allow randomness in the graph production code
     """
     
     cause_level_prevalence, prevalence_draws_dictionary = get_cause_level_prevalence(states, year_start) 
@@ -392,7 +469,18 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
     Returns
     ----------
     df with columns year_id, sex_id, age, and draw_0 - draw_999
+
+    Notes
+    -----
+    Used by -- get_cause_deleted_mortality_rate
+
+    Assumptions -- That we can add together the csmrs for every cause in the microsim and then subtract from the all-cause mortality rate to get the cause-deleted mortality rate.
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     '''
+
     df = pd.DataFrame()
 
     for me_id in list_of_me_ids:
@@ -424,6 +512,16 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
     -------
     df with columns age, year_id, sex_id, and 1k draws of cause deleted
         mortality rate
+
+    Notes
+    -----
+    Used by -- Used in base_population.py
+
+    Assumptions -- That we can subtract the csmrs for the causes we care about to get the cause-deleted mortality rate
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     '''
 
     all_cause_mr = get_all_cause_mortality_rate(
@@ -492,6 +590,16 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     Returns
     -------
     df with year_id, sex_id, age and 1k draws
+
+    Notes
+    -----
+    Used by -- Used in disease_models.py to determine how many people get heart failure following an mi.
+
+    Assumptions -- That the proportional prevalence is a good enough estimation of the proportional incidence.
+
+    Questions -- More of a general python question -- should I be using np.multiply for multiplication? Maybe it has to do with python's floating point issues, but I was getting different results when using A*B instead of np.multiply(A,B).
+
+    Unit test in place? --  Yes
     """
 
     # read in heart failure envelope. specify measure of interest
@@ -563,6 +671,16 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     Returns
     -------
     df with columns year_id, sex_id, age, 1k relative risk draws
+
+    Notes
+    -----
+    Used by -- Used to pull relative risks which are then multiplied by incidence rates in continuous_exposure_effect and categorical_exposure_effect
+
+    Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. I have set up the code so that each age group for which we don't have GBD estimates has an RR of 1 (i.e. no elevated risk).
+
+    Questions -- Should we set the RR to 1 for age groups for which we do not have rr estimates?
+
+    Unit test in place? -- Yes
     """
 
     output_df = pd.DataFrame()
@@ -637,13 +755,20 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
 
-    -------
     Returns
+    -------
         df with columns year_id, sex_id, age, val, upper, and lower
 
-    """
+    Notes
+    -----
+    Used by -- anytime a user adds a risk to a simulation
 
-    # pafs = get_draws()
+    Assumptions -- We should use PAFs for YLDs, since we use PAFs to affect incidence in CEAM. Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. I have set up the code so that each age group for which we don't have GBD estimates has a PAF of 0
+
+    Questions -- Should we be using PAFs for Deaths or DALYs? Should we set the PAF to 0 for age groups for which we do not have rr estimates? Need to submit an epihelp ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
+
+    Unit test in place? -- Yes
+    """
 
     pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
@@ -702,6 +827,16 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     Returns
     -------
     df with columns year_id, sex_id, age and 1k exposure draws
+
+    Notes
+    -----
+    Used by -- anytime a user adds a risk to a simulation
+ 
+    Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. I have set up the code so that each age group for which we don't have GBD estimates has an exposure of 0
+
+    Questions -- Should we set the exposure to 0 for age groups for which we do not have rr estimates? Need to submit an epihelp ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
+
+    Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
     """
 
     # exposure = get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
@@ -851,7 +986,18 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     Returns
     -------
     df with mean and sd values in LOG space
+
+    Notes
+    -----
+    Assumptions -- That people under age 25 have the TMRED SBP
+
+    Questions -- We have estimates starting in the age 25-29 age group. Should we be using the midpoint or age 25 as the starting point?
+
+    Unit test in place? -- Yes
+
+    TODO: Might want to change the TMRED. Need to catch up with Stan regarding calculating TMREDs + write a function that will allow us to calculate TMREDs for a given risk.
     '''
+
     output_df = pd.DataFrame()
     sbp_dir = os.path.join(get_cache_directory(), 'sbp')
 
@@ -990,6 +1136,14 @@ def get_angina_proportions():
     Returns
     -------
     df with year_id, sex_id, age and 1k draws
+
+    Notes
+    -----
+    Assumptions -- The file does not have estimates for people under age 20. I've set the proportions for people under age 20 to be the same as the proportion for people that are 20 years old. This shouldn't have much of an impact on anything, since we don't expect for people under age 20 to have heart attacks.
+
+    Questions -- Is it valid to assign the angina proportion for 20 year olds to be the angina proportions for people under the age of 20? Who should we talk to about having these proportions stored in a better place (e.g. the database)? Who should we talk to about ensuring that this file doesn't move? How can we ensure that the file is updated if need be?
+
+    Unit test in place? -- Yes
     '''
 
     # TODO: Need to figure out a way to check to see if this file is ever updated. Would be nice if we could think of a better way to make sure we're using the most up to date data.
@@ -1042,6 +1196,14 @@ def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=No
     Returns
     -------
     df with disability weight draws
+
+    Notes
+    -----
+    Assumptions -- None
+
+    Questions -- How can IHME create a more systematic way for access this data? The current way (looking in one csv prepared by central comp and then checking another if the draws are not in the first csv) is pretty disorganized. Since many disability weights are going to be updated in 2016, these files may move. I would propose that we ask central comp to store the disability weights in the database.
+
+    Unit test in place? -- Yes
     """
 
     if healthstate_id is None:
@@ -1090,6 +1252,14 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
     Returns
     -------
     df with post-mi asymptomatic ihd proportions
+
+    Notes
+    -----
+    Assumptions -- That all people who survive a heart attack then get one of asymptomatic ihd, heart failure, or angina
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     """
 
     hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end)
