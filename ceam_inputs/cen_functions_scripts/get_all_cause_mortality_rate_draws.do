@@ -15,7 +15,7 @@ local location_id `1'
 local gbd_round `2'
 
 // Use get_draws function to generate results
-get_draws, gbd_id_field("cause_id") gbd_id(294) location_ids(`location_id') measure_ids(1) source(dalynator) status(best) gbd_round_id(3) clear
+get_draws, gbd_id_field("cause_id") gbd_id(294) location_ids(`location_id') measure_ids(1) source(dalynator) status(best) gbd_round_id(`2') clear
 
 // Output results to a csv file
 outsheet using `outpath', comma replace

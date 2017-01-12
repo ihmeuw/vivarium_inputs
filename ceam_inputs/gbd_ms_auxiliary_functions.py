@@ -229,7 +229,6 @@ def assign_sex_id(simulants_df, male_pop, female_pop):
 
     # do for each age in population dataframes (same ages in male_pop and
     # female_pop)
-    # FIXME: @alecwd why is the prev_age variable necessary here? I don't think any interpolation has happened at this point.
     prev_age = -1
     for age in male_pop.age.values:
         male_pop_value = male_pop.query(
@@ -330,7 +329,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
     Assumptions -- None
 
-    Questions -- Is the dalynator the correct source for pulling the all-cause mortality rate? In some of the developing countries, the mortality rate is higher than 1 for the very young age groups. Should we be doing anything about this in the simulation?
+    Questions -- Is the dalynator the correct source for pulling the all-cause mortality rate? 
 
     Unit test in place? -- Not currently, but one does need to be put in place
     '''
@@ -367,8 +366,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     all_cause_mortality_rate = get_age_group_midpoint_from_age_group_id(all_cause_mr)
 
     # only get years we care about
-    all_cause_mortality_rate = all_cause_mortality_rate.query('year_id>={ys} and year_id<={ye}'.
-                                          format(ys=year_start, ye=year_end))
+    all_cause_mortality_rate = all_cause_mortality_rate.query('year_id>=@year_start and year_id<=@year_end')
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert all_cause_mortality_rate.isnull().values.any() == False, "there are nulls in the dataframe that get_all_cause_mortality just tried to output. check that the cache to make sure the data you're pulling is correct"

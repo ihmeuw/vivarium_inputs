@@ -21,6 +21,7 @@ from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
 from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
 from ceam_inputs.gbd_ms_functions import get_cause_deleted_mortality_rate
+from ceam_tests.util import build_table
 
 # generate_ceam_population
 def test_generate_ceam_population():
@@ -42,7 +43,7 @@ def test_generate_ceam_population():
 # get_cause_level_prevalence
 def test_get_cause_level_prevalence():
     # pass in a states dict with only two sequela and make sure for one age/sex/year combo that the value in cause_level_prevalence is equal to the sum of the two seq prevalences
-    dict_of_disease_states = {'severe_heart_failure' : get_prevalence(1823), 'moderate_heart_failure' : get_prevalence(1822)}    
+    dict_of_disease_states = {'severe_heart_failure' : build_table(0.03).rename(columns={'rate':'prevalence'}), 'moderate_heart_failure' : build_table(0.02).rename(columns={'rate':'prevalence'})}    
      
     cause_level, seq_level_dict = get_cause_level_prevalence(dict_of_disease_states, 1990)
 
@@ -61,7 +62,7 @@ def test_get_cause_level_prevalence():
     cause_prev = cause_level['prevalence'].values[0]    
     
     assert cause_prev == seq_prevalence_1 + seq_prevalence_2, 'get_cause_level_prevalence error. seq prevs need to add up to cause prev'
-    assert np.allclose(cause_prev, 0.00010368 + 0.00022846), 'get_cause_level prevalence should match data from database as of 1/5/2017' 
+    assert np.allclose(cause_prev, .05), 'get_cause_level prevalence should match data from database as of 1/5/2017' 
 
 
 # determine_if_sim_has_cause
