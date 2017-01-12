@@ -1019,11 +1019,11 @@ def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=No
         dws_look_here_second = pd.read_csv(f)
 
     if healthstate_id in dws_look_here_first.healthstate_id.tolist():
-        df = dws_look_here_first.query("healthstate_id == @healthstate_id")
+        df = dws_look_here_first.query("healthstate_id == @healthstate_id").copy()
         df['modelable_entity_id'] = dis_weight_modelable_entity_id
 
     elif healthstate_id in dws_look_here_second.healthstate_id.tolist():
-        df = dws_look_here_second.query("healthstate_id == @healthstate_id")
+        df = dws_look_here_second.query("healthstate_id == @healthstate_id").copy()
         df['modelable_entity_id'] = dis_weight_modelable_entity_id
 
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequala get this healthstate_id
