@@ -185,6 +185,9 @@ def get_populations(location_id, year_start, sex_id):
     pop = pop[['year_id', 
                'location_id', 'age', 'sex_id', 'population']]
 
+    # The population column was called pop_scaled in GBD 2015, but name was changed. Changing it back since all of our code uses pop_scaled as the col name
+    pop = pop.rename(columns={'population': 'pop_scaled'})
+
     # assert an error if there are duplicate rows
     assert pop.duplicated(['age', 'year_id', 'sex_id']).sum(
     ) == 0, "there are duplicates in the dataframe that get_populations just tried to output"
@@ -347,6 +350,8 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     # as the estimates for # of Person Years in each age group
     # pop = get_populations(age_group_id=list(range(2,22)), location_id=location_id, year_id=-1, sex_id=[1,2])
     pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
+
+    pop = pop.rename(columns={'population': 'pop_scaled'})
 
     # merge all cause deaths and pop to get all cause mortality rate
     merged = pd.merge(all_cause_deaths, pop, on=[
