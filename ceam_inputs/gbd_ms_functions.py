@@ -736,7 +736,7 @@ RR estimates for every age, so check to see that the function is correctly assig
 # 7. get_pafs
 
 
-def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
+def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='morbidity'):
     """
     Parameters
     ----------
@@ -755,6 +755,9 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
 
+    paf_type: str
+        specify whether you want morbidity (YLDs) or mortality (Deaths) PAFs
+
     Returns
     -------
         df with columns year_id, sex_id, age, val, upper, and lower
@@ -765,20 +768,26 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
     Assumptions -- We should use PAFs for YLDs, since we use PAFs to affect incidence in CEAM. Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. I have set up the code so that each age group for which we don't have GBD estimates has a PAF of 0
 
-    Questions -- Should we be using PAFs for Deaths or DALYs? Should we set the PAF to 0 for age groups for which we do not have rr estimates? Need to submit an epihelp ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
+    Questions -- Should we set the PAF to 0 for age groups for which we do not have rr estimates? Need to submit an epihelp ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
 
     Unit test in place? -- Yes
     """
+    if paf_type == 'morbidity':
+        measure_id = 3
+    elif paf_type == 'mortality':
+        measure_id = 1
+    else:
+        raise ValueError('paf_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
 
-    pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id, config.getint('simulation_parameters', 'gbd_round_id'))
+    pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id, config.getint('simulation_parameters', 'gbd_round_id'), measure_id)
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # only want one risk at a time and only metric id 2 (percentages or pafs)
     pafs = pafs.query("rei_id == @risk_id and metric_id == 2 and year_id >= @year_start and year_id <= @year_end")
- 
-    # FIXME: Why continue if pafs is empty??
+
+     # FIXME: Why continue if pafs is empty??
     # if pafs.empty:
     #    continue
 

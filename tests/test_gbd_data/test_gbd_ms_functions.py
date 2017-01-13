@@ -181,7 +181,7 @@ def test_get_pafs():
     paf2 = df_filter2.get_value(82.5, 'draw_{}'.format(draw_number))
 
     assert paf1 == 0, 'get_pafs should return paf=0 for the ages for which we do not have GBD estimates'
-    assert paf2 == 0.64478935, 'get_pafs should return pafs that match what is pulled from the database'
+    assert paf2 == 0.64621693, 'get_pafs should return pafs that match what is pulled from the database'
 
 
 # get_exposures
