@@ -52,7 +52,7 @@ def test_get_cause_level_prevalence():
 
     # pick a random age and sex to test
     sex = "Male"
-    age = 42.5
+    age = 42
 
     # get a prevalence estimate for the random age and sex that we want to test
     moderate_heart_failure = seq_level_dict['moderate_heart_failure'].query("age == {a} and sex == '{s}'".format(a=age, s=sex))
