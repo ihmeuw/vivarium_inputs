@@ -242,7 +242,7 @@ def test_get_sbp_mean_sd_Kenya_2000():
 # sum_up_csmrs_for_all_causes_in_microsim
 def test_sum_up_csmrs_for_all_causes_in_microsim():
     csmr1 = get_modelable_entity_draws(
-            180, 1990, 1990, 15, 3233)
+            180, 1990, 1990, 15, 1814)
 
     csmr2 = get_modelable_entity_draws(
             180, 1990, 1990, 15, 9310)
@@ -259,7 +259,7 @@ def test_sum_up_csmrs_for_all_causes_in_microsim():
 
     csmr2_val = csmr2_filter['draw_{}'.format(draw_number)].values[0]
 
-    df = sum_up_csmrs_for_all_causes_in_microsim([9310, 3233], 180, 1990, 1990)
+    df = sum_up_csmrs_for_all_causes_in_microsim([9310, 1814], 180, 1990, 1990)
 
     df_filter = df.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
 
@@ -276,7 +276,7 @@ def test_get_cause_deleted_mortality_rate():
 
     all_cause_filter = all_cause_mr.query("age == {a} and sex_id == 1".format(a=age))
 
-    cause_csmr = sum_up_csmrs_for_all_causes_in_microsim([3233], 180, 1990, 1990)
+    cause_csmr = sum_up_csmrs_for_all_causes_in_microsim([1814], 180, 1990, 1990)
 
     csmr_filter = cause_csmr.query("age == {a} and sex_id == 1".format(a=age))
 
@@ -284,7 +284,7 @@ def test_get_cause_deleted_mortality_rate():
     
     cause_val = csmr_filter['draw_{}'.format(draw_number)].values[0]
 
-    cause_deleted = get_cause_deleted_mortality_rate(180, 1990, 1990, [3233])
+    cause_deleted = get_cause_deleted_mortality_rate(180, 1990, 1990, [1814])
 
     cause_deleted_filter = cause_deleted.query("age == {a} and sex_id == 1".format(a=age))
 
