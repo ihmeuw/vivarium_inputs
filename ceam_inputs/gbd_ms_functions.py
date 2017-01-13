@@ -1067,7 +1067,7 @@ def _bmi_ppf(parameters):
 
 
 @memory.cache
-def get_bmi_distributions(location_id, year_start, year_end, draw):
+def get_bmi_distributions(location_id, year_start, year_end, draw, func=_bmi_ppf):
     a = pd.DataFrame()
     b = pd.DataFrame()
     loc = pd.DataFrame()
@@ -1120,7 +1120,7 @@ def get_bmi_distributions(location_id, year_start, year_end, draw):
             distributions[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']],
             categorical_parameters=('sex',),
             continuous_parameters=('age', 'year'),
-            func=_bmi_ppf
+            func=func,
             )
 
 
