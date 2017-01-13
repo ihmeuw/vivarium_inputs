@@ -67,4 +67,17 @@ def test_get_healthstate_id():
     val = get_healthstate_id(dis_weight_modelable_entity_id=1823)
 
     assert val == 383, "modelable entity id 1823 should have a healthstate of 383 as of 9/30"
+
+
+#6. expand_grid
+def test_expand_grid():
+    ages = pd.Series([0, 1, 2, 3, 4, 5])
+    years = pd.Series([1990, 1991, 1992])
+
+    df = expand_grid(ages, years)
+    
+    assert df.year_id.tolist() == np.repeat([1990, 1991, 1992], 6).tolist(), "expand_grid should expand a df to get row for each age/year combo"
+    assert df.age.tolist() == [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5], "expand_grid should expand a df to get row for each age/year combo"
+
+
 # End.
