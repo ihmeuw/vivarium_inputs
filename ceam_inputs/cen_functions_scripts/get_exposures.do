@@ -6,7 +6,7 @@ clear all
 set more off
 
 // Set output directory
-local outpath `3'
+local outpath `4'
 
 // Set country of interest
 local location_id `1'
@@ -19,7 +19,7 @@ local gbd_round `3'
 
 // Use get_draws function to generate results
 // Use get_draws function to generate results
-cap get_draws, gbd_id_field(rei_id) gbd_id(`rei_id')location_ids(`location_id') source(risk) kwargs(draw_type:exposure) status(best) gbd_round_id(`gbd_round') clear
+cap get_draws, gbd_id_field(rei_id) gbd_id(`rei_id') location_ids(`location_id') source(risk) kwargs(draw_type:exposure) status(best) gbd_round_id(`gbd_round') clear
 
 if _rc != 0 {   // if the above command returned no results
     get_draws, gbd_id_field(rei_id) gbd_id(`rei_id')location_ids(`location_id') source(risk) kwargs(draw_type:exposure) status(best) gbd_round_id(2) clear
