@@ -43,7 +43,10 @@ def test_generate_ceam_population():
 # get_cause_level_prevalence
 def test_get_cause_level_prevalence():
     # pass in a states dict with only two sequela and make sure for one age/sex/year combo that the value in cause_level_prevalence is equal to the sum of the two seq prevalences
-    dict_of_disease_states = {'severe_heart_failure' : build_table(0.03).rename(columns={'rate':'prevalence'}), 'moderate_heart_failure' : build_table(0.02).rename(columns={'rate':'prevalence'})}    
+    prev_df1 = build_table(0.03).rename(columns={'rate':'prevalence'})[['year', 'age', 'prevalence', 'sex']]
+    prev_df2 = build_table(0.02).rename(columns={'rate':'prevalence'})[['year', 'age', 'prevalence', 'sex']]
+
+    dict_of_disease_states = {'severe_heart_failure' : prev_df1, 'moderate_heart_failure' : prev_df2}    
      
     cause_level, seq_level_dict = get_cause_level_prevalence(dict_of_disease_states, 1990)
 

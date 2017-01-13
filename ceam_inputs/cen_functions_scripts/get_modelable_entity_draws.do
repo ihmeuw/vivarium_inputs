@@ -27,7 +27,7 @@ local ages "`ages' `i' "
 // }
 
 // Use get_draws function to generate results
-get_draws, gbd_id_field(modelable_entity_id) gbd_id(`me_id') location_ids(`location_id') source(epi) age_group_ids(`ages') status(`status') clear
+get_draws, gbd_id_field(modelable_entity_id) gbd_id(`me_id') location_ids(`location_id') source(epi) age_group_ids(`ages') gbd_round_id(3) clear // status(`status') clear
 
 // Output results to a csv file
 outsheet using `outpath', comma replace
