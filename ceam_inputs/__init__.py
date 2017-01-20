@@ -66,8 +66,30 @@ def get_remission(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=7, me_id=modelable_entity_id)
+    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'remission', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=7, me_id=modelable_entity_id)
 
+
+def get_duration_in_days(modelable_entity_id):
+    """Get duration of disease for a modelable entity in days.
+
+    Parameters
+    ----------
+    modelable_entity_id : int
+                          The entity to retrieve
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table with 'age', 'sex', 'year' and 'duration' columns
+    """
+
+    remission = get_remission(me_id)
+    
+    duration = remission.copy()
+    
+    duration['duration'] = (1 / duration['remission']) *365
+    
+    return duration[['year', 'age', 'duration', 'sex']]
 
 
 def get_continuous(modelable_entity_id):
