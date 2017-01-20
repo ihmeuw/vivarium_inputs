@@ -83,7 +83,7 @@ def get_duration_in_days(modelable_entity_id):
         Table with 'age', 'sex', 'year' and 'duration' columns
     """
 
-    remission = get_remission(me_id)
+    remission = get_remission(modelable_entity_id)
     
     duration = remission.copy()
     
