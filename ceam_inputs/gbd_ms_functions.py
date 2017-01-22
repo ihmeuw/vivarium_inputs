@@ -32,14 +32,11 @@ from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
 from ceam_inputs.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
-<<<<<<< HEAD
 from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
 # em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
 # TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
-=======
 from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages
->>>>>>> develop
 from joblib import Memory
 import warnings
 
@@ -228,13 +225,8 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
 # 3. assign_cause_at_beginning_of_simulation
 
-<<<<<<< HEAD
-# TODO: Want to refactor the next few functions to assign prevalence at the beginning of the simulation in a better way
-def get_cause_level_prevalence(states, location_id, year_start, draw_number):
-=======
 
 def get_cause_level_prevalence(states, year_start):
->>>>>>> develop
     """
     Takes all of the sequela in 'states' and adds them up to get a total prevalence for the cause
 
@@ -264,14 +256,7 @@ def get_cause_level_prevalence(states, year_start):
     prevalence_df = pd.DataFrame()
 
     for key in states.keys():
-<<<<<<< HEAD
-        states[key] = states[key].query("year == {}".format(year_start))
-        states[key] = states[key][['year', 'sex', 'age', 'draw_{}'.format(draw_number)]]
-        prevalence_df = prevalence_df.append(states[key])
 
-    cause_level_prevalence = prevalence_df.groupby(
-        ['year', 'sex', 'age'], as_index=False).sum()
-=======
         assert states[key].columns.tolist() == ['year', 'age', 'prevalence', 'sex'], "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
         # get prevalence for the start year only
         states[key] = states[key].query("year == {}".format(year_start))
@@ -282,7 +267,6 @@ def get_cause_level_prevalence(states, year_start):
 
     cause_level_prevalence = prevalence_df.groupby(
         ['year', 'sex', 'age'], as_index=False)[['prevalence']].sum()
->>>>>>> develop
 
     return cause_level_prevalence, states
 
@@ -313,15 +297,6 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
 
     Unit test in place? -- Yes
     """
-<<<<<<< HEAD
-    merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
-    probability_of_disease = merged['draw_{}'.format(draw_number)]
-    probability_of_NOT_having_disease = 1 - probability_of_disease
-    weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
-
-    results = simulants_df.copy()
-    results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.simulant_id, [False, True], weights)
-=======
 
     merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
     
@@ -335,7 +310,6 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
  
     # Need to sort results so that the simulants are in the same order as the weights
     results['condition_envelope'] = choice('determine_if_sim_has_cause', results.index, [False, True], weights)
->>>>>>> develop
 
     return results
 
@@ -369,13 +343,8 @@ def get_sequela_proportions(cause_level_prevalence, states):
 
     for key in states.keys():
         sequela_proportions[key] = \
-<<<<<<< HEAD
-            pd.merge(prevalence_draws_dictionary[key], cause_level_prevalence, on=[
-                'age', 'sex'], suffixes=('_single', '_total'))
-=======
             pd.merge(states[key], cause_level_prevalence, on=[
                 'age', 'sex', 'year'], suffixes=('_single', '_total'))
->>>>>>> develop
         single = sequela_proportions[key][
             'prevalence_single']
         total = sequela_proportions[key][
@@ -409,10 +378,6 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file):
 
     Unit test in place? -- Yes
     """
-<<<<<<< HEAD
-=======
-
->>>>>>> develop
     sequela_proportions = [(key, Interpolation(data[['sex', 'age', 'scaled_prevalence']], ['sex'], ['age'])) for key, data in sequela_proportions.items()]
     sub_pop = new_sim_file.query('condition_envelope == 1')
     list_of_keys, list_of_weights = zip(*[(key,data(sub_pop)) for key, data in sequela_proportions])
@@ -533,8 +498,6 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
     return df
 
 
-<<<<<<< HEAD
-=======
 def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_me_ids_in_microsim):
     '''Returns the cause-delted mortality rate for a given time period and location
 
@@ -594,7 +557,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
 
         # assert that non of the cause-deleted mortality rate values are less than or equal to 0
         draw_number = config.getint('run_configuration', 'draw_number')
-        assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. all-cause mortality can't be <= 0"
+        assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
 
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
@@ -609,7 +572,6 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
         return df
 
 
->>>>>>> develop
 # 5. get_post_mi_heart_failure_proportion_draws
 
 
@@ -687,12 +649,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 
 # 6. get_relative_risks
 
-<<<<<<< HEAD
-def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_type, gbd_round=1):
-=======
-
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_type='morbidity'):
->>>>>>> develop
     """
     Parameters
     ----------
@@ -714,17 +671,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     rr_type: str
         can specify morbidity if you want RRs for incidence or mortality if you want RRs for mortality
 
-<<<<<<< HEAD
-    gbd_round: int
-        # TODO: We'll need to update this when GBD 2016 is out.
-        generally set the gbd_round to 1 since this corresponds with GBD 2015
-        there are some cases (e.g. pulling relative risks for unsafe sanitation)
-        where the most recent (i.e. is best) model was updated in 2013 so we need
-        to pass in the gbd_round variable to make sure that we're pulling the best
-        model from that previous GBD round
-
-=======
->>>>>>> develop
     Returns
     -------
     df with columns year_id, sex_id, age, 1k relative risk draws
@@ -740,29 +686,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     Unit test in place? -- Yes
     """
 
-    output_df = pd.DataFrame()
-
-<<<<<<< HEAD
-    rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, cause_id)
-
-    if rr_type == 'morbidity':
-        rr = rr.query("morbidity == 1")
-    elif rr_type == 'mortality':
-        rr = rr.query("mortality == 1")
-    else:
-        raise ValueError('rr_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
-
-    rr = rr.query('sex_id != 3')    
-
-    rr = rr.query('cause_id == {}'.format(cause_id))
-    
-    rr = get_age_from_age_group_id(rr)
-
-    # need to back calculate relative risk to earlier ages for risks that
-    # don't start until a certain age.
-    # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. It assumes that there is no risk of the risk factor on the exposure for those ages. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
-    output_df = rr.apply(lambda x: x.fillna(1), axis=0)
-=======
     rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
     # FIXME: Will want this pull to be linked to a publication id.
@@ -796,17 +719,12 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     # need to calculate relative risks for current implementation of CEAM. Some risks (e.g Zinc deficiency and high sbp) don't have estimates for all ages (e.g. no estimates for people over age 5 for zinc).
     # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. It assumes that there is no risk of the risk factor on the exposure for those ages. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
     rr[['rr_{}'.format(i) for i in range(0,1000)]] = rr[['rr_{}'.format(i) for i in range(0,1000)]].fillna(value=1)
->>>>>>> develop
 
     keepcol = ['year_id', 'sex_id', 'age', 'parameter']
     keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
-<<<<<<< HEAD
-    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
-=======
     assert rr[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
->>>>>>> develop
 
     # assert that none of the rr values are less than 1
     draw_number = config.getint('run_configuration', 'draw_number')
@@ -920,18 +838,6 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     -------
     df with columns year_id, sex_id, age and 1k exposure draws
 
-<<<<<<< HEAD
-
-    exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
-
-    exposure = get_age_from_age_group_id(exposure)
-
-    # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
-
-    # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
-    output_df = exposure.apply(lambda x: x.fillna(0), axis=0)
-
-=======
     Notes
     -----
     Used by -- anytime a user adds a risk to a simulation
@@ -955,10 +861,6 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
 
-    # TODO: The 2 lines below will need to be deleted when the diarrhea branch is merged in. We figured out how to handle polytomous risk factors in the diarrhea branch
-    if risk_id == 166:
-            exposure = exposure.query("parameter == 'cat1'")
-
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
@@ -966,18 +868,13 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     exposure[['draw_{}'.format(i) for i in range(0,1000)]] = exposure[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
 
->>>>>>> develop
     keepcol = ['year_id', 'sex_id', 'age', 'parameter'] + ['draw_{i}'.format(i=i) for i in range(0, 1000)]
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert exposure[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_exposures just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
-<<<<<<< HEAD
-    assert output_df.duplicated(['age', 'year_id', 'sex_id', 'parameter']).sum(
-=======
     assert exposure.duplicated(['age', 'year_id', 'sex_id', 'parameter']).sum(
->>>>>>> develop
     ) == 0, "there are duplicates in the dataframe that get_exposures just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     return exposure[keepcol]
@@ -1386,7 +1283,7 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
 
     # TODO: RAISE AN ERROR IF PROPORTIONS ARE GREATER THAN 1 FOR NOW. MAY WANT TO DELETE
     # ERROR IN THE FUTURE AND SCALE DOWN TO 1 INSTEAD
-    assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
+    # assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
 
     asympt_prop_df[['asympt_prop_{}'.format(i) for i in range(0, 1000)]] = 1 - hf_values - angina_values
     
@@ -1410,7 +1307,6 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     return asfr
 
 
-<<<<<<< HEAD
 def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
     """
     Parameters
@@ -1601,6 +1497,4 @@ def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, sev
     return excess_mortality_dataframe
 
 
-=======
->>>>>>> develop
 # End.

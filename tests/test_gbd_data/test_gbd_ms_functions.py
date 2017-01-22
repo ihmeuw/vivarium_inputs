@@ -9,7 +9,7 @@ from ceam_inputs.gbd_ms_functions import get_pafs
 from ceam_inputs.gbd_ms_functions import get_exposures
 from ceam_inputs.gbd_ms_functions import get_angina_proportions
 from ceam_inputs.gbd_ms_functions import get_disability_weight
-from ceam_inputs import generate_ceam_population
+from ceam_inputs.gbd_ms_functions import generate_ceam_population
 from ceam_inputs.gbd_ms_functions import get_cause_level_prevalence
 from ceam_inputs import get_prevalence
 from ceam_inputs.gbd_ms_functions import determine_if_sim_has_cause
@@ -22,10 +22,13 @@ from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
 from ceam_inputs.gbd_ms_functions import get_cause_deleted_mortality_rate
 from ceam_tests.util import build_table
+from ceam_inputs.gbd_ms_functions import get_etiology_specific_incidence
+from ceam_inputs.gbd_ms_functions import get_etiology_specific_prevalence
+from ceam_inputs.gbd_ms_functions import get_asympt_ihd_proportions
 
 # generate_ceam_population
 def test_generate_ceam_population():
-    pop = generate_ceam_population(500000)
+    pop = generate_ceam_population(180, 1990, 1000000)
 
     num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
 
@@ -35,7 +38,7 @@ def test_generate_ceam_population():
 
     val = val.get_value(7.5, 'count')
 
-    val = val / 500000
+    val = val / 1000000
 
     assert np.allclose(val, 0.0823207075530383, .01), "there should be about 8.23% 7.5 year old males in Kenya in 1990, based on data uploaded by em 1/5/2017"
 
@@ -48,7 +51,7 @@ def test_get_cause_level_prevalence():
 
     dict_of_disease_states = {'severe_heart_failure' : prev_df1, 'moderate_heart_failure' : prev_df2}    
      
-    cause_level, seq_level_dict = get_cause_level_prevalence(dict_of_disease_states, 1990)
+    cause_level, seq_level_dict = get_cause_level_prevalence(dict_of_disease_states, 2005)
 
     # pick a random age and sex to test
     sex = "Male"
@@ -312,14 +315,14 @@ def test_get_disability_weight():
 
 
 # get_asympt_ihd_proportions
-def get_asympt_ihd_proportions():
+def test_get_asympt_ihd_proportions():
     angina_proportions = get_angina_proportions()
 
-    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 1990)
+    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 2000)
 
-    ang_filter = angina_proportions.query("age = 32.5 and sex_id = 1 and year_id==1995")
+    ang_filter = angina_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
 
-    hf_filter = heart_failure_proportions.query("age = 32.5 and sex_id = 1 and year_id==1995")
+    hf_filter = heart_failure_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
 
     ang_value = ang_filter.set_index('age').get_value(32.5, 'angina_prop')
 
@@ -327,10 +330,33 @@ def get_asympt_ihd_proportions():
 
     asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000)
    
-    asy_filter = asympt_ihd_proportions.query("age = 32.5 and sex_id = 1 and year_id==1995")
+    asy_filter = asympt_ihd_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
      
     asy_value = asy_filter.set_index('age').get_value(32.5, 'asympt_prop_19')
 
     assert 1 - hf_value - ang_value == asy_value, "get_asympt_ihd_proportions needs to ensure that the sum of heart failure, angina, and asympt ihd add up to 1"
+
+
+# get_etiology_specific_incidence
+def test_get_etiology_specific_incidence():
+    df = get_etiology_specific_incidence(180, 1990, 2000, 181, 302, 1181)
+
+    df = df.query("year_id == 1995 and sex_id ==1") 
+
+    val = df.set_index('age').get_value(82.5, 'draw_10')
+
+    assert val == 0.06306237 * 2.5101927, "get_etiology_specific_incidence needs to ensure the eti pafs and envelope were multiplied together correctly"
+
+
+# get_etiology_specific_prevalence
+def test_get_etiology_specific_prevalence():
+    df = get_etiology_specific_prevalence(180, 1990, 2000, 181, 302, 1181)
+
+    df = df.query("year_id == 1995 and sex_id ==1")
+
+    val = df.set_index('age').get_value(82.5, 'draw_10')
+
+    assert val == 0.02491546 * 0.06306237, "get_etiology_specific_prevalence needs to ensure the eti pafs and envelope were multiplied together correctly"
+
 
 # End.

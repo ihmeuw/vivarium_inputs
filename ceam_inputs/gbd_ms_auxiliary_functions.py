@@ -120,55 +120,6 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     df = df.set_index('age_group_id')
     df['age'] = mapping['age']
-<<<<<<< HEAD
-    # TODO: Set the end age midpoint to 80 for now. Abie wants to set it to 82.5 unless we think of something better. Setting to 80 for now, will set to 82.5 after cleaning up the age_extrapolation code
-    df.loc[df.age == 102.5, 'age'] = 80 
-    df = df.set_index(idx)
-
-    return df
-
-
-def expand_grid(a, y):
-    """
-    Creates an expanded dataframe of ages and years
-    Mirrors the expand_grid function in R
-    See http://stackoverflow.com/questions/12130883/r-expand-grid-function-in-python
-    for more details
-
-    Parameters
-    ----------
-    a: age values that you on which you want to expand
-    y: year values that you on which you want to expand
-
-    Returns
-    -------
-    Dataframe of expanded ages and years
-    """
-
-    aG, yG = np.meshgrid(a, y)  # create the actual grid
-    aG = aG.flatten()  # make the grid 1d
-    yG = yG.flatten()  # make the grid 1d
-    return pd.DataFrame({'age': aG, 'year_id': yG})  # return a dataframe
-
-
-def extrapolate_ages(df, age_end, year_start, year_end):
-    """
-    Extrapolates GBD data for simulants over the age of 80
-    Necessary because GBD's estimates only go to "80+" and we
-    need data for single ages greater than 80
-
-    Parameters
-    ----------
-    df: dataframe of unextrapolated estimates
-    age_end: age to which you want to extrapolate (inclusive)
-    year_end: year to which you want to extrapolate (inclusive)
-
-    Returns
-    -------
-    df with extrapolated values
-    """
-=======
->>>>>>> develop
 
     # Assumption: We're using 82.5 as the midpoint for the age 80+ age group. May want to change in the future.
     df.loc[df.age == 102.5, 'age'] = 82.5
