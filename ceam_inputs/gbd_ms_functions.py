@@ -1207,15 +1207,14 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
     # merge interpolated pafs and interpolated incidence
     etiology_specific_incidence= pd.merge(diarrhea_envelope_incidence, etiology_paf, on=['age', 'year_id', 'sex_id'],
                                           suffixes=('_envelope', '_pafs'))
+
+    etiology_specific_incidence.set_index(['year_id', 'sex_id', 'age'], inplace=True)
     
-    # TODO: Do all 1,000 draws at once or just return 1 draw?
-    paf = etiology_specific_incidence['draw_{}_pafs'.format(draw_number)]
-    env_inc = etiology_specific_incidence['draw_{}_envelope'.format(draw_number)]
-    etiology_specific_incidence['draw_{}'.format(draw_number)] = np.multiply(paf, env_inc)
+    pafs = etiology_specific_incidence[['draw_{}_pafs'.format(i) for i in range(0, 1000)]].values
+    envelope_incidence_draws = etiology_specific_incidence[['draw_{}_envelope'.format(i) for i in range(0, 1000)]].values
+    output_df = pd.DataFrame(np.multiply(pafs, envelope_incidence_draws), columns=['draw_{}'.format(i) for i in range(0, 1000)], index=etiology_specific_incidence.index)
 
-    keepcol = ['year_id', 'sex_id', 'age', 'draw_{}'.format(draw_number)]
-
-    return etiology_specific_incidence[keepcol]
+    return output_df.reset_index()
 
 
 def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id):
@@ -1255,16 +1254,16 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     
     etiology_paf = get_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
 
-    etiology_specific_prevalence= pd.merge(etiology_paf, diarrhea_envelope_prevalence, on=['age', 'year_id', 'sex_id'], 
+    etiology_specific_prevalence= pd.merge(diarrhea_envelope_prevalence, etiology_paf, on=['age', 'year_id', 'sex_id'], 
                                           suffixes=('_envelope', '_pafs'))
 
-    paf = etiology_specific_prevalence['draw_{}_pafs'.format(draw_number)]
-    env_prev = etiology_specific_prevalence['draw_{}_envelope'.format(draw_number)]
-    etiology_specific_prevalence['draw_{}'.format(draw_number)] = np.multiply(paf, env_prev)
+    etiology_specific_prevalence.set_index(['year_id', 'sex_id', 'age'], inplace=True)
 
-    keepcol = ['year_id', 'sex_id', 'age', 'draw_{}'.format(draw_number)]
+    pafs = etiology_specific_prevalence[['draw_{}_pafs'.format(i) for i in range(0, 1000)]].values
+    envelope_prevalence_draws = etiology_specific_prevalence[['draw_{}_envelope'.format(i) for i in range(0, 1000)]].values
+    output_df = pd.DataFrame(np.multiply(pafs, envelope_prevalence_draws), columns=['draw_{}'.format(i) for i in range(0, 1000)], index=etiology_specific_prevalence.index)
 
-    return etiology_specific_prevalence[keepcol]
+    return output_df.reset_index()
 
 
 # TODO: Figure out if we need to do anything to the remission rates. We have remission for all diarrhea.
