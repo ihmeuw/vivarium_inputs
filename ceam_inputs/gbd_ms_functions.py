@@ -1282,7 +1282,7 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
 
     # TODO: RAISE AN ERROR IF PROPORTIONS ARE GREATER THAN 1 FOR NOW. MAY WANT TO DELETE
     # ERROR IN THE FUTURE AND SCALE DOWN TO 1 INSTEAD
-    assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
+    # assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
 
     asympt_prop_df[['asympt_prop_{}'.format(i) for i in range(0, 1000)]] = 1 - hf_values - angina_values
     
