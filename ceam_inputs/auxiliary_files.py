@@ -5,7 +5,7 @@ import platform
 
 FILES = {
     'Angina Proportions' : {
-        'path': '{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/angina_props.csv',
+        'path': '{j_drive}/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv',
         'source': '/snfs1/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv',
         'owner': 'Catherine O. Johnson <johnsoco@uw.edu>',
         },

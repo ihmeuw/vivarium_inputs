@@ -13,155 +13,7 @@ from ceam_inputs.util import stata_wrapper
 # in gbd_ms_functions.py to prepare data for ceam
 
 
-def set_age_year_index(df, age_start, age_end, year_start, year_end):
-    """
-    Return a dataframe with age and year indexes. Preps the data for
-        interpolation
-
-    Parameters
-    ----------
-    df: df
-        df contains raw inputs from GBD, so the data only contains info
-        for age groups and GBD years
-
-    age_start: int or str
-        earliest age for which you want data
-            NOTE: If you want your age range to start with early, late, or
-            post neonatal, then enter "early neonatal", "late neonatal",
-            or "post neonatal" for age_start
-            # TODO: Confirm with someone that this is the best way to get
-            data for en, ln, and pn
-
-    age_end: int or strt
-        end point of the interpolation. all ages after this will have the
-        same constant estimate of the quantity of interest that you are
-        studying (see extrapolate_ages for more info)
-            NOTE: If you want your age range to end with early, late, or
-            post neonatal, then enter "early neonatal", "late neonatal",
-            or "post neonatal" for age_end
-            # TODO: Confirm with someone that this is the best way to get
-            data for en, ln, and pn
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-
-    measure : int, measure
-        defines which measure (e.g. prevalence) you want to pull. Use central
-        comp's get_ids functions to learn about which measures are available
-        and what numbers correspond with each measure
-
-    me_id: int, modelable entity id
-        modelable_entity_id takes same me_id values as are used for GBD
-
-    Returns
-    -------
-    df with year_id, sex_id, age and 1k draws. many of the draw columns have
-    nulls at this point which will be filled in by interpolation function
-    """
-
-    # Set ages and years of interest
-        # need to use special handling if age_start or age_end is early, late, 
-        # or post neonatal
-    
-    # TODO: Use dbtools to grab en, ln, and pn midpts straight from the database
-    en_midpt = (.01917808 / 2)
-    ln_midpt = ((0.01917808 + 0.07671233) / 2)
-    pn_midpt = ((0.07671233 + 1) / 2)
-    
-    # if age_start is <1 but age_end >1 
-    if type(age_end) is int and type(age_start) is str:
-        if age_start == "early neonatal":
-            ages = [en_midpt, ln_midpt, pn_midpt] + np.arange(1, age_end + .5, .5).tolist()
-        elif age_start == "late neonatal":
-            ages = [ln_midpt, pn_midpt] + np.arange(1, age_end + .5, .5).tolist()
-        elif age_start == "post neonatal":
-            ages = [pn_midpt] + np.arange(1, age_end + .5, .5).tolist()
-        else:
-            raise ValueError("""you supplied an incorrect age_start value. you wrote {}
- which is invalid. valid entries for age_start are 'early neonatal', 'late neonatal',
- 'post neonatal', or a number that is a multiple of .5 between 1 and 80 (inclusive)""".
-format(age_start))
-
-    # if age_start <1 and age_end <1
-    elif type(age_end) and type(age_start) is str:        
-        if age_start == "early neonatal" and age_end == "early neonatal":
-            ages = [en_midpt] 
-        if age_start == "early neonatal" and age_end == "late neonatal":
-            ages = [en_midpt, ln_midpt]
-        if age_start == "early neonatal" and age_end == "post neonatal":
-            ages = [en_midpt, ln_midpt, pn_midpt]        
-        elif age_start == "late neonatal" and age_end == "late neonatal":
-            ages = [ln_midpt]
-        elif age_start == "late neonatal" and age_end == "post neonatal":
-            ages = [ln_midpt, pn_midpt]
-        elif age_start == "post neonatal" and age_end =="post neonatal":
-            ages = [pn_midpt]
-        else:
-            raise ValueError("""you supplied an incorrect age_start or age_end value.
- you wrote {s} and {e}, at least one of  which is invalid. valid entries for age_start 
- and age_end are early neonatal, late neonatal, post neonatal, or a number that is
- a multiple of .5 between 1 and 80 (inclusive)""".format(a=age_start, e=age_end))
-
-    else:
-        ages = np.arange(age_start, age_end + .5, .5).tolist()
-
-    years = range(year_start, year_end + 1)
-
-    # Set indexes of year_id and age
-    indexed_df = df.set_index(['year_id', 'age']).sortlevel().copy()
-
-    age_sex_index = pd.MultiIndex.from_product(
-        [years, ages], names=['year_id', 'age'])
-
-    expanded_data = pd.DataFrame(indexed_df, index=age_sex_index)
-
-    if type(age_start) is int:
-        assert age_start >= 1, """age_start cannot be an integer less than 1. if 
-                                  you want age_start to be <1, state that it is
-                                  equal to 'early neonatal', 'late neonatal', or
-                                  'post neonatal'"""
-
-    return expanded_data
-
-
-def interpolate_linearly_over_years_then_ages(df, col_prefix1,
-                                              col_prefix2=None):
-    """
-    Returns a dataframe with interpolated draw values
-
-    Parameters
-    ----------
-    df: df
-        df with columns year_id, sex_id, age, and 1k draws of a quantity of
-        interest
-
-    col_prefix: str
-        prefix of the draw column that you will interpolate over (e.g. the
-        col_prefix of 'rr_0' is 'rr')
-
-    Returns
-    -------
-    df with year_id, sex_id, age and 1k draws. null values in the input file
-    are now filled because we interpolated between the age/year combinations
-    that we did have data for
-    """
-    if col_prefix1 == "angina_prop":
-        keepcol = ["angina_prop"]
-
-    else:
-        keepcol = ["{c}_{i}".format(c=col_prefix1, i=i) for i in range(0, 1000)]
-
-    if col_prefix2 is not None:
-        keepcol += ["{c}_{i}".format(c=col_prefix2, i=i) for i in range(0, 1000)]
-
-    interp_columns = df[keepcol]
-    interp_data = interp_columns.groupby(level=0).apply(lambda x: x.interpolate())
-    interp_data = interp_data.groupby(level=1).apply(lambda x: x.interpolate())
-
-    return interp_data
+# TODO: MAKE SURE NEW PYTHON FUNCTIONS ARE USING THE PUBLICATION IDS!!
 
 
 def create_age_column(simulants_file, population_file, number_of_simulants):
@@ -182,6 +34,16 @@ def create_age_column(simulants_file, population_file, number_of_simulants):
     Returns
     -------
     df with columns simulant_id and age
+
+    Notes
+    -----
+    Used by -- generate_ceam_population
+
+    Assumptions -- None
+
+    Questions - None
+
+    Unit test in place? -- Yes
     """
 
     # use stats package to assign ages to simulants according to proportions in
@@ -198,6 +60,27 @@ def create_age_column(simulants_file, population_file, number_of_simulants):
 
 
 def normalize_for_simulation(df):
+    """
+    Parameters
+    ----------
+    df : pd.DataFrame
+        dataframe to change
+
+    Returns
+    -------
+    Returns a df with column year_id changed to year, sex_id changed to sex, and sex values changed from 1 and 2 to Male and Female
+
+    Notes
+    -----
+    Used by -- load_data_from_cache
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- Yes
+    """
+
     # Convert sex_id to a categorical
     df['sex'] = df.sex_id.map(
         {1: 'Male', 2: 'Female', 3: 'Both'}).astype('category')
@@ -207,7 +90,7 @@ def normalize_for_simulation(df):
     return df
 
 
-def get_age_from_age_group_id(df):
+def get_age_group_midpoint_from_age_group_id(df):
     """Creates an "age" column from the "age_group_id" column
 
     Parameters
@@ -217,16 +100,27 @@ def get_age_from_age_group_id(df):
     Returns
     -------
     df with an age column
+
+    Notes
+    -----
+    Used by -- get_modelable_entity_draws, get_relative_risks, get_pafs, get_exposures, get_sbp_mean_sd, get_bmi_distributions, get_age_specific_fertility_rates, get_populations
+
+    Assumptions -- We assume that using a midpoint of age 82.5 for the 80+ year old age group is ok for the purposes of CEAM. Everett proposed that we could get the life expectancy at age 80 for each location and use that as the midpoint for the 80+ group, but Abie suggested that we keep the midpoint as 82.5 for now. GBD populations have data for each age group up until the age 95+ age group, at which point I'm assuming we can use 97.5 as the midpoint.
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     """
 
     df = df.copy()
     idx = df.index
     mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
     mapping = mapping.set_index('age_group_id')
-    # TODO: figure out what number to use for 80+ group
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
+
     df = df.set_index('age_group_id')
     df['age'] = mapping['age']
+<<<<<<< HEAD
     # TODO: Set the end age midpoint to 80 for now. Abie wants to set it to 82.5 unless we think of something better. Setting to 80 for now, will set to 82.5 after cleaning up the age_extrapolation code
     df.loc[df.age == 102.5, 'age'] = 80 
     df = df.set_index(idx)
@@ -273,26 +167,16 @@ def extrapolate_ages(df, age_end, year_start, year_end):
     -------
     df with extrapolated values
     """
+=======
+>>>>>>> develop
 
-    expand_ages = range(81, age_end + 1)
-    expand_years = range(year_start, year_end + 1)
+    # Assumption: We're using 82.5 as the midpoint for the age 80+ age group. May want to change in the future.
+    df.loc[df.age == 102.5, 'age'] = 82.5
+    
+    # TODO: Confirm this is an ok assumption. GBD produces population data for 80-84, 85-89, and 90-94 year olds. We're seeting the midpoint for the age 95+ year old age group to be 97.5
+    df.loc[df.age == 110, 'age'] = 97.5
 
-    # use expand_grid auxilliary function to create a table
-    # of expanded ages and years
-    expand_table = expand_grid(expand_ages, expand_years)
-
-    dup_table = df.query("age == 80")
-
-    # Do this only for the 80 plus year olds so that we can extend our
-    # cause-deleted mortality rates to the older ages
-    dup_table.reset_index(level=0, inplace=True)
-
-    merged = pd.merge(expand_table, dup_table, on=['year_id'])
-
-    df.reset_index(level=0, inplace=True)
-    df.reset_index(level=1, inplace=True)
-
-    df = df.append(merged)
+    df = df.set_index(idx)
 
     return df
 
@@ -317,29 +201,48 @@ def get_populations(location_id, year_start, sex_id):
     df with columns year_id, location_name, location_id, age, sex_id, and
         pop_scaled
         pop_scaled is the population for a given age/year/sex
+
+    Notes
+    -----
+    Used by -- generate_ceam_population, create_sex_id_column
+
+    Assumptions --  None
+
+    Questions -- None
+
+    Unit test in place? -- No. Don't think one is needed. We just use the central comp get_population function to get the population data and then select a specific year, specific sex, and use the get_age_group_midpoint_from_age_group_id function to get the age group midpoints.
+
+    Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using central comp's get_populations function.
     """
+
+    # use central comp's get_population function to get gbd populations
+    # the age group id arguments get the age group ids for each age group up through age 95+
+    # pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
     pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
 
     # use auxilliary function extract_age_from_age_group_name to create an age
     # column
-    pop = get_age_from_age_group_id(pop)
+    pop = get_age_group_midpoint_from_age_group_id(pop)
 
     # Grab population for year_start only (to initialize microsim population)
     pop = pop.query('year_id=={y}'.format(y=year_start))
 
-    # Determine gender of interest. Can be 1, 2, or 3
+    # Determine gender of interest. Can be 1, 2, or 3 (Male, Female, or Both)
     pop = pop.query("sex_id == {s}".format(s=sex_id))
 
     # Keep only the relevant columns
-    pop = pop[['year_id', 'location_name',
-               'location_id', 'age', 'sex_id', 'pop_scaled']]
+    pop = pop[['year_id', 
+               'location_id', 'age', 'sex_id', 'population']]
+
+    # The population column was called pop_scaled in GBD 2015, but name was changed. Changing it back since all of our code uses pop_scaled as the col name
+    pop = pop.rename(columns={'population': 'pop_scaled'})
 
     # assert an error if there are duplicate rows
     assert pop.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_populations just tried to output. check the population file that you pulled in from the GBD database"
+    ) == 0, "there are duplicates in the dataframe that get_populations just tried to output"
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert pop.isnull().values.any() == False, "there are nulls in the dataframe that get_populations just tried to output. check the population file that you pulled in from the GBD database"
+    assert pop.isnull().values.any() == False, "there are nulls in the dataframe that get_populations just tried to output"
 
     return pop
 
@@ -363,7 +266,17 @@ def assign_sex_id(simulants_df, male_pop, female_pop):
     -------
     A dataframe with a sex_id column with age/sex correlated
 
+    Notes
+    -----
+    Used by -- create_sex_id_column
+
+    Assumptions -- That we can assign ages/sexes at different times while still ensuring correlation.
+
+    Questions -- Currently, when we generate a population of simulants, we assign age and then assign sex. Should we be assigning age and sex at the same time?
+ 
+    Unit test in place? -- Yes
     """
+
     new_sim_file = pd.DataFrame()
 
     # do for each age in population dataframes (same ages in male_pop and
@@ -410,6 +323,14 @@ def create_sex_id_column(simulants_df, location_id, year_start):
     -------
     Produces a dataframe with sex values
         Sex values are correlated with age
+
+    Used by-- generate_ceam_population
+
+    Assumptions -- That we can assign ages/sexes at different times while still ensuring correlation.
+
+    Questions -- Currently, when we generate a population of simulants, we assign age and then assign sex. Should we be assigning age and sex at the same time?
+
+    Unit test in place? -- No. Don't think it's needed for this function, since this function just utilizes two of our other functions (get_populations and assign_sex_id) which are already tested.
     """
 
     # Force the year to be a multiple of five because that's the granularity
@@ -427,7 +348,7 @@ def create_sex_id_column(simulants_df, location_id, year_start):
     # assert an error to make sure data is dense (i.e. no missing data)
     assert new_sim_file.isnull().values.any() == False, "there are nulls in the dataframe that assign_sex_id just tried to output. check the population file that you pulled in from the GBD database"
 
-    # change sex_id column name to be an integer
+    # change sex_id column to be an integer
     new_sim_file.sex_id = new_sim_file.sex_id.astype(int)
 
     # assert an error that only sex_id 1 and 2 are in the new_sim_file
@@ -437,7 +358,6 @@ def create_sex_id_column(simulants_df, location_id, year_start):
 
 
 def get_all_cause_mortality_rate(location_id, year_start, year_end):
-    # FIXME: for future models, actually bring in cause-deleted mortality
     '''Get cause-deleted mortality rate from year_start to year_end (inclusive)
 
     Parameters
@@ -454,70 +374,64 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     Returns
     -------
     pd.DataFrame with columns
+
+    Notes
+    -----
+    Used by -- get_cause_deleted_mortality_rate
+
+    Assumptions -- None
+
+    Questions -- Is the dalynator the correct source for pulling the all-cause mortality rate? 
+
+    Unit test in place? -- Not currently, but one does need to be put in place
     '''
 
-    all_cause_mr_dict = {}
+    all_cause_draws = stata_wrapper('get_all_cause_mortality_rate_draws.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
-    for sex_id in (1, 2):
-        all_cause_mr = stata_wrapper('get_all_cause_mortality_rate_draws.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id)
+    # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
+    # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
+    # all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
-        # filter so that only metric id 1 (deaths) is in our dataframe
-        all_cause_deaths = all_cause_mr.query("metric_id == 1").copy()
+    # filter so that only metric id 1 (deaths) is in our dataframe
+    all_cause_deaths = all_cause_draws.query("metric_id == 1")
 
-        # read in and merge the population file to file with all_cause deaths to calculate the rate
-        # rate = # of all cause deaths / population for every age, sex, year
-        # combination
-        pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
+    # get population estimates for each age, sex, year group. population estimates will serve
+    # as the estimates for # of Person Years in each age group
+    # pop = get_populations(age_group_id=list(range(2,22)), location_id=location_id, year_id=-1, sex_id=[1,2])
+    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
 
-        # merge all cause deaths and pop to get all cause mortality rate
-        all_cause_mr = pd.merge(all_cause_deaths, pop, on=[
-                                'age_group_id', 'year_id', 'sex_id', 'location_id'])
+    pop = pop.rename(columns={'population': 'pop_scaled'})
 
-        # Need to divide # of all cause deaths by population
-        for i in range(0, 1000):
-            all_cause_mr['all_cause_mortality_rate_{}'.format(i)] = all_cause_mr['draw_{}'.format(i)]\
-                / all_cause_mr.pop_scaled
+    # merge all cause deaths and pop to get all cause mortality rate
+    merged = pd.merge(all_cause_deaths, pop, on=[
+                            'age_group_id', 'year_id', 'sex_id', 'location_id'])
 
-        all_cause_mr = get_age_from_age_group_id(all_cause_mr).copy()
+    # Need to divide # of all cause deaths by population
+    # Mortality Rate = Number of Deaths / Person Years of Exposure
+    deaths = merged[['draw_{}'.format(i) for i in range(1000)]].values
+    population = merged[['pop_scaled']].values
 
-        # only get years we care about
-        all_cause_mr = all_cause_mr.query('year_id>={ys} and year_id<={ye}'.
-                                          format(ys=year_start, ye=year_end))
+    merged.set_index(['year_id', 'sex_id', 'age_group_id'], inplace=True)
 
-        all_cause_mr = all_cause_mr.query('sex_id == {s}'.format(s=sex_id))
+    all_cause_mr = pd.DataFrame(np.divide(deaths, population), columns=['all_cause_mortality_rate_{}'.format(i) for i in range(0,1000)], index=merged.index)
 
-        all_cause_mr = set_age_year_index(all_cause_mr, 'early neonatal',
-                                          80, year_start, year_end)
+    all_cause_mr = all_cause_mr.reset_index()
 
-        interp_data = interpolate_linearly_over_years_then_ages(all_cause_mr,
-                                                                'all_cause_mortality_rate')
+    all_cause_mortality_rate = get_age_group_midpoint_from_age_group_id(all_cause_mr)
 
-        interp_data['sex_id'] = sex_id
-
-        all_cause_mr_dict[sex_id] = extrapolate_ages(
-            interp_data, 105, year_start, year_end)
-
-    output_df = all_cause_mr_dict[1].append(all_cause_mr_dict[2])
-
-    output_df['location_id'] = location_id
-
-    output_df.location_id = output_df.location_id.astype(int)
+    # only get years we care about
+    all_cause_mortality_rate = all_cause_mortality_rate.query('year_id>=@year_start and year_id<=@year_end')
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_all_cause_mortality just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert all_cause_mortality_rate.isnull().values.any() == False, "there are nulls in the dataframe that get_all_cause_mortality just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
-    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    assert all_cause_mortality_rate.duplicated(['age', 'year_id', 'sex_id']).sum(
     ) == 0, "there are duplicates in the dataframe that get_all_cause_mortality_rate just tried to output. check the cache to make sure that the data you're pulling is correct"
 
-    # assert that non of the all-cause mortality rate values are greater than 1
-    draw_number = config.getint('run_configuration', 'draw_number')
-    assert output_df['all_cause_mortality_rate_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_all_cause_mortality_rate calculation. all-cause mortality can't be GT 0"
-
-    return output_df
+    return all_cause_mortality_rate
 
 
-# TODO: write healthstate functions tests
 def get_healthstate_id(dis_weight_modelable_entity_id):
     """Returns a healthstate_id for a given modelable entity id
 
@@ -528,6 +442,14 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
     Returns
     -------
     integer specifying healthstate_id for modelable entity id that was supplied
+
+    Used by -- get_disability_weight
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     """
     
     healthstate_id_df = ezfuncs.query('''
@@ -545,6 +467,60 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
     healthstate_id = healthstate_id_df.at[0,'healthstate_id']
 
     return healthstate_id
+
+
+def expand_grid(a, y):
+    """
+    Creates an expanded dataframe of ages and years
+    Mirrors the expand_grid function in R
+    See http://stackoverflow.com/questions/12130883/r-expand-grid-function-in-python
+    for more details
+
+    Parameters
+    ----------
+    a: age values that you on which you want to expand
+    y: year values that you on which you want to expand
+
+    Returns
+    -------
+    Dataframe of expanded ages and years
+    """
+
+    aG, yG = np.meshgrid(a, y)  # create the actual grid
+    aG = aG.flatten()  # make the grid 1d
+    yG = yG.flatten()  # make the grid 1d
+    df = pd.DataFrame({'age': aG, 'year_id': yG})  # return a dataframe
+    return df[['year_id', 'age']].sort_values(by=['year_id', 'age'])
+
+
+def expand_ages(df):
+    mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
+    mapping_filter = mapping.query('age_group_id >=2 and age_group_id <=21').copy()
+    mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
+    mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5
+    
+    expanded_data = expand_grid(mapping_filter.age.values, pd.unique(df.year_id.values))
+    expanded_indexed = expanded_data.set_index(['year_id', 'age'])
+    
+    indexed_df = df.set_index(['year_id', 'age']).sortlevel()
+    total_df = pd.DataFrame()
+    
+    # for rrs and exposures, there are multiple parameters
+    if 'parameter' in df.columns:
+        for sex in pd.unique(df.sex_id.values):
+            for param in pd.unique(df.parameter.values):
+                one_df = pd.DataFrame(indexed_df.query('parameter == @param and sex_id == @sex'), index=expanded_indexed.index)
+                one_df['sex_id'] = sex
+                one_df['parameter'] = param
+                total_df = total_df.append(one_df)
+    
+    else:
+        for sex in pd.unique(df.sex_id.values):
+            one_df = pd.DataFrame(indexed_df.query('sex_id == @sex'), index=expanded_indexed.index)
+            one_df['sex_id'] = sex
+            total_df = total_df.append(one_df)
+
+    return total_df.reset_index()
 
 
 # End.

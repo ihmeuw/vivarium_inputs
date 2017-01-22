@@ -1,6 +1,8 @@
 # ~/ceam/ceam/gbd_data/gbd_ms_functions.py
 # coding: utf-8
 
+# TODO: MAKE SURE NEW PYTHON FUNCTIONS ARE USING THE PUBLICATION IDS!!
+
 import os.path
 import os
 import shutil
@@ -23,21 +25,21 @@ from ceam.framework.randomness import choice
 from ceam_inputs.util import stata_wrapper, get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
 
-from ceam_inputs.gbd_ms_auxiliary_functions import set_age_year_index
-from ceam_inputs.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
 from ceam_inputs.gbd_ms_auxiliary_functions import create_age_column
 from ceam_inputs.gbd_ms_auxiliary_functions import normalize_for_simulation
-from ceam_inputs.gbd_ms_auxiliary_functions import get_age_from_age_group_id
-from ceam_inputs.gbd_ms_auxiliary_functions import expand_grid
-from ceam_inputs.gbd_ms_auxiliary_functions import extrapolate_ages
+from ceam_inputs.gbd_ms_auxiliary_functions import get_age_group_midpoint_from_age_group_id
 from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
 from ceam_inputs.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
+<<<<<<< HEAD
 from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
 # em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
 # TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
+=======
+from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages
+>>>>>>> develop
 from joblib import Memory
 import warnings
 
@@ -49,6 +51,8 @@ _log = logging.getLogger(__name__)
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
+# from transmogrifier.draw_ops import get_draws
+
 
 # # Microsim functions
 # This notebook contains the functions that will be used to
@@ -56,7 +60,7 @@ memory = Memory(cachedir=get_cache_directory(), verbose=1)
 # microsim. Wherever possible, these functions will leverage the existing
 # central comp functions (please see this link for more information on the
 # central computation functions
-# https://hub.ihme.washington.edu/display/G2/Central+Function+Documentation)
+# https://hub.ihme.washington.edu/display/GBD2016/Shared+functions
 
 @memory.cache
 def get_model_versions():
@@ -76,6 +80,7 @@ def get_model_versions():
     mapping = dict(mapping[['modelable_entity_id', 'model_version_id']].values)
 
     return mapping
+
 
 # 1. get_modelable_entity_draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
 
@@ -107,50 +112,46 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
     Returns
     -------
     df with year_id, sex_id, age and 1k draws
+
+    Notes
+    -----
+    Used by -- get_cause_level_prevalence, sum_up_csmrs_for_all_causes_in_microsim, get_post_mi_heart_failure_proportion_draws, get_excess_mortality, get_incidence, get_continuous, get_proportion, get_prevalence
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- No. Don't think it's necessary, since this function merely pulls draws from the database and then filters a dataframe so that only one measure is included in the output and that only the years in b/w the simulation year start and year end are included in the df.
     """
 
-    output_df = pd.DataFrame()
     meid_version_map = get_model_versions()
     model_version = meid_version_map[me_id]
 
-    for sex_id in (1, 2):
+    draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
 
+    # draws = python_wrapper('get_modelable_entity_draws.py', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
 
-        draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
+    draws = draws[draws.measure_id == measure]
 
-        draws = draws[draws.measure_id == measure]
+    draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
+                         ys=year_start, ye=year_end))
 
-        draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
-            ys=year_start, ye=year_end)).copy()
+    draws = get_age_group_midpoint_from_age_group_id(draws)
 
-        draws = get_age_from_age_group_id(draws)
-
-        draws = draws.query("sex_id == {s}".format(s=sex_id))
-
-        draws = set_age_year_index(draws, 'early neonatal', 80, year_start, year_end)
-
-        interp_data = interpolate_linearly_over_years_then_ages(draws, 'draw')
-
-        interp_data['sex_id'] = sex_id
-
-        output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end))
-
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_modelable_entity_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert draws.isnull().values.any() == False, "there are nulls in the dataframe that get_modelable_entity_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
-    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    assert draws.duplicated(['age', 'year_id', 'sex_id']).sum(
     ) == 0, "there are duplicates in the dataframe that get_modelable_entity_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
 
-    return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
+    return draws[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
 # 2. generate_ceam_population
-# TODO: Figure out if we can assign ages at 5 year intervals
 
 
 def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None):
@@ -176,6 +177,19 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     -------
     df with columns simulant_id, age, sex_id, and columns to indicate if
     simulant has different diseases
+
+    Notes
+    -----
+    Used by -- Creates a population in base_population.py
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- Yes
+
+    TODO -- Need to smooth out initial ages (JIRA ticket - CE-213)
+
     """
 
     # Use auxilliary get_populations function to bring in the both sex
@@ -194,13 +208,13 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
         simulants = create_age_column(simulants, pop, number_of_simulants)
     else:
         simulants['age'] = initial_age
-    simulants = create_sex_id_column(simulants, location_id, year_start)
 
+    simulants = create_sex_id_column(simulants, location_id, year_start)
 
     # TODO: Design and implement test that makes sure CEAM population looks
     # like population file pulled from GBD
     # TODO: Design and implement test that makes sure population has been
-    # smoothed out-- JIRA TIC CE-213
+    # smoothed out-- JIRA TICKET CE-213
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert simulants.isnull().values.any() == False, "there are nulls in the dataframe that generate_ceam_population just tried to output. check the function and its auxiliary functions (get_populations and assign_sex_id)"
@@ -214,8 +228,13 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
 # 3. assign_cause_at_beginning_of_simulation
 
+<<<<<<< HEAD
 # TODO: Want to refactor the next few functions to assign prevalence at the beginning of the simulation in a better way
 def get_cause_level_prevalence(states, location_id, year_start, draw_number):
+=======
+
+def get_cause_level_prevalence(states, year_start):
+>>>>>>> develop
     """
     Takes all of the sequela in 'states' and adds them up to get a total prevalence for the cause
 
@@ -224,34 +243,51 @@ def get_cause_level_prevalence(states, location_id, year_start, draw_number):
     states : dict
         dict with keys = name of cause, values = modelable entity id of cause
 
-    location_id: int
-        location_id for location of interest
-
     year_start: int
         year_start is the year in which the simulation will begin
-
-    draw_number: int
-        draw_number for this simulation run (specified in config file)
 
     Returns
     -------
     df with 1k draws where draw values are the prevalence of the cause of interest
+
+    Notes
+    -----
+    Used by -- assign_cause_at_beginning_of_simulation
+
+    Assumptions -- That the sequela prevalences associated with a cause will add up to the cause level prevalence
+
+    Questions -- Would it be better to just pull cause level prevalence? I'm a bit worried that the sequela prevalences won't add up
+
+    Unit test in place? -- Yes
+
     """
     prevalence_df = pd.DataFrame()
-    prevalence_draws_dictionary = {}
 
     for key in states.keys():
+<<<<<<< HEAD
         states[key] = states[key].query("year == {}".format(year_start))
         states[key] = states[key][['year', 'sex', 'age', 'draw_{}'.format(draw_number)]]
         prevalence_df = prevalence_df.append(states[key])
 
     cause_level_prevalence = prevalence_df.groupby(
         ['year', 'sex', 'age'], as_index=False).sum()
+=======
+        assert states[key].columns.tolist() == ['year', 'age', 'prevalence', 'sex'], "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
+        # get prevalence for the start year only
+        states[key] = states[key].query("year == {}".format(year_start))
+
+        # keep only the columns we need (demographic identifiers and one draw)
+        states[key] = states[key][['year', 'age', 'prevalence', 'sex']]
+        prevalence_df = prevalence_df.append(states[key])
+
+    cause_level_prevalence = prevalence_df.groupby(
+        ['year', 'sex', 'age'], as_index=False)[['prevalence']].sum()
+>>>>>>> develop
 
     return cause_level_prevalence, states
 
 
-def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number):
+def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     """
     returns a dataframe with new column 'condition_envelope' that will indicate whether the simulant has the cause or is healthy (healthy is where condition_envelope = NaN at this point)
 
@@ -263,13 +299,21 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
     cause_level_prevalence: df
         dataframe of 1k prevalence draws
 
-    draw_number: int
-        draw_number for this simulation run (specified in config file)
-
     Returns
     -------
     df with indication of whether or not simulant is healthy
+
+    Notes
+    -----
+    Used by -- assign_cause_at_beginning_of_simulation
+
+    Assumptions -- None
+
+    Questions -- I sort the prevalence and simulants dataframes by simulant_id to make sure that the prevalence is being assigned correctly to each demographic group. Is there a better way to make sure that we're applying the correct prevalence rate to each simulant?
+
+    Unit test in place? -- Yes
     """
+<<<<<<< HEAD
     merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
     probability_of_disease = merged['draw_{}'.format(draw_number)]
     probability_of_NOT_having_disease = 1 - probability_of_disease
@@ -277,69 +321,98 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number
 
     results = simulants_df.copy()
     results['condition_envelope'] = choice('determine_if_sim_has_cause', simulants_df.simulant_id, [False, True], weights)
+=======
+
+    merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
+    
+    # Need to sort merged df so that the weights are in the same order as results
+    merged.sort_values(by='simulant_id', inplace=True)
+    probability_of_disease = merged['prevalence']
+    probability_of_NOT_having_disease = 1 - probability_of_disease
+    weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
+
+    results = simulants_df.copy().set_index('simulant_id')   
+ 
+    # Need to sort results so that the simulants are in the same order as the weights
+    results['condition_envelope'] = choice('determine_if_sim_has_cause', results.index, [False, True], weights)
+>>>>>>> develop
 
     return results
 
 
-def get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence, states, draw_number):
+def get_sequela_proportions(cause_level_prevalence, states):
     """
-    returns a dictionary with keys that are modelable entity ids and values are dataframes
+    Returns a dictionary with keys that are modelable entity ids and values are dataframes with proportion data
+
     Parameters
     ----------
-    prevalence_draws_dictionary: df
-        dict of dataframes of simulants that contains where values are draws of sequela prevalence and keys are me_ids
-
     cause_level_prevalence: df
         dataframe of 1k prevalence draws
 
-    draw_number: int
-        draw_number for this simulation run (specified in config file)
-
     states : dict
-        dict with keys = name of cause, values = modelable entity id of cause
+        dict with keys = name of cause, values = dataframe of prevalence draws
 
     Returns
     -------
     A dictionary of dataframes where each dataframe contains proportion of cause prevalence made up by a specific sequela
-    """
-    sequela_proportions = {}
 
-    # TODO: I do not think we want to be specifying draw_number here
-    draw_number = config.getint('run_configuration', 'draw_number')
+    Notes
+    -----
+    Used -- That the prevalence of a sequela can be divided by the prevalence of the cause associated with that sequela to get the proportional prevalence.
+
+    Questions -- None
+
+    Unit test in place? -- Yes
+    """
+
+    sequela_proportions = {}
 
     for key in states.keys():
         sequela_proportions[key] = \
+<<<<<<< HEAD
             pd.merge(prevalence_draws_dictionary[key], cause_level_prevalence, on=[
                 'age', 'sex'], suffixes=('_single', '_total'))
+=======
+            pd.merge(states[key], cause_level_prevalence, on=[
+                'age', 'sex', 'year'], suffixes=('_single', '_total'))
+>>>>>>> develop
         single = sequela_proportions[key][
-            'draw_{}_single'.format(draw_number)]
+            'prevalence_single']
         total = sequela_proportions[key][
-            'draw_{}_total'.format(draw_number)]
-        sequela_proportions[key]['scaled_prevalence'] = single / total
+            'prevalence_total']
+        sequela_proportions[key]['scaled_prevalence'] = np.divide(single, total)
 
     return sequela_proportions
 
 
-def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, states):
+def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file):
     """
     Parameters
     ----------
     sequela_proportions: dict
         a dictionary of dataframes where each dataframe contains proportion of cause prevalence made up by a specific sequela
 
-    prevalence_draws_dictionary: df
-        dict of dataframes of simulants that contains where values are draws of sequela prevalence and keys are me_ids
-
     new_sim_file: df
         dataframe of simulants
-
-    states : dict
-        dict with keys = name of cause, values = modelable entity id of cause
 
     Returns
     -------
     dataframe of simulants with new column condition_state that indicates if simulant which sequela simulant has or indicates that they are healthy (i.e. they do not have the disease)
+
+    Notes
+    -----
+    Used by -- assign_cause_at_beginning_of_simulation
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     """
+<<<<<<< HEAD
+=======
+
+>>>>>>> develop
     sequela_proportions = [(key, Interpolation(data[['sex', 'age', 'scaled_prevalence']], ['sex'], ['age'])) for key, data in sequela_proportions.items()]
     sub_pop = new_sim_file.query('condition_envelope == 1')
     list_of_keys, list_of_weights = zip(*[(key,data(sub_pop)) for key, data in sequela_proportions])
@@ -349,8 +422,8 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file, stat
 
     return new_sim_file
 
-def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
-                                            year_start, states):
+
+def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
     """
     Function that assigns chronic ihd status to starting population of
     simulants
@@ -359,9 +432,6 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     ----------
     simulants_df : dataframe
         dataframe of simulants that is made by generate_ceam_population
-
-    location_id : int, location id
-        location_id takes same location_id values as are used for GBD
 
     year_start : int, year
         year_start is the year in which you want to start the simulation
@@ -375,19 +445,29 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
         chronic_ihd takes values 0 or 1
             1 indicates that the simulant has chronic ihd
             0 indicates that the simulant does not have chronic ihd
-    """
-    draw_number = config.getint('run_configuration', 'draw_number') 
     
-    cause_level_prevalence, prevalence_draws_dictionary = get_cause_level_prevalence(states, location_id, year_start, draw_number) 
+    Notes
+    -----
+    Used by -- get_disease_states
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- I wrote code to produce graphs to make sure we're assigning prevalence correctly at the beginning of the simulation. I need to figure out how to allow randomness back into the assign_cause_at_beginning_of_simulation so that I can get a distribution of prevalences. @Alecwd I could use your help on this.
+
+    TODO: Automate and allow randomness in the graph production code
+    """
+    
+    cause_level_prevalence, prevalence_draws_dictionary = get_cause_level_prevalence(states, year_start) 
 
     # TODO: Should we be using groupby for these loops to ensure that we're
     # not looping over an age/sex combo that does not exist
+    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, cause_level_prevalence)    
 
-    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, cause_level_prevalence, draw_number)    
+    sequela_proportions = get_sequela_proportions(cause_level_prevalence, states)
 
-    sequela_proportions = get_sequela_proportions(prevalence_draws_dictionary, cause_level_prevalence, states, draw_number)
-
-    post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions,  post_cause_assignment_population, states)
+    post_sequela_assignmnet_population = determine_which_seq_diseased_sim_has(sequela_proportions, post_cause_assignment_population)
 
     post_sequela_assignmnet_population.condition_state = post_sequela_assignmnet_population.condition_state.fillna('healthy')
 
@@ -398,12 +478,13 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id,
     assert  post_sequela_assignmnet_population.duplicated(['simulant_id']).sum(
     ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
 
-    return post_sequela_assignmnet_population[['simulant_id', 'condition_state']]
+    return post_sequela_assignmnet_population
 
 
 # 4. get_cause_deleted_mortality_rate
 
-def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,
+
+def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
                                             year_start, year_end):
     '''
     returns dataframe with columns for age, sex, year, and 1k draws
@@ -412,9 +493,6 @@ def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,
 
     Parameters
     ----------
-    df: df
-        empty dataframe that will contain summed csmr_draws
-
     list_of_me_ids: list
         list of all of the me_ids in current simulation
 
@@ -430,7 +508,20 @@ def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,
     Returns
     ----------
     df with columns year_id, sex_id, age, and draw_0 - draw_999
+
+    Notes
+    -----
+    Used by -- get_cause_deleted_mortality_rate
+
+    Assumptions -- That we can add together the csmrs for every cause in the microsim and then subtract from the all-cause mortality rate to get the cause-deleted mortality rate.
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     '''
+
+    df = pd.DataFrame()
+
     for me_id in list_of_me_ids:
         csmr_draws = get_modelable_entity_draws(
             location_id, year_start, year_end, 15, me_id)
@@ -442,6 +533,83 @@ def sum_up_csmrs_for_all_causes_in_microsim(df, list_of_me_ids, location_id,
     return df
 
 
+<<<<<<< HEAD
+=======
+def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_me_ids_in_microsim):
+    '''Returns the cause-delted mortality rate for a given time period and location
+
+    Parameters
+    ----------
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    Returns
+    -------
+    df with columns age, year_id, sex_id, and 1k draws of cause deleted
+        mortality rate
+
+    Notes
+    -----
+    Used by -- Used in base_population.py
+
+    Assumptions -- That we can subtract the csmrs for the causes we care about to get the cause-deleted mortality rate
+
+    Questions -- None
+
+    Unit test in place? -- Yes
+    '''
+
+    all_cause_mr = get_all_cause_mortality_rate(
+        location_id, year_start, year_end)
+
+    if list_of_me_ids_in_microsim:
+        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids_in_microsim,
+                                                                  location_id, year_start, year_end)
+
+
+        cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=[
+                                'age', 'sex_id', 'year_id'])
+
+        # get cause-deleted mortality rate by subtracting out all of the csmrs from
+        # all-cause mortality rate
+        # TODO: Make sure this division is working properly for all draws
+        all_cause = cause_del_mr[['all_cause_mortality_rate_{}'.format(i) for i in range(1000)]].values
+        summed_csmr_of_sim_causes = cause_del_mr[['draw_{}'.format(i) for i in range(1000)]].values
+        deleted = pd.DataFrame(all_cause - summed_csmr_of_sim_causes, columns=['cause_deleted_mortality_rate_{}'.format(i) for i in range(1000)], index=cause_del_mr.index)
+        # FIXME: Why is the merge in the line below necessary? Why not just use deleted?
+        cause_del_mr = cause_del_mr.merge(deleted, left_index=True, right_index=True)
+
+        # assert an error to make sure data is dense (i.e. no missing data)
+        assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
+
+        # assert an error if there are duplicate rows
+        assert cause_del_mr.duplicated(['age', 'year_id', 'sex_id']).sum(
+        ) == 0, "there are duplicates in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
+
+        # assert that non of the cause-deleted mortality rate values are less than or equal to 0
+        draw_number = config.getint('run_configuration', 'draw_number')
+        assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. all-cause mortality can't be <= 0"
+
+        keepcol = ['year_id', 'sex_id', 'age']
+        keepcol.extend(('cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
+
+        return cause_del_mr[keepcol]
+    else:
+        keepcol = ['year_id', 'sex_id', 'age']
+        keepcol.extend(('all_cause_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
+        df = all_cause_mr[keepcol]
+        df = df.rename(columns={'all_cause_mortality_rate_{i}'.format(i=i):'cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)})
+
+        return df
+
+
+>>>>>>> develop
 # 5. get_post_mi_heart_failure_proportion_draws
 
 
@@ -464,6 +632,16 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     Returns
     -------
     df with year_id, sex_id, age and 1k draws
+
+    Notes
+    -----
+    Used by -- Used in disease_models.py to determine how many people get heart failure following an mi.
+
+    Assumptions -- That the proportional prevalence is a good enough estimation of the proportional incidence.
+
+    Questions -- More of a general python question -- should I be using np.multiply for multiplication? Maybe it has to do with python's floating point issues, but I was getting different results when using A*B instead of np.multiply(A,B).
+
+    Unit test in place? --  Yes
     """
 
     # read in heart failure envelope. specify measure of interest
@@ -478,33 +656,43 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     cause_of_hf = pd.merge(hf_envelope, proportion_draws, on=[
                            'age', 'year_id', 'sex_id'], suffixes=('_env', '_prop'))
 
-    for i in range(0, 1000):
-        # TODO: Manual calculation of the multiplication below gave a little bit different values. Should I be using np.multiply or somethig else to make sure python is handling these floats correctly?
-        envelope = cause_of_hf['draw_{i}_env'.format(i=i)]
-        proportion = cause_of_hf['draw_{i}_prop'.format(i=i)]
-        # TODO: Make this block faster, have it calculate all probs for all draws in a single operation
-        cause_of_hf['draw_{i}'.format(i=i)] = rate_to_probability(envelope * proportion)
+    envelope = cause_of_hf[['draw_{}_env'.format(i) for i in range(0,1000)]].values
+
+    proportion = cause_of_hf[['draw_{}_prop'.format(i) for i in range(0,1000)]].values
+
+    cause_of_hf.set_index(['year_id', 'sex_id', 'age'], inplace=True)
+
+    # TODO: Manual calculation of the multiplication below gave a little bit different values. Should I be using np.multiply or somethig else to make sure python is handling these floats correctly?
+    # TODO: Ensure rate_to_probability is calculating annual rates
+    output_df = pd.DataFrame(rate_to_probability(np.multiply(envelope, proportion)), columns=['draw_{}'.format(i) for i in range(1000)], index=cause_of_hf.index)  
+
+    output_df = output_df.reset_index()
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert cause_of_hf.isnull().values.any() == False, "there are nulls in the dataframe that get_post_mi_heart_failure_proportion_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_post_mi_heart_failure_proportion_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
-    assert cause_of_hf.duplicated(['age', 'year_id', 'sex_id']).sum(
+    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
     ) == 0, "there are duplicates in the dataframe that get_post_mi_heart_failure_proportion_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     # assert that none of the incidence rate values are greater than 1 (basically ensuring that the numerator and demoniator weren't flipped)
     draw_number = config.getint('run_configuration', 'draw_number')
-    assert cause_of_hf['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_post_mi_heart_failure_proportion_draws calculation. incidence rate can't be GT 1. Check to see if the numerator/denominator were flipped"
+    assert output_df['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_post_mi_heart_failure_proportion_draws calculation. incidence rate can't be GT 1. Check to see if the numerator/denominator were flipped"
 
-    return cause_of_hf[keepcol]
+    return output_df[keepcol]
 
 
 # 6. get_relative_risks
 
+<<<<<<< HEAD
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_type, gbd_round=1):
+=======
+
+def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_type='morbidity'):
+>>>>>>> develop
     """
     Parameters
     ----------
@@ -526,6 +714,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     rr_type: str
         can specify morbidity if you want RRs for incidence or mortality if you want RRs for mortality
 
+<<<<<<< HEAD
     gbd_round: int
         # TODO: We'll need to update this when GBD 2016 is out.
         generally set the gbd_round to 1 since this corresponds with GBD 2015
@@ -534,13 +723,26 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
         to pass in the gbd_round variable to make sure that we're pulling the best
         model from that previous GBD round
 
+=======
+>>>>>>> develop
     Returns
     -------
     df with columns year_id, sex_id, age, 1k relative risk draws
+
+    Notes
+    -----
+    Used by -- Used to pull relative risks which are then multiplied by incidence rates in continuous_exposure_effect and categorical_exposure_effect
+
+    Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. I have set up the code so that each age group for which we don't have GBD estimates has an RR of 1 (i.e. no elevated risk).
+
+    Questions -- Should we set the RR to 1 for age groups for which we do not have rr estimates?
+
+    Unit test in place? -- Yes
     """
 
     output_df = pd.DataFrame()
 
+<<<<<<< HEAD
     rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, cause_id)
 
     if rr_type == 'morbidity':
@@ -560,24 +762,64 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     # don't start until a certain age.
     # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. It assumes that there is no risk of the risk factor on the exposure for those ages. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
     output_df = rr.apply(lambda x: x.fillna(1), axis=0)
+=======
+    rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, config.getint('simulation_parameters', 'gbd_round_id'))
+
+    # FIXME: Will want this pull to be linked to a publication id.
+    # rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+
+    # Not all rrs are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
+    # if rr.values == "error":
+    #    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
+
+    if rr_type == 'morbidity':
+        rr = rr.query("morbidity == 1")
+    elif rr_type == 'mortality':
+        rr = rr.query("mortality == 1")
+    else:
+        raise ValueError('rr_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
+
+    # FIXME: Could save some memory by pulling only the years we need initially
+    rr = rr.query('year_id>={ys} and year_id<={ye}'.format(
+                         ys=year_start, ye=year_end)).copy()
+
+    rr = rr.query('cause_id == {}'.format(cause_id))
+    
+    rr = get_age_group_midpoint_from_age_group_id(rr)
+
+    # TODO: The 2 lines below will need to be deleted when the diarrhea branch is merged in. We figured out how to handle polytomous risk factors in the diarrhea branch
+    if risk_id == 166:
+        rr = rr.query("parameter == 'cat1'")
+
+    rr = expand_ages(rr)
+
+    # need to calculate relative risks for current implementation of CEAM. Some risks (e.g Zinc deficiency and high sbp) don't have estimates for all ages (e.g. no estimates for people over age 5 for zinc).
+    # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption. It assumes that there is no risk of the risk factor on the exposure for those ages. If we don't have the data for the younger age groups, another alternative could be to backcast the relative risk of the youngest age group for which we do have data.
+    rr[['rr_{}'.format(i) for i in range(0,1000)]] = rr[['rr_{}'.format(i) for i in range(0,1000)]].fillna(value=1)
+>>>>>>> develop
 
     keepcol = ['year_id', 'sex_id', 'age', 'parameter']
     keepcol.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
+<<<<<<< HEAD
     assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
+=======
+    assert rr[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
+>>>>>>> develop
 
     # assert that none of the rr values are less than 1
     draw_number = config.getint('run_configuration', 'draw_number')
-    assert output_df['rr_{}'.format(draw_number)].all() >= 1, "something went wrong with get_relative_risks. RR cannot be LT 1. Check the data that you are pulling in and the function. Sometimes, the database does not have\
+    assert rr['rr_{}'.format(draw_number)].all() >= 1, "something went wrong with get_relative_risks. RR cannot be LT 1. Check the data that you are pulling in and the function. Sometimes, the database does not have\
 RR estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
 
-    return output_df[keepcol]
+    return rr[keepcol]
 
 
 # 7. get_pafs
 
-def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
+
+def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='morbidity'):
     """
     Parameters
     ----------
@@ -596,54 +838,63 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id):
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
 
-    -------
+    paf_type: str
+        specify whether you want morbidity (YLDs) or mortality (Deaths) PAFs
+
     Returns
+    -------
         df with columns year_id, sex_id, age, val, upper, and lower
 
+    Notes
+    -----
+    Used by -- anytime a user adds a risk to a simulation
+
+    Assumptions -- We should use PAFs for YLDs, since we use PAFs to affect incidence in CEAM. Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. I have set up the code so that each age group for which we don't have GBD estimates has a PAF of 0
+
+    Questions -- Should we set the PAF to 0 for age groups for which we do not have rr estimates? Need to submit an epihelp ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
+
+    Unit test in place? -- Yes
     """
+    if paf_type == 'morbidity':
+        measure_id = 3
+    elif paf_type == 'mortality':
+        measure_id = 1
+    else:
+        raise ValueError('paf_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
+
+    pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id, config.getint('simulation_parameters', 'gbd_round_id'), measure_id)
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
-    output_df = pd.DataFrame(columns=keepcol)
 
-    for sex_id in (1, 2):
-        pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id)
+    # only want one risk at a time and only metric id 2 (percentages or pafs)
+    pafs = pafs.query("rei_id == @risk_id and metric_id == 2 and year_id >= @year_start and year_id <= @year_end")
 
-        # only want one risk at a time and only metric id 2 (percentages or pafs)
-        pafs = pafs.query("rei_id == @risk_id and sex_id == @sex_id and metric_id == 2")
+     # FIXME: Why continue if pafs is empty??
+    # if pafs.empty:
+    #    continue
 
-        if pafs.empty:
-            continue
+    pafs = get_age_group_midpoint_from_age_group_id(pafs)
 
-        pafs = get_age_from_age_group_id(pafs)
+    pafs = expand_ages(pafs)
 
-        pafs = set_age_year_index(pafs, 'early neonatal', 80, year_start, year_end)
-
-        interp_data = interpolate_linearly_over_years_then_ages(pafs, 'draw')
-
-        interp_data['sex_id'] = sex_id
-
-        output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end))
-
-        # need to back calculate PAFS to earlier ages for risks that don't
-        # start until a certain age
-        output_df = output_df.apply(lambda x: x.fillna(0), axis=0)
-
+    # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
+    # need to back calculate PAFS to earlier ages for risks that don't
+    # start until a certain age
+    pafs[['draw_{}'.format(i) for i in range(0,1000)]] = pafs[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)    
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_pafs just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert pafs[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_pafs just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
-    assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
+    assert pafs.duplicated(['age', 'year_id', 'sex_id']).sum(
     ) == 0, "there are duplicates in the dataframe that get_pafs just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     # assert that none of the paf values are greater than 1
     draw_number = config.getint('run_configuration', 'draw_number')
-    assert output_df['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with get_pafs. pafs cannot be GT 1. Check the data that you are pulling in and the function. Sometimes, the database does not have\
-paf estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
+    assert pafs['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with get_pafs. pafs cannot be GT 1. Check the data that you are pulling in and the function. Sometimes, a risk does not have paf estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
 
-    return output_df[keepcol]
+    return pafs[keepcol]
 
 
 # 8. get_exposures
@@ -668,10 +919,8 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     Returns
     -------
     df with columns year_id, sex_id, age and 1k exposure draws
-    """
 
-    output_df = pd.DataFrame()
-
+<<<<<<< HEAD
 
     exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id)
 
@@ -682,16 +931,56 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
     output_df = exposure.apply(lambda x: x.fillna(0), axis=0)
 
+=======
+    Notes
+    -----
+    Used by -- anytime a user adds a risk to a simulation
+ 
+    Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. I have set up the code so that each age group for which we don't have GBD estimates has an exposure of 0
+
+    Questions -- Should we set the exposure to 0 for age groups for which we do not have rr estimates? Need to submit an epihelp ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
+
+    Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
+    """
+
+    # exposure = get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+
+    exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id, config.getint('simulation_parameters', 'gbd_round_id'))
+
+    # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
+    # if exposure.values == "error":
+    #    exposure == get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
+
+    exposure = exposure.query("year_id >= @year_start and year_id <= @year_end")
+
+    exposure = get_age_group_midpoint_from_age_group_id(exposure)
+
+    # TODO: The 2 lines below will need to be deleted when the diarrhea branch is merged in. We figured out how to handle polytomous risk factors in the diarrhea branch
+    if risk_id == 166:
+            exposure = exposure.query("parameter == 'cat1'")
+
+    # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
+    # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
+    # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
+    exposure = expand_ages(exposure)
+
+    exposure[['draw_{}'.format(i) for i in range(0,1000)]] = exposure[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
+
+>>>>>>> develop
     keepcol = ['year_id', 'sex_id', 'age', 'parameter'] + ['draw_{i}'.format(i=i) for i in range(0, 1000)]
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert output_df.isnull().values.any() == False, "there are nulls in the dataframe that get_exposures just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert exposure[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_exposures just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
+<<<<<<< HEAD
     assert output_df.duplicated(['age', 'year_id', 'sex_id', 'parameter']).sum(
+=======
+    assert exposure.duplicated(['age', 'year_id', 'sex_id', 'parameter']).sum(
+>>>>>>> develop
     ) == 0, "there are duplicates in the dataframe that get_exposures just tried to output. check the cache to make sure that the data you're pulling is correct"
 
-    return output_df[keepcol]
+    return exposure[keepcol]
 
 
 # ### 9. TMREDs
@@ -796,11 +1085,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
 
 # 12. get_sbp_mean_sd
 
-# TODO: write more unit tests for this function
 def get_sbp_mean_sd(location_id, year_start, year_end):
-    # TODO: Consider moving in the code from the blood pressure module
-    # to here (i.e. interpolate from age 1 - 80, and fillna with the SBP values
-    # we're using for under 25 yr olds)
     ''' Returns a dataframe of mean and sd of sbp in LOG SPACE
 
     Parameters
@@ -814,12 +1099,24 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     Returns
     -------
     df with mean and sd values in LOG space
+
+    Notes
+    -----
+    Assumptions -- That people under age 25 have the TMRED SBP
+
+    Questions -- We have estimates starting in the age 25-29 age group. Should we be using the midpoint or age 25 as the starting point?
+
+    Unit test in place? -- Yes
+
+    TODO: Might want to change the TMRED. Need to catch up with Stan regarding calculating TMREDs + write a function that will allow us to calculate TMREDs for a given risk.
     '''
+
     output_df = pd.DataFrame()
     sbp_dir = os.path.join(get_cache_directory(), 'sbp')
 
+    draws = pd.DataFrame()
+
     for sex_id in [1, 2]:
-        draws = pd.DataFrame()
         for year_id in np.arange(year_start, year_end + 1, 5):
             path = auxiliary_file_path('Systolic Blood Pressure Distributions',
                                      location_id=location_id,
@@ -827,46 +1124,35 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
                                      sex_id=sex_id)
             one_year_file = pd.read_stata(path)
             one_year_file['year_id'] = year_id
+            one_year_file['sex_id'] = sex_id
             draws = draws.append(one_year_file)
 
-        draws = get_age_from_age_group_id(draws)
-
-        draws = set_age_year_index(draws, 'early neonatal', 80,
-                                   year_start, year_end)
-
-        interp_data = interpolate_linearly_over_years_then_ages(draws,
-                                                                'exp_mean',
-                                                                col_prefix2='exp_sd')
-
-        interp_data['sex_id'] = sex_id
-
         #TODO: Need to rethink setting ages for this function. Since sbp estimates start for the age 25-29 group, it should start at age 25, not 27.5.
-        # TODO: em python question -> best way to subset an index?
-        # TODO: Make a list of columns before hand. will be faster
+    draws = get_age_group_midpoint_from_age_group_id(draws)
 
-        # reset indexes to be columns and then assign sbp separately for young simulants
-        interp_data.reset_index(level=['age', 'year_id'], inplace=True)
-        young_simulants = interp_data.query("age < 27.5").copy()
-        old_simulants = interp_data.query("age >= 27.5").copy()
-        
-        total_simulants = pd.DataFrame()        
+    draws = expand_ages(draws)
 
-        # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing
-        for i in range(0, 1000):                     
-            young_simulants['log_mean_{}'.format(i)] = np.log(112)
-            young_simulants['log_sd_{}'.format(i)] = .001
+    # set index
+    draws.set_index(['year_id', 'sex_id', 'age'], inplace=True)
+ 
+    # set nulls to be 1 to keep from messing up the math below. the nulls are the younger age groups (simulants less than 27.5 years old) and they'll get an sbp of 112 and an sd of .001 because we want them to be at the TMRED
+    draws[['exp_mean_{}'.format(i) for i in range(0,1000)]] = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].fillna(value=1) 
+    draws[['exp_sd_{}'.format(i) for i in range(0,1000)]] = draws[['exp_sd_{}'.format(i) for i in range(0,1000)]].fillna(value=1)
+    
+    # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing        
+    exp_mean = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].values
+    exp_sd = draws[['exp_sd_{}'.format(i) for i in range(0,1000)]].values
 
-            exp_mean = old_simulants['exp_mean_{}'.format(i)]
-            exp_sd = old_simulants['exp_sd_{}'.format(i)]
-            old_simulants['log_mean_{}'.format(i)] = np.log(exp_mean)
-            old_simulants['log_sd_{}'.format(i)] = (exp_sd / exp_mean)
-            
-        total_simulants = total_simulants.append([young_simulants, old_simulants])
+    mean_df = pd.DataFrame(np.log(exp_mean), columns=['log_mean_{}'.format(i) for i in range(1000)], index=draws.index)
+    sd_df = pd.DataFrame(np.divide(exp_sd, exp_mean), columns=['log_sd_{}'.format(i) for i in range(1000)], index=draws.index)
+   
+    output_df = mean_df.join(sd_df)
 
-        total_simulants.set_index(['year_id', 'age'], inplace=True)
+    for i in range(0,1000):
+        output_df.loc[pd.IndexSlice[output_df.index.levels[2] < 27.5], 'log_mean_{}'.format(i)] = np.log(112)
+        output_df.loc[pd.IndexSlice[output_df.index.levels[2] < 27.5], 'log_sd_{}'.format(i)] = .001
 
-        output_df = output_df.append(
-            extrapolate_ages(total_simulants, 105, year_start, year_end))
+    output_df = output_df.reset_index()
 
     # assert an error if there are duplicate rows
     assert output_df.duplicated(['age', 'year_id', 'sex_id']).sum(
@@ -883,8 +1169,9 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 def _bmi_ppf(parameters):
    return beta(a=parameters['a'], b=parameters['b'], scale=parameters['scale'], loc=parameters['loc']).ppf
 
+
 @memory.cache
-def get_bmi_distributions(location_id, year_start, year_end, draw):
+def get_bmi_distributions(location_id, year_start, year_end, draw, func=_bmi_ppf):
     a = pd.DataFrame()
     b = pd.DataFrame()
     loc = pd.DataFrame()
@@ -928,7 +1215,7 @@ def get_bmi_distributions(location_id, year_start, year_end, draw):
     distributions['scale'] = scale['draw_{}'.format(draw)]
 
     distributions = distributions.reset_index()
-    distributions = get_age_from_age_group_id(distributions)
+    distributions = get_age_group_midpoint_from_age_group_id(distributions)
     distributions['year'] = distributions.year_id
     distributions.loc[distributions.sex_id == 1, 'sex'] = 'Male'
     distributions.loc[distributions.sex_id == 2, 'sex'] = 'Female'
@@ -937,14 +1224,14 @@ def get_bmi_distributions(location_id, year_start, year_end, draw):
             distributions[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']],
             categorical_parameters=('sex',),
             continuous_parameters=('age', 'year'),
-            func=_bmi_ppf
+            func=func,
             )
 
 
 # 13 get_angina_proportions
 
 
-def get_angina_proportions(year_start, year_end):
+def get_angina_proportions():
     '''Format the angina proportions so that we can use them in CEAM.
     This is messy. The proportions were produced by Catherine Johnson.
     The proportion differs by age, but not by sex, location, or time.
@@ -962,40 +1249,55 @@ def get_angina_proportions(year_start, year_end):
     Returns
     -------
     df with year_id, sex_id, age and 1k draws
+
+    Notes
+    -----
+    Assumptions -- The file does not have estimates for people under age 20. I've set the proportions for people under age 20 to be the same as the proportion for people that are 20 years old. This shouldn't have much of an impact on anything, since we don't expect for people under age 20 to have heart attacks.
+
+    Questions -- Is it valid to assign the angina proportion for 20 year olds to be the angina proportions for people under the age of 20? Who should we talk to about having these proportions stored in a better place (e.g. the database)? Who should we talk to about ensuring that this file doesn't move? How can we ensure that the file is updated if need be?
+
+    Unit test in place? -- Yes
     '''
 
-    output_df = pd.DataFrame()
+    # TODO: Need to figure out a way to check to see if this file is ever updated. Would be nice if we could think of a better way to make sure we're using the most up to date data.
+    with open_auxiliary_file('Angina Proportions') as f:
+        ang = pd.read_csv(f)
 
-    for sex_id in [1, 2]:
+    # not sure why income is included in this file. estimates are the same for high and low income countries. we'll filter
+    # on high income to get rid of the superfluous rows.
+    ang = ang.query("income == 'high'")    
 
-        # TODO: Everett created csv below from a file that Catherine Johnson created
-        # Catherine's original doc located here -- /snfs1/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv
-        # Need to figure out a way to check to see if this file is ever updated
-        with open_auxiliary_file('Angina Proportions') as f:
-            ang = pd.read_csv(f)
-        ang = ang.query("sex_id == {s}".format(s=sex_id))
+    ang = get_age_group_midpoint_from_age_group_id(ang)
 
-        # TODO: After merging in pull request that allows for under 1 yr old estimation, change line below to read 'early neonatal' for age_start as opposed to 1
-        indexed_ang = set_age_year_index(ang, 'early neonatal', 80, year_start, year_end)
+    # we don't have estimates under age 22.5, so I'm filling all ages under
+    # 20 with the same proportion that we have for 20 year olds
+    # TODO: Should check this assumption w/ Abie
+    # creating a copy of ang to use pd.get_value
+    ang_copy = ang.set_index('age').copy()  
+ 
+    # values are same for each sex, so we can grab the value 
+    # for the lowest age from either sex to apply to the younger age 
+    # groups for which we do not have data
+    value_at_youngest_age_for_which_we_have_data = ang_copy.query("sex_id == 1").get_value(22.5, 'angina_prop')
 
-        interp_data = interpolate_linearly_over_years_then_ages(indexed_ang, 'angina_prop')
+    total_ang = pd.DataFrame()
 
-        interp_data['sex_id'] = sex_id
+    # the data is not year specific. we manually add year_id values here
+    # TODO: Probably a more sophisticated way to do this
+    for year in [1990, 1995, 2000, 2005, 2010, 2013, 2015]: 
+        one_year = ang.copy()
+        one_year['year_id'] = year
+        total_ang = total_ang.append(one_year)    
 
-        output_df = output_df.append(
-            extrapolate_ages(interp_data, 105, year_start, year_end))
+    total_ang = total_ang[['year_id', 'sex_id', 'age', 'angina_prop']]
 
-        # we don't have estimates under age 20, so I'm filling all ages under
-        # 20 with the same proportion that we have for 20 year olds
-        # TODO: Should check this assumption w/ Abie
-    output_df = output_df.apply(lambda x: x.fillna(0.254902), axis=0)
+    total_ang = total_ang.apply(lambda x: x.fillna(value_at_youngest_age_for_which_we_have_data), axis=0)
 
-    # little bit awkward below, but we're renaming the col name to have the draw number attached to it so that we can load it from the cache
-
-    return output_df
+    return total_ang
 
 
-# 14 get_disability_weight
+# 14. get_disability_weight
+
 
 def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=None):
     """Returns a dataframe with disability weight draws for a given healthstate id
@@ -1007,6 +1309,14 @@ def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=No
     Returns
     -------
     df with disability weight draws
+
+    Notes
+    -----
+    Assumptions -- None
+
+    Questions -- How can IHME create a more systematic way for access this data? The current way (looking in one csv prepared by central comp and then checking another if the draws are not in the first csv) is pretty disorganized. Since many disability weights are going to be updated in 2016, these files may move. I would propose that we ask central comp to store the disability weights in the database.
+
+    Unit test in place? -- Yes
     """
 
     if healthstate_id is None:
@@ -1037,8 +1347,9 @@ def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=No
 
     return df['draw{}'.format(config.getint('run_configuration', 'draw_number'))].iloc[0]
 
+
 # 15. get_asympt_ihd_proportions
-# TODO: Write a unit test for this function
+
 
 def get_asympt_ihd_proportions(location_id, year_start, year_end):
     """
@@ -1054,22 +1365,30 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
     Returns
     -------
     df with post-mi asymptomatic ihd proportions
+
+    Notes
+    -----
+    Assumptions -- That all people who survive a heart attack then get one of asymptomatic ihd, heart failure, or angina
+
+    Questions -- None
+
+    Unit test in place? -- Yes
     """
 
     hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end)
 
-    angina_prop_df = get_angina_proportions(year_start, year_end)
+    angina_prop_df = get_angina_proportions()
 
     asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
     
+    hf_values = asympt_prop_df[['draw_{}'.format(i) for i in range(0, 1000)]].values
+    angina_values = asympt_prop_df[['angina_prop']].values
+
     # TODO: RAISE AN ERROR IF PROPORTIONS ARE GREATER THAN 1 FOR NOW. MAY WANT TO DELETE
     # ERROR IN THE FUTURE AND SCALE DOWN TO 1 INSTEAD
-    angina_values = asympt_prop_df['angina_prop_{}'.format(config.getint('run_configuration', 'draw_number'))]
+    assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
 
-    for i in range(0, 1000):
-        hf_values = asympt_prop_df['draw_{}'.format(i)]
-        assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
-        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - hf_values - angina_values
+    asympt_prop_df[['asympt_prop_{}'.format(i) for i in range(0, 1000)]] = 1 - hf_values - angina_values
     
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
@@ -1086,11 +1405,12 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
         asfr = pd.read_csv(f)
 
     asfr = asfr.query('location_id == @location_id and year_id >= @year_start and year_id <= @year_end')
-    asfr = get_age_from_age_group_id(asfr)
+    asfr = get_age_group_midpoint_from_age_group_id(asfr)
 
     return asfr
 
 
+<<<<<<< HEAD
 def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
     """
     Parameters
@@ -1281,4 +1601,6 @@ def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, sev
     return excess_mortality_dataframe
 
 
+=======
+>>>>>>> develop
 # End.
