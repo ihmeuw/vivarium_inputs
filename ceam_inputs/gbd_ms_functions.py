@@ -436,8 +436,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
     assert  post_sequela_assignmnet_population.isnull().values.any() == False, "there are nulls in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
 
     # assert an error if there are duplicate rows
-    assert  post_sequela_assignmnet_population.duplicated(['simulant_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
+    # assert  post_sequela_assignmnet_population.duplicated(['simulant_id']).sum() == 0, "there are duplicates in the dataframe that assign_cause_at_beginning_of_simulation just tried to output. check that you've assigned the correct me_ids"
 
     return post_sequela_assignmnet_population
 
