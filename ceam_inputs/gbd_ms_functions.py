@@ -191,7 +191,8 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
     # Use auxilliary get_populations function to bring in the both sex
     # population
-    pop = get_populations(location_id, year_start, 3)
+    # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
+    pop = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
 
     total_pop_value = pop.sum()['pop_scaled']
 
@@ -298,15 +299,19 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     Unit test in place? -- Yes
     """
 
+    # TODO: Need to include Interpolation in this function for cause_level_prevalence. There are more age values for simulants df (older ages) than there are for cause_level_prevalence, hence why an interpolation function is needed. 
+
     merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
-    
+  
     # Need to sort merged df so that the weights are in the same order as results
     merged.sort_values(by='simulant_id', inplace=True)
     probability_of_disease = merged['prevalence']
     probability_of_NOT_having_disease = 1 - probability_of_disease
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
-    results = simulants_df.copy().set_index('simulant_id')   
+    results = simulants_df.copy()
+
+    results = results.set_index('simulant_id') 
  
     # Need to sort results so that the simulants are in the same order as the weights
     results['condition_envelope'] = choice('determine_if_sim_has_cause', results.index, [False, True], weights)

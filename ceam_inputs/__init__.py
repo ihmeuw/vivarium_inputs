@@ -148,8 +148,7 @@ def get_disease_states(population, states):
 
     population = population.reset_index()
     population['simulant_id'] = population['index']
-    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], location_id=location_id, year_start=year_start, states=states)
-    condition_column = condition_column.set_index('simulant_id')
+    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], year_start=year_start, states=states)
 
     return condition_column
 
@@ -239,7 +238,7 @@ def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
     draw_number = config.getint('run_configuration', 'draw_number')
     return functions.load_data_from_cache(functions.get_etiology_specific_prevalence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
-                                          cause_id=cause_id, me_id=me_id, col_name='draw_{}'.format(draw_number))
+                                          cause_id=cause_id, me_id=me_id, col_name='prevalence')
 
 
 

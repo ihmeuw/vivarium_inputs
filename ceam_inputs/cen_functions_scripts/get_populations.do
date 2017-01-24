@@ -27,10 +27,10 @@ local sex 1 2 3
 
 // Get every GBD age group (5 year intervals... age_group_id = 2-21, 30-33)
 local ages
-forvalues i = 2/21 {
+forvalues i = 2/20 {
 local ages "`ages' `i' "
 }
-foreach i in 30 31 32 33 {
+foreach i in 30 31 32 235 {
 local ages "`ages' `i' "
 }
 
