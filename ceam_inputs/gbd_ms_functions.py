@@ -34,6 +34,7 @@ from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
 from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
+from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages_for_dfs_w_all_age_estimates
 # em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
 # TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
 from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages
@@ -1500,5 +1501,38 @@ def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, sev
         raise ValueError("you supplied an invalid value for severity split argument. you wrote '{}'. acceptable severity splits are mild, moderate, or severe".format(severity_split))
     return excess_mortality_dataframe
 
+
+# TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of covariate short name, because names are subject to change but ids should stay the same
+# TODO: Also link that covariate id to a publication id, if possible
+def get_covariate_estimates(location_id, year_start, year_end, covariate_short_name):
+    """
+    Gets covariate estimates for a specified location. Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.
+
+    Parameters
+    ----------
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+
+    covariate_short_name: str
+        the covariate_short_name for the covariate of interest.
+        you can look up covariate_short_names here: http://cn307.ihme.washington.edu:9998/
+        (check the covariate_metadata_tab in website above)
+
+    Returns
+    -------
+    A dataframe of covariate_estimates.
+        Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
+    """
+    covariate_estimates = stata_wrapper('get_covariate_estimates.do', 'covariate_estimates_for_covariate_{c}.csv'.format(c=covariate_short_name), covariate_short_name)
+
+    covariate_estimates = covariate_estimates.query("location_id == @location_id")
+
+    expanded_estimates = expand_ages_for_dfs_w_all_age_estimates(covariate_estimates)
+
+    expanded_estimates = expanded_estimates.query("year_id >= @year_start and year_id <= @year_end")
+
+    keepcols = ['location_id', 'year_id', 'sex_id', 'age', 'covariate_id', 'covariate_name_short', 'mean_value', 'lower_value', 'upper_value']
+
+    return expanded_estimates[keepcols]
 
 # End.

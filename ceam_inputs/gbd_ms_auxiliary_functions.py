@@ -461,14 +461,26 @@ def expand_grid(a, y):
     return df[['year_id', 'age']].sort_values(by=['year_id', 'age'])
 
 
-def expand_ages(df):
+def get_all_age_groups_for_years_in_df(df):
+    """
+    returns a dataframe with all ages for all years in df
+
+    columns are age and year_id
+    """
     mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
     mapping_filter = mapping.query('age_group_id >=2 and age_group_id <=21').copy()
     mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5
-    
+
     expanded_data = expand_grid(mapping_filter.age.values, pd.unique(df.year_id.values))
-    expanded_indexed = expanded_data.set_index(['year_id', 'age'])
+
+    return expanded_data
+
+def expand_ages(df):
+    expanded_cols = get_all_age_groups_for_years_in_df(df) 
+
+    expanded_indexed = expanded_cols.set_index(['year_id', 'age'])
+
     
     indexed_df = df.set_index(['year_id', 'age']).sortlevel()
     total_df = pd.DataFrame()
@@ -489,6 +501,25 @@ def expand_ages(df):
             total_df = total_df.append(one_df)
 
     return total_df.reset_index()
+
+
+def expand_ages_for_dfs_w_all_age_estimates(df):
+    '''
+    Some tables only have estimates for the "all ages" age group instead of broken out for the different age group ids. We need estimates for each age group separately, so this function expands tables with estimates for only the "all ages" to include estimates for each age group id
+    '''
+    expanded_cols = get_all_age_groups_for_years_in_df(df)
+
+    male_data = pd.merge(df, expanded_cols)
+
+    male_data['sex_id'] = 1
+
+    female_data = pd.merge(df, expanded_cols)
+
+    female_data['sex_id'] = 2
+
+    total_data = male_data.append(female_data)
+
+    return total_data
 
 
 # End.

@@ -275,5 +275,11 @@ def make_gbd_risk_effects(risk_id, causes, rr_type, effect_function):
 def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
     return functions.get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split)
 
+def get_covariate_estimates(covariate_short_name):
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+
+    return functions.get_covariate_estimates(location_id, year_start, year_end, covariate_short_name) 
 
 # End.
