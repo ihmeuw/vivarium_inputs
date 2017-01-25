@@ -16,6 +16,8 @@ from scipy.stats import beta
 from joblib import Memory
 from flufl.lock import Lock
 
+from hierarchies import dbtrees
+
 from db_tools import ezfuncs
 
 from ceam import config
@@ -217,6 +219,40 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     ) == 0, "there are duplicates in the dataframe that generate_ceam_population just tried to output. check the function and its auxiliary functions (get_populations and assign_sex_id)"
 
     return simulants
+
+def assign_subregions(index, location_id, year):
+    """
+    Assigns a location to each simulant. If the location_id
+    has sub regions in the hierarchy than the simulants will be
+    distributed across them uniformly weighted by each region's population.
+    Otherwise all simulants will be assigned location_id.
+
+    Parameters
+    ----------
+    index : pandas.Index
+        the simulants to assign
+    location_id : int
+        the location in the locations hierarchy to descend from
+    year : int
+        the year to use for population estimates
+
+    Notes
+    -----
+    This ignores demographic details. So if there is some region that has a
+    age or sex bias in it's population, that will not be captured.
+    """
+    region_ids = dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children
+
+    if not region_ids:
+        # The location has no sub regions
+        return pd.Series(location_id, index=index)
+
+    # Get the population of each subregion and calculate the ratio of it to the
+    # total, which gives us the weights to use when distributing simulants
+    populations = np.array([get_populations(region_id, year, 3).pop_scaled.sum() for region_id in region_ids])
+    populations = populations / populations.sum()
+
+    return choice('assign_subregions_{}'.format(year), index, region_ids, p=populations)
 
 
 # 3. assign_cause_at_beginning_of_simulation

@@ -1,6 +1,5 @@
-# ~/ceam/ceam_tests/test_gbd_data/test_gbd_ms_functions.py
-
 import pytest
+from unittest.mock import patch
 import numpy as np
 import pandas as pd
 from ceam_inputs.gbd_ms_functions import get_sbp_mean_sd
@@ -21,6 +20,7 @@ from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
 from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
 from ceam_inputs.gbd_ms_functions import get_cause_deleted_mortality_rate
+from ceam_inputs.gbd_ms_functions import assign_subregions
 from ceam_tests.util import build_table
 
 # generate_ceam_population
@@ -333,4 +333,34 @@ def get_asympt_ihd_proportions():
 
     assert 1 - hf_value - ang_value == asy_value, "get_asympt_ihd_proportions needs to ensure that the sum of heart failure, angina, and asympt ihd add up to 1"
 
-# End.
+@patch('ceam_inputs.gbd_ms_functions.dbtrees')
+@patch('ceam_inputs.gbd_ms_functions.get_populations')
+def test_assign_subregions_with_subregions(get_populations_mock, dbtrees_mock):
+    dbtrees_mock.loctree().get_node_by_id().children = [10, 11, 12]
+    test_populations = {
+            10: build_table(20, ['age', 'year', 'sex', 'pop_scaled']),
+            11: build_table(30, ['age', 'year', 'sex', 'pop_scaled']),
+            12: build_table(50, ['age', 'year', 'sex', 'pop_scaled']),
+    }
+    get_populations_mock.side_effect = lambda location_id, year, sex: test_populations[location_id]
+
+    locations = assign_subregions(pd.Index(range(100000)), 180, 2005)
+
+    counts = locations.value_counts()
+    counts = np.array([counts[lid] for lid in [10, 11, 12]])
+    counts = counts / counts.sum()
+    assert np.allclose(counts, [.2, .3, .5], rtol=0.01)
+
+
+@patch('ceam_inputs.gbd_ms_functions.dbtrees')
+@patch('ceam_inputs.gbd_ms_functions.get_populations')
+def test_assign_subregions_without_subregions(get_populations_mock, dbtrees_mock):
+    dbtrees_mock.loctree().get_node_by_id().children = []
+    test_populations = {
+            190: build_table(100, ['age', 'year', 'sex', 'pop_scaled']),
+    }
+    get_populations_mock.side_effect = lambda location_id, year, sex: test_populations[location_id]
+
+    locations = assign_subregions(pd.Index(range(1000)), 190, 2005)
+
+    assert np.all(locations == 190)
