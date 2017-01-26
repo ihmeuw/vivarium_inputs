@@ -174,7 +174,7 @@ def get_all_cause_mortality_rate():
             src_column='all_cause_mortality_rate_{draw}')
 
 
-def get_relative_risks(risk_id, cause_id, rr_type):
+def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
