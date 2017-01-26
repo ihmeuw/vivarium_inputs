@@ -131,7 +131,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     return df
 
-
+# TODO: Make the get_populations Stata call take a gbd_round_id argument
 def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up_80_plus=False):
     """
     Get age-/sex-specific population structure
@@ -169,15 +169,19 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
     # use central comp's get_population function to get gbd populations
     # the age group id arguments get the age group ids for each age group up through age 95+
     # pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
-    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
+    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
-    # use auxilliary function extract_age_from_age_group_name to create an age
-    # column
-    pop = get_age_group_midpoint_from_age_group_id(pop)
+    # Don't include the older ages in the 2015 runs
+    if config.getint('simulation_parameters', 'gbd_round_id') == 3:
+        pop = pop.query("age_group_id <= 21")
 
     # Grab population for year_start only (to initialize microsim population)
     if get_all_years == False:
         pop = pop.query('year_id=={y}'.format(y=year_start))
+
+    # use auxilliary function extract_age_from_age_group_name to create an age
+    # column
+    pop = get_age_group_midpoint_from_age_group_id(pop)
 
     # Determine gender of interest. Can be 1, 2, or 3 (Male, Female, or Both)
     pop = pop.query("sex_id == {s}".format(s=sex_id))
@@ -190,18 +194,19 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
     pop = pop.rename(columns={'population': 'pop_scaled'})
 
     # FIXME: As of 1-23, get_populations is only function we use that has data for detailed 5 year age groups over age of 80. We need to get the 80+ age group to make data compatible with other data, but will likely not need this in the future if all other estimates start giving data for more detailed age groups over the age of 80
-    if sum_up_80_plus == True:
-        older_pop = pop.query("age >= 80").copy()
+    if config.getint('simulation_parameters', 'gbd_round_id') != 3:
+        if sum_up_80_plus == True:
+            older_pop = pop.query("age >= 80").copy()
 
-        older_grouped = older_pop.groupby(['year_id', 'location_id', 'sex_id'], as_index=False).sum()
+            older_grouped = older_pop.groupby(['year_id', 'location_id', 'sex_id'], as_index=False).sum()
 
-        older_grouped['age'] = 82.5
+            older_grouped['age'] = 82.5
 
-        younger_pop = pop.query("age < 80").copy()
+            younger_pop = pop.query("age < 80").copy()
 
-        del(pop)
+            del(pop)
 
-        pop = younger_pop.append(older_grouped)        
+            pop = younger_pop.append(older_grouped)        
 
     # assert an error if there are duplicate rows
     assert pop.duplicated(['age', 'year_id', 'sex_id']).sum(
