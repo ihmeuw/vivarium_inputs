@@ -715,10 +715,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     
     rr = get_age_group_midpoint_from_age_group_id(rr)
 
-    # TODO: The 2 lines below will need to be deleted when the diarrhea branch is merged in. We figured out how to handle polytomous risk factors in the diarrhea branch
-    if risk_id == 166:
-        rr = rr.query("parameter == 'cat1'")
-
     rr = expand_ages(rr)
 
     # need to calculate relative risks for current implementation of CEAM. Some risks (e.g Zinc deficiency and high sbp) don't have estimates for all ages (e.g. no estimates for people over age 5 for zinc).
@@ -815,6 +811,8 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='mor
 
     # assert that none of the paf values are greater than 1
     draw_number = config.getint('run_configuration', 'draw_number')
+
+    # FIXME: I don't think this test is actually working correctly
     assert pafs['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with get_pafs. pafs cannot be GT 1. Check the data that you are pulling in and the function. Sometimes, a risk does not have paf estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
 
     return pafs[keepcol]
@@ -1281,21 +1279,23 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
 
     angina_prop_df = get_angina_proportions()
 
-    asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
+    merged = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
     
-    hf_values = asympt_prop_df[['draw_{}'.format(i) for i in range(0, 1000)]].values
-    angina_values = asympt_prop_df[['angina_prop']].values
+    merged = merged.set_index(['year_id', 'sex_id', 'age'])
+
+    hf_values = merged[['draw_{}'.format(i) for i in range(0, 1000)]].values
+    angina_values = merged[['angina_prop']].values
 
     # TODO: RAISE AN ERROR IF PROPORTIONS ARE GREATER THAN 1 FOR NOW. MAY WANT TO DELETE
     # ERROR IN THE FUTURE AND SCALE DOWN TO 1 INSTEAD
     # assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
 
-    asympt_prop_df[['asympt_prop_{}'.format(i) for i in range(0, 1000)]] = 1 - hf_values - angina_values
-    
+    asympt_prop_df = pd.DataFrame(1 - hf_values - angina_values, columns=['asympt_prop_{}'.format(i) for i in range(1000)], index=merged.index)
+ 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
 
-    return asympt_prop_df[keepcol] 
+    return asympt_prop_df.reset_index()[keepcol] 
 
 
 def get_age_specific_fertility_rates(location_id, year_start, year_end):
