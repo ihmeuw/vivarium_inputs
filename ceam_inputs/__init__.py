@@ -3,6 +3,7 @@
 from ceam import config
 from ceam_inputs.gbd_ms_functions import get_disability_weight
 from ceam_inputs import gbd_ms_functions as functions
+from ceam_inputs import distributions
 
 from ceam_public_health.util.risk import RiskEffect
 
@@ -176,7 +177,15 @@ def get_bmi_distributions():
     year_end = config.getint('simulation_parameters', 'year_end')
     draw = config.getint('run_configuration', 'draw_number')
 
-    return functions.get_bmi_distributions(location_id, year_start, year_end, draw)
+    return distributions.get_bmi_distributions(location_id, year_start, year_end, draw)
+
+def get_fpg_distributions():
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+    draw = config.getint('run_configuration', 'draw_number')
+
+    return distributions.get_fpg_distributions(location_id, year_start, year_end, draw)
 
 def make_gbd_risk_effects(risk_id, causes, effect_function):
     return [RiskEffect(
