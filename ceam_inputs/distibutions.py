@@ -15,6 +15,7 @@ from ceam_inputs.gbd_ms_auxiliary_functions import get_age_group_midpoint_from_a
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
+@memory.cache
 def get_fpg_distributions(location_id, year_start, year_end, draw):
     parameters = pd.DataFrame()
     columns = ['age_group_id', 'sex_id', 'year_id', 'sll_loc_{}'.format(draw), 'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]
@@ -23,7 +24,7 @@ def get_fpg_distributions(location_id, year_start, year_end, draw):
         for sex_id in [1,2]:
             for year_id in np.arange(year_start, year_end + 1, 5):
                 with open_auxiliary_file('Fasting Plasma Glucose Distributions',
-                        location_id=location_id,
+                        location_id=sub_location_id,
                         year_id=year_id,
                         sex_id=sex_id) as f:
                     df = pd.read_csv(f)[columns]
