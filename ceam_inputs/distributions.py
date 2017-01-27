@@ -15,11 +15,51 @@ from ceam_inputs.gbd_ms_auxiliary_functions import get_age_group_midpoint_from_a
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
+def sll_ppf(percentile, location, scale, shape):
+    """ compute the value of the shifted-log-logistic distribution
+    Parameters
+    ----------
+    percential : float or array of floats between 0 and 1
+    location, scale, shape : floats or array of floats, scale > 0
+
+    Results
+    -------
+    returns float or array of floats
+    """
+    assert np.all(scale > 0), 'scale must be positive'
+
+    percentile = np.atleast_1d(percentile)
+    location = np.broadcast_to(location, percentile.shape)
+    scale = np.broadcast_to(scale, percentile.shape)
+    shape = np.broadcast_to(shape, percentile.shape)
+
+    F = 1. - percentile
+    idx = F != 0
+
+    z = 1/shape[idx]* ((1/F[idx] - 1)**shape[idx]  - 1)
+    x = location[idx] + scale[idx]*z
+
+    result = np.full(F.shape, np.inf)
+    result[idx] = x
+
+    if len(result) > 1:
+        return result
+    else:
+        return result[0]
+
+def _fpg_ppf(parameters):
+    def inner(percentile):
+        return sll_ppf(percentile, parameters['loc'], parameters['scale'], parameters['error'])
+    return inner
+
 @memory.cache
 def get_fpg_distributions(location_id, year_start, year_end, draw):
     parameters = pd.DataFrame()
     columns = ['age_group_id', 'sex_id', 'year_id', 'sll_loc_{}'.format(draw), 'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]
     sub_location_ids = dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children
+    if not sub_location_ids:
+        sub_location_ids = [location_id]
+
     for sub_location_id in sub_location_ids:
         for sex_id in [1,2]:
             for year_id in np.arange(year_start, year_end + 1, 5):
@@ -36,12 +76,13 @@ def get_fpg_distributions(location_id, year_start, year_end, draw):
     parameters = get_age_group_midpoint_from_age_group_id(parameters)
     parameters = parameters[['age', 'sex', 'year_id', 'location', 'sll_loc_{}'.format(draw), 'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]]
     parameters.columns = ['age', 'sex', 'year', 'location', 'loc', 'scale', 'error']
+
+
     return Interpolation(
             parameters[['age', 'year', 'sex', 'error', 'scale', 'loc', 'location']],
             categorical_parameters=('sex', 'location'),
             continuous_parameters=('age', 'year'),
-            #TODO: This is not the right distribution to be using. Should be this: https://en.wikipedia.org/wiki/Shifted_log-logistic_distribution
-            func=lambda p: fisk(c=p['error'], loc=p['loc'], scale=p['scale']).ppf,
+            func=_fpg_ppf
             )
 
 def _bmi_ppf(parameters):
