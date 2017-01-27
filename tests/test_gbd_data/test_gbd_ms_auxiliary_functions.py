@@ -14,7 +14,7 @@ import numpy as np
 # 1. create_age_column
 def test_create_age_column():
 
-    pop = pd.DataFrame({'age': [1, 2, 3, 5, 8, 13, 21, 34, 55, 89], 'proportion_of_total_pop': [.1]*10})
+    pop = pd.DataFrame({'age': [1, 2, 3, 5, 8, 13, 21, 34, 55, 89], 'proportion_of_total_pop': [.1]*8 + [.15]*1 + [.05]})
     simulants = pd.DataFrame({'simulant_id': range(0, 500000)})
     simulants = create_age_column(simulants, pop, 500000)
     simulants['count'] = 1

@@ -131,8 +131,8 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     return df
 
-
-def get_populations(location_id, year_start, sex_id):
+# TODO: Make the get_populations Stata call take a gbd_round_id argument
+def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up_80_plus=False):
     """
     Get age-/sex-specific population structure
 
@@ -169,14 +169,19 @@ def get_populations(location_id, year_start, sex_id):
     # use central comp's get_population function to get gbd populations
     # the age group id arguments get the age group ids for each age group up through age 95+
     # pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
-    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
+    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id, config.getint('simulation_parameters', 'gbd_round_id'))
+
+    # Don't include the older ages in the 2015 runs
+    if config.getint('simulation_parameters', 'gbd_round_id') == 3:
+        pop = pop.query("age_group_id <= 21")
+
+    # Grab population for year_start only (to initialize microsim population)
+    if get_all_years == False:
+        pop = pop.query('year_id=={y}'.format(y=year_start))
 
     # use auxilliary function extract_age_from_age_group_name to create an age
     # column
     pop = get_age_group_midpoint_from_age_group_id(pop)
-
-    # Grab population for year_start only (to initialize microsim population)
-    pop = pop.query('year_id=={y}'.format(y=year_start))
 
     # Determine gender of interest. Can be 1, 2, or 3 (Male, Female, or Both)
     pop = pop.query("sex_id == {s}".format(s=sex_id))
@@ -187,6 +192,21 @@ def get_populations(location_id, year_start, sex_id):
 
     # The population column was called pop_scaled in GBD 2015, but name was changed. Changing it back since all of our code uses pop_scaled as the col name
     pop = pop.rename(columns={'population': 'pop_scaled'})
+
+    # FIXME: As of 1-23, get_populations is only function we use that has data for detailed 5 year age groups over age of 80. We need to get the 80+ age group to make data compatible with other data, but will likely not need this in the future if all other estimates start giving data for more detailed age groups over the age of 80
+    if config.getint('simulation_parameters', 'gbd_round_id') != 3:
+        if sum_up_80_plus == True:
+            older_pop = pop.query("age >= 80").copy()
+
+            older_grouped = older_pop.groupby(['year_id', 'location_id', 'sex_id'], as_index=False).sum()
+
+            older_grouped['age'] = 82.5
+
+            younger_pop = pop.query("age < 80").copy()
+
+            del(pop)
+
+            pop = younger_pop.append(older_grouped)        
 
     # assert an error if there are duplicate rows
     assert pop.duplicated(['age', 'year_id', 'sex_id']).sum(
@@ -346,39 +366,41 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     # filter so that only metric id 1 (deaths) is in our dataframe
     all_cause_deaths = all_cause_draws.query("metric_id == 1")
 
+    all_cause_deaths = all_cause_deaths.query("sex_id != 3")
+
+    all_cause_deaths = get_age_group_midpoint_from_age_group_id(all_cause_deaths)
+
     # get population estimates for each age, sex, year group. population estimates will serve
     # as the estimates for # of Person Years in each age group
     # pop = get_populations(age_group_id=list(range(2,22)), location_id=location_id, year_id=-1, sex_id=[1,2])
-    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
+    pop_male = get_populations(180, year_start, 1, get_all_years=True, sum_up_80_plus=True)
+    pop_female = get_populations(180, year_start, 2, get_all_years=True, sum_up_80_plus=True)
 
-    pop = pop.rename(columns={'population': 'pop_scaled'})
+    pop = pop_male.append(pop_female)
 
     # merge all cause deaths and pop to get all cause mortality rate
     merged = pd.merge(all_cause_deaths, pop, on=[
-                            'age_group_id', 'year_id', 'sex_id', 'location_id'])
+                            'age', 'year_id', 'sex_id', 'location_id'])
 
     # Need to divide # of all cause deaths by population
     # Mortality Rate = Number of Deaths / Person Years of Exposure
     deaths = merged[['draw_{}'.format(i) for i in range(1000)]].values
     population = merged[['pop_scaled']].values
 
-    merged.set_index(['year_id', 'sex_id', 'age_group_id'], inplace=True)
+    merged.set_index(['year_id', 'sex_id', 'age'], inplace=True)
 
     all_cause_mr = pd.DataFrame(np.divide(deaths, population), columns=['all_cause_mortality_rate_{}'.format(i) for i in range(0,1000)], index=merged.index)
 
     all_cause_mr = all_cause_mr.reset_index()
 
-    all_cause_mortality_rate = get_age_group_midpoint_from_age_group_id(all_cause_mr)
-
     # only get years we care about
-    all_cause_mortality_rate = all_cause_mortality_rate.query('year_id>=@year_start and year_id<=@year_end')
+    all_cause_mortality_rate = all_cause_mr.query('year_id>=@year_start and year_id<=@year_end')
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert all_cause_mortality_rate.isnull().values.any() == False, "there are nulls in the dataframe that get_all_cause_mortality just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
-    assert all_cause_mortality_rate.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_all_cause_mortality_rate just tried to output. check the cache to make sure that the data you're pulling is correct"
+    assert all_cause_mortality_rate.duplicated(['age', 'year_id', 'sex_id']).sum() == 0, "there are duplicates in the dataframe that get_all_cause_mortality_rate just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     return all_cause_mortality_rate
 
@@ -444,14 +466,26 @@ def expand_grid(a, y):
     return df[['year_id', 'age']].sort_values(by=['year_id', 'age'])
 
 
-def expand_ages(df):
+def get_all_age_groups_for_years_in_df(df):
+    """
+    returns a dataframe with all ages for all years in df
+
+    columns are age and year_id
+    """
     mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
     mapping_filter = mapping.query('age_group_id >=2 and age_group_id <=21').copy()
     mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5
-    
+
     expanded_data = expand_grid(mapping_filter.age.values, pd.unique(df.year_id.values))
-    expanded_indexed = expanded_data.set_index(['year_id', 'age'])
+
+    return expanded_data
+
+def expand_ages(df):
+    expanded_cols = get_all_age_groups_for_years_in_df(df) 
+
+    expanded_indexed = expanded_cols.set_index(['year_id', 'age'])
+
     
     indexed_df = df.set_index(['year_id', 'age']).sortlevel()
     total_df = pd.DataFrame()
@@ -472,6 +506,25 @@ def expand_ages(df):
             total_df = total_df.append(one_df)
 
     return total_df.reset_index()
+
+
+def expand_ages_for_dfs_w_all_age_estimates(df):
+    '''
+    Some tables only have estimates for the "all ages" age group instead of broken out for the different age group ids. We need estimates for each age group separately, so this function expands tables with estimates for only the "all ages" to include estimates for each age group id
+    '''
+    expanded_cols = get_all_age_groups_for_years_in_df(df)
+
+    male_data = pd.merge(df, expanded_cols)
+
+    male_data['sex_id'] = 1
+
+    female_data = pd.merge(df, expanded_cols)
+
+    female_data['sex_id'] = 2
+
+    total_data = male_data.append(female_data)
+
+    return total_data
 
 
 # End.

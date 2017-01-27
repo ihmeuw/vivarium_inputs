@@ -34,6 +34,11 @@ from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
 from ceam_inputs.gbd_ms_auxiliary_functions import create_sex_id_column
 from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
+from ceam.interpolation import Interpolation
+from ceam.framework.randomness import choice
+from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages_for_dfs_w_all_age_estimates
+# em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
+# TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
 from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages
 from joblib import Memory
 import warnings
@@ -189,7 +194,8 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
     # Use auxilliary get_populations function to bring in the both sex
     # population
-    pop = get_populations(location_id, year_start, 3)
+    # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
+    pop = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
 
     total_pop_value = pop.sum()['pop_scaled']
 
@@ -288,6 +294,7 @@ def get_cause_level_prevalence(states, year_start):
     prevalence_df = pd.DataFrame()
 
     for key in states.keys():
+
         assert states[key].columns.tolist() == ['year', 'age', 'prevalence', 'sex'], "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
         # get prevalence for the start year only
         states[key] = states[key].query("year == {}".format(year_start))
@@ -329,15 +336,19 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     Unit test in place? -- Yes
     """
 
+    # TODO: Need to include Interpolation in this function for cause_level_prevalence. There are more age values for simulants df (older ages) than there are for cause_level_prevalence, hence why an interpolation function is needed. 
+
     merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
-    
+  
     # Need to sort merged df so that the weights are in the same order as results
     merged.sort_values(by='simulant_id', inplace=True)
     probability_of_disease = merged['prevalence']
     probability_of_NOT_having_disease = 1 - probability_of_disease
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
-    results = simulants_df.copy().set_index('simulant_id')   
+    results = simulants_df.copy()
+
+    results = results.set_index('simulant_id') 
  
     # Need to sort results so that the simulants are in the same order as the weights
     results['condition_envelope'] = choice('determine_if_sim_has_cause', results.index, [False, True], weights)
@@ -409,7 +420,6 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file):
 
     Unit test in place? -- Yes
     """
-
     sequela_proportions = [(key, Interpolation(data[['sex', 'age', 'scaled_prevalence']], ['sex'], ['age'])) for key, data in sequela_proportions.items()]
     sub_pop = new_sim_file.query('condition_envelope == 1')
     list_of_keys, list_of_weights = zip(*[(key,data(sub_pop)) for key, data in sequela_proportions])
@@ -588,7 +598,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
 
         # assert that non of the cause-deleted mortality rate values are less than or equal to 0
         draw_number = config.getint('run_configuration', 'draw_number')
-        assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. all-cause mortality can't be <= 0"
+        assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
 
         keepcol = ['year_id', 'sex_id', 'age']
         keepcol.extend(('cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
@@ -680,7 +690,6 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 
 # 6. get_relative_risks
 
-
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_type='morbidity'):
     """
     Parameters
@@ -718,8 +727,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     Unit test in place? -- Yes
     """
 
-    output_df = pd.DataFrame()
-
     rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
     # FIXME: Will want this pull to be linked to a publication id.
@@ -743,10 +750,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     rr = rr.query('cause_id == {}'.format(cause_id))
     
     rr = get_age_group_midpoint_from_age_group_id(rr)
-
-    # TODO: The 2 lines below will need to be deleted when the diarrhea branch is merged in. We figured out how to handle polytomous risk factors in the diarrhea branch
-    if risk_id == 166:
-        rr = rr.query("parameter == 'cat1'")
 
     rr = expand_ages(rr)
 
@@ -844,6 +847,8 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='mor
 
     # assert that none of the paf values are greater than 1
     draw_number = config.getint('run_configuration', 'draw_number')
+
+    # FIXME: I don't think this test is actually working correctly
     assert pafs['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with get_pafs. pafs cannot be GT 1. Check the data that you are pulling in and the function. Sometimes, a risk does not have paf estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
 
     return pafs[keepcol]
@@ -894,10 +899,6 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     exposure = exposure.query("year_id >= @year_start and year_id <= @year_end")
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
-
-    # TODO: The 2 lines below will need to be deleted when the diarrhea branch is merged in. We figured out how to handle polytomous risk factors in the diarrhea branch
-    if risk_id == 166:
-            exposure = exposure.query("parameter == 'cat1'")
 
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
@@ -1002,7 +1003,11 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
         else:
             column_map = {'draw_{draw}'.format(draw=draw): col_name}
 
-        keepcol = ['year_id', 'age', 'sex_id'] + list(column_map.keys())
+        # if 'parameter' is in columns, then keep it, else do not keep it (need parameter for the relative risk estimations)
+        if 'parameter' in function_output.columns:
+            keepcol = ['year_id', 'age', 'sex_id', 'parameter'] + list(column_map.keys())
+        else:
+            keepcol = ['year_id', 'age', 'sex_id'] + list(column_map.keys())
 
         function_output = function_output[keepcol]
         function_output = function_output.rename(columns=column_map)
@@ -1196,11 +1201,11 @@ def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=No
         dws_look_here_second = pd.read_csv(f)
 
     if healthstate_id in dws_look_here_first.healthstate_id.tolist():
-        df = dws_look_here_first.query("healthstate_id == @healthstate_id")
+        df = dws_look_here_first.query("healthstate_id == @healthstate_id").copy()
         df['modelable_entity_id'] = dis_weight_modelable_entity_id
 
     elif healthstate_id in dws_look_here_second.healthstate_id.tolist():
-        df = dws_look_here_second.query("healthstate_id == @healthstate_id")
+        df = dws_look_here_second.query("healthstate_id == @healthstate_id").copy()
         df['modelable_entity_id'] = dis_weight_modelable_entity_id
 
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequala get this healthstate_id
@@ -1246,21 +1251,23 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
 
     angina_prop_df = get_angina_proportions()
 
-    asympt_prop_df = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
+    merged = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
     
-    hf_values = asympt_prop_df[['draw_{}'.format(i) for i in range(0, 1000)]].values
-    angina_values = asympt_prop_df[['angina_prop']].values
+    merged = merged.set_index(['year_id', 'sex_id', 'age'])
+
+    hf_values = merged[['draw_{}'.format(i) for i in range(0, 1000)]].values
+    angina_values = merged[['angina_prop']].values
 
     # TODO: RAISE AN ERROR IF PROPORTIONS ARE GREATER THAN 1 FOR NOW. MAY WANT TO DELETE
     # ERROR IN THE FUTURE AND SCALE DOWN TO 1 INSTEAD
     # assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
 
-    asympt_prop_df[['asympt_prop_{}'.format(i) for i in range(0, 1000)]] = 1 - hf_values - angina_values
-    
+    asympt_prop_df = pd.DataFrame(1 - hf_values - angina_values, columns=['asympt_prop_{}'.format(i) for i in range(1000)], index=merged.index)
+ 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
 
-    return asympt_prop_df[keepcol] 
+    return asympt_prop_df.reset_index()[keepcol] 
 
 
 def get_age_specific_fertility_rates(location_id, year_start, year_end):
@@ -1276,5 +1283,228 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
 
     return asfr
 
+
+def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
+    """
+    Parameters
+    ----------
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    risk_id: int, risk id
+        risk_id takes same risk_id values as are used for GBD
+
+    cause_id: int, cause id
+        cause_id takes same cause_id values as are used for GBD
+
+    -------
+    Returns
+        df with columns year_id, sex_id, age, val, upper, and lower
+
+    """
+    # For some of the diarrhea etiologies, PAFs are negative. Wouldn't make sense for the simulation to use negative pafs (i.e. incidence * PAF returns a negative incidence if PAF is negative), so we'll clip to 0. Guessing that any other diseases that deal with etiologies in the future won't need to be treated this way. --EM 12/13
+    # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
+
+    eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
+ 
+    # now make the negative etiology paf draws 0
+    draws = eti_pafs._get_numeric_data()
+    draws[draws < 0] = 0
+
+    return eti_pafs
+
+
+def get_etiology_probability(etiology_name):
+    """
+    Gets the proportion of diarrhea cases that are associated with a specific etiology
+
+    Parameters
+    ----------
+    etiology_name: str
+        etiology_name is the name of the etiology of interest
+
+    Returns
+    -------
+    """
+
+    etiology_df = pd.DataFrame()
+
+    # TODO: Ask Chris T. if this works for cholera and c diff, since they are modeled differently than the other etiologies
+    # TODO: Will want to cache this data in the future instead of pulling it from Chris Troeger's J Temp file
+    etiology_proportion_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/diarrhea_{}_eti_draw_proportion.dta".format(etiology_name))
+
+    etiology_proportion_draws = etiology_proportion_draws.query("location_id == {}".format(config.getint('simulation_parameters', 'location_id')))
+
+    etiology_proportion_draws = get_age_from_age_group_id(etiology_proportion_draws)
+
+    for sex in (1, 2):
+        one_sex = etiology_proportion_draws.query("sex_id == @sex")
+        # TODO: Figure out if we want to get info from the config in this script or elsewhere
+        one_sex = set_age_year_index(one_sex, 'early neonatal', 3, config.getint('simulation_parameters', 'year_start') , config.getint('simulation_parameters', 'year_end'))
+
+        etiology_df = etiology_df.append(one_sex)
+
+    etiology_df.reset_index(level=['age', 'year_id'], inplace=True)
+
+    keepcol = ['year_id', 'sex_id', 'age', 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
+
+    return etiology_df[keepcol]
+
+
+def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id):
+    """
+    Gets the paf of diarrhea cases that are associated with a specific etiology
+
+    Parameters
+    ----------
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    eti_risk_id: int, risk id
+        eti_risk_id takes same rei id values as are used for GBD
+
+    cause_id: int, cause id
+        cause_id takes same cause_id values as are used for GBD
+
+    me_id: int, modelable_entity_id
+        me_id takes modelable entity id of a cause
+
+    Returns
+    -------
+    A dataframe of etiology specific incidence draws.
+        Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
+    """
+
+    # TODO: Figure out what we want to do regarding caching data. If we are using only one draw number, should we 
+    # cache the data? If we cache the data, will we actually pull a different value for each draw
+    draw_number = config.getint('run_configuration', 'draw_number')
+    
+    diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end,
+                                                           measure=6, me_id=me_id) # measure=incidence, me_id=diarrhea envelope TODO: Make me_id an argument to be passed into the fucntion (i.e. make this function more flexible than just diarrhea)
+
+    etiology_paf = get_etiology_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
+    
+    # TODO: Figure out if the interpolation should happen before the merge or in the simulation
+    # merge interpolated pafs and interpolated incidence
+    etiology_specific_incidence= pd.merge(diarrhea_envelope_incidence, etiology_paf, on=['age', 'year_id', 'sex_id'],
+                                          suffixes=('_envelope', '_pafs'))
+
+    etiology_specific_incidence.set_index(['year_id', 'sex_id', 'age'], inplace=True)
+    
+    pafs = etiology_specific_incidence[['draw_{}_pafs'.format(i) for i in range(0, 1000)]].values
+    envelope_incidence_draws = etiology_specific_incidence[['draw_{}_envelope'.format(i) for i in range(0, 1000)]].values
+    output_df = pd.DataFrame(np.multiply(pafs, envelope_incidence_draws), columns=['draw_{}'.format(i) for i in range(0, 1000)], index=etiology_specific_incidence.index)
+
+    return output_df.reset_index()
+
+
+def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id):
+    """
+    Gets draws of prevalence of diarrhea due to a specific specific etiology
+
+    Parameters
+    ----------
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    risk_id: int, risk id
+        risk_id takes same risk_id values as are used for GBD
+
+    cause_id: int, cause id
+        cause_id takes same cause_id values as are used for GBD
+
+    me_id: int, modelable_entity_id
+        me_id takes modelable entity id of a cause
+
+    Returns
+    -------
+    A dataframe of etiology specific prevalence draws. 
+        Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
+    """
+
+    draw_number = config.getint('run_configuration', 'draw_number')   
+ 
+    diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
+                                                           measure=5, me_id=me_id) # measure=prevalence, me_id=diarrhea envelope
+    
+    etiology_paf = get_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
+
+    etiology_specific_prevalence= pd.merge(diarrhea_envelope_prevalence, etiology_paf, on=['age', 'year_id', 'sex_id'], 
+                                          suffixes=('_envelope', '_pafs'))
+
+    etiology_specific_prevalence.set_index(['year_id', 'sex_id', 'age'], inplace=True)
+
+    pafs = etiology_specific_prevalence[['draw_{}_pafs'.format(i) for i in range(0, 1000)]].values
+    envelope_prevalence_draws = etiology_specific_prevalence[['draw_{}_envelope'.format(i) for i in range(0, 1000)]].values
+    output_df = pd.DataFrame(np.multiply(pafs, envelope_prevalence_draws), columns=['draw_{}'.format(i) for i in range(0, 1000)], index=etiology_specific_prevalence.index)
+
+    return output_df.reset_index()
+
+
+# TODO: Figure out if we need to do anything to the remission rates. We have remission for all diarrhea.
+# Do we need to split out remission to get remission from the different severity states?7
+def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
+    if severity_split == 'severe':
+        # FIXME: Need to use severity split draws. Manually setting proportions for now
+        severe_diarrhea_proportion = .14
+        excess_mortality_dataframe['rate'] = excess_mortality_dataframe['rate'] / severe_diarrhea_proportion
+    elif severity_split in ['mild', 'moderate']:
+        # set the excess mortality rate to 0
+        excess_mortality_dataframe['rate'] = 0
+    else:
+        raise ValueError("you supplied an invalid value for severity split argument. you wrote '{}'. acceptable severity splits are mild, moderate, or severe".format(severity_split))
+    return excess_mortality_dataframe
+
+
+# TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of covariate short name, because names are subject to change but ids should stay the same
+# TODO: Also link that covariate id to a publication id, if possible
+def get_covariate_estimates(location_id, year_start, year_end, covariate_short_name):
+    """
+    Gets covariate estimates for a specified location. Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.
+
+    Parameters
+    ----------
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+
+    covariate_short_name: str
+        the covariate_short_name for the covariate of interest.
+        you can look up covariate_short_names here: http://cn307.ihme.washington.edu:9998/
+        (check the covariate_metadata_tab in website above)
+
+    Returns
+    -------
+    A dataframe of covariate_estimates.
+        Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
+    """
+    covariate_estimates = stata_wrapper('get_covariate_estimates.do', 'covariate_estimates_for_covariate_{c}.csv'.format(c=covariate_short_name), covariate_short_name)
+
+    covariate_estimates = covariate_estimates.query("location_id == @location_id")
+
+    expanded_estimates = expand_ages_for_dfs_w_all_age_estimates(covariate_estimates)
+
+    expanded_estimates = expanded_estimates.query("year_id >= @year_start and year_id <= @year_end")
+
+    keepcols = ['location_id', 'year_id', 'sex_id', 'age', 'covariate_id', 'covariate_name_short', 'mean_value', 'lower_value', 'upper_value']
+
+    return expanded_estimates[keepcols]
 
 # End.
