@@ -174,6 +174,12 @@ def get_all_cause_mortality_rate():
             year_end,
             src_column='all_cause_mortality_rate_{draw}')
 
+def get_cause_deleted_mortality_rate(list_of_me_ids_in_microsim):
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+    funct_output = functions.load_data_from_cache(functions.get_cause_deleted_mortality_rate, location_id=location_id, year_start=year_start, year_end=year_end, list_of_me_ids_in_microsim=list_of_me_ids_in_microsim)
+
 
 def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     location_id = config.getint('simulation_parameters', 'location_id')
