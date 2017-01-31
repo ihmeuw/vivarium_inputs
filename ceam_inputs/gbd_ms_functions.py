@@ -247,7 +247,7 @@ def assign_subregions(index, location_id, year):
     This ignores demographic details. So if there is some region that has a
     age or sex bias in it's population, that will not be captured.
     """
-    region_ids = dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children
+    region_ids = [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
 
     if not region_ids:
         # The location has no sub regions
@@ -748,7 +748,10 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
                          ys=year_start, ye=year_end)).copy()
 
     rr = rr.query('cause_id == {}'.format(cause_id))
-    
+
+    if rr.empty:
+        raise ValueError("No data for risk_id {} on cause_id {} for type {}".format(risk_id, cause_id, rr_type))
+
     rr = get_age_group_midpoint_from_age_group_id(rr)
 
     rr = expand_ages(rr)

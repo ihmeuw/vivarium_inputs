@@ -56,7 +56,7 @@ def _fpg_ppf(parameters):
 def get_fpg_distributions(location_id, year_start, year_end, draw):
     parameters = pd.DataFrame()
     columns = ['age_group_id', 'sex_id', 'year_id', 'sll_loc_{}'.format(draw), 'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]
-    sub_location_ids = dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children
+    sub_location_ids = [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
     if not sub_location_ids:
         sub_location_ids = [location_id]
 
