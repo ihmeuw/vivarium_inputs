@@ -295,7 +295,7 @@ def get_cause_level_prevalence(states, year_start):
 
     for key in states.keys():
 
-        assert states[key].columns.tolist() == ['year', 'age', 'prevalence', 'sex'], "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
+        assert set(states[key].columns) == set(['year', 'age', 'prevalence', 'sex']), "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
         # get prevalence for the start year only
         states[key] = states[key].query("year == {}".format(year_start))
 
