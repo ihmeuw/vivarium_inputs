@@ -338,11 +338,13 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
 
     # TODO: Need to include Interpolation in this function for cause_level_prevalence. There are more age values for simulants df (older ages) than there are for cause_level_prevalence, hence why an interpolation function is needed. 
 
-    merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
+    #TODO: this is weird and not general but I don't think we should be doing this lookup here anyway
+    assert len(set(cause_level_prevalence.year)) == 1
+    cause_level_prevalence = cause_level_prevalence.copy()
+    del cause_level_prevalence['year']
+    #merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
+    probability_of_disease = Interpolation(cause_level_prevalence, ['sex'], ['age'])(simulants_df[['age', 'sex']])
   
-    # Need to sort merged df so that the weights are in the same order as results
-    merged.sort_values(by='simulant_id', inplace=True)
-    probability_of_disease = merged['prevalence']
     probability_of_NOT_having_disease = 1 - probability_of_disease
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
@@ -490,8 +492,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
 # 4. get_cause_deleted_mortality_rate
 
 
-def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
-                                            year_start, year_end):
+def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
     '''
     returns dataframe with columns for age, sex, year, and 1k draws
     the draws contain the sum of all the csmrs all of the causes in
@@ -499,17 +500,8 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
 
     Parameters
     ----------
-    list_of_me_ids: list
-        list of all of the me_ids in current simulation
-
-    location_id: int
-        to be passed into get_modelable_entity_draws
-
-    year_start: int
-        to be passed into get_modelable_entity_draws
-
-    year_end: int
-        to be passed into get_modelable_entity_draws
+    list_of_csmrs: list
+        list of all of the CSMRs in current simulation
 
     Returns
     ----------
@@ -528,18 +520,17 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
 
     df = pd.DataFrame()
 
-    for me_id in list_of_me_ids:
-        csmr_draws = get_modelable_entity_draws(
-            location_id, year_start, year_end, 15, me_id)
+    for csmr_draws in list_of_csmrs:
         df = df.append(csmr_draws)
 
     df = df.groupby(
-        ['age', 'sex_id', 'year_id'], as_index=False).sum()
+        ['age', 'sex', 'year'], as_index=False).sum()
 
     return df
 
 
-def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_me_ids_in_microsim):
+@memory.cache
+def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_csmrs):
     '''Returns the cause-delted mortality rate for a given time period and location
 
     Parameters
@@ -569,48 +560,39 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
     Unit test in place? -- Yes
     '''
 
-    all_cause_mr = get_all_cause_mortality_rate(
-        location_id, year_start, year_end)
+    #TODO: this doesn't belong here. Should be passed in somehow
+    draw = config.getint('run_configuration', 'draw_number')
 
-    if list_of_me_ids_in_microsim:
-        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids_in_microsim,
-                                                                  location_id, year_start, year_end)
+    all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(
+        location_id, year_start, year_end))
+    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw)]]
+    all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
 
-        cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=[
-                                'age', 'sex_id', 'year_id'])
+    if list_of_csmrs:
+        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs).set_index(['age', 'sex', 'year'])
+
+        cause_del_mr = all_cause_mr.set_index(['age', 'sex', 'year']) 
+
 
         # get cause-deleted mortality rate by subtracting out all of the csmrs from
         # all-cause mortality rate
-        # TODO: Make sure this division is working properly for all draws
-        all_cause = cause_del_mr[['all_cause_mortality_rate_{}'.format(i) for i in range(1000)]].values
-        summed_csmr_of_sim_causes = cause_del_mr[['draw_{}'.format(i) for i in range(1000)]].values
-        deleted = pd.DataFrame(all_cause - summed_csmr_of_sim_causes, columns=['cause_deleted_mortality_rate_{}'.format(i) for i in range(1000)], index=cause_del_mr.index)
-        # FIXME: Why is the merge in the line below necessary? Why not just use deleted?
-        cause_del_mr = cause_del_mr.merge(deleted, left_index=True, right_index=True)
+        deleted = (cause_del_mr.all_cause_mortality_rate - all_me_id_draws.rate).reset_index()
+        deleted.columns = ['age', 'sex', 'year', 'cause_deleted_mortality_rate']
 
         # assert an error to make sure data is dense (i.e. no missing data)
-        assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
+        assert deleted.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
         # assert an error if there are duplicate rows
-        assert cause_del_mr.duplicated(['age', 'year_id', 'sex_id']).sum(
+        assert deleted.duplicated(['age', 'year', 'sex']).sum(
         ) == 0, "there are duplicates in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
         # assert that non of the cause-deleted mortality rate values are less than or equal to 0
-        draw_number = config.getint('run_configuration', 'draw_number')
-        assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
+        assert np.all(deleted.cause_deleted_mortality_rate > 0), "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
 
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
-
-        return cause_del_mr[keepcol]
+        return deleted
     else:
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('all_cause_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
-        df = all_cause_mr[keepcol]
-        df = df.rename(columns={'all_cause_mortality_rate_{i}'.format(i=i):'cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)})
-
-        return df
+        return all_cause_mr
 
 
 # 5. get_post_mi_heart_failure_proportion_draws
