@@ -152,7 +152,6 @@ def get_disease_states(population, states):
 
     return condition_column
 
-
 def get_all_cause_mortality_rate():
     """Get the all cause mortality rate.
 
@@ -281,5 +280,14 @@ def get_covariate_estimates(covariate_short_name):
     year_end = config.getint('simulation_parameters', 'year_end')
 
     return functions.get_covariate_estimates(location_id, year_start, year_end, covariate_short_name) 
+
+def get_ors_exposure():
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+    draw_number = config.getint('run_configuration', 'draw_number')
+
+    return functions.load_data_from_cache(functions.get_ors_exposure, location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number, col_name=None)
+
 
 # End.

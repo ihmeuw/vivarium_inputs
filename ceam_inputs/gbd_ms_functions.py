@@ -1535,4 +1535,26 @@ def get_covariate_estimates(location_id, year_start, year_end, covariate_short_n
 
     return expanded_estimates[keepcols]
 
+
+# FIXME: Won't need function below once ORS exposure and RR estimates are uploaded to the database
+def get_ors_exposure(location_id, year_start, year_end, draw_number):
+    covariate_estimates_input = pd.read_csv("/share/epi/risk/bmgf/draws/exp/diarrhea_ors.csv")
+
+    covariate_estimates = covariate_estimates_input.query("location_id == {}".format(location_id)).copy()
+
+    expanded = expand_ages_for_dfs_w_all_age_estimates(covariate_estimates)
+
+    expanded_estimates = expanded.query("year_id >= {ys} and year_id <= {ye}".format(ys = year_start, ye = year_end)).copy()
+
+    keepcols = ['year_id', 'sex_id', 'age', 'cat1', 'cat2']
+
+    expanded_estimates.rename(columns={'draw_{}'.format(draw_number): 'cat1'}, inplace=True)
+
+    expanded_estimates['cat2'] = 1 - expanded_estimates['cat1']
+
+    expanded_estimates = expanded_estimates[keepcols]
+
+    return normalize_for_simulation(expanded_estimates)
+
+
 # End.
