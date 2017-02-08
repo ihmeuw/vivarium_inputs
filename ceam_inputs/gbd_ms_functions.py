@@ -151,8 +151,8 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
 
 # 2. generate_ceam_population
 
-
-def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None):
+# TODO: Write a test to make sure that getting a representative sample of people in a specific age group works
+def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None, pop_age_start=config.get('simulation_parameters', 'pop_age_start'), pop_age_end=config.get('simulation_parameters', 'pop_age_end')):
     """
     Returns a population of simulants to be fed into CEAM
 
@@ -193,7 +193,15 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     # Use auxilliary get_populations function to bring in the both sex
     # population
     # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
-    pop = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
+    population = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
+
+    if pop_age_start != '':
+        pop_age_start = float(pop_age_start)
+        pop = population.query("age >= @pop_age_start").copy()
+
+    if pop_age_end != '':
+        pop_age_end = float(pop_age_end)
+        pop = population.query("age <= @pop_age_end").copy()
 
     total_pop_value = pop.sum()['pop_scaled']
 
@@ -203,6 +211,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     # create a dataframe of 50k simulants
     simulants = pd.DataFrame({'simulant_id': range(0, number_of_simulants)})
 
+    # TODO: If we're setting initial ages, we probably just want a 50/50 distribution of men/women too
     if initial_age is None:
         simulants = create_age_column(simulants, pop, number_of_simulants)
     else:
