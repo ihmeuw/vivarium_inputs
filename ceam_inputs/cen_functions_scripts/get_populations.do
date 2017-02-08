@@ -1,11 +1,3 @@
-// Use home/J if running on the cluster, J: if running locally
-if c(os) == "Unix" {
-                global prefix "/home/j"
-                set odbcmgr unixodbc
-        }
-        else if c(os) == "Windows" {
-                global prefix "J:"
-        }
 // Connect to J Drive for shared function
 adopath + "/home/j/temp/central_comp/libraries/current/stata/"
 
