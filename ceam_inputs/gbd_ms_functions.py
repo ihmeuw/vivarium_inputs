@@ -195,15 +195,15 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     # Use auxilliary get_populations function to bring in the both sex
     # population
     # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
-    population = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
+    pop = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
 
     if pop_age_start != '':
         pop_age_start = float(pop_age_start)
-        pop = population.query("age >= @pop_age_start").copy()
+        pop = pop.query("age >= @pop_age_start").copy()
 
     if pop_age_end != '':
         pop_age_end = float(pop_age_end)
-        pop = population.query("age <= @pop_age_end").copy()
+        pop = pop.query("age <= @pop_age_end").copy()
 
     total_pop_value = pop.sum()['pop_scaled']
 
@@ -256,6 +256,7 @@ def assign_subregions(index, location_id, year):
     This ignores demographic details. So if there is some region that has a
     age or sex bias in it's population, that will not be captured.
     """
+    # TODO: Test is failing because "'int' object has no attribute 'id'"
     region_ids = [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
 
     if not region_ids:
