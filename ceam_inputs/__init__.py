@@ -2,6 +2,7 @@
 
 from ceam import config
 from ceam_inputs import gbd_ms_functions as functions
+from ceam_inputs import distributions
 
 # TODO: None of these functions can be run from an ipython notebook. ipython notebook is not currently able to submit Stata scripts. See if there is a way to make ipython notebooks submit Stata scripts
 from ceam_public_health.util.risk import RiskEffect
@@ -172,6 +173,12 @@ def get_all_cause_mortality_rate():
             year_end,
             src_column='all_cause_mortality_rate_{draw}')
 
+def get_cause_deleted_mortality_rate(list_of_csmrs):
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+    return functions.get_cause_deleted_mortality_rate(location_id=location_id, year_start=year_start, year_end=year_end, list_of_csmrs=list_of_csmrs)
+
 
 def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     location_id = config.getint('simulation_parameters', 'location_id')
@@ -259,12 +266,20 @@ def get_bmi_distributions():
     year_end = config.getint('simulation_parameters', 'year_end')
     draw = config.getint('run_configuration', 'draw_number')
 
-    return functions.get_bmi_distributions(location_id, year_start, year_end, draw)
+    return distributions.get_bmi_distributions(location_id, year_start, year_end, draw)
+
+def get_fpg_distributions():
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
+    draw = config.getint('run_configuration', 'draw_number')
+
+    return distributions.get_fpg_distributions(location_id, year_start, year_end, draw)
 
 
-def make_gbd_risk_effects(risk_id, causes, rr_type, effect_function):
+def make_gbd_risk_effects(risk_id, causes, effect_function):
     return [RiskEffect(
-        get_relative_risks(risk_id=risk_id, cause_id=cause_id, rr_type=rr_type),
+        get_relative_risks(risk_id=risk_id, cause_id=cause_id),
         get_pafs(risk_id=risk_id, cause_id=cause_id),
         cause_name,
         effect_function)

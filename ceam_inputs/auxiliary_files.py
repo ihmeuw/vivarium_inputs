@@ -33,6 +33,11 @@ FILES = {
         'path': '{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/bmi/{parameter}/19_{location_id}_{year_id}_{sex_id}.csv',
         'source': '/share/covariates/ubcov/04_model/beta_parameters/8',
         'owner': 'Marissa B. Reitsma <mreitsma@uw.edu>',
+        },
+    'Fasting Plasma Glucose Distributions': {
+        'path': '{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/fpg/FILE_{location_id}_{year_id}_{sex_id}_OUT.csv',
+        'source': '/share/epi/risk/paf/metab_fpg_cont_sll/FILE_[location_id]_[year_id]_[sex_id]_OUT.csv',
+        'owner': 'Stan Biryukov <stan0625@uw.edu>',
         }
 
 }

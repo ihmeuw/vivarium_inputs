@@ -16,6 +16,8 @@ from scipy.stats import beta
 from joblib import Memory
 from flufl.lock import Lock
 
+from hierarchies import dbtrees
+
 from db_tools import ezfuncs
 
 from ceam import config
@@ -233,6 +235,40 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
     return simulants
 
+def assign_subregions(index, location_id, year):
+    """
+    Assigns a location to each simulant. If the location_id
+    has sub regions in the hierarchy than the simulants will be
+    distributed across them uniformly weighted by each region's population.
+    Otherwise all simulants will be assigned location_id.
+
+    Parameters
+    ----------
+    index : pandas.Index
+        the simulants to assign
+    location_id : int
+        the location in the locations hierarchy to descend from
+    year : int
+        the year to use for population estimates
+
+    Notes
+    -----
+    This ignores demographic details. So if there is some region that has a
+    age or sex bias in it's population, that will not be captured.
+    """
+    region_ids = [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
+
+    if not region_ids:
+        # The location has no sub regions
+        return pd.Series(location_id, index=index)
+
+    # Get the population of each subregion and calculate the ratio of it to the
+    # total, which gives us the weights to use when distributing simulants
+    populations = np.array([get_populations(region_id, year, 3).pop_scaled.sum() for region_id in region_ids])
+    populations = populations / populations.sum()
+
+    return choice('assign_subregions_{}'.format(year), index, region_ids, p=populations)
+
 
 # 3. assign_cause_at_beginning_of_simulation
 
@@ -268,7 +304,7 @@ def get_cause_level_prevalence(states, year_start):
 
     for key in states.keys():
 
-        assert states[key].columns.tolist() == ['year', 'age', 'prevalence', 'sex'], "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
+        assert set(states[key].columns) == set(['year', 'age', 'prevalence', 'sex']), "the keys in the dict passed to get_cause_level_prevalence need to be dataframes with columns year, age, prevalence, and sex"
         # get prevalence for the start year only
         states[key] = states[key].query("year == {}".format(year_start))
 
@@ -311,11 +347,13 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
 
     # TODO: Need to include Interpolation in this function for cause_level_prevalence. There are more age values for simulants df (older ages) than there are for cause_level_prevalence, hence why an interpolation function is needed. 
 
-    merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
+    #TODO: this is weird and not general but I don't think we should be doing this lookup here anyway
+    assert len(set(cause_level_prevalence.year)) == 1
+    cause_level_prevalence = cause_level_prevalence.copy()
+    del cause_level_prevalence['year']
+    #merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
+    probability_of_disease = Interpolation(cause_level_prevalence, ['sex'], ['age'])(simulants_df[['age', 'sex']])
   
-    # Need to sort merged df so that the weights are in the same order as results
-    merged.sort_values(by='simulant_id', inplace=True)
-    probability_of_disease = merged['prevalence']
     probability_of_NOT_having_disease = 1 - probability_of_disease
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
@@ -463,8 +501,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
 # 4. get_cause_deleted_mortality_rate
 
 
-def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
-                                            year_start, year_end):
+def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
     '''
     returns dataframe with columns for age, sex, year, and 1k draws
     the draws contain the sum of all the csmrs all of the causes in
@@ -472,17 +509,8 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
 
     Parameters
     ----------
-    list_of_me_ids: list
-        list of all of the me_ids in current simulation
-
-    location_id: int
-        to be passed into get_modelable_entity_draws
-
-    year_start: int
-        to be passed into get_modelable_entity_draws
-
-    year_end: int
-        to be passed into get_modelable_entity_draws
+    list_of_csmrs: list
+        list of all of the CSMRs in current simulation
 
     Returns
     ----------
@@ -501,18 +529,17 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids, location_id,
 
     df = pd.DataFrame()
 
-    for me_id in list_of_me_ids:
-        csmr_draws = get_modelable_entity_draws(
-            location_id, year_start, year_end, 15, me_id)
+    for csmr_draws in list_of_csmrs:
         df = df.append(csmr_draws)
 
     df = df.groupby(
-        ['age', 'sex_id', 'year_id'], as_index=False).sum()
+        ['age', 'sex', 'year'], as_index=False).sum()
 
     return df
 
 
-def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_me_ids_in_microsim):
+@memory.cache
+def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_csmrs):
     '''Returns the cause-delted mortality rate for a given time period and location
 
     Parameters
@@ -542,48 +569,39 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
     Unit test in place? -- Yes
     '''
 
-    all_cause_mr = get_all_cause_mortality_rate(
-        location_id, year_start, year_end)
+    #TODO: this doesn't belong here. Should be passed in somehow
+    draw = config.getint('run_configuration', 'draw_number')
 
-    if list_of_me_ids_in_microsim:
-        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_me_ids_in_microsim,
-                                                                  location_id, year_start, year_end)
+    all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(
+        location_id, year_start, year_end))
+    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw)]]
+    all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
 
-        cause_del_mr = pd.merge(all_cause_mr, all_me_id_draws, on=[
-                                'age', 'sex_id', 'year_id'])
+    if list_of_csmrs:
+        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs).set_index(['age', 'sex', 'year'])
+
+        cause_del_mr = all_cause_mr.set_index(['age', 'sex', 'year']) 
+
 
         # get cause-deleted mortality rate by subtracting out all of the csmrs from
         # all-cause mortality rate
-        # TODO: Make sure this division is working properly for all draws
-        all_cause = cause_del_mr[['all_cause_mortality_rate_{}'.format(i) for i in range(1000)]].values
-        summed_csmr_of_sim_causes = cause_del_mr[['draw_{}'.format(i) for i in range(1000)]].values
-        deleted = pd.DataFrame(all_cause - summed_csmr_of_sim_causes, columns=['cause_deleted_mortality_rate_{}'.format(i) for i in range(1000)], index=cause_del_mr.index)
-        # FIXME: Why is the merge in the line below necessary? Why not just use deleted?
-        cause_del_mr = cause_del_mr.merge(deleted, left_index=True, right_index=True)
+        deleted = (cause_del_mr.all_cause_mortality_rate - all_me_id_draws.rate).reset_index()
+        deleted.columns = ['age', 'sex', 'year', 'cause_deleted_mortality_rate']
 
         # assert an error to make sure data is dense (i.e. no missing data)
-        assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
+        assert deleted.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
         # assert an error if there are duplicate rows
-        assert cause_del_mr.duplicated(['age', 'year_id', 'sex_id']).sum(
+        assert deleted.duplicated(['age', 'year', 'sex']).sum(
         ) == 0, "there are duplicates in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
         # assert that non of the cause-deleted mortality rate values are less than or equal to 0
-        draw_number = config.getint('run_configuration', 'draw_number')
-        assert cause_del_mr['cause_deleted_mortality_rate_{}'.format(draw_number)].all() > 0, "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
+        assert np.all(deleted.cause_deleted_mortality_rate > 0), "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
 
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
-
-        return cause_del_mr[keepcol]
+        return deleted
     else:
-        keepcol = ['year_id', 'sex_id', 'age']
-        keepcol.extend(('all_cause_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)))
-        df = all_cause_mr[keepcol]
-        df = df.rename(columns={'all_cause_mortality_rate_{i}'.format(i=i):'cause_deleted_mortality_rate_{i}'.format(i=i) for i in range(0, 1000)})
-
-        return df
+        return all_cause_mr
 
 
 # 5. get_post_mi_heart_failure_proportion_draws
@@ -721,7 +739,10 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
                          ys=year_start, ye=year_end)).copy()
 
     rr = rr.query('cause_id == {}'.format(cause_id))
-    
+
+    if rr.empty:
+        raise ValueError("No data for risk_id {} on cause_id {} for type {}".format(risk_id, cause_id, rr_type))
+
     rr = get_age_group_midpoint_from_age_group_id(rr)
 
     rr = expand_ages(rr)
@@ -1072,70 +1093,6 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     keepcol.extend(('log_sd_{i}'.format(i=i) for i in range(0, 1000)))
 
     return output_df[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
-
-
-
-def _bmi_ppf(parameters):
-   return beta(a=parameters['a'], b=parameters['b'], scale=parameters['scale'], loc=parameters['loc']).ppf
-
-
-@memory.cache
-def get_bmi_distributions(location_id, year_start, year_end, draw, func=_bmi_ppf):
-    a = pd.DataFrame()
-    b = pd.DataFrame()
-    loc = pd.DataFrame()
-    scale = pd.DataFrame()
-    for sex_id in [1,2]:
-        for year_id in np.arange(year_start, year_end + 1, 5):
-            with open_auxiliary_file('Body Mass Index Distributions',
-                                     parameter='bshape1',
-                                     location_id=location_id,
-                                     year_id=year_id,
-                                     sex_id=sex_id) as f:
-                a = a.append(pd.read_csv(f))
-            with open_auxiliary_file('Body Mass Index Distributions',
-                                     parameter='bshape2',
-                                     location_id=location_id,
-                                     year_id=year_id,
-                                     sex_id=sex_id) as f:
-                b = b.append(pd.read_csv(f))
-            with open_auxiliary_file('Body Mass Index Distributions',
-                                     parameter='mm',
-                                     location_id=location_id,
-                                     year_id=year_id,
-                                     sex_id=sex_id) as f:
-                loc = loc.append(pd.read_csv(f))
-            with open_auxiliary_file('Body Mass Index Distributions',
-                                     parameter='scale',
-                                     location_id=location_id,
-                                     year_id=year_id,
-                                     sex_id=sex_id) as f:
-                scale = scale.append(pd.read_csv(f))
-
-    a = a.set_index(['age_group_id', 'sex_id', 'year_id'])
-    b = b.set_index(['age_group_id', 'sex_id', 'year_id'])
-    loc = loc.set_index(['age_group_id', 'sex_id', 'year_id'])
-    scale = scale.set_index(['age_group_id', 'sex_id', 'year_id'])
-
-    distributions = pd.DataFrame()
-    distributions['a'] = a['draw_{}'.format(draw)]
-    distributions['b'] = b['draw_{}'.format(draw)]
-    distributions['loc'] = loc['draw_{}'.format(draw)]
-    distributions['scale'] = scale['draw_{}'.format(draw)]
-
-    distributions = distributions.reset_index()
-    distributions = get_age_group_midpoint_from_age_group_id(distributions)
-    distributions['year'] = distributions.year_id
-    distributions.loc[distributions.sex_id == 1, 'sex'] = 'Male'
-    distributions.loc[distributions.sex_id == 2, 'sex'] = 'Female'
-
-    return Interpolation(
-            distributions[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']],
-            categorical_parameters=('sex',),
-            continuous_parameters=('age', 'year'),
-            func=func,
-            )
-
 
 # 13 get_angina_proportions
 

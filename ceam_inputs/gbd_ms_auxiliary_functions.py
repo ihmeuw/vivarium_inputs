@@ -111,6 +111,9 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     Unit test in place? -- Yes
     """
+    if df.empty:
+        df['age'] = 0
+        return df
 
     df = df.copy()
     idx = df.index
