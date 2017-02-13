@@ -17,14 +17,16 @@ from ceam_inputs.gbd_ms_functions import determine_which_seq_diseased_sim_has
 from ceam_inputs.gbd_ms_functions import get_post_mi_heart_failure_proportion_draws
 from ceam.framework.util import from_yearly, rate_to_probability
 from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
-from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
+from ceam_inputs import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
-from ceam_inputs.gbd_ms_functions import get_cause_deleted_mortality_rate
+from ceam_inputs import get_cause_deleted_mortality_rate
 from ceam_inputs.gbd_ms_functions import assign_subregions
 from ceam_tests.util import build_table
 from ceam_inputs.gbd_ms_functions import get_etiology_specific_incidence
 from ceam_inputs.gbd_ms_functions import get_etiology_specific_prevalence
 from ceam_inputs.gbd_ms_functions import get_asympt_ihd_proportions
+from ceam_inputs.gbd_ms_functions import normalize_for_simulation
+from ceam_inputs import get_cause_specific_mortality
 
 # generate_ceam_population
 def test_generate_ceam_population():
@@ -73,7 +75,7 @@ def test_get_cause_level_prevalence():
 
 # determine_if_sim_has_cause
 def test_determine_if_sim_has_cause():
-    prevalence_df = pd.DataFrame({"age": [0, 5, 10, 15], "sex": ['Male']*4 , "prevalence": [.25, .5, .75, 1]})
+    prevalence_df = pd.DataFrame({"age": [0, 5, 10, 15], "sex": ['Male']*4 , "prevalence": [.25, .5, .75, 1], "year": [1990]*4})
 
     simulants_df = pd.DataFrame({'simulant_id': range(0, 500000), 'sex': ['Male']*500000, 'age': [0, 5, 10, 15]*125000})
 
@@ -244,27 +246,27 @@ def test_get_sbp_mean_sd_Kenya_2000():
 
 # sum_up_csmrs_for_all_causes_in_microsim
 def test_sum_up_csmrs_for_all_causes_in_microsim():
-    csmr1 = get_modelable_entity_draws(
-            180, 1990, 1990, 15, 1814)
+    csmr1 = normalize_for_simulation(get_modelable_entity_draws(
+            180, 1990, 1990, 15, 1814))
 
-    csmr2 = get_modelable_entity_draws(
-            180, 1990, 1990, 15, 9310)
+    csmr2 = normalize_for_simulation(get_modelable_entity_draws(
+            180, 1990, 1990, 15, 9310))
 
-    sex = 2
+    sex = 'Female'
     age = 72.5
     draw_number = 77
 
-    csmr1_filter = csmr1.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
+    csmr1_filter = csmr1.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
 
-    csmr2_filter = csmr2.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
+    csmr2_filter = csmr2.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
 
     csmr1_val = csmr1_filter['draw_{}'.format(draw_number)].values[0]
 
     csmr2_val = csmr2_filter['draw_{}'.format(draw_number)].values[0]
 
-    df = sum_up_csmrs_for_all_causes_in_microsim([9310, 1814], 180, 1990, 1990)
+    df = sum_up_csmrs_for_all_causes_in_microsim([csmr1_filter, csmr2_filter])
 
-    df_filter = df.query("age == {a} and sex_id == {s}".format(a=age, s=sex))
+    df_filter = df.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
 
     df_val = df_filter['draw_{}'.format(draw_number)].values[0]
 
@@ -272,26 +274,25 @@ def test_sum_up_csmrs_for_all_causes_in_microsim():
 
 
 def test_get_cause_deleted_mortality_rate():
-    all_cause_mr = get_all_cause_mortality_rate(180, 1990, 1990)
+    age = 67.5    
 
-    age = 67.5
-    draw_number = 221
+    all_cause_mr = get_all_cause_mortality_rate()
 
-    all_cause_filter = all_cause_mr.query("age == {a} and sex_id == 1".format(a=age))
+    all_cause_filter = all_cause_mr.query("age == {a} and sex == 'Male'".format(a=age))
 
-    cause_csmr = sum_up_csmrs_for_all_causes_in_microsim([1814], 180, 1990, 1990)
+    all_cause_val = all_cause_filter['rate'].values[0]
 
-    csmr_filter = cause_csmr.query("age == {a} and sex_id == 1".format(a=age))
+    csmr1814 = get_cause_specific_mortality(1814)
 
-    all_cause_val = all_cause_filter['all_cause_mortality_rate_{}'.format(draw_number)].values[0]
-    
-    cause_val = csmr_filter['draw_{}'.format(draw_number)].values[0]
+    csmr_filter = csmr1814.query("age == {a} and sex == 'Male'".format(a=age))
 
-    cause_deleted = get_cause_deleted_mortality_rate(180, 1990, 1990, [1814])
+    cause_val = csmr_filter['rate'].values[0]
 
-    cause_deleted_filter = cause_deleted.query("age == {a} and sex_id == 1".format(a=age))
+    cause_deleted = get_cause_deleted_mortality_rate([csmr1814])
 
-    cause_deleted_val = cause_deleted_filter['cause_deleted_mortality_rate_{}'.format(draw_number)].values[0]
+    cause_deleted_filter = cause_deleted.query("age == {a} and sex == 'Male'".format(a=age))
+
+    cause_deleted_val = cause_deleted_filter['cause_deleted_mortality_rate'].values[0]
 
     assert cause_deleted_val == all_cause_val - cause_val, "cause deleted mortality rate was incorrectly calculated"
 
