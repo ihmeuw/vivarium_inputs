@@ -572,7 +572,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
 
 
     if list_of_csmrs:
-        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs).set_index(['age', 'sex', 'year'])
+        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs).query('year >= @year_start and year <= @year_end').set_index(['age', 'sex', 'year'])
 
         cause_del_mr = all_cause_mr.set_index(['age', 'sex', 'year']) 
 

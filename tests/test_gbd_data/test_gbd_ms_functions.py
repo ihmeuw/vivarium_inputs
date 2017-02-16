@@ -5,6 +5,8 @@ import pandas as pd
 
 from hierarchies.tree import Node
 
+from ceam import config
+
 from ceam_inputs.gbd_ms_functions import get_sbp_mean_sd
 from ceam_inputs.gbd_ms_functions import get_relative_risks
 from ceam_inputs.gbd_ms_functions import get_pafs
@@ -248,23 +250,21 @@ def test_get_cause_deleted_mortality_rate():
     all_cause_mr = get_all_cause_mortality_rate(180, 1990, 1990)
 
     age = 67.5
-    draw_number = 221
+    draw_number = config.getint('run_configuration', 'draw_number')
 
-    all_cause_filter = all_cause_mr.query("age == {a} and sex_id == 1".format(a=age))
+    all_cause_filter = all_cause_mr.query("age == @age and sex_id == 1")
 
-    cause_csmr = sum_up_csmrs_for_all_causes_in_microsim([get_cause_specific_mortality(1814)])
+    cause_csmr = sum_up_csmrs_for_all_causes_in_microsim([get_cause_specific_mortality(1814)]).query('year == 1990')
 
-    csmr_filter = cause_csmr.query("age == {a} and sex_id == 1".format(a=age))
+    cause_val = cause_csmr.query("age == @age and sex == 'Male'").rate
 
     all_cause_val = all_cause_filter['all_cause_mortality_rate_{}'.format(draw_number)].values[0]
 
-    cause_val = csmr_filter['draw_{}'.format(draw_number)].values[0]
+    cause_deleted = get_cause_deleted_mortality_rate(180, 1990, 1990, [get_cause_specific_mortality(1814)])
 
-    cause_deleted = get_cause_deleted_mortality_rate(180, 1990, 1990, [1814])
+    cause_deleted_filter = cause_deleted.query("age == @age and sex == 'Male'")
 
-    cause_deleted_filter = cause_deleted.query("age == {a} and sex_id == 1".format(a=age))
-
-    cause_deleted_val = cause_deleted_filter['cause_deleted_mortality_rate_{}'.format(draw_number)].values[0]
+    cause_deleted_val = cause_deleted_filter['cause_deleted_mortality_rate'].values[0]
 
     assert np.isclose(cause_deleted_val, all_cause_val - cause_val), "cause deleted mortality rate was incorrectly calculated"
 

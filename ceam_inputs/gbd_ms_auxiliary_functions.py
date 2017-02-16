@@ -172,15 +172,16 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
 
     # use central comp's get_population function to get gbd populations
     # the age group id arguments get the age group ids for each age group up through age 95+
-    pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
+    if get_all_years:
+        year_id = -1
+    else:
+        # Grab population for year_start only (to initialize microsim population)
+        year_id = year_start
+    pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_id, sex_id=sex_id)
 
     # Don't include the older ages in the 2015 runs
     # if config.getint('simulation_parameters', 'gbd_round_id') == 3:
     #    pop = pop.query("age_group_id <= 21")
-
-    # Grab population for year_start only (to initialize microsim population)
-    if get_all_years == False:
-        pop = pop.query('year_id=={y}'.format(y=year_start))
 
     # use auxilliary function extract_age_from_age_group_name to create an age
     # column
@@ -360,10 +361,10 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     Unit test in place? -- Not currently, but one does need to be put in place
     '''
 
-
     # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
     # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
-    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, age_group_ids=list(range(2,22)), location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
+    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, age_group_ids=list(range(2,22)), location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'), year_ids=range(year_start, year_end), num_workers=worker_count)
 
     # filter so that only metric id 1 (deaths) is in our dataframe
     all_cause_deaths = all_cause_draws.query("metric_id == 1")
