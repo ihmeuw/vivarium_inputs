@@ -6,8 +6,9 @@ from scipy import stats
 from ceam import config
 
 from db_tools import ezfuncs
+from db_queries import get_population
 
-from ceam_inputs.util import stata_wrapper
+from transmogrifier.draw_ops import get_draws
 
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam
@@ -134,7 +135,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     return df
 
-# TODO: Make the get_populations Stata call take a gbd_round_id argument
+# TODO: Make the central comp get_populations call take a gbd_round_id argument
 def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up_80_plus=False):
     """
     Get age-/sex-specific population structure
@@ -171,8 +172,7 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
 
     # use central comp's get_population function to get gbd populations
     # the age group id arguments get the age group ids for each age group up through age 95+
-    # pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
-    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
+    pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
 
     # Don't include the older ages in the 2015 runs
     # if config.getint('simulation_parameters', 'gbd_round_id') == 3:
@@ -360,11 +360,10 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     Unit test in place? -- Not currently, but one does need to be put in place
     '''
 
-    all_cause_draws = stata_wrapper('get_all_cause_mortality_rate_draws.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
     # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
     # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
-    # all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, age_group_ids=list(range(2,22)), location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
     # filter so that only metric id 1 (deaths) is in our dataframe
     all_cause_deaths = all_cause_draws.query("metric_id == 1")
