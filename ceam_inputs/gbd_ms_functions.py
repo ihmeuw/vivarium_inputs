@@ -713,11 +713,13 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
 
 
     # FIXME: Will want this pull to be linked to a publication id.
-    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, year_ids=range(year_start, year_end), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
     # Not all rrs are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    # if rr.values == "error":
-    #    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
+    if np.all(rr.values == "error"):
+        rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
+    elif np.any(rr.values == "error"):
+        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
     if rr_type == 'morbidity':
         rr = rr.query("morbidity == 1")
@@ -725,10 +727,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
         rr = rr.query("mortality == 1")
     else:
         raise ValueError('rr_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
-
-    # FIXME: Could save some memory by pulling only the years we need initially
-    rr = rr.query('year_id>={ys} and year_id<={ye}'.format(
-                         ys=year_start, ye=year_end)).copy()
 
     rr = rr.query('cause_id == {}'.format(cause_id))
 
@@ -805,7 +803,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='mor
 
     age_groups = list(range(1,22))+[30,31,32,33]
     worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
-    pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'), include_risks=True, num_workers=worker_count)
+    pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'), include_risks=True, num_workers=worker_count)
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -876,12 +874,14 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
     """
 
-    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    # if exposure.values == "error":
-    #    exposure == get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
+    if np.all(exposure.values == "error"):
+        exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
+    elif np.any(exposure.values == "error"):
+        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
     exposure = exposure.query("year_id >= @year_start and year_id <= @year_end")
 
