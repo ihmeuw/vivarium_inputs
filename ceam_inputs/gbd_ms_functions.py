@@ -129,7 +129,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
     meid_version_map = get_model_versions()
     model_version = meid_version_map[me_id]
 
-    draws = get_draws('modelable_entity_id', me_id, location_ids=location_id, source='dismod', age_group_ids=list(range(2,22)), model_version_id=model_version)
+    draws = get_draws('modelable_entity_id', me_id, location_ids=location_id, source='dismod', sex_ids=[1,2], age_group_ids=list(range(2,22)), model_version_id=model_version)
 
     # draws = python_wrapper('get_modelable_entity_draws.py', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
 
