@@ -16,11 +16,17 @@ from scipy.stats import beta
 from joblib import Memory
 from flufl.lock import Lock
 
-from hierarchies import dbtrees
+try:
+    from transmogrifier.draw_ops import get_draws
+except ImportError:
+    def get_draws(*args, **kwargs):
+        raise ImportError("No module named 'transmogrifier' (you must install central_comp's transmogrifier package _or_ supply precached data)")
 
-from db_tools import ezfuncs
-from db_queries import get_covariate_estimates
-from transmogrifier.draw_ops import get_draws
+try:
+    from hierarchies import dbtrees
+except ImportError:
+    def dbtrees(*args, **kwargs):
+        raise ImportError("No module named 'hierarchies' (you must install central_comp's hierarchies package _or_ supply precached data)")
 
 from ceam import config
 from ceam.interpolation import Interpolation
@@ -53,7 +59,6 @@ _log = logging.getLogger(__name__)
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
-# from transmogrifier.draw_ops import get_draws
 
 
 # # Microsim functions
@@ -69,6 +74,8 @@ def get_model_versions():
     """Return a mapping from modelable_entity_id to the version of that entity 
     associated with the GBD publications currently configured.
     """
+    from db_tools import ezfuncs # This import is not at global scope because I only want the dependency if cached data is unavailable
+
     publication_ids = [int(pid) for pid in config.get('input_data', 'gbd_publication_ids').split(',')]
     mapping = ezfuncs.query('''
     SELECT modelable_entity_id, model_version_id
@@ -1482,6 +1489,8 @@ def get_covariate_estimates(location_id, year_start, year_end, covariate_short_n
     A dataframe of covariate_estimates.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
+    from db_queries import get_covariate_estimates # This import is not at global scope because I only want the dependency if cached data is unavailable
+
     covariate_estimates = get_covariate_estimates(covariate_short_name=covariate_short_name)
 
     covariate_estimates = covariate_estimates.query("location_id == @location_id")

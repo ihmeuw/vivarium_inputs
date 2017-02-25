@@ -5,10 +5,11 @@ from scipy import stats
 
 from ceam import config
 
-from db_tools import ezfuncs
-from db_queries import get_population
-
-from transmogrifier.draw_ops import get_draws
+try:
+    from db_tools.ezfuncs import query
+except ImportError:
+    def query(*args, **kwarg):
+        raise ImportError("No module named 'db_tools' (you must install central_comp's db_tools package _or_ supply precached data)")
 
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam
@@ -118,7 +119,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     df = df.copy()
     idx = df.index
-    mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
+    mapping = query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
     mapping = mapping.set_index('age_group_id')
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
 
@@ -169,6 +170,7 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
 
     Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using central comp's get_populations function.
     """
+    from db_queries import get_population # This import is not at global scope because I only want the dependency if cached data is unavailable
 
     # use central comp's get_population function to get gbd populations
     # the age group id arguments get the age group ids for each age group up through age 95+
@@ -360,6 +362,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
     Unit test in place? -- Not currently, but one does need to be put in place
     '''
+    from transmogrifier.draw_ops import get_draws # This import is not at global scope because I only want the dependency if cached data is unavailable
 
     # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
     # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
@@ -428,7 +431,7 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
     Unit test in place? -- Yes
     """
     
-    healthstate_id_df = ezfuncs.query('''
+    healthstate_id_df = query('''
     SELECT modelable_entity_id, healthstate_id
     FROM epi.sequela
     WHERE modelable_entity_id = {}
@@ -475,7 +478,7 @@ def get_all_age_groups_for_years_in_df(df):
 
     columns are age and year_id
     """
-    mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
+    mapping = query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
     mapping_filter = mapping.query('age_group_id >=2 and age_group_id <=21').copy()
     mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5
