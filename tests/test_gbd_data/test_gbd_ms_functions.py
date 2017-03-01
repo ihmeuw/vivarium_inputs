@@ -30,6 +30,7 @@ from ceam_inputs import get_cause_specific_mortality
 from hierarchies.tree import Node
 
 # generate_ceam_population
+# FIXME: Make this test pass regardless of age groups selected in the config file
 def test_generate_ceam_population():
     pop = generate_ceam_population(180, 1990, 1000000)
 
