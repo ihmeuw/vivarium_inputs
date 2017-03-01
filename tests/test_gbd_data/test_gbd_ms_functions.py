@@ -27,6 +27,7 @@ from ceam_inputs.gbd_ms_functions import get_etiology_specific_prevalence
 from ceam_inputs.gbd_ms_functions import get_asympt_ihd_proportions
 from ceam_inputs.gbd_ms_functions import normalize_for_simulation
 from ceam_inputs import get_cause_specific_mortality
+from hierarchies.tree import Node
 
 # generate_ceam_population
 def test_generate_ceam_population():
@@ -340,7 +341,7 @@ def test_get_asympt_ihd_proportions():
 @patch('ceam_inputs.gbd_ms_functions.dbtrees')
 @patch('ceam_inputs.gbd_ms_functions.get_populations')
 def test_assign_subregions_with_subregions(get_populations_mock, dbtrees_mock):
-    dbtrees_mock.loctree().get_node_by_id().children = [10, 11, 12]
+    dbtrees_mock.loctree().get_node_by_id().children = [Node(10, None, None), Node(11, None, None), Node(12, None, None)]
     test_populations = {
             10: build_table(20, ['age', 'year', 'sex', 'pop_scaled']),
             11: build_table(30, ['age', 'year', 'sex', 'pop_scaled']),
