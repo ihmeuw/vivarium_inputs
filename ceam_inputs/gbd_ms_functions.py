@@ -256,7 +256,6 @@ def assign_subregions(index, location_id, year):
     This ignores demographic details. So if there is some region that has a
     age or sex bias in it's population, that will not be captured.
     """
-    # TODO: Test is failing because "'int' object has no attribute 'id'"
     region_ids = [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
 
     if not region_ids:
