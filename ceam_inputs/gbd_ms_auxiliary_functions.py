@@ -379,8 +379,8 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     # get population estimates for each age, sex, year group. population estimates will serve
     # as the estimates for # of Person Years in each age group
     # pop = get_populations(age_group_id=list(range(2,22)), location_id=location_id, year_id=-1, sex_id=[1,2])
-    pop_male = get_populations(180, year_start, 1, get_all_years=True, sum_up_80_plus=True)
-    pop_female = get_populations(180, year_start, 2, get_all_years=True, sum_up_80_plus=True)
+    pop_male = get_populations(location_id, year_start, 1, get_all_years=True, sum_up_80_plus=True)
+    pop_female = get_populations(location_id, year_start, 2, get_all_years=True, sum_up_80_plus=True)
 
     pop = pop_male.append(pop_female)
 

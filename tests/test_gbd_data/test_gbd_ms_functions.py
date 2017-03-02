@@ -2,11 +2,6 @@ import pytest
 from unittest.mock import patch
 import numpy as np
 import pandas as pd
-
-from hierarchies.tree import Node
-
-from ceam import config
-
 from ceam_inputs.gbd_ms_functions import get_sbp_mean_sd
 from ceam_inputs.gbd_ms_functions import get_relative_risks
 from ceam_inputs.gbd_ms_functions import get_pafs
@@ -15,25 +10,29 @@ from ceam_inputs.gbd_ms_functions import get_angina_proportions
 from ceam_inputs.gbd_ms_functions import get_disability_weight
 from ceam_inputs.gbd_ms_functions import generate_ceam_population
 from ceam_inputs.gbd_ms_functions import get_cause_level_prevalence
-from ceam_inputs import get_prevalence, get_cause_specific_mortality
+from ceam_inputs import get_prevalence
 from ceam_inputs.gbd_ms_functions import determine_if_sim_has_cause
 from ceam_inputs.gbd_ms_functions import get_sequela_proportions
 from ceam_inputs.gbd_ms_functions import determine_which_seq_diseased_sim_has
 from ceam_inputs.gbd_ms_functions import get_post_mi_heart_failure_proportion_draws
 from ceam.framework.util import from_yearly, rate_to_probability
 from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
-from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
+from ceam_inputs import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
-from ceam_inputs.gbd_ms_functions import get_cause_deleted_mortality_rate
+from ceam_inputs import get_cause_deleted_mortality_rate
 from ceam_inputs.gbd_ms_functions import assign_subregions
 from ceam_tests.util import build_table
 from ceam_inputs.gbd_ms_functions import get_etiology_specific_incidence
 from ceam_inputs.gbd_ms_functions import get_etiology_specific_prevalence
 from ceam_inputs.gbd_ms_functions import get_asympt_ihd_proportions
+from ceam_inputs.gbd_ms_functions import normalize_for_simulation
+from ceam_inputs import get_cause_specific_mortality
+from hierarchies.tree import Node
 
 # generate_ceam_population
+# FIXME: Make this test pass regardless of age groups selected in the config file
 def test_generate_ceam_population():
-    pop = generate_ceam_population(180, 1990, 1000000)
+    pop = generate_ceam_population(180, 1990, 1000000, pop_age_start=0, pop_age_end=110)
 
     num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
 
@@ -54,7 +53,7 @@ def test_get_cause_level_prevalence():
     prev_df1 = build_table(0.03).rename(columns={'rate':'prevalence'})[['year', 'age', 'prevalence', 'sex']]
     prev_df2 = build_table(0.02).rename(columns={'rate':'prevalence'})[['year', 'age', 'prevalence', 'sex']]
 
-    dict_of_disease_states = {'severe_heart_failure' : prev_df1, 'moderate_heart_failure' : prev_df2}
+    dict_of_disease_states = {'severe_heart_failure' : prev_df1, 'moderate_heart_failure' : prev_df2}    
 
     cause_level, seq_level_dict = get_cause_level_prevalence(dict_of_disease_states, 2005)
 
@@ -70,15 +69,15 @@ def test_get_cause_level_prevalence():
 
     # add up the prevalences of the 2 sequela to see if we get cause-level prevalence
     cause_level = cause_level.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
-    cause_prev = cause_level['prevalence'].values[0]
+    cause_prev = cause_level['prevalence'].values[0]    
 
-    assert cause_prev == seq_prevalence_1 + seq_prevalence_2, 'get_cause_level_prevalence error. seq prevs need to add up to cause prev'
-    assert np.allclose(cause_prev, .05), 'get_cause_level prevalence should match data from database as of 1/5/2017'
+    assert np.isclose(cause_prev, seq_prevalence_1 + seq_prevalence_2), 'get_cause_level_prevalence error. seq prevs need to add up to cause prev'
+    assert np.allclose(cause_prev, .05), 'get_cause_level prevalence should match data from database as of 1/5/2017' 
 
 
 # determine_if_sim_has_cause
 def test_determine_if_sim_has_cause():
-    prevalence_df = pd.DataFrame({"age": [0, 5, 10, 15], "sex": ['Male']*4 , 'year':[2005]*4, "prevalence": [.25, .5, .75, 1]})
+    prevalence_df = pd.DataFrame({"age": [0, 5, 10, 15], "sex": ['Male']*4 , "prevalence": [.25, .5, .75, 1], "year": [1990]*4})
 
     simulants_df = pd.DataFrame({'simulant_id': range(0, 500000), 'sex': ['Male']*500000, 'age': [0, 5, 10, 15]*125000})
 
@@ -139,7 +138,7 @@ def test_determine_which_seq_diseased_sim_has():
     val2 = val2 / 100000
 
     assert np.allclose(val1, .75, .1), "determine which seq diseased sim has needs to assign sequelas according to sequela prevalence"
-    assert np.allclose(val2, .25, .1), "determine which seq diseased sim has needs to assign sequelas according to sequela prevalence"
+    assert np.allclose(val2, .25, .1), "determine which seq diseased sim has needs to assign sequelas according to sequela prevalence" 
 
 
 # def test_get_post_mi_heart_failure_proportion_draws
@@ -162,19 +161,19 @@ def test_get_relative_risks():
     # assert that relative risks are 1 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2")
     df_filter1.set_index('age', inplace=True)
-    rr1 =  df_filter1.get_value(7.5, 'rr_{}'.format(draw_number))
+    rr1 =  df_filter1.get_value(7.5, 'rr_{}'.format(draw_number))    
 
     df_filter2 = df.query("age == 82.5 and sex_id == 2")
     df_filter2.set_index('age', inplace=True)
     rr2 =  df_filter2.get_value(82.5, 'rr_{}'.format(draw_number))
 
     assert rr1 == 1.0, 'get_relative_risks should return rr=1 for younger ages for the risks which dont estimate relative risk for all ages'
-    assert rr2 == 1.3506, 'get_relative risks should return rrs that match what is pulled from the database'
+    assert np.isclose(rr2, 1.3506), 'get_relative risks should return rrs that match what is pulled from the database'
 
 
 # get_pafs
 def test_get_pafs():
-    df = get_pafs(180, 1990, 1990, 107, 493)
+    df = get_pafs(180, 1990, 1990, 107, 493) 
 
     # pick a random draw to test
     draw_number = 19
@@ -246,31 +245,62 @@ def test_get_sbp_mean_sd_Kenya_2000():
     # check if the value for 25 year old males matches the csv
     assert np.allclose(df.loc[(2000, 1, 27.5), 'log_mean_0'], np.log(118.948299)), 'should match data loaded by @aflaxman on 8/4/2016. test changed by @emumford on 9/23 to account for change in gbd_ms_functions'
 
+
+# sum_up_csmrs_for_all_causes_in_microsim
+def test_sum_up_csmrs_for_all_causes_in_microsim():
+    csmr1 = normalize_for_simulation(get_modelable_entity_draws(
+            180, 1990, 1990, 15, 1814))
+
+    csmr2 = normalize_for_simulation(get_modelable_entity_draws(
+            180, 1990, 1990, 15, 9310))
+
+    sex = 'Female'
+    age = 72.5
+    draw_number = 77
+
+    csmr1_filter = csmr1.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
+
+    csmr2_filter = csmr2.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
+
+    csmr1_val = csmr1_filter['draw_{}'.format(draw_number)].values[0]
+
+    csmr2_val = csmr2_filter['draw_{}'.format(draw_number)].values[0]
+
+    df = sum_up_csmrs_for_all_causes_in_microsim([csmr1_filter, csmr2_filter])
+
+    df_filter = df.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
+
+    df_val = df_filter['draw_{}'.format(draw_number)].values[0]
+
+    assert df_val == csmr1_val + csmr2_val, "sum_up_csmrs_for_all_causes_in_microsim did not correctly sum up csmrs"
+
+
 def test_get_cause_deleted_mortality_rate():
-    all_cause_mr = get_all_cause_mortality_rate(180, 1990, 1990)
+    age = 67.5    
 
-    age = 67.5
-    draw_number = config.getint('run_configuration', 'draw_number')
+    all_cause_mr = get_all_cause_mortality_rate()
 
-    all_cause_filter = all_cause_mr.query("age == @age and sex_id == 1")
+    all_cause_filter = all_cause_mr.query("age == {a} and sex == 'Male'".format(a=age))
 
-    cause_csmr = sum_up_csmrs_for_all_causes_in_microsim([get_cause_specific_mortality(1814)]).query('year == 1990')
+    all_cause_val = all_cause_filter['rate'].values[0]
 
-    cause_val = cause_csmr.query("age == @age and sex == 'Male'").rate
+    csmr1814 = get_cause_specific_mortality(1814)
 
-    all_cause_val = all_cause_filter['all_cause_mortality_rate_{}'.format(draw_number)].values[0]
+    csmr_filter = csmr1814.query("age == {a} and sex == 'Male'".format(a=age))
 
-    cause_deleted = get_cause_deleted_mortality_rate(180, 1990, 1990, [get_cause_specific_mortality(1814)])
+    cause_val = csmr_filter['rate'].values[0]
 
-    cause_deleted_filter = cause_deleted.query("age == @age and sex == 'Male'")
+    cause_deleted = get_cause_deleted_mortality_rate([csmr1814])
+
+    cause_deleted_filter = cause_deleted.query("age == {a} and sex == 'Male'".format(a=age))
 
     cause_deleted_val = cause_deleted_filter['cause_deleted_mortality_rate'].values[0]
 
-    assert np.isclose(cause_deleted_val, all_cause_val - cause_val), "cause deleted mortality rate was incorrectly calculated"
+    assert cause_deleted_val == all_cause_val - cause_val, "cause deleted mortality rate was incorrectly calculated"
 
 
 def test_get_angina_proportions():
-
+    
     props = get_angina_proportions()
 
     props.set_index('age', inplace=True)
@@ -279,7 +309,7 @@ def test_get_angina_proportions():
 
     assert np.allclose(props.get_value(7.5, 'angina_prop'), props.get_value(22.5, 'angina_prop')), "get_angina_proportions needs to assign values for people younger than age group 9 to get the same value as people in age group 9"
 
-    assert np.allclose(props.get_value(82.5, 'angina_prop'), 0.128526646), "get_angina_proportions needs to return values that match input file"
+    assert np.allclose(props.get_value(82.5, 'angina_prop'), 0.128526646), "get_angina_proportions needs to return values that match input file" 
 
 
 def test_get_disability_weight():
@@ -302,9 +332,9 @@ def test_get_asympt_ihd_proportions():
     hf_value = hf_filter.set_index('age').get_value(32.5, 'draw_19')
 
     asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000)
-
+   
     asy_filter = asympt_ihd_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
-
+     
     asy_value = asy_filter.set_index('age').get_value(32.5, 'asympt_prop_19')
 
     assert 1 - hf_value - ang_value == asy_value, "get_asympt_ihd_proportions needs to ensure that the sum of heart failure, angina, and asympt ihd add up to 1"
@@ -345,7 +375,7 @@ def test_assign_subregions_without_subregions(get_populations_mock, dbtrees_mock
 def test_get_etiology_specific_incidence():
     df = get_etiology_specific_incidence(180, 1990, 2000, 181, 302, 1181)
 
-    df = df.query("year_id == 1995 and sex_id ==1")
+    df = df.query("year_id == 1995 and sex_id ==1") 
 
     val = df.set_index('age').get_value(82.5, 'draw_10')
 

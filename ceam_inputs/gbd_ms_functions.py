@@ -162,8 +162,8 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
 
 # 2. generate_ceam_population
 
-
-def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None):
+# TODO: Write a test to make sure that getting a representative sample of people in a specific age group works
+def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None, pop_age_start=None, pop_age_end=None):
     """
     Returns a population of simulants to be fed into CEAM
 
@@ -206,6 +206,20 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
     pop = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
 
+    if pop_age_start is not None:
+        pop_age_start = float(pop_age_start)
+        pop = pop.query("age >= @pop_age_start").copy()
+    elif 'pop_age_start' in config['simulation_parameters']:
+        pop_age_start = config.getfloat('simulation_parameters', 'pop_age_start')
+        pop = pop.query("age >= @pop_age_start").copy()
+
+    if pop_age_end is not None:
+        pop_age_end = float(pop_age_end)
+        pop = pop.query("age < @pop_age_end").copy()
+    elif 'pop_age_end' in config['simulation_parameters']:
+        pop_age_start = config.getfloat('simulation_parameters', 'pop_age_end')
+        pop = pop.query("age < @pop_age_end").copy()
+
     total_pop_value = pop.sum()['pop_scaled']
 
     # get proportion of total population in each age group
@@ -214,6 +228,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     # create a dataframe of 50k simulants
     simulants = pd.DataFrame({'simulant_id': range(0, number_of_simulants)})
 
+    # TODO: If we're setting initial ages, we probably just want a 50/50 distribution of men/women too
     if initial_age is None:
         simulants = create_age_column(simulants, pop, number_of_simulants)
     else:
@@ -256,6 +271,7 @@ def assign_subregions(index, location_id, year):
     This ignores demographic details. So if there is some region that has a
     age or sex bias in it's population, that will not be captured.
     """
+    # TODO: Test is failing because "'int' object has no attribute 'id'"
     region_ids = [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
 
     if not region_ids:
@@ -1502,5 +1518,27 @@ def get_covariate_estimates(location_id, year_start, year_end, covariate_short_n
     keepcols = ['location_id', 'year_id', 'sex_id', 'age', 'covariate_id', 'covariate_name_short', 'mean_value', 'lower_value', 'upper_value']
 
     return expanded_estimates[keepcols]
+
+
+# FIXME: Won't need function below once ORS exposure and RR estimates are uploaded to the database
+def get_ors_exposure(location_id, year_start, year_end, draw_number):
+    covariate_estimates_input = pd.read_csv("/share/epi/risk/bmgf/draws/exp/diarrhea_ors.csv")
+
+    covariate_estimates = covariate_estimates_input.query("location_id == {}".format(location_id)).copy()
+
+    expanded = expand_ages_for_dfs_w_all_age_estimates(covariate_estimates)
+
+    expanded_estimates = expanded.query("year_id >= {ys} and year_id <= {ye}".format(ys = year_start, ye = year_end)).copy()
+
+    keepcols = ['year_id', 'sex_id', 'age', 'cat1', 'cat2']
+
+    expanded_estimates.rename(columns={'draw_{}'.format(draw_number): 'cat1'}, inplace=True)
+
+    expanded_estimates['cat2'] = 1 - expanded_estimates['cat1']
+
+    expanded_estimates = expanded_estimates[keepcols]
+
+    return normalize_for_simulation(expanded_estimates)
+
 
 # End.
