@@ -217,7 +217,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
         pop_age_end = float(pop_age_end)
         pop = pop.query("age < @pop_age_end").copy()
     elif 'pop_age_end' in config['simulation_parameters']:
-        pop_age_start = config.getfloat('simulation_parameters', 'pop_age_end')
+        pop_age_end = config.getfloat('simulation_parameters', 'pop_age_end')
         pop = pop.query("age < @pop_age_end").copy()
 
     total_pop_value = pop.sum()['pop_scaled']
