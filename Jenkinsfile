@@ -1,5 +1,4 @@
 node {
-    ws("workspace/ceam_inputs/${env.BRANCH_NAME}") {
         try {
            stage 'Checkout'
            checkout scm
@@ -52,5 +51,4 @@ node {
     EOF
         '''
         }
-    }
 }
