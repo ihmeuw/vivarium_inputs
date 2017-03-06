@@ -191,10 +191,6 @@ def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     output.columns = output.columns.droplevel()
     output.reset_index(inplace=True)
 
-    #TODO: this is a hack to deal with categorical risks until Everett has proper handling for them
-    if 'cat2' in output:
-        del output['cat2']
-
     return output
 
 
@@ -215,10 +211,6 @@ def get_exposures(risk_id):
     output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['exposure'])
     output.columns = output.columns.droplevel()
     output.reset_index(inplace=True)
-
-    #TODO: this is a hack to deal with categorical risks until Everett has proper handling for them
-    if 'cat2' in output:
-        del output['cat2']
 
     return output
 
