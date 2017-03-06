@@ -153,6 +153,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
 
 # 2. generate_ceam_population
 
+# TODO: Think initial age is broken
 # TODO: Write a test to make sure that getting a representative sample of people in a specific age group works
 def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None, pop_age_start=config.get('simulation_parameters', 'pop_age_start'), pop_age_end=config.get('simulation_parameters', 'pop_age_end')):
     """
