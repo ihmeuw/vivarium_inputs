@@ -963,11 +963,6 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 
-@memory.cache
-def _inner_cached_call(funct, *args, **kwargs):
-    return funct(*args, **kwargs)
-
-
 def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     """
     load_data_from_cache is a functor that will
@@ -998,7 +993,8 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     # writeable by other users
     old_umask = os.umask(0)
 
-    function_output = _inner_cached_call(funct, *args, **kwargs)
+    memoized_function = memory.cache(funct)
+    function_output = memoized_function(*args, **kwargs)
 
     os.umask(old_umask)
 
