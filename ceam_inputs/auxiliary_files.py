@@ -41,11 +41,11 @@ FILES = {
         'path': 'fpg/FILE_{location_id}_{year_id}_{sex_id}_OUT.csv',
         'source': '/share/epi/risk/paf/metab_fpg_cont_sll/FILE_[location_id]_[year_id]_[sex_id]_OUT.csv',
         'owner': 'Stan Biryukov <stan0625@uw.edu>',
-        }
+        },
     'Life Table': {
         'path': 'FINAL_min_pred_ex.csv',
         'source': '/home/j/WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv',
-        }
+        },
 
 }
 
