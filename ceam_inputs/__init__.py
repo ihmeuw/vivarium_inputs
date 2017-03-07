@@ -1,6 +1,5 @@
 from joblib import Memory
 
-from db_tools import ezfuncs
 
 from ceam import config
 from ceam_inputs import gbd_ms_functions as functions
@@ -147,6 +146,7 @@ def get_proportion(modelable_entity_id):
 
 @memory.cache
 def get_age_bins():
+    from db_tools import ezfuncs # This import is here to make the dependency on db_tools optional if the data is available from cache
     return ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end, age_group_name from age_group''', conn_def='shared')
 
 def get_prevalence(modelable_entity_id):
