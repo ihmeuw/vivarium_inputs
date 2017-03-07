@@ -1,8 +1,13 @@
-# ~/ceam/ceam/gbd_data/__init__.py
+from joblib import Memory
+
+from db_tools import ezfuncs
 
 from ceam import config
 from ceam_inputs import gbd_ms_functions as functions
 from ceam_inputs import distributions
+from ceam_inputs.util import get_cache_directory
+
+memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 # TODO: None of these functions can be run from an ipython notebook. ipython notebook is not currently able to submit Stata scripts. See if there is a way to make ipython notebooks submit Stata scripts
 from ceam_public_health.util.risk import RiskEffect
@@ -20,7 +25,9 @@ def get_excess_mortality(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=9, me_id=modelable_entity_id)
+    df = functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=9, me_id=modelable_entity_id)
+    df.metadata = {'modelable_entity_id': modelable_entity_id}
+    return df
 
 def get_incidence(modelable_entity_id):
     """Get incidence rates for a modelable entity.
@@ -35,7 +42,9 @@ def get_incidence(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=6, me_id=modelable_entity_id)
+    df = functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=6, me_id=modelable_entity_id)
+    df.metadata = {'modelable_entity_id': modelable_entity_id}
+    return df
 
 
 def get_cause_specific_mortality(modelable_entity_id):
@@ -51,7 +60,9 @@ def get_cause_specific_mortality(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=15, me_id=modelable_entity_id)
+    df = functions.load_data_from_cache(functions.get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=15, me_id=modelable_entity_id)
+    df.metadata = {'modelable_entity_id': modelable_entity_id}
+    return df
 
 
 def get_remission(modelable_entity_id):
@@ -67,7 +78,9 @@ def get_remission(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'remission', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=7, me_id=modelable_entity_id)
+    df = functions.load_data_from_cache(functions.get_modelable_entity_draws, 'remission', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=7, me_id=modelable_entity_id)
+    df.metadata = {'modelable_entity_id': modelable_entity_id}
+    return df
 
 
 def get_duration_in_days(modelable_entity_id):
@@ -90,6 +103,8 @@ def get_duration_in_days(modelable_entity_id):
 
     duration['duration'] = (1 / duration['remission']) *365
 
+    duration.metadata = {'modelable_entity_id': modelable_entity_id}
+
     return duration[['year', 'age', 'duration', 'sex']]
 
 
@@ -107,7 +122,9 @@ def get_continuous(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'value' columns
     """
-    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'value', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=19, me_id=modelable_entity_id)
+    df = functions.load_data_from_cache(functions.get_modelable_entity_draws, 'value', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=19, me_id=modelable_entity_id)
+    df.metadata = {'modelable_entity_id': modelable_entity_id}
+    return df
 
 
 def get_proportion(modelable_entity_id):
@@ -124,8 +141,13 @@ def get_proportion(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'proportion' columns
     """
-    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'proportion', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=18, me_id=modelable_entity_id)
+    df = functions.load_data_from_cache(functions.get_modelable_entity_draws, 'proportion', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=18, me_id=modelable_entity_id)
+    df.metadata = {'modelable_entity_id': modelable_entity_id}
+    return df
 
+@memory.cache
+def get_age_bins():
+    return ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end, age_group_name from age_group''', conn_def='shared')
 
 def get_prevalence(modelable_entity_id):
     """Get prevalence data for a modelable entity.
@@ -140,7 +162,9 @@ def get_prevalence(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'prevalence' columns
     """
-    return functions.load_data_from_cache(functions.get_modelable_entity_draws, 'prevalence', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=5, me_id=modelable_entity_id)
+    df = functions.load_data_from_cache(functions.get_modelable_entity_draws, 'prevalence', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=5, me_id=modelable_entity_id)
+    df.metadata = {'modelable_entity_id': modelable_entity_id}
+    return df
 
 
 def get_disease_states(population, states):
@@ -191,6 +215,7 @@ def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     output.columns = output.columns.droplevel()
     output.reset_index(inplace=True)
 
+    output.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
     return output
 
 
@@ -198,7 +223,9 @@ def get_pafs(risk_id, cause_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    return functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id)
+    df = functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id)
+    df.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
+    return df
 
 
 def get_exposures(risk_id):
@@ -206,12 +233,13 @@ def get_exposures(risk_id):
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
     funct_output = functions.load_data_from_cache(functions.get_exposures, col_name='exposure', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id)
-    
+
     # need to reshape the funct output since there can be multiple categories
     output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['exposure'])
     output.columns = output.columns.droplevel()
     output.reset_index(inplace=True)
 
+    output.metadata = {'risk_id': risk_id}
     return output
 
 
@@ -303,6 +331,3 @@ def get_ors_exposure():
     draw_number = config.getint('run_configuration', 'draw_number')
 
     return functions.load_data_from_cache(functions.get_ors_exposure, location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number, col_name=None)
-
-
-# End.
