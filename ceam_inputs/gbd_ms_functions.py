@@ -1011,9 +1011,6 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     return function_output
 
 
-# 11. get_severity_splits
-
-
 # 12. get_sbp_mean_sd
 
 def get_sbp_mean_sd(location_id, year_start, year_end):
@@ -1454,18 +1451,20 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     return output_df.reset_index()
 
 
-# TODO: Figure out if we need to do anything to the remission rates. We have remission for all diarrhea.
-# Do we need to split out remission to get remission from the different severity states?7
-def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
-    if severity_split == 'severe':
-        # FIXME: Need to use severity split draws. Manually setting proportions for now
-        severe_diarrhea_proportion = .14
-        excess_mortality_dataframe['rate'] = excess_mortality_dataframe['rate'] / severe_diarrhea_proportion
-    elif severity_split in ['mild', 'moderate']:
-        # set the excess mortality rate to 0
-        excess_mortality_dataframe['rate'] = 0
-    else:
-        raise ValueError("you supplied an invalid value for severity split argument. you wrote '{}'. acceptable severity splits are mild, moderate, or severe".format(severity_split))
+# TODO: Write a test for this function
+def get_severe_diarrhea_excess_mortality(excess_mortality_dataframe, severe_diarrhea_proportion):
+    """
+    Returns an excess mortality rate for severe diarrhea
+
+    Parameters
+    ----------
+    excess_mortality_dataframe: pd.DataFrame
+        excess mortality estimates for diarrhea from GBD
+
+    draw_number: int
+        specific draw number
+    """
+    excess_mortality_dataframe['rate'] = excess_mortality_dataframe['rate'] / severe_diarrhea_proportion
     return excess_mortality_dataframe
 
 
@@ -1522,6 +1521,34 @@ def get_ors_exposure(location_id, year_start, year_end, draw_number):
     expanded_estimates = expanded_estimates[keepcols]
 
     return normalize_for_simulation(expanded_estimates)
+
+
+def get_severity_splits(parent_meid, child_meid, draw_number):
+    """
+    Returns a severity split proportion for a given cause
+    
+    parent_meid: int, modelable_entity_id
+        the modelable entity id for the severity split
+    
+    child_meid: int, modelable_entity_id
+        the modelable entity id for the severity split
+    
+    draw_number: int
+        specific draw number
+        
+    See also
+    --------
+    To determine parent and child meids, see here: http://dev-tomflem.ihme.washington.edu/sevsplits/editor
+    If the severity splits that you are require are no in the filepath below, email central comp to ask them to create the splits
+    """
+    splits = pd.read_hdf("/share/epi/split_prop_draws_2016/{}/prop_draws.h5".format(parent_meid))
+
+    # scale proportions to 1    
+    total = splits[['draw_1']].sum()
+    splits['scaled'] = splits['draw_{}'.format(draw_number)] / total.values
+    
+    splits = splits.query("child_meid == {}".format(child_meid))
+    return splits[["scaled"]].values.item(0)
 
 
 # End.
