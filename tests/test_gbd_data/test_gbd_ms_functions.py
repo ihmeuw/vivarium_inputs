@@ -28,6 +28,8 @@ from ceam_inputs.gbd_ms_functions import get_asympt_ihd_proportions
 from ceam_inputs.gbd_ms_functions import normalize_for_simulation
 from ceam_inputs import get_cause_specific_mortality
 from hierarchies.tree import Node
+from ceam_inputs.gbd_ms_functions import get_severe_diarrhea_excess_mortality
+from ceam_inputs import get_excess_mortality
 
 # generate_ceam_population
 # FIXME: Make this test pass regardless of age groups selected in the config file
@@ -391,3 +393,17 @@ def test_get_etiology_specific_prevalence():
     val = df.set_index('age').get_value(82.5, 'draw_10')
 
     assert val == 0.02491546 * 0.06306237, "get_etiology_specific_prevalence needs to ensure the eti pafs and envelope were multiplied together correctly"
+
+
+def test_get_severe_diarrhea_excess_mortality():
+    # supply a dataframe with fake excess mortality data, fake severity split data, and ensure that output is the rate divided by the severity split
+    df = get_excess_mortality(1181)
+    df['rate'] = 4
+    severe_diarrhea_proportion=.5
+    result = get_severe_diarrhea_excess_mortality(df, severe_diarrhea_proportion)
+
+    assert all(result['rate'] == pd.Series(8, index=result.index)), "get_severe_diarrhea_excess mortality should return the excess mortality rate for severe diarrhea cases only"
+    
+
+
+# End.
