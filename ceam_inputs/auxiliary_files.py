@@ -2,43 +2,50 @@
 """
 
 import platform
+from os.path import join
+
+from ceam import config
 
 FILES = {
     'Angina Proportions' : {
-        'path': '{j_drive}/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv',
+        'path': 'angina_prop_postMI.csv',
         'source': '/snfs1/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv',
         'owner': 'Catherine O. Johnson <johnsoco@uw.edu>',
         },
     'Age-Specific Fertility Rates': {
-        'path': '{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/ASFR.csv',
+        'path': 'ASFR.csv',
         'encoding': 'latin1',
         'source': 'covariate_short_name: Age-Specific Fertility Rate; model_version: 9065',
         'owner': 'HAIDONG WANG <haidong@uw.edu>',
         },
     'Disability Weights': {
-        'path': '{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/dw.csv',
+        'path': 'dw.csv',
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/02_standard/dw.csv',
         },
     'Combined Disability Weights': {
-        'path': '{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/combined_dws.csv',
+        'path': 'combined_dws.csv',
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv',
         },
         'Systolic Blood Pressure Distributions': {
-            'path': '{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/systolic_blood_pressure/exp_{location_id}_{year_id}_{sex_id}.dta',
+            'path': 'systolic_blood_pressure/exp_{location_id}_{year_id}_{sex_id}.dta',
             'source': '/share/epi/risk/paf/metab_sbp_interm',
             'encoding': 'latin1',
             'owner': 'Stan Biryukov <stan0625@uw.edu>',
         },
     'Body Mass Index Distributions': {
-        'path': '{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/bmi/{parameter}/19_{location_id}_{year_id}_{sex_id}.csv',
+        'path': 'bmi/{parameter}/19_{location_id}_{year_id}_{sex_id}.csv',
         'source': '/share/covariates/ubcov/04_model/beta_parameters/8',
         'owner': 'Marissa B. Reitsma <mreitsma@uw.edu>',
         },
     'Fasting Plasma Glucose Distributions': {
-        'path': '{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/fpg/FILE_{location_id}_{year_id}_{sex_id}_OUT.csv',
+        'path': 'fpg/FILE_{location_id}_{year_id}_{sex_id}_OUT.csv',
         'source': '/share/epi/risk/paf/metab_fpg_cont_sll/FILE_[location_id]_[year_id]_[sex_id]_OUT.csv',
         'owner': 'Stan Biryukov <stan0625@uw.edu>',
-        }
+        },
+    'Life Table': {
+        'path': 'FINAL_min_pred_ex.csv',
+        'source': '/home/j/WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv',
+        },
 
 }
 
@@ -49,7 +56,8 @@ def auxiliary_file_path(name, **kwargs):
     else:
         template_parameters['j_drive'] = '/home/j'
     raw_path = FILES[name]['path']
-    return raw_path.format(**template_parameters)
+    auxiliary_data_folder = config.get('input_data', 'auxiliary_data_folder')
+    return join(auxiliary_data_folder, raw_path).format(**template_parameters)
 
 def open_auxiliary_file(name, **kwargs):
     path = auxiliary_file_path(name, **kwargs)

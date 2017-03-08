@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# ~/ceam/setup.py
-
 from setuptools import setup, find_packages
 
 
@@ -13,8 +10,13 @@ setup(name='ceam_inputs',
             'numpy',
             'scipy',
             'joblib',
-        ]
+            'flufl.lock',
+        ],
+        extras_require = {
+            'gbd_access': [
+                'transmogrifier',
+                'hierarchies',
+                'db_tools',
+                ]
+        }
      )
-
-
-# End.

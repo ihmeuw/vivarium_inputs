@@ -5,8 +5,6 @@ from scipy.stats import fisk, beta
 
 from joblib import Memory
 
-from hierarchies import dbtrees
-
 from ceam.interpolation import Interpolation
 
 from ceam_inputs.util import get_cache_directory
@@ -54,6 +52,7 @@ def _fpg_ppf(parameters):
 
 @memory.cache
 def get_fpg_distributions(location_id, year_start, year_end, draw):
+    from hierarchies import dbtrees # This import is not at global scope because I only want the dependency if cached data is unavailable
     parameters = pd.DataFrame()
     columns = ['age_group_id', 'sex_id', 'year_id', 'sll_loc_{}'.format(draw), 'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]
     sub_location_ids = [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]

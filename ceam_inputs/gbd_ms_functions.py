@@ -16,15 +16,23 @@ from scipy.stats import beta
 from joblib import Memory
 from flufl.lock import Lock
 
-from hierarchies import dbtrees
+try:
+    from transmogrifier.draw_ops import get_draws
+except ImportError:
+    def get_draws(*args, **kwargs):
+        raise ImportError("No module named 'transmogrifier' (you must install central_comp's transmogrifier package _or_ supply precached data)")
 
-from db_tools import ezfuncs
+try:
+    from hierarchies import dbtrees
+except ImportError:
+    def dbtrees(*args, **kwargs):
+        raise ImportError("No module named 'hierarchies' (you must install central_comp's hierarchies package _or_ supply precached data)")
 
 from ceam import config
 from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
 
-from ceam_inputs.util import stata_wrapper, get_cache_directory
+from ceam_inputs.util import get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
 
 from ceam_inputs.gbd_ms_auxiliary_functions import create_age_column
@@ -51,7 +59,6 @@ _log = logging.getLogger(__name__)
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
-# from transmogrifier.draw_ops import get_draws
 
 
 # # Microsim functions
@@ -67,6 +74,8 @@ def get_model_versions():
     """Return a mapping from modelable_entity_id to the version of that entity 
     associated with the GBD publications currently configured.
     """
+    from db_tools import ezfuncs # This import is not at global scope because I only want the dependency if cached data is unavailable
+
     publication_ids = [int(pid) for pid in config.get('input_data', 'gbd_publication_ids').split(',')]
     mapping = ezfuncs.query('''
     SELECT modelable_entity_id, model_version_id
@@ -127,7 +136,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
     meid_version_map = get_model_versions()
     model_version = meid_version_map[me_id]
 
-    draws = stata_wrapper('get_modelable_entity_draws.do', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
+    draws = get_draws('modelable_entity_id', me_id, location_ids=location_id, source='dismod', sex_ids=[1,2], age_group_ids=list(range(2,22)), model_version_id=model_version)
 
     # draws = python_wrapper('get_modelable_entity_draws.py', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
 
@@ -155,7 +164,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
 
 # TODO: Think initial age is broken
 # TODO: Write a test to make sure that getting a representative sample of people in a specific age group works
-def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None, pop_age_start=config.get('simulation_parameters', 'pop_age_start'), pop_age_end=config.get('simulation_parameters', 'pop_age_end')):
+def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None, pop_age_start=None, pop_age_end=None):
     """
     Returns a population of simulants to be fed into CEAM
 
@@ -198,13 +207,19 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
     pop = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
 
-    if pop_age_start != '':
+    if pop_age_start is not None:
         pop_age_start = float(pop_age_start)
         pop = pop.query("age >= @pop_age_start").copy()
+    elif 'pop_age_start' in config['simulation_parameters']:
+        pop_age_start = config.getfloat('simulation_parameters', 'pop_age_start')
+        pop = pop.query("age >= @pop_age_start").copy()
 
-    if pop_age_end != '':
+    if pop_age_end is not None:
         pop_age_end = float(pop_age_end)
-        pop = pop.query("age <= @pop_age_end").copy()
+        pop = pop.query("age < @pop_age_end").copy()
+    elif 'pop_age_end' in config['simulation_parameters']:
+        pop_age_end = config.getfloat('simulation_parameters', 'pop_age_end')
+        pop = pop.query("age < @pop_age_end").copy()
 
     total_pop_value = pop.sum()['pop_scaled']
 
@@ -236,6 +251,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
     return simulants
 
+@memory.cache
 def assign_subregions(index, location_id, year):
     """
     Assigns a location to each simulant. If the location_id
@@ -580,7 +596,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
 
 
     if list_of_csmrs:
-        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs).set_index(['age', 'sex', 'year'])
+        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs).query('year >= @year_start and year <= @year_end').set_index(['age', 'sex', 'year'])
 
         cause_del_mr = all_cause_mr.set_index(['age', 'sex', 'year']) 
 
@@ -719,14 +735,15 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     Unit test in place? -- Yes
     """
 
-    rr = stata_wrapper('get_relative_risks.do', 'rel_risk_of_risk{r}_in_location{l}.csv'.format(r=risk_id,l=location_id), location_id, risk_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
     # FIXME: Will want this pull to be linked to a publication id.
-    # rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
     # Not all rrs are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    # if rr.values == "error":
-    #    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_id=location_id, sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
+    if np.all(rr.values == "error"):
+        rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
+    elif np.any(rr.values == "error"):
+        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
     if rr_type == 'morbidity':
         rr = rr.query("morbidity == 1")
@@ -734,10 +751,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
         rr = rr.query("mortality == 1")
     else:
         raise ValueError('rr_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
-
-    # FIXME: Could save some memory by pulling only the years we need initially
-    rr = rr.query('year_id>={ys} and year_id<={ye}'.format(
-                         ys=year_start, ye=year_end)).copy()
 
     rr = rr.query('cause_id == {}'.format(cause_id))
 
@@ -812,7 +825,9 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='mor
     else:
         raise ValueError('paf_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
 
-    pafs = stata_wrapper('get_pafs.do', 'PAFs_for_{c}_in_{l}.csv'.format(c=cause_id, l=location_id), location_id, cause_id, config.getint('simulation_parameters', 'gbd_round_id'), measure_id)
+    age_groups = list(range(1,22))+[30,31,32,33]
+    worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
+    pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'), include_risks=True, num_workers=worker_count)
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -883,13 +898,14 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
     """
 
-    # exposure = get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
-    exposure = stata_wrapper('get_exposures.do', 'Exposure_of_risk{r}_in_location{l}.csv'.format(r=risk_id, l=location_id), location_id, risk_id, config.getint('simulation_parameters', 'gbd_round_id'))
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    # if exposure.values == "error":
-    #    exposure == get_draws(gbd_id_field='rei_id', gbd_id=108, location_id=180, source='risk', draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') + 1)
+    if np.all(exposure.values == "error"):
+        exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
+    elif np.any(exposure.values == "error"):
+        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
     exposure = exposure.query("year_id >= @year_start and year_id <= @year_end")
 
@@ -948,11 +964,6 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 
-@memory.cache
-def _inner_cached_call(funct, *args, **kwargs):
-    return funct(*args, **kwargs)
-
-
 def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     """
     load_data_from_cache is a functor that will
@@ -983,7 +994,8 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     # writeable by other users
     old_umask = os.umask(0)
 
-    function_output = _inner_cached_call(funct, *args, **kwargs)
+    memoized_function = memory.cache(funct)
+    function_output = memoized_function(*args, **kwargs)
 
     os.umask(old_umask)
 
@@ -1489,7 +1501,9 @@ def get_covariate_estimates(location_id, year_start, year_end, covariate_short_n
     A dataframe of covariate_estimates.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    covariate_estimates = stata_wrapper('get_covariate_estimates.do', 'covariate_estimates_for_covariate_{c}.csv'.format(c=covariate_short_name), covariate_short_name)
+    from db_queries import get_covariate_estimates # This import is not at global scope because I only want the dependency if cached data is unavailable
+
+    covariate_estimates = get_covariate_estimates(covariate_short_name=covariate_short_name)
 
     covariate_estimates = covariate_estimates.query("location_id == @location_id")
 

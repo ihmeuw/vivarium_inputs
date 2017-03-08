@@ -5,9 +5,11 @@ from scipy import stats
 
 from ceam import config
 
-from db_tools import ezfuncs
-
-from ceam_inputs.util import stata_wrapper
+try:
+    from db_tools.ezfuncs import query
+except ImportError:
+    def query(*args, **kwarg):
+        raise ImportError("No module named 'db_tools' (you must install central_comp's db_tools package _or_ supply precached data)")
 
 # This file contains auxiliary functions that are used
 # in gbd_ms_functions.py to prepare data for ceam
@@ -117,7 +119,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     df = df.copy()
     idx = df.index
-    mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
+    mapping = query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
     mapping = mapping.set_index('age_group_id')
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
 
@@ -134,7 +136,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     return df
 
-# TODO: Make the get_populations Stata call take a gbd_round_id argument
+# TODO: Make the central comp get_populations call take a gbd_round_id argument
 def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up_80_plus=False):
     """
     Get age-/sex-specific population structure
@@ -168,19 +170,20 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
 
     Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using central comp's get_populations function.
     """
+    from db_queries import get_population # This import is not at global scope because I only want the dependency if cached data is unavailable
 
     # use central comp's get_population function to get gbd populations
     # the age group id arguments get the age group ids for each age group up through age 95+
-    # pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_start, sex_id=sex_id)
-    pop = stata_wrapper('get_populations.do', 'pop_{l}.csv'.format(l = location_id), location_id)
+    if get_all_years:
+        year_id = -1
+    else:
+        # Grab population for year_start only (to initialize microsim population)
+        year_id = year_start
+    pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_id, sex_id=sex_id)
 
     # Don't include the older ages in the 2015 runs
     # if config.getint('simulation_parameters', 'gbd_round_id') == 3:
     #    pop = pop.query("age_group_id <= 21")
-
-    # Grab population for year_start only (to initialize microsim population)
-    if get_all_years == False:
-        pop = pop.query('year_id=={y}'.format(y=year_start))
 
     # use auxilliary function extract_age_from_age_group_name to create an age
     # column
@@ -359,12 +362,12 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
     Unit test in place? -- Not currently, but one does need to be put in place
     '''
-
-    all_cause_draws = stata_wrapper('get_all_cause_mortality_rate_draws.do', 'all_cause_mortality_causeid294_in_country{l}.csv'.format(l = location_id), location_id, config.getint('simulation_parameters', 'gbd_round_id'))
+    from transmogrifier.draw_ops import get_draws # This import is not at global scope because I only want the dependency if cached data is unavailable
 
     # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
     # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
-    # all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
+    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, age_group_ids=list(range(2,22)), location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'), year_ids=range(year_start, year_end+1), num_workers=worker_count)
 
     # filter so that only metric id 1 (deaths) is in our dataframe
     all_cause_deaths = all_cause_draws.query("metric_id == 1")
@@ -428,7 +431,7 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
     Unit test in place? -- Yes
     """
     
-    healthstate_id_df = ezfuncs.query('''
+    healthstate_id_df = query('''
     SELECT modelable_entity_id, healthstate_id
     FROM epi.sequela
     WHERE modelable_entity_id = {}
@@ -475,7 +478,7 @@ def get_all_age_groups_for_years_in_df(df):
 
     columns are age and year_id
     """
-    mapping = ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
+    mapping = query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
     mapping_filter = mapping.query('age_group_id >=2 and age_group_id <=21').copy()
     mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5
