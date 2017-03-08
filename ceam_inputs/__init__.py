@@ -1,3 +1,4 @@
+import joblib
 from joblib import Memory
 
 
@@ -198,6 +199,10 @@ def get_all_cause_mortality_rate():
             src_column='all_cause_mortality_rate_{draw}')
 
 def get_cause_deleted_mortality_rate(list_of_csmrs):
+    # This sort is a because we don't want the cache to invalidate when
+    # the csmrs come in in different orders but they aren't hashable by
+    # standard python so we can't put them in a set.
+    list_of_csmrs = sorted(self.csmr_data(), key=lambda x: joblib.hash(x))
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')

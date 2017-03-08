@@ -250,6 +250,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
     return simulants
 
+@memory.cache
 def assign_subregions(index, location_id, year):
     """
     Assigns a location to each simulant. If the location_id
