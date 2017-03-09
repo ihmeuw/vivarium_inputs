@@ -1,4 +1,3 @@
-# ~/ceam/ceam/gbd_data/gbd_ms_functions.py
 # coding: utf-8
 
 # TODO: MAKE SURE NEW PYTHON FUNCTIONS ARE USING THE PUBLICATION IDS!!
@@ -370,14 +369,14 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     del cause_level_prevalence['year']
     #merged = pd.merge(simulants_df, cause_level_prevalence, on=['age', 'sex'])
     probability_of_disease = Interpolation(cause_level_prevalence, ['sex'], ['age'])(simulants_df[['age', 'sex']])
-  
+
     probability_of_NOT_having_disease = 1 - probability_of_disease
     weights = np.array([probability_of_NOT_having_disease, probability_of_disease]).T
 
     results = simulants_df.copy()
 
     results = results.set_index('simulant_id') 
- 
+
     # Need to sort results so that the simulants are in the same order as the weights
     results['condition_envelope'] = choice('determine_if_sim_has_cause', results.index, [False, True], weights)
 
@@ -480,7 +479,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
         chronic_ihd takes values 0 or 1
             1 indicates that the simulant has chronic ihd
             0 indicates that the simulant does not have chronic ihd
-    
+
     Notes
     -----
     Used by -- get_disease_states
@@ -493,7 +492,7 @@ def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
 
     TODO: Automate and allow randomness in the graph production code
     """
-    
+
     cause_level_prevalence, prevalence_draws_dictionary = get_cause_level_prevalence(states, year_start) 
 
     # TODO: Should we be using groupby for these loops to ensure that we're
@@ -890,7 +889,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     Notes
     -----
     Used by -- anytime a user adds a risk to a simulation
- 
+
     Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. I have set up the code so that each age group for which we don't have GBD estimates has an exposure of 0
 
     Questions -- Should we set the exposure to 0 for age groups for which we do not have rr estimates? Need to submit an epihelp ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
@@ -1077,18 +1076,18 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
     # set index
     draws.set_index(['year_id', 'sex_id', 'age'], inplace=True)
- 
+
     # set nulls to be 1 to keep from messing up the math below. the nulls are the younger age groups (simulants less than 27.5 years old) and they'll get an sbp of 112 and an sd of .001 because we want them to be at the TMRED
     draws[['exp_mean_{}'.format(i) for i in range(0,1000)]] = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].fillna(value=1) 
     draws[['exp_sd_{}'.format(i) for i in range(0,1000)]] = draws[['exp_sd_{}'.format(i) for i in range(0,1000)]].fillna(value=1)
-    
+
     # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing        
     exp_mean = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].values
     exp_sd = draws[['exp_sd_{}'.format(i) for i in range(0,1000)]].values
 
     mean_df = pd.DataFrame(np.log(exp_mean), columns=['log_mean_{}'.format(i) for i in range(1000)], index=draws.index)
     sd_df = pd.DataFrame(np.divide(exp_sd, exp_mean), columns=['log_sd_{}'.format(i) for i in range(1000)], index=draws.index)
-   
+
     output_df = mean_df.join(sd_df)
 
     for i in range(0,1000):
@@ -1153,7 +1152,7 @@ def get_angina_proportions():
     # TODO: Should check this assumption w/ Abie
     # creating a copy of ang to use pd.get_value
     ang_copy = ang.set_index('age').copy()  
- 
+
     # values are same for each sex, so we can grab the value 
     # for the lowest age from either sex to apply to the younger age 
     # groups for which we do not have data
@@ -1259,7 +1258,7 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
     angina_prop_df = get_angina_proportions()
 
     merged = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
-    
+
     merged = merged.set_index(['year_id', 'sex_id', 'age'])
 
     hf_values = merged[['draw_{}'.format(i) for i in range(0, 1000)]].values
@@ -1270,7 +1269,7 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end):
     # assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
 
     asympt_prop_df = pd.DataFrame(1 - hf_values - angina_values, columns=['asympt_prop_{}'.format(i) for i in range(1000)], index=merged.index)
- 
+
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
 
@@ -1319,7 +1318,7 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
     # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
 
     eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
- 
+
     # now make the negative etiology paf draws 0
     draws = eti_pafs._get_numeric_data()
     draws[draws < 0] = 0
@@ -1340,6 +1339,8 @@ def get_etiology_probability(etiology_name):
     -------
     """
 
+    year_start, year_end = gbd_year_range()
+
     etiology_df = pd.DataFrame()
 
     # TODO: Ask Chris T. if this works for cholera and c diff, since they are modeled differently than the other etiologies
@@ -1353,7 +1354,7 @@ def get_etiology_probability(etiology_name):
     for sex in (1, 2):
         one_sex = etiology_proportion_draws.query("sex_id == @sex")
         # TODO: Figure out if we want to get info from the config in this script or elsewhere
-        one_sex = set_age_year_index(one_sex, 'early neonatal', 3, config.getint('simulation_parameters', 'year_start') , config.getint('simulation_parameters', 'year_end'))
+        one_sex = set_age_year_index(one_sex, 'early neonatal', 3, year_start , year_end)
 
         etiology_df = etiology_df.append(one_sex)
 
@@ -1397,19 +1398,19 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
     # TODO: Figure out what we want to do regarding caching data. If we are using only one draw number, should we 
     # cache the data? If we cache the data, will we actually pull a different value for each draw
     draw_number = config.getint('run_configuration', 'draw_number')
-    
+
     diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=6, me_id=me_id) # measure=incidence, me_id=diarrhea envelope TODO: Make me_id an argument to be passed into the fucntion (i.e. make this function more flexible than just diarrhea)
 
     etiology_paf = get_etiology_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
-    
+
     # TODO: Figure out if the interpolation should happen before the merge or in the simulation
     # merge interpolated pafs and interpolated incidence
     etiology_specific_incidence= pd.merge(diarrhea_envelope_incidence, etiology_paf, on=['age', 'year_id', 'sex_id'],
                                           suffixes=('_envelope', '_pafs'))
 
     etiology_specific_incidence.set_index(['year_id', 'sex_id', 'age'], inplace=True)
-    
+
     pafs = etiology_specific_incidence[['draw_{}_pafs'.format(i) for i in range(0, 1000)]].values
     envelope_incidence_draws = etiology_specific_incidence[['draw_{}_envelope'.format(i) for i in range(0, 1000)]].values
     output_df = pd.DataFrame(np.multiply(pafs, envelope_incidence_draws), columns=['draw_{}'.format(i) for i in range(0, 1000)], index=etiology_specific_incidence.index)
@@ -1448,10 +1449,10 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     """
 
     draw_number = config.getint('run_configuration', 'draw_number')   
- 
+
     diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=5, me_id=me_id) # measure=prevalence, me_id=diarrhea envelope
-    
+
     etiology_paf = get_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
 
     etiology_specific_prevalence= pd.merge(diarrhea_envelope_prevalence, etiology_paf, on=['age', 'year_id', 'sex_id'], 
@@ -1536,6 +1537,3 @@ def get_ors_exposure(location_id, year_start, year_end, draw_number):
     expanded_estimates = expanded_estimates[keepcols]
 
     return normalize_for_simulation(expanded_estimates)
-
-
-# End.
