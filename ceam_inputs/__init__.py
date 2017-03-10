@@ -314,9 +314,11 @@ def get_exposures(risk_id):
 
 def generate_ceam_population(number_of_simulants, initial_age=None, year_start=None):
     location_id = config.getint('simulation_parameters', 'location_id')
+    pop_age_start = config.getfloat('simulation_parameters', 'pop_age_start')
+    pop_age_end = config.getfloat('simulation_parameters', 'pop_age_end')
     if year_start is None:
         year_start, year_end = gbd_year_range()
-    population = functions.load_data_from_cache(functions.generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=number_of_simulants, initial_age=initial_age)
+    population = functions.load_data_from_cache(functions.generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=number_of_simulants, initial_age=initial_age, pop_age_start=pop_age_start, pop_age_end=pop_age_end)
     population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
     population['alive'] = True
     return population
