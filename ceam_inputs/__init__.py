@@ -1,15 +1,16 @@
 import joblib
 from joblib import Memory
 
+import pandas as pd
 
 from ceam import config
 from ceam_inputs import gbd_ms_functions as functions
 from ceam_inputs import distributions
 from ceam_inputs.util import get_cache_directory, gbd_year_range
+from ceam_inputs.gbd_mapping import meid
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
-# TODO: None of these functions can be run from an ipython notebook. ipython notebook is not currently able to submit Stata scripts. See if there is a way to make ipython notebooks submit Stata scripts
 from ceam_public_health.util.risk import RiskEffect
 
 
@@ -377,6 +378,49 @@ def make_gbd_risk_effects(risk_id, causes, effect_function):
         cause_name,
         effect_function)
         for cause_id, cause_name in causes]
+
+def make_gbd_disease_state(cause, dwell_time=0):
+    from ceam_public_health.components.disease import ExcessMortalityState
+    if hasattr(cause, 'cause_specific_mortality'):
+        if isinstance(cause.cause_specific_mortality, meid):
+            csmr = get_cause_specific_mortality(cause.cause_specific_mortality)
+        else:
+            csmr = cause.cause_specific_mortality
+    else:
+        csmr = pd.DataFrame()
+
+    if hasattr(cause, 'disability_weight'):
+        if isinstance(cause.disability_weight, meid):
+            disability_weight = functions.get_disability_weight(cause.disability_weight)
+        else:
+            disability_weight = cause.disability_weight
+    else:
+        disability_weight = 0.0
+
+    if hasattr(cause, 'excess_mortality'):
+        if isinstance(cause.excess_mortality, meid):
+            excess_mortality = get_excess_mortality(cause.excess_mortality)
+        else:
+            excess_mortality = cause.excess_mortality
+    else:
+        excess_mortality = 0.0
+
+    if hasattr(cause, 'prevalence'):
+        if isinstance(cause.prevalence, meid):
+            prevalence = get_prevalence(cause.prevalence)
+        else:
+            prevalence = cause.prevalence
+    else:
+        prevalence = 0.0
+
+    return ExcessMortalityState(
+            cause.name,
+            dwell_time=dwell_time,
+            disability_weight=disability_weight,
+            excess_mortality_data=excess_mortality,
+            prevalence_data=prevalence,
+            csmr_data=csmr
+        )
 
 
 def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
