@@ -12,7 +12,6 @@ from ceam_inputs.gbd_mapping import meid
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 from ceam_public_health.util.risk import RiskEffect
-from ceam import CEAMError
 
 
 def get_excess_mortality(modelable_entity_id):
