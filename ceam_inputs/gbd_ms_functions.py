@@ -895,6 +895,12 @@ def get_exposures(location_id, year_start, year_end, risk_id, multiple_meids_ove
 
     exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
+    # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
+    if np.all(exposure.values == "error"):
+        exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
+    elif np.any(exposure.values == "error"):
+        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
+
     # some risks have multiple me ids. its important that we fail when we come across these risks, so that the user will be forced to talk with the modeler to determine how the risk is modeled.
     if not multiple_meids_override:
         list_of_meids = pd.unique(exposure.modelable_entity_id.values)
@@ -902,12 +908,6 @@ def get_exposures(location_id, year_start, year_end, risk_id, multiple_meids_ove
         list_of_meids = [x for x in list_of_meids if str(x) != 'nan']
         if len(list_of_meids) > 1:
             raise UnhandledRiskError("the risk -- rei_id {} --that you are trying to pull has multiple modelable entity ids. are you sure you know how this risk is modeled? If not, go talk to the modeler. after talking to the modeler, you'll probably want to write some code to handle the risk, since it's modeled differently than most risks. you can override this error by adding a multiple_meids_override=True argument to your get_exposures query after you determine how to incorporate this risk into your simulation".format(risk_id))
-
-    # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    if np.all(exposure.values == "error"):
-        exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
-    elif np.any(exposure.values == "error"):
-        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
     exposure = exposure.query("year_id >= @year_start and year_id <= @year_end")
 
