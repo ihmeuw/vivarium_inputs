@@ -50,13 +50,21 @@ from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages
 from joblib import Memory
 import warnings
 
-
 from ceam.framework.util import from_yearly, rate_to_probability
 
 import logging
 _log = logging.getLogger(__name__)
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
+
+from ceam import CEAMError
+
+
+class CEAMDataIngestionError(CEAMError):
+    pass
+class UnhandledRiskError(CEAMDataIngestionError):
+   pass
+
 
 
 
@@ -890,9 +898,8 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
     """
-
-    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
-
+    age_groups = list(range(1,22))+[30,31,32,33]
+    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', age_group_ids=age_groups, gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
     if np.all(exposure.values == "error"):
@@ -904,10 +911,25 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
 
+    # there are 2 modelable entity ids for secondhand smoking, one for females and males under age 15, and then one for males over age 15. Because of this, we need to handle this risk separately from other risks. Apparently this should be fixed for the next round of GBD, but for now we need to deal with this annoying work around
+    if risk_id == 100:
+        male_old_exposure = exposure.query("sex_id == 1 and modelable_entity_id == 2512 and age >= 17.5").copy()
+        male_young_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419 and age < 17.5").copy()
+        male_young_exposure['sex_id'] = 1
+        female_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419").copy()
+        exposure = male_young_exposure.append([male_old_exposure, female_exposure])
+
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
-    exposure = expand_ages(exposure)
+    else:
+        list_of_meids = pd.unique(exposure.modelable_entity_id.values)
+        # some risks have a few nulls in the modelable_entity_id column. this is ok, think it's just an artifact of how the risk is processed by central comp
+        list_of_meids = [x for x in list_of_meids if str(x) != 'nan']
+        if len(list_of_meids) > 1:
+            raise UnhandledRiskError("the risk -- rei_id {} --that you are trying to pull has multiple modelable entity ids. are you sure you know how this risk is modeled? If not, go talk to the modeler. after talking to the modeler, you'll probably want to write some code to handle the risk, since it's modeled differently than most risks. you can override this error by adding a multiple_meids_override=True argument to your get_exposures query after you determine how to incorporate this risk into your simulation".format(risk_id))
+
+        exposure = expand_ages(exposure)
 
     exposure[['draw_{}'.format(i) for i in range(0,1000)]] = exposure[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
 
