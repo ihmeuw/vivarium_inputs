@@ -899,7 +899,7 @@ def get_exposures(location_id, year_start, year_end, risk_id, multiple_meids_ove
         # some risks have a few nulls in the modelable_entity_id column. this is ok, think it's just an artifact of how the risk is processed by central comp
         list_of_meids = [i for i in list_of_meids if i!= None]
         if len(list_of_meids) > 1:
-            raise ValueError("the risk -- rei_id {} --that you are trying to pull has multiple modelable entity ids. are you sure you know how this risk is modeled? If not, go talk to the modeler. after talking to the modeler, you'll probably want to write some code to handle the risk, since it's modeled differently than most risks. you can override this error by adding a multiple_meids_override=True argument to your get_exposures query after you determine how to incorporate this risk into your simulation".format(risk_id))
+            raise SystemExit("the risk -- rei_id {} --that you are trying to pull has multiple modelable entity ids. are you sure you know how this risk is modeled? If not, go talk to the modeler. after talking to the modeler, you'll probably want to write some code to handle the risk, since it's modeled differently than most risks. you can override this error by adding a multiple_meids_override=True argument to your get_exposures query after you determine how to incorporate this risk into your simulation".format(risk_id))
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
     if np.all(exposure.values == "error"):
