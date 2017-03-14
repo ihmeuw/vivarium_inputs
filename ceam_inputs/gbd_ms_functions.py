@@ -50,15 +50,21 @@ from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages
 from joblib import Memory
 import warnings
 
-
-from ceam_inputs import UnhandledRiskError
-
 from ceam.framework.util import from_yearly, rate_to_probability
 
 import logging
 _log = logging.getLogger(__name__)
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
+
+from ceam import CEAMError
+
+
+class CEAMDataIngestionError(CEAMError):
+    pass
+class UnhandledRiskError(CEAMDataIngestionError):
+   pass
+
 
 
 
@@ -892,8 +898,8 @@ def get_exposures(location_id, year_start, year_end, risk_id, multiple_meids_ove
 
     Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
     """
-
-    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    age_groups = list(range(1,22))+[30,31,32,33]
+    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', age_group_ids=age_groups, gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
     if np.all(exposure.values == "error"):
