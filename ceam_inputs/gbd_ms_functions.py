@@ -868,7 +868,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='mor
 # 8. get_exposures
 
 
-def get_exposures(location_id, year_start, year_end, risk_id, multiple_meids_override=False):
+def get_exposures(location_id, year_start, year_end, risk_id):
     """
     Parameters
     ----------
@@ -907,14 +907,6 @@ def get_exposures(location_id, year_start, year_end, risk_id, multiple_meids_ove
     elif np.any(exposure.values == "error"):
         raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
-    # some risks have multiple me ids. its important that we fail when we come across these risks, so that the user will be forced to talk with the modeler to determine how the risk is modeled.
-    if not multiple_meids_override:
-        list_of_meids = pd.unique(exposure.modelable_entity_id.values)
-        # some risks have a few nulls in the modelable_entity_id column. this is ok, think it's just an artifact of how the risk is processed by central comp
-        list_of_meids = [x for x in list_of_meids if str(x) != 'nan']
-        if len(list_of_meids) > 1:
-            raise UnhandledRiskError("the risk -- rei_id {} --that you are trying to pull has multiple modelable entity ids. are you sure you know how this risk is modeled? If not, go talk to the modeler. after talking to the modeler, you'll probably want to write some code to handle the risk, since it's modeled differently than most risks. you can override this error by adding a multiple_meids_override=True argument to your get_exposures query after you determine how to incorporate this risk into your simulation".format(risk_id))
-
     exposure = exposure.query("year_id >= @year_start and year_id <= @year_end")
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
@@ -931,6 +923,12 @@ def get_exposures(location_id, year_start, year_end, risk_id, multiple_meids_ove
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
     else:
+        list_of_meids = pd.unique(exposure.modelable_entity_id.values)
+        # some risks have a few nulls in the modelable_entity_id column. this is ok, think it's just an artifact of how the risk is processed by central comp
+        list_of_meids = [x for x in list_of_meids if str(x) != 'nan']
+        if len(list_of_meids) > 1:
+            raise UnhandledRiskError("the risk -- rei_id {} --that you are trying to pull has multiple modelable entity ids. are you sure you know how this risk is modeled? If not, go talk to the modeler. after talking to the modeler, you'll probably want to write some code to handle the risk, since it's modeled differently than most risks. you can override this error by adding a multiple_meids_override=True argument to your get_exposures query after you determine how to incorporate this risk into your simulation".format(risk_id))
+
         exposure = expand_ages(exposure)
 
     exposure[['draw_{}'.format(i) for i in range(0,1000)]] = exposure[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
