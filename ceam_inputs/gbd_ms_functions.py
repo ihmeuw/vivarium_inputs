@@ -904,10 +904,19 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
 
+    # there are 2 modelable entity ids for secondhand smoking, one for females and males under age 15, and then one for males over age 15. Because of this, we need to handle this risk separately from other risks. Apparently this should be fixed for the next round of GBD, but for now we need to deal with this annoying work around
+    if risk_id == 100:
+        male_old_exposure = exposure.query("sex_id == 1 and modelable_entity_id == 2512 and age >= 17.5").copy()
+        male_young_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419 and age < 17.5").copy()
+        male_young_exposure['sex_id'] = 1
+        female_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419").copy()
+        exposure = male_young_exposure.append([male_old_exposure, female_exposure])
+
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
-    exposure = expand_ages(exposure)
+    else:
+        exposure = expand_ages(exposure)
 
     exposure[['draw_{}'.format(i) for i in range(0,1000)]] = exposure[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
 
