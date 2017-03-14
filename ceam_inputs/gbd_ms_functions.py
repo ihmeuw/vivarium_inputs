@@ -51,7 +51,7 @@ from joblib import Memory
 import warnings
 
 
-from ceam import UnhandledRiskError
+from ceam_inputs import UnhandledRiskError
 
 from ceam.framework.util import from_yearly, rate_to_probability
 
