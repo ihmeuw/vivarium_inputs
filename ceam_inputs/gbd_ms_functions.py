@@ -781,8 +781,8 @@ RR estimates for every age, so check to see that the function is correctly assig
 
 # 7. get_pafs
 
-
-def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='morbidity'):
+@memory.cache
+def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, paf_type):
     """
     Parameters
     ----------
@@ -827,7 +827,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='mor
 
     age_groups = list(range(1,22))+[30,31,32,33]
     worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
-    pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'), include_risks=True, num_workers=worker_count)
+    pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=gbd_round_id, include_risks=True, num_workers=worker_count)
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -1301,8 +1301,8 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
     year_end : int, end year
         year_end is the year in which you want to end the simulation
 
-    risk_id: int, risk id
-        risk_id takes same risk_id values as are used for GBD
+    risk_id: int or str, risk id
+        risk_id takes same risk_id values as are used for GBD or "unattributed"
 
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
@@ -1314,9 +1314,38 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
     """
     # For some of the diarrhea etiologies, PAFs are negative. Wouldn't make sense for the simulation to use negative pafs (i.e. incidence * PAF returns a negative incidence if PAF is negative), so we'll clip to 0. Guessing that any other diseases that deal with etiologies in the future won't need to be treated this way. --EM 12/13
     # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
-
-    eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id)
+    if risk_id != 'unattributed':
+        eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id, config.getint('simulation_parameters', 'gbd_round_id'), 'morbidity')
  
+    elif risk_id == 'unattributed':
+        dict_of_etiologies_and_eti_risks = {'cholera': 173, 
+                                     'other_salmonella': 174, 
+                                     'shigellosis': 175, 
+                                     'EPEC': 176, 
+                                     'ETEC': 177, 
+                                     'campylobacter': 178, 
+                                     'amoebiasis': 179, 
+                                     'cryptosporidiosis': 180, 
+                                     'rotaviral_entiritis': 181, 
+                                     'aeromonas': 182, 
+                                     'clostridium_difficile': 183, 
+                                     'norovirus': 184, 
+                                     'adenovirus': 185}
+
+        all_dfs = pd.DataFrame()
+        for value in dict_of_etiologies_and_eti_risks.values():
+            df = get_etiology_pafs(location_id, year_start, year_end, value, cause_id)
+            all_dfs = all_dfs.append(df)
+
+        grouped = all_dfs.groupby(['age', 'sex_id', 'year_id']).sum()
+
+        pafs = grouped[['draw_{}'.format(i) for i in range(0, 1000)]].values
+        eti_pafs = pd.DataFrame(1-pafs, columns=['draw_{}'.format(i) for i in range(0, 1000)], index=grouped.index)
+        eti_pafs.reset_index(inplace=True)
+    else:
+        raise ValueError("get_etiology_pafs can take either a valid etiology_risk_id or 'unattributed'. the risk id that you supplied -- {} -- is invalid".format(risk_id))
+
+
     # now make the negative etiology paf draws 0
     draws = eti_pafs._get_numeric_data()
     draws[draws < 0] = 0

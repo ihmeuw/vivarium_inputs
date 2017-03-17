@@ -224,11 +224,11 @@ def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     return output
 
 
-def get_pafs(risk_id, cause_id):
+def get_pafs(risk_id, cause_id, paf_type='morbidity'):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
-    df = functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id)
+    df = functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id, gbd_round_id=gbd_round_id, paf_type=paf_type)
     df.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
     return df
 
