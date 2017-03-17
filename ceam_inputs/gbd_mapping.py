@@ -83,6 +83,14 @@ raw_cause_mapping = [
             'prevalence': meid(9312),
             'cause_specific_mortality': meid(9312),
         },
+        {
+            'name': 'diarrhea',
+            'disability_weight': 0.23,
+            'excess_mortality': meid(1811),
+            'prevalence': meid(1811),
+            'cause_specific_mortality': meid(1811),
+        },
+
 ]
 
 class DotDict:
