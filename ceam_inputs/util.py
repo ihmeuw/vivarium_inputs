@@ -13,3 +13,16 @@ STATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'cen_func
 
 def get_cache_directory():
     return config.get('input_data', 'intermediary_data_cache_path').format(username=getuser())
+
+def gbd_year_range():
+    year_start = round_to_gbd_year(config.getint('simulation_parameters', 'year_start'))
+    year_end = round_to_gbd_year(config.getint('simulation_parameters', 'year_end'), down=False)
+    if year_end == year_start:
+        year_end += 5
+    return year_start, year_end
+
+def round_to_gbd_year(year, down=True):
+    rounded_year = int(year/5)*5
+    if not down and rounded_year != year:
+        rounded_year += 5
+    return rounded_year
