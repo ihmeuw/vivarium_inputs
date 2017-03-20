@@ -86,9 +86,9 @@ raw_cause_mapping = [
         {
             'name': 'diarrhea',
             'disability_weight': 0.23,
-            'excess_mortality': meid(1811),
-            'prevalence': meid(1811),
-            'cause_specific_mortality': meid(1811),
+            'excess_mortality': meid(1181),
+            'prevalence': meid(1181),
+            'cause_specific_mortality': meid(1181),
         },
 
 ]
