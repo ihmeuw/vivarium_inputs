@@ -736,15 +736,19 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     Unit test in place? -- Yes
     """
 
+    # FIXME: I don't like this. it seems like sometimes we get a RuntimeError when draws don't exist for a year, but other times we get a dataframe with "error" values. So I've come up with the solution below. A TODO is to confirm that the "error" values issue still exists and hasn't been replaced by RuntimeErrors.
+    try:
+        # FIXME: Will want this pull to be linked to a publication id.
+        rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
 
-    # FIXME: Will want this pull to be linked to a publication id.
-    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+        # Not all rrs are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
+        if np.all(rr.values == "error"):
+            rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
+        elif np.any(rr.values == "error"):
+            raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
-    # Not all rrs are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    if np.all(rr.values == "error"):
+    except RuntimeError:
         rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
-    elif np.any(rr.values == "error"):
-        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
     if rr_type == 'morbidity':
         rr = rr.query("morbidity == 1")
@@ -868,7 +872,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id,
 # 8. get_exposures
 
 
-def get_exposures(location_id, year_start, year_end, risk_id):
+def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
     """
     Parameters
     ----------
@@ -899,7 +903,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
     """
     age_groups = list(range(1,22))+[30,31,32,33]
-    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', age_group_ids=age_groups, gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', age_group_ids=age_groups, gbd_round_id=gbd_round_id)
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
     if np.all(exposure.values == "error"):
@@ -918,6 +922,10 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         male_young_exposure['sex_id'] = 1
         female_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419").copy()
         exposure = male_young_exposure.append([male_old_exposure, female_exposure])
+
+    # unsafe sanitation (rei_id 84) has different modelable entity ids for cat1 and cat2. this is ok with us, so we don't want to generate the UnhandledRiskError
+    elif risk_id == 84:
+        pass
 
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
