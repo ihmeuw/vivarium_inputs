@@ -294,6 +294,7 @@ def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
 def get_pafs(risk_id, cause_id, paf_type='morbidity'):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start, year_end = gbd_year_range()
+    gbd_round_id = config.getint('simulation_parameters', 'gbd_round_id')
     df = functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id, gbd_round_id=gbd_round_id, paf_type=paf_type)
     df.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
     return df
@@ -302,7 +303,11 @@ def get_pafs(risk_id, cause_id, paf_type='morbidity'):
 def get_exposures(risk_id):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start, year_end = gbd_year_range()
-    funct_output = functions.load_data_from_cache(functions.get_exposures, col_name='exposure', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id)
+    gbd_round_id = config.getint('simulation_parameters', 'gbd_round_id')
+    # FIXME: Can't pull GBD 2015 estimates for underweight for some reason. Need to figure out why and then get 2015 results
+    if risk_id == 94:
+        gbd_round_id = 4
+    funct_output = functions.load_data_from_cache(functions.get_exposures, col_name='exposure', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, gbd_round_id=gbd_round_id)
 
     # need to reshape the funct output since there can be multiple categories
     output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['exposure'])
