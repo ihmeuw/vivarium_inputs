@@ -10,6 +10,7 @@ raw_cause_mapping = [
             'excess_mortality': meid(1814),
             'prevalence': meid(1814),
             'mortality': meid(1814),
+            'incidence': meid(1814),
         },
         {
             'name': 'mild_heart_failure',
@@ -29,6 +30,10 @@ raw_cause_mapping = [
             'disability_weight': meid(1823),
             'excess_mortality': meid(2412),
             'prevalence': meid(1823),
+        },
+        {
+            'name': 'angina_not_due_to_MI',
+            'incidence': meid(1817),
         },
         {
             'name': 'asymptomatic_angina',
@@ -68,6 +73,7 @@ raw_cause_mapping = [
             'excess_mortality': meid(9311),
             'prevalence': meid(9311),
             'mortality': meid(9311),
+            'incidence': meid(9311),
         },
         {
             'name': 'ischemic_stroke',
@@ -75,6 +81,7 @@ raw_cause_mapping = [
             'excess_mortality': meid(9310),
             'prevalence': meid(9310),
             'mortality': meid(9310),
+            'incidence': meid(9310),
         },
         {
             'name': 'chronic_stroke',
