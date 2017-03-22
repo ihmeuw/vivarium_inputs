@@ -4,19 +4,30 @@ import pandas as pd
 
 from ceam import config
 
-import ceam_inputs as inp
-import ceam_inputs.gbd_ms_functions as gfuncs
+from ceam_inputs import get_excess_mortality, get_prevalence, get_cause_specific_mortality, get_incidence
+from ceam_inputs.gbd_ms_functions import get_disability_weight
 from ceam_inputs.util import gbd_year_range
 from ceam_inputs.gbd_mapping import causes
 
-function_map = {
-        'excess_mortality': inp.get_excess_mortality,
-        'prevalence': inp.get_prevalence,
-        'mortality': inp.get_cause_specific_mortality,
-        'disability_weight': gfuncs.get_disability_weight,
-}
 
-def make_input_cube_from_gbd(year_start, year_end, locations, draws, measures):
+def make_measure_cube_from_gbd(year_start, year_end, locations, draws, measures):
+    """ Build a DataFrame which contains GBD data for each of the measure/cause
+    pairs listed in `measures`.
+    """
+    # Map from each measure name to the function which gets that measure's data
+    function_map = {
+            'excess_mortality': get_excess_mortality,
+            'prevalence': get_prevalence,
+            'mortality': get_cause_specific_mortality,
+            'disability_weight': get_disability_weight,
+            'incidence': get_incidence,
+    }
+
+    # TODO: I'm always complaining about how other people don't include
+    # metadata with their data. This should afford the attachment of
+    # metadata like meid or guidance on how to interpret distribution
+    # parameters.
+
     # TODO: This fiddling of the config is awkward but it's necessary
     # unless we re-architect the existing ceam_input functions.
     old_year_start = config.get('simulation_parameters', 'year_start')
@@ -25,6 +36,7 @@ def make_input_cube_from_gbd(year_start, year_end, locations, draws, measures):
     old_draw = config.get('run_configuration', 'draw_number')
     config.set('simulation_parameters', 'year_start', str(year_start))
     config.set('simulation_parameters', 'year_end', str(year_end))
+
     cube = pd.DataFrame(columns=['year', 'age', 'sex', 'measure', 'cause', 'draw', 'value'])
     for location in locations:
         config.set('simulation_parameters', 'location_id', str(location))
@@ -39,14 +51,20 @@ def make_input_cube_from_gbd(year_start, year_end, locations, draws, measures):
                     else:
                         warn("Trying to load input for {}.{} but no mapping was present".format(cause, measure))
                         continue
+
+                # TODO: This assumes a single value for each point but that won't
+                # be valid for categorical risks data or distribution data.
+                # To support those we'll need to allow for multiple value columns.
                 value_column = [c for c in data.columns if c not in ['age', 'sex', 'year']]
                 assert len(value_column) == 1
                 value_column = value_column[0]
                 data = data.rename(columns={value_column: 'value'})
+
                 data['draw'] = draw
                 data['measure'] = measure
                 data['cause'] = cause
                 data['location'] = location
+
                 cube = cube.append(data)
 
     config.set('simulation_parameters', 'year_start', old_year_start)
@@ -55,6 +73,3 @@ def make_input_cube_from_gbd(year_start, year_end, locations, draws, measures):
     config.set('run_configuration', 'draw_number', old_draw)
 
     return cube.set_index(['year', 'age', 'sex', 'measure', 'cause', 'draw', 'location'])
-
-if __name__ == '__main__':
-    print(make_input_cube_from_gbd(1990, 1990, [180], [0], [('heart_attack', 'excess_mortality'), ('mild_angina', 'prevalence'), ('all', 'mortality')]))
