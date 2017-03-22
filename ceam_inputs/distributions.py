@@ -47,7 +47,10 @@ def sll_ppf(percentile, location, scale, shape):
 
 def _fpg_ppf(parameters):
     def inner(percentile):
-        return sll_ppf(percentile, parameters['loc'], parameters['scale'], parameters['error'])
+        if parameters.empty:
+            return pd.Series()
+        else:
+            return sll_ppf(percentile, parameters['loc'], parameters['scale'], parameters['error'])
     return inner
 
 @memory.cache

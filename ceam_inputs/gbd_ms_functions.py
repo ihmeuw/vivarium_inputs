@@ -919,6 +919,13 @@ def get_exposures(location_id, year_start, year_end, risk_id):
         female_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419").copy()
         exposure = male_young_exposure.append([male_old_exposure, female_exposure])
 
+        residual_exposure = exposure.copy()
+        residual_exposure['parameter'] = 'cat2'
+        residual_exposure = residual_exposure.set_index([c for c in residual_exposure.columns if 'draw_' not in c])
+        residual_exposure = 1 - residual_exposure
+        residual_exposure = residual_exposure.reset_index()
+        exposure = exposure.append(residual_exposure)
+
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
