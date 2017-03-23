@@ -95,6 +95,7 @@ raw_cause_mapping = [
             'disability_weight': 0.23,
             'excess_mortality': meid(1181),
             'prevalence': meid(1181),
+            'incidence': meid(1181),
             'cause_specific_mortality': meid(1181),
         },
 
