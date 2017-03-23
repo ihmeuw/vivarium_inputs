@@ -386,11 +386,11 @@ def make_gbd_risk_effects(risk_id, causes, effect_function):
 
 def make_gbd_disease_state(cause, dwell_time=0):
     from ceam_public_health.components.disease import ExcessMortalityState
-    if hasattr(cause, 'cause_specific_mortality'):
-        if isinstance(cause.cause_specific_mortality, meid):
-            csmr = get_cause_specific_mortality(cause.cause_specific_mortality)
+    if hasattr(cause, 'mortality'):
+        if isinstance(cause.mortality, meid):
+            csmr = get_cause_specific_mortality(cause.mortality)
         else:
-            csmr = cause.cause_specific_mortality
+            csmr = cause.mortality
     else:
         csmr = pd.DataFrame()
 

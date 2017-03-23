@@ -923,6 +923,13 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
         female_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419").copy()
         exposure = male_young_exposure.append([male_old_exposure, female_exposure])
 
+        residual_exposure = exposure.copy()
+        residual_exposure['parameter'] = 'cat2'
+        residual_exposure = residual_exposure.set_index([c for c in residual_exposure.columns if 'draw_' not in c])
+        residual_exposure = 1 - residual_exposure
+        residual_exposure = residual_exposure.reset_index()
+        exposure = exposure.append(residual_exposure)
+
     # unsafe sanitation (rei_id 84) has different modelable entity ids for cat1 and cat2. this is ok with us, so we don't want to generate the UnhandledRiskError
     elif risk_id == 84:
         pass
