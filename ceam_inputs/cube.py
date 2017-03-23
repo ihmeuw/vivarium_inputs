@@ -4,7 +4,7 @@ import pandas as pd
 
 from ceam import config
 
-from ceam_inputs import get_excess_mortality, get_prevalence, get_cause_specific_mortality, get_incidence
+from ceam_inputs import get_excess_mortality, get_prevalence, get_cause_specific_mortality, get_incidence, get_cause_deleted_mortality_rate
 from ceam_inputs.gbd_ms_functions import get_disability_weight
 from ceam_inputs.util import gbd_year_range
 from ceam_inputs.gbd_mapping import causes
@@ -44,7 +44,7 @@ def make_measure_cube_from_gbd(year_start, year_end, locations, draws, measures)
             config.set('run_configuration', 'draw_number', str(draw))
             for cause, measure in measures:
                 if cause == 'all' and measure == 'mortality':
-                    data = inp.get_cause_deleted_mortality_rate({})
+                    data = get_cause_deleted_mortality_rate({})
                 else:
                     if cause in causes and measure in causes[cause]:
                         data = function_map[measure](causes[cause][measure])
