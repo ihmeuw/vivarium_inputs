@@ -930,8 +930,8 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
         residual_exposure = residual_exposure.reset_index()
         exposure = exposure.append(residual_exposure)
 
-    # unsafe sanitation (rei_id 84) has different modelable entity ids for cat1 and cat2. this is ok with us, so we don't want to generate the UnhandledRiskError
-    elif risk_id == 84:
+    # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable entity ids for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
+    elif risk_id in [84, 94]:
         pass
 
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
