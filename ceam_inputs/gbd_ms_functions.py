@@ -237,6 +237,9 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
     simulants = create_sex_id_column(simulants, location_id, year_start)
 
+    # Create location column
+    simulants['location'] = location_id
+
     # TODO: Design and implement test that makes sure CEAM population looks
     # like population file pulled from GBD
     # TODO: Design and implement test that makes sure population has been
@@ -255,7 +258,7 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 def assign_subregions(index, location_id, year):
     """
     Assigns a location to each simulant. If the location_id
-    has sub regions in the hierarchy than the simulants will be
+    has sub regions in the hierarchy then the simulants will be
     distributed across them uniformly weighted by each region's population.
     Otherwise all simulants will be assigned location_id.
 
