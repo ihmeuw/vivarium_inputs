@@ -379,7 +379,7 @@ def make_gbd_risk_effects(risk_id, causes, effect_function):
         effect_function)
         for cause_id, cause_name in causes]
 
-def make_gbd_disease_state(cause, dwell_time=0):
+def make_gbd_disease_state(cause, dwell_time=0, side_effect_function=None):
     from ceam_public_health.components.disease import ExcessMortalityState
     if hasattr(cause, 'mortality'):
         if isinstance(cause.mortality, meid):
@@ -419,7 +419,8 @@ def make_gbd_disease_state(cause, dwell_time=0):
             disability_weight=disability_weight,
             excess_mortality_data=excess_mortality,
             prevalence_data=prevalence,
-            csmr_data=csmr
+            csmr_data=csmr,
+            side_effect_function=side_effect_function
         )
 
 
