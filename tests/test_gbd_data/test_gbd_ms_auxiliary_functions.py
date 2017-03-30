@@ -79,5 +79,13 @@ def test_expand_grid():
     assert df.year_id.tolist() == np.repeat([1990, 1991, 1992], 6).tolist(), "expand_grid should expand a df to get row for each age/year combo"
     assert df.age.tolist() == [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5], "expand_grid should expand a df to get row for each age/year combo"
 
-
-# End.
+# 7. make_age_group_1_to_4_estimates_constant
+def test_make_age_group_1_to_4_estimates_constant():
+    df = pd.DataFrame({'year': [2014, 2015, 2016, 2017],
+                       'age': [3, 7, 7, 3],
+                       'rate': [10, 11, 12, 13],
+                       'sex':['Male']*3 + ['Female']})
+    
+    df = make_age_group_1_to_4_rates_constant(df)
+    
+    assert list(df.age) == [1, 5, 7, 7, 1, 5]

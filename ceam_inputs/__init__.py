@@ -454,4 +454,52 @@ def get_severe_diarrhea_excess_mortality():
     return functions.get_severe_diarrhea_excess_mortality(excess_mortality_dataframe=get_excess_mortality(1181), severe_diarrhea_proportion=severe_diarrhea_proportion)
 
 
-# End.
+def make_age_group_1_to_4_rates_constant(df):
+    """
+    Takes a dataframe where incidence or excess mortality rates are
+        being set at age group midpoints and reassigns the values
+        that are set at the age group 1 - 4 midpoint (3) and assigns
+        those values to the age group end and age group start. That
+        way our interpolation spline will yield constant values in
+        between the age group start and age group end for the 1 to
+        4 age group
+
+    Parameters
+    ----------
+    df: pd.DataFrame()
+        df with excess mortality or incidence rates for each age, 
+        sex, year, and location
+    """
+    age_bins = get_age_bins()
+    new_rows = pd.DataFrame()
+    
+    assert 3 in df.age.values, "the input dataframe needs to" + \
+                               " simulants that are at the" + \
+                               " age group midpoint"
+    
+    assert [1, 2, 4, 5] not in df.age.values, "the input df" + \
+        "should only have simulants that are at the age" + \
+        "group midpoint for the 1 to 4 age group"
+    
+
+    # get estimates for the age 1-4 age group (select at the age
+    #     group midpoint)
+    for index, row in df.loc[df.age == 3].iterrows():
+        year = (row['year'])
+        age_group_max = age_bins.set_index('age_group_name').get_value('1 to 4', 'age_group_years_end')  # the age group max for the 1-4 age group
+        age = age_group_max
+        rate = (row['rate'])
+        sex = (row['sex'])
+        # create a new line in the daataframe
+        line = pd.DataFrame({"year": year,
+                            "age": 5, "rate": rate, "sex": sex},
+                            index=[index+1])
+        new_rows = new_rows.append(line)
+        
+    df = pd.concat([df, new_rows]).sort_values(
+        by=['year', 'sex', 'age']).reset_index(drop=True)
+    age_group_min = age_bins.set_index('age_group_name').get_value('1 to 4', 'age_group_years_start')  # the age group min for the 1-4 age group
+    df.loc[df.age == 3, 'age'] = age_group_min
+    
+    return df
+
