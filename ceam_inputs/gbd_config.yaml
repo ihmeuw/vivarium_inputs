@@ -1,0 +1,21 @@
+input_data:
+    intermediary_data_cache_path: /share/scratch/users/username/cache
+    auxiliary_data_folder: j_drive/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015
+    gbd_publication_ids: [121314151617] # GBD2015 capstone papers
+    j_drive: /home/j
+
+simulation_parameters:
+    location_id: 180
+    year_start: 2005
+    year_end: 2010
+    time_step: 1 #Days
+    population_size: 10000
+    gbd_round_id: 3
+    initial_age: ""
+    pop_age_start: 0
+    pop_age_end: 5
+    number_of_new_simulants_each_year: 1000
+
+run_configuration:
+    draw_number: 0
+
