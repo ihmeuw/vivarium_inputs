@@ -1,7 +1,7 @@
 input_data:
-    intermediary_data_cache_path: /share/scratch/users/username/cache
-    auxiliary_data_folder: j_drive/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015
-    gbd_publication_ids: [121314151617] # GBD2015 capstone papers
+    intermediary_data_cache_path: /share/scratch/users/{username}/cache
+    auxiliary_data_folder: "{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015"
+    gbd_publication_ids: [12,13,14,15,16,17] # GBD2015 capstone papers
     j_drive: /home/j
 
 simulation_parameters:
