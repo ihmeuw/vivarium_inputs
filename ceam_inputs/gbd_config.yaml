@@ -3,6 +3,7 @@ input_data:
     auxiliary_data_folder: "{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015"
     gbd_publication_ids: [12,13,14,15,16,17] # GBD2015 capstone papers
     j_drive: /home/j
+    risk_factor_correlation_matrix_variation: location_180
 
 simulation_parameters:
     location_id: 180

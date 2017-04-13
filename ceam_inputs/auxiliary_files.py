@@ -46,6 +46,10 @@ FILES = {
         'path': 'FINAL_min_pred_ex.csv',
         'source': '/home/j/WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv',
         },
+    'Risk Factor Susceptibility Correlation Matrices': {
+        'path': 'risk_factor_susceptibility_correlation_matricies/{matrix_variation}',
+        'owner': 'Reed Sorenson <rsoren@uw.edu>',
+        },
 
 }
 
