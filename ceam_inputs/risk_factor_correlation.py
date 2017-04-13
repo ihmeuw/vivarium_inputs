@@ -17,7 +17,7 @@ COLUMN_NORMALIZATION = {
 }
 
 def load_matrices():
-    matrices_root = auxiliary_file_path('Risk Factor Susceptibility Correlation Matrices', matrix_variation=config.input_data.risk_factor_correlation_matrix_variation)
+    matrices_root = auxiliary_file_path('Risk Factor Propensity Correlation Matrices', matrix_variation=config.input_data.risk_factor_correlation_matrix_variation)
     knot_ages, sexes = zip(*[re.match('corr_([0-9]+)_([A-Za-z]+).csv', path).groups() for path in os.listdir(matrices_root)])
     knot_ages = set(knot_ages)
     sexes = set(sexes)
