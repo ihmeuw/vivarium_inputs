@@ -83,7 +83,7 @@ def get_model_versions():
     """
     from db_tools import ezfuncs # This import is not at global scope because I only want the dependency if cached data is unavailable
 
-    publication_ids = [int(pid) for pid in config.get('input_data', 'gbd_publication_ids').split(',')]
+    publication_ids = config.input_data.gbd_publication_ids
     mapping = ezfuncs.query('''
     SELECT modelable_entity_id, model_version_id
     FROM epi.publication_model_version
@@ -588,7 +588,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
     '''
 
     #TODO: this doesn't belong here. Should be passed in somehow
-    draw = config.getint('run_configuration', 'draw_number')
+    draw = config.run_configuration.draw_number
 
     all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(
         location_id, year_start, year_end))
@@ -691,7 +691,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     ) == 0, "there are duplicates in the dataframe that get_post_mi_heart_failure_proportion_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     # assert that none of the incidence rate values are greater than 1 (basically ensuring that the numerator and demoniator weren't flipped)
-    draw_number = config.getint('run_configuration', 'draw_number')
+    draw_number = config.run_configuration.draw_number
     assert output_df['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with the get_post_mi_heart_failure_proportion_draws calculation. incidence rate can't be GT 1. Check to see if the numerator/denominator were flipped"
 
     return output_df[keepcol]
@@ -738,11 +738,11 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
 
 
     # FIXME: Will want this pull to be linked to a publication id.
-    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     # Not all rrs are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
     if np.all(rr.values == "error"):
-        rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
+        rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.simulation_parameters.gbd_round_id - 1)
     elif np.any(rr.values == "error"):
         raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
@@ -773,7 +773,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, rr_
     assert rr[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_relative_risks just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert that none of the rr values are less than 1
-    draw_number = config.getint('run_configuration', 'draw_number')
+    draw_number = config.run_configuration.draw_number
     assert rr['rr_{}'.format(draw_number)].all() >= 1, "something went wrong with get_relative_risks. RR cannot be LT 1. Check the data that you are pulling in and the function. Sometimes, the database does not have\
 RR estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
 
@@ -828,7 +828,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='mor
 
     age_groups = list(range(1,22))+[30,31,32,33]
     worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
-    pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'), include_risks=True, num_workers=worker_count)
+    pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=config.simulation_parameters.gbd_round_id, include_risks=True, num_workers=worker_count)
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -857,7 +857,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, paf_type='mor
     ) == 0, "there are duplicates in the dataframe that get_pafs just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     # assert that none of the paf values are greater than 1
-    draw_number = config.getint('run_configuration', 'draw_number')
+    draw_number = config.run_configuration.draw_number
 
     # FIXME: I don't think this test is actually working correctly
     assert pafs['draw_{}'.format(draw_number)].all() <= 1, "something went wrong with get_pafs. pafs cannot be GT 1. Check the data that you are pulling in and the function. Sometimes, a risk does not have paf estimates for every age, so check to see that the function is correctly assigning relative risks to the other ages"
@@ -899,11 +899,11 @@ def get_exposures(location_id, year_start, year_end, risk_id):
     Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
     """
     age_groups = list(range(1,22))+[30,31,32,33]
-    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', age_group_ids=age_groups, gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
+    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', age_group_ids=age_groups, gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
     if np.all(exposure.values == "error"):
-        exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id') - 1)
+        exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=config.simulation_parameters.gbd_round_id - 1)
     elif np.any(exposure.values == "error"):
         raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
 
@@ -1021,7 +1021,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
 
     os.umask(old_umask)
 
-    draw = config.getint('run_configuration', 'draw_number')
+    draw = config.run_configuration.draw_number
 
     if col_name:
         if src_column is not None:
@@ -1239,14 +1239,14 @@ def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=No
 
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequala get this healthstate_id
     elif healthstate_id == 799:
-        df = pd.DataFrame({'healthstate_id':[799], 'healthstate': ['asymptomatic'], 'modelable_entity_id':[dis_weight_modelable_entity_id], 'draw{}'.format(config.getint('run_configuration', 'draw_number')) : [0]})
+        df = pd.DataFrame({'healthstate_id':[799], 'healthstate': ['asymptomatic'], 'modelable_entity_id':[dis_weight_modelable_entity_id], 'draw{}'.format(config.run_configuration.draw_number) : [0]})
     else:
         raise ValueError("""the modelable entity id {m} has a healthstate_id of {h}. it looks like there 
         are no draws for this healthstate_id in the csvs that get_healthstate_id_draws checked.
         look in this folder for the draws for healthstate_id{h}: /home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom.
         if you can't find draws there, talk w/ central comp""".format(m=dis_weight_modelable_entity_id, h=healthstate_id)) 
 
-    return df['draw{}'.format(config.getint('run_configuration', 'draw_number'))].iloc[0]
+    return df['draw{}'.format(config.run_configuration.draw_number)].iloc[0]
 
 
 # 15. get_asympt_ihd_proportions
@@ -1370,7 +1370,7 @@ def get_etiology_probability(etiology_name):
     # TODO: Will want to cache this data in the future instead of pulling it from Chris Troeger's J Temp file
     etiology_proportion_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/diarrhea_{}_eti_draw_proportion.dta".format(etiology_name))
 
-    etiology_proportion_draws = etiology_proportion_draws.query("location_id == {}".format(config.getint('simulation_parameters', 'location_id')))
+    etiology_proportion_draws = etiology_proportion_draws.query("location_id == {}".format(config.simulation_parameters.location_id))
 
     etiology_proportion_draws = get_age_from_age_group_id(etiology_proportion_draws)
 
@@ -1383,7 +1383,7 @@ def get_etiology_probability(etiology_name):
 
     etiology_df.reset_index(level=['age', 'year_id'], inplace=True)
 
-    keepcol = ['year_id', 'sex_id', 'age', 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
+    keepcol = ['year_id', 'sex_id', 'age', 'draw_{i}'.format(i=config.run_configuration.draw_number)]
 
     return etiology_df[keepcol]
 
@@ -1420,7 +1420,7 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
 
     # TODO: Figure out what we want to do regarding caching data. If we are using only one draw number, should we 
     # cache the data? If we cache the data, will we actually pull a different value for each draw
-    draw_number = config.getint('run_configuration', 'draw_number')
+    draw_number = config.run_configuration.draw_number
 
     diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=6, me_id=me_id) # measure=incidence, me_id=diarrhea envelope TODO: Make me_id an argument to be passed into the fucntion (i.e. make this function more flexible than just diarrhea)
@@ -1471,7 +1471,7 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
 
-    draw_number = config.getint('run_configuration', 'draw_number')   
+    draw_number = config.run_configuration.draw_number   
 
     diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=5, me_id=me_id) # measure=prevalence, me_id=diarrhea envelope
