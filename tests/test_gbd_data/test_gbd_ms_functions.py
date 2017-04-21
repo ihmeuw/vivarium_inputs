@@ -33,6 +33,7 @@ from ceam_inputs import get_excess_mortality
 
 # generate_ceam_population
 # FIXME: Make this test pass regardless of age groups selected in the config file
+# FIXME: Add a random seed to this test so that it will always pass
 def test_generate_ceam_population():
     pop = generate_ceam_population(180, 1990, 1000000, pop_age_start=0, pop_age_end=110)
 
@@ -175,7 +176,7 @@ def test_get_relative_risks():
 
 # get_pafs
 def test_get_pafs():
-    df = get_pafs(180, 1990, 1990, 107, 493) 
+    df = get_pafs(180, 1990, 1990, 107, 493, 3, 'morbidity') 
 
     # pick a random draw to test
     draw_number = 19
@@ -195,7 +196,7 @@ def test_get_pafs():
 
 # get_exposures
 def test_get_exposures():
-    df = get_exposures(180, 1990, 1990, 166)
+    df = get_exposures(180, 1990, 1990, 166, 3)
 
     # assert that exposures are 0 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2 and parameter == 'cat1'")
@@ -392,7 +393,7 @@ def test_get_etiology_specific_prevalence():
 
     val = df.set_index('age').get_value(82.5, 'draw_10')
 
-    assert val == 0.02491546 * 0.06306237, "get_etiology_specific_prevalence needs to ensure the eti pafs and envelope were multiplied together correctly"
+    assert np.allclose(val, (0.02491546 * 0.06306237)), "get_etiology_specific_prevalence needs to ensure the eti pafs and envelope were multiplied together correctly"
 
 
 def test_get_severe_diarrhea_excess_mortality():
