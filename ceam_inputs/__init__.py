@@ -428,11 +428,11 @@ def make_gbd_disease_state(cause, dwell_time=0):
 def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
     return functions.get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split)
 
-def get_covariate_estimates(covariate_short_name):
+def get_covariate_estimates(covariate_name_short):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start, year_end = gbd_year_range()
 
-    return functions.get_covariate_estimates(location_id, year_start, year_end, covariate_short_name) 
+    return functions.get_covariate_estimates(location_id, year_start, year_end, covariate_name_short) 
 
 def get_ors_exposure():
     location_id = config.getint('simulation_parameters', 'location_id')
@@ -488,11 +488,16 @@ def make_age_group_1_to_4_rates_constant(df):
         year = (row['year'])
         age_group_max = age_bins.set_index('age_group_name').get_value('1 to 4', 'age_group_years_end')  # the age group max for the 1-4 age group
         age = age_group_max
-        rate = (row['rate'])
+        if 'rate' in df.columns:
+            value_col = 'rate'
+            value = (row['rate'])
+        elif 'eti_inc' in df.columns:
+            value_col = 'eti_inc'
+            value = (row['eti_inc'])
         sex = (row['sex'])
         # create a new line in the daataframe
         line = pd.DataFrame({"year": year,
-                            "age": 5, "rate": rate, "sex": sex},
+                            "age": 5, value_col: value, "sex": sex},
                             index=[index+1])
         new_rows = new_rows.append(line)
         
