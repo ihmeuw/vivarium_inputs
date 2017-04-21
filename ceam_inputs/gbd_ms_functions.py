@@ -789,7 +789,6 @@ RR estimates for every age, so check to see that the function is correctly assig
 
 # 7. get_pafs
 
-@memory.cache
 def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, paf_type):
     """
     Parameters
@@ -1320,7 +1319,7 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
 
     return asfr
 
-
+# TODO: Need to add a test to make sure that unattributed burden is accurately captured
 def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
     """
     Parameters
@@ -1367,6 +1366,7 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id):
 
         all_dfs = pd.DataFrame()
         for value in dict_of_etiologies_and_eti_risks.values():
+            # FIXME: Is it correct to have this function call itself? Seems strange
             df = get_etiology_pafs(location_id, year_start, year_end, value, cause_id)
             all_dfs = all_dfs.append(df)
 
@@ -1512,7 +1512,7 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=5, me_id=me_id) # measure=prevalence, me_id=diarrhea envelope
 
-    etiology_paf = get_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
+    etiology_paf = get_etiology_pafs(location_id, year_start, year_end, eti_risk_id, cause_id)
 
     etiology_specific_prevalence= pd.merge(diarrhea_envelope_prevalence, etiology_paf, on=['age', 'year_id', 'sex_id'], 
                                           suffixes=('_envelope', '_pafs'))
@@ -1545,7 +1545,7 @@ def get_severe_diarrhea_excess_mortality(excess_mortality_dataframe, severe_diar
 
 # TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of covariate short name, because names are subject to change but ids should stay the same
 # TODO: Also link that covariate id to a publication id, if possible
-def get_covariate_estimates(location_id, year_start, year_end, covariate_short_name):
+def get_covariate_estimates(location_id, year_start, year_end, covariate_name_short):
     """
     Gets covariate estimates for a specified location. Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.
 
@@ -1566,7 +1566,7 @@ def get_covariate_estimates(location_id, year_start, year_end, covariate_short_n
     """
     from db_queries import get_covariate_estimates # This import is not at global scope because I only want the dependency if cached data is unavailable
 
-    covariate_estimates = get_covariate_estimates(covariate_short_name=covariate_short_name)
+    covariate_estimates = get_covariate_estimates(covariate_name_short=covariate_name_short)
 
     covariate_estimates = covariate_estimates.query("location_id == @location_id")
 
