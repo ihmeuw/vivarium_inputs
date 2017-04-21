@@ -6,7 +6,12 @@ from ceam_inputs.gbd_ms_auxiliary_functions import normalize_for_simulation
 from ceam_inputs.gbd_ms_auxiliary_functions import expand_grid
 from ceam_inputs.gbd_ms_auxiliary_functions import assign_sex_id
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
+from ceam_inputs import make_age_group_1_to_4_rates_constant
 from scipy import stats
+from ceam_tests.util import setup_simulation, generate_test_population
+from ceam_public_health.components.diarrhea_disease_model import diarrhea_factory
+from ceam_public_health.components.risks.categorical_risk_handler import CategoricalRiskHandler
+from datetime import datetime
 import pandas as pd
 import numpy as np
 
@@ -89,3 +94,30 @@ def test_make_age_group_1_to_4_estimates_constant():
     df = make_age_group_1_to_4_rates_constant(df)
     
     assert list(df.age) == [1, 5, 7, 7, 1, 5]
+
+def test_make_age_group_1_to_4_estimates_constant2():
+    simulation = setup_simulation(components=[generate_test_population,
+                                              CategoricalRiskHandler(241, 'stunting')] + 
+                                              diarrhea_factory(), start=datetime(2005, 1, 1))
+
+    simulation_mortality = simulation.values.get_value(
+        'excess_mortality.diarrhea')
+
+    five_yr_old_mort = simulation_mortality.source.interpolation(age=[5,5], sex=['Male','Female'], year=[2005,2005])
+
+    one_yr_old_mort = simulation_mortality.source.interpolation(age=[1,1], sex=['Male', 'Female'], year=[2005,2005])
+
+    assert five_yr_old_mort.get_value(0) == one_yr_old_mort.get_value(0), "when we interpolate constantly in the 1 to 4 age group, mortality rates should be the same at age 1 and 5"
+
+    assert five_yr_old_mort.get_value(1) == one_yr_old_mort.get_value(1), "when we interpolate constantly in the 1 to 4 age group, mortality rates should be the same at age 1 and 5"
+
+    simulation_incidence = simulation.values.get_rate('base_incidence_rate.diarrhea_due_to_rotaviral_entiritis')
+
+    one_yr_old_inc = simulation_incidence.source.interpolation(age=[1,1], sex=['Male','Female'], year=[2006,2006])
+
+    five_yr_old_inc = simulation_incidence.source.interpolation(age=[5,5], sex=['Male','Female'], year=[2006,2006])
+
+    assert one_yr_old_inc.get_value(0) == five_yr_old_inc.get_value(0), "when we interpolate constantly in the 1 to 4 age group, inc rates should be the same at age 1 and 5"
+
+    assert one_yr_old_inc.get_value(1) == five_yr_old_inc.get_value(1), "when we interpolate constantly in the 1 to 4 age group, inc rates should be the same at age 1 and 5"
+
