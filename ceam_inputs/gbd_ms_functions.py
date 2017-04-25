@@ -898,7 +898,7 @@ def get_exposures(location_id, year_start, year_end, risk_id):
 
     Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
     """
-    age_groups = list(range(1,22))+[30,31,32,33]
+    age_groups = list(range(1,22))
     exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', age_group_ids=age_groups, gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
