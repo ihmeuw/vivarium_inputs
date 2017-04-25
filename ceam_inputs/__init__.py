@@ -16,8 +16,6 @@ from ceam_inputs.gbd_mapping import meid
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
-from ceam_public_health.components.risks.base_risk import RiskEffect
-
 
 
 def get_excess_mortality(modelable_entity_id):
@@ -375,15 +373,6 @@ def get_fpg_distributions():
     draw = config.run_configuration.draw_number
 
     return distributions.get_fpg_distributions(location_id, year_start, year_end, draw)
-
-
-def make_gbd_risk_effects(risk_id, causes, effect_function):
-    return [RiskEffect(
-        get_relative_risks(risk_id=risk_id, cause_id=cause_id),
-        get_pafs(risk_id=risk_id, cause_id=cause_id),
-        cause_name,
-        effect_function)
-        for cause_id, cause_name in causes]
 
 def make_gbd_disease_state(cause, dwell_time=0, side_effect_function=None):
     from ceam_public_health.components.disease import ExcessMortalityState
