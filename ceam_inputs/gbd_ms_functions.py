@@ -1206,7 +1206,7 @@ def get_angina_proportions():
 
 # 14. get_disability_weight
 
-
+# TODO: Make a wrapper for this function in the __init__ file
 def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=None):
     """Returns a dataframe with disability weight draws for a given healthstate id
 
@@ -1620,6 +1620,7 @@ def get_severity_splits(parent_meid, child_meid, draw_number):
     """
     splits = pd.read_hdf("/share/epi/split_prop_draws_2016/{}/prop_draws.h5".format(parent_meid))
 
+    # FIXME: Almost positive 'draw_1' should not be hard-coded below
     # scale proportions to 1    
     total = splits[['draw_1']].sum()
     splits['scaled'] = splits['draw_{}'.format(draw_number)] / total.values
