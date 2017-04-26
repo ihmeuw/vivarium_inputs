@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch
 import numpy as np
 import pandas as pd
+from datetime import datetime
 from ceam_inputs.gbd_ms_functions import get_sbp_mean_sd
 from ceam_inputs.gbd_ms_functions import get_relative_risks
 from ceam_inputs.gbd_ms_functions import get_pafs
@@ -32,7 +33,7 @@ from hierarchies.tree import Node
 # generate_ceam_population
 # FIXME: Make this test pass regardless of age groups selected in the config file
 def test_generate_ceam_population():
-    pop = generate_ceam_population(180, 1990, 1000000, pop_age_start=0, pop_age_end=110)
+    pop = generate_ceam_population(180, datetime(1990, 1, 1), 1000000, pop_age_start=0, pop_age_end=110)
 
     num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
 

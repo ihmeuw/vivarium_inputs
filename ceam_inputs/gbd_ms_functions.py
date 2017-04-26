@@ -170,7 +170,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure,
 # 2. generate_ceam_population
 
 # TODO: Write a test to make sure that getting a representative sample of people in a specific age group works
-def generate_ceam_population(location_id, year_start, number_of_simulants, initial_age=None, pop_age_start=None, pop_age_end=None):
+def generate_ceam_population(location_id, time, number_of_simulants, initial_age=None, pop_age_start=None, pop_age_end=None):
     """
     Returns a population of simulants to be fed into CEAM
 
@@ -179,8 +179,8 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     location_id : int
         location_id takes same location_id values as are used for GBD
 
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
+    time : datetime.datetime
+        Reference time for the population generation
 
     number of simulants : int, number
         year_end is the year in which you want to end the simulation
@@ -207,7 +207,8 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     TODO -- Need to smooth out initial ages (JIRA ticket - CE-213)
 
     """
-
+    # Only need the year for the database call.
+    year_start = time.year
     # Use auxilliary get_populations function to bring in the both sex
     # population
     # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
