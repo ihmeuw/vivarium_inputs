@@ -50,6 +50,14 @@ FILES = {
         'path': 'risk_factor_propensity_correlation_matricies/{matrix_variation}',
         'owner': 'Reed Sorenson <rsoren@uw.edu>',
         },
+    'Doctor Visit Costs': {
+        'path': 'doctor_visit_cost_KEN_20160804.csv',
+        'owner': 'Mark Moses <mwm6@uw.edu>',
+    },
+    'Inpatient Visit Costs': {
+        'path': 'inpatient_visit_cost_KEN_20170125.csv',
+        'owner': 'Mark Moses <mwm6@uw.edu>',
+    },
 
 }
 
