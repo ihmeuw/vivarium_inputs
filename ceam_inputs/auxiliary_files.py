@@ -46,6 +46,14 @@ FILES = {
         'path': 'FINAL_min_pred_ex.csv',
         'source': '/home/j/WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv',
         },
+    'Doctor Visit Costs': {
+        'path': 'doctor_visit_cost_KEN_20160804.csv',
+        'owner': 'Mark Moses <mwm6@uw.edu>',
+    },
+    'Inpatient Visit Costs': {
+        'path': 'inpatient_visit_cost_KEN_20170125.csv',
+        'owner': 'Mark Moses <mwm6@uw.edu>',
+    },
 
 }
 
