@@ -1620,12 +1620,12 @@ def get_severity_splits(parent_meid, child_meid, draw_number):
     """
     splits = pd.read_hdf("/share/epi/split_prop_draws_2016/{}/prop_draws.h5".format(parent_meid))
 
-    # FIXME: Almost positive 'draw_1' should not be hard-coded below
-    # scale proportions to 1    
-    total = splits[['draw_1']].sum()
+    # the splits don't always add up exactly to one, so I get the sum of the splits and then divide each split by the total to scale to 1
+    total = splits[['draw_{}'.format(draw_number)]].sum()
     splits['scaled'] = splits['draw_{}'.format(draw_number)] / total.values
     
     splits = splits.query("child_meid == {}".format(child_meid))
+    # TODO: Use get_value in line below
     return splits[["scaled"]].values.item(0)
 
 
