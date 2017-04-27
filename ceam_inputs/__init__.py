@@ -281,13 +281,17 @@ def get_cause_deleted_mortality_rate(list_of_csmrs):
     list_of_csmrs = sorted(list_of_csmrs, key=lambda x: joblib.hash(x))
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
-    return functions.get_cause_deleted_mortality_rate(location_id=location_id, year_start=year_start, year_end=year_end, list_of_csmrs=list_of_csmrs)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    draw_number = config.run_configuration.draw_number
+    return functions.get_cause_deleted_mortality_rate(location_id=location_id, year_start=year_start, year_end=year_end, list_of_csmrs=list_of_csmrs, gbd_round_id=gbd_round_id, draw_number=draw_number)
 
 
 def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
-    funct_output = functions.load_data_from_cache(functions.get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id, rr_type=rr_type)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    draw_number = config.run_configuration.draw_number
+    funct_output = functions.load_data_from_cache(functions.get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number, rr_type=rr_type)
 
     # need to reshape the funct output since there can be multiple categories
     output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['rr'])
@@ -301,7 +305,9 @@ def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
 def get_pafs(risk_id, cause_id):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
-    df = functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    draw_number = config.run_configuration.draw_number
+    df = functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
     df.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
     return df
 
@@ -309,7 +315,9 @@ def get_pafs(risk_id, cause_id):
 def get_exposures(risk_id):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
-    funct_output = functions.load_data_from_cache(functions.get_exposures, col_name='exposure', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+
+    funct_output = functions.load_data_from_cache(functions.get_exposures, col_name='exposure', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_idi, gbd_round_id=gbd_round_id)
 
     # need to reshape the funct output since there can be multiple categories
     output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['exposure'])
@@ -344,26 +352,31 @@ def get_age_specific_fertility_rates():
 
 
 def get_etiology_probability(etiology_name):
-    return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name)
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw_number = config.run_configuration.draw_number
+    return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name, location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number)
 
 
 def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
+    gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
     return functions.load_data_from_cache(functions.get_etiology_specific_prevalence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
-                                          cause_id=cause_id, me_id=me_id, col_name='prevalence')
+                                          cause_id=cause_id, me_id=me_id, gbd_round_id=gbd_round_id, draw_number=draw_number, col_name='prevalence')
 
 
 
 def get_etiology_specific_incidence(eti_risk_id, cause_id, me_id):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
+    gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
     return functions.load_data_from_cache(functions.get_etiology_specific_incidence, location_id=location_id,
                                           year_start=year_start, year_end=year_end, eti_risk_id=eti_risk_id,
-                                          cause_id=cause_id, me_id=me_id, col_name='eti_inc')
+                                          cause_id=cause_id, me_id=me_id, gbd_round_id=gbd_round_id, draw_number=draw_number, col_name='eti_inc')
 
 
 
