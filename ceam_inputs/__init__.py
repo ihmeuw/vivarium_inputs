@@ -415,8 +415,9 @@ def make_gbd_disease_state(cause, dwell_time=0, side_effect_function=None):
         csmr = pd.DataFrame()
 
     if 'disability_weight' in cause:
+        draw = config.run_configuration.draw_number
         if isinstance(cause.disability_weight, meid):
-            disability_weight = functions.get_disability_weight(cause.disability_weight)
+            disability_weight = functions.get_disability_weight(draw, cause.disability_weight)
         else:
             disability_weight = cause.disability_weight
     else:
