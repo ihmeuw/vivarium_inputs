@@ -1206,7 +1206,8 @@ def get_angina_proportions():
 
 # 14. get_disability_weight
 
-# TODO: Make a wrapper for this function in the __init__ file
+# TODO: Figure out if sequela can have multiple healthstate ids and change this function if necessary
+# TODO: Make a wrapper for this function in the __init__ file. We want this function output to be cached
 def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=None):
     """Returns a dataframe with disability weight draws for a given healthstate id
 
