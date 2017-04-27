@@ -144,7 +144,7 @@ def test_determine_which_seq_diseased_sim_has():
 
 # def test_get_post_mi_heart_failure_proportion_draws
 def test_get_post_mi_heart_failure_proportion_draws():
-    df = get_post_mi_heart_failure_proportion_draws(180, 1990, 2015)
+    df = get_post_mi_heart_failure_proportion_draws(180, 1990, 2015, draw_number=0)
 
     # manually check for 82.5 yr old women in 2010 in Kenya
     assert np.isclose(df.get_value(199, 'draw_0'), rate_to_probability(np.multiply(0.16197485, 0.01165705))), "get_post_mi_heart_failure proportion draws needs to return the correct proportion of simulants that will have heart failure after suffering an mi"
@@ -155,7 +155,7 @@ def test_get_post_mi_heart_failure_proportion_draws():
 
 # get_relative_risks
 def test_get_relative_risks():
-    df = get_relative_risks(180, 1990, 1990, 107, 493)
+    df = get_relative_risks(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0)
 
     draw_number = 19
 
@@ -174,7 +174,7 @@ def test_get_relative_risks():
 
 # get_pafs
 def test_get_pafs():
-    df = get_pafs(180, 1990, 1990, 107, 493) 
+    df = get_pafs(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0)
 
     # pick a random draw to test
     draw_number = 19
@@ -194,7 +194,7 @@ def test_get_pafs():
 
 # get_exposures
 def test_get_exposures():
-    df = get_exposures(180, 1990, 1990, 166)
+    df = get_exposures(180, 1990, 1990, 166, gbd_round_id=3)
 
     # assert that exposures are 0 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2 and parameter == 'cat1'")
@@ -315,14 +315,14 @@ def test_get_angina_proportions():
 
 def test_get_disability_weight():
     # me_id 2608 = mild diarrhea
-    assert np.allclose(get_disability_weight(dis_weight_modelable_entity_id=2608), 0.0983228), "get_disability_weight should return the correct disability weight from the flat files prepared by central comp"
+    assert np.allclose(get_disability_weight(dis_weight_modelable_entity_id=2608, draw_number=0), 0.0983228), "get_disability_weight should return the correct disability weight from the flat files prepared by central comp"
 
 
 # get_asympt_ihd_proportions
 def test_get_asympt_ihd_proportions():
     angina_proportions = get_angina_proportions()
 
-    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 2000)
+    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 2000, draw_number=0)
 
     ang_filter = angina_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
 
@@ -332,7 +332,7 @@ def test_get_asympt_ihd_proportions():
 
     hf_value = hf_filter.set_index('age').get_value(32.5, 'draw_19')
 
-    asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000)
+    asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000, draw_number=0)
    
     asy_filter = asympt_ihd_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
      
@@ -374,7 +374,7 @@ def test_assign_subregions_without_subregions(get_populations_mock, dbtrees_mock
 
 # get_etiology_specific_incidence
 def test_get_etiology_specific_incidence():
-    df = get_etiology_specific_incidence(180, 1990, 2000, 181, 302, 1181)
+    df = get_etiology_specific_incidence(180, 1990, 2000, 181, 302, 1181, gbd_round_id=3, draw_number=0)
 
     df = df.query("year_id == 1995 and sex_id ==1") 
 
@@ -385,7 +385,7 @@ def test_get_etiology_specific_incidence():
 
 # get_etiology_specific_prevalence
 def test_get_etiology_specific_prevalence():
-    df = get_etiology_specific_prevalence(180, 1990, 2000, 181, 302, 1181)
+    df = get_etiology_specific_prevalence(180, 1990, 2000, 181, 302, 1181, gbd_round_id=3, draw_number=0)
 
     df = df.query("year_id == 1995 and sex_id ==1")
 
