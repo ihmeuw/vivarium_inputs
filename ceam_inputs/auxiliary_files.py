@@ -54,6 +54,9 @@ FILES = {
         'path': 'inpatient_visit_cost_KEN_20170125.csv',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
+    'Hypertension Drug Costs': {
+        'path': 'higashi_drug_costs_20160804.csv',
+    },
 
 }
 
