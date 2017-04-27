@@ -8,6 +8,7 @@ import joblib
 from joblib import Memory
 
 import pandas as pd
+from datetime import datetime
 
 from ceam_inputs import gbd_ms_functions as functions
 from ceam_inputs import distributions
@@ -319,14 +320,19 @@ def get_exposures(risk_id):
     return output
 
 
-def generate_ceam_population(number_of_simulants, initial_age=None, year_start=None):
+def generate_ceam_population(number_of_simulants, initial_age=None, time=None):
     location_id = config.simulation_parameters.location_id
     pop_age_start = config.simulation_parameters.pop_age_start
     pop_age_end = config.simulation_parameters.pop_age_end
-    if year_start is None:
+    if time is None:
         year_start, year_end = gbd_year_range()
-    population = functions.load_data_from_cache(functions.generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=number_of_simulants, initial_age=initial_age, pop_age_start=pop_age_start, pop_age_end=pop_age_end)
-    population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
+        time = datetime(year_start, 1, 1)
+    population = functions.load_data_from_cache(functions.generate_ceam_population, col_name=None,
+                                                location_id=location_id, time=time,
+                                                number_of_simulants=number_of_simulants, initial_age=initial_age,
+                                                pop_age_start=pop_age_start, pop_age_end=pop_age_end)
+    population['sex'] = population['sex_id'].map(
+        {1: 'Male', 2: 'Female'}).astype('category', categories=['Male', 'Female'])
     population['alive'] = True
     return population
 
