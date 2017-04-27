@@ -3,6 +3,7 @@ from unittest.mock import patch
 import numpy as np
 import pandas as pd
 from datetime import datetime
+from ceam import config
 from ceam_inputs.gbd_ms_functions import get_sbp_mean_sd
 from ceam_inputs.gbd_ms_functions import get_relative_risks
 from ceam_inputs.gbd_ms_functions import get_pafs
@@ -18,7 +19,7 @@ from ceam_inputs.gbd_ms_functions import determine_which_seq_diseased_sim_has
 from ceam_inputs.gbd_ms_functions import get_post_mi_heart_failure_proportion_draws
 from ceam.framework.util import from_yearly, rate_to_probability
 from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
-from ceam_inputs import get_all_cause_mortality_rate
+from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
 from ceam_inputs import get_cause_deleted_mortality_rate
 from ceam_inputs.gbd_ms_functions import assign_subregions
@@ -279,11 +280,17 @@ def test_sum_up_csmrs_for_all_causes_in_microsim():
 def test_get_cause_deleted_mortality_rate():
     age = 67.5    
 
-    all_cause_mr = get_all_cause_mortality_rate()
+    location_id = config.simulation_parameters.location_id
+    year_start = config.simulation_parameters.year_start
+    year_end = config.simulation_parameters.year_end
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    draw_number = config.run_configuration.draw_number
+
+    all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(location_id, year_start, year_end, gbd_round_id))
 
     all_cause_filter = all_cause_mr.query("age == {a} and sex == 'Male'".format(a=age))
 
-    all_cause_val = all_cause_filter['rate'].values[0]
+    all_cause_val = all_cause_filter['all_cause_mortality_rate_{}'.format(draw_number)].values[0]
 
     csmr1814 = get_cause_specific_mortality(1814)
 
