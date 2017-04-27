@@ -8,6 +8,7 @@ import joblib
 from joblib import Memory
 
 import pandas as pd
+from datetime import datetime
 
 from ceam_inputs import gbd_ms_functions as functions
 from ceam_inputs import distributions
@@ -324,7 +325,6 @@ def generate_ceam_population(number_of_simulants, initial_age=None, time=None):
     pop_age_start = config.simulation_parameters.pop_age_start
     pop_age_end = config.simulation_parameters.pop_age_end
     if time is None:
-        from datetime import datetime
         year_start, year_end = gbd_year_range()
         time = datetime(year_start, 1, 1)
     population = functions.load_data_from_cache(functions.generate_ceam_population, col_name=None,
