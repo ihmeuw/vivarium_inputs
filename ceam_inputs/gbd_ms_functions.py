@@ -215,10 +215,14 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
     pop = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
 
     if pop_age_start is not None:
+        assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
+        assert pop_age_end is not None, "if you set pop_age_start, also supply pop_age_end"
         pop_age_start = float(pop_age_start)
         pop = pop.query("age >= @pop_age_start").copy()
 
     if pop_age_end is not None:
+        assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
+        assert pop_age_start is not None, "if you set pop_age_end, also supply pop_age_start"
         pop_age_end = float(pop_age_end)
         pop = pop.query("age < @pop_age_end").copy()
 
@@ -232,6 +236,8 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
     # TODO: If we're setting initial ages, we probably just want a 50/50 distribution of men/women too
     if initial_age is None:
+        assert pop_age_start is None, "do not set values for initial age and pop_age_start/pop_age_end"
+        assert pop_age_end is None, "do not set values for initial age and pop_age_start/pop_age_end"
         simulants = create_age_column(simulants, pop, number_of_simulants)
     else:
         simulants['age'] = initial_age
