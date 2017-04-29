@@ -317,6 +317,7 @@ def get_exposures(risk_id):
 
 def generate_ceam_population(number_of_simulants, initial_age=None, year_start=None):
     location_id = config.getint('simulation_parameters', 'location_id')
+    # FIXME: Think that pop_age_start and pop_age_end need to be passed in the same way
     pop_age_start = config.getfloat('simulation_parameters', 'pop_age_start')
     pop_age_end = config.getfloat('simulation_parameters', 'pop_age_end')
     if year_start is None:
