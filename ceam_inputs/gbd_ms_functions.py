@@ -594,7 +594,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
     '''
 
     all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(
-        location_id, year_start, year_end, gbd_round_id))
+        location_id, year_start, year_end, gbd_round_id=gbd_round_id))
     all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw_number)]]
     all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 

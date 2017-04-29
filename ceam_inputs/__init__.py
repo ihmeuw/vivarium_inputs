@@ -299,7 +299,7 @@ def get_exposures(risk_id):
     year_start, year_end = gbd_year_range()
     gbd_round_id = config.simulation_parameters.gbd_round_id
 
-    funct_output = functions.load_data_from_cache(functions.get_exposures, col_name='exposure', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_idi, gbd_round_id=gbd_round_id)
+    funct_output = functions.load_data_from_cache(functions.get_exposures, col_name='exposure', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, gbd_round_id=gbd_round_id)
 
     # need to reshape the funct output since there can be multiple categories
     output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['exposure'])
