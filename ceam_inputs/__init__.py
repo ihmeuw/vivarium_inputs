@@ -255,24 +255,6 @@ def get_disease_states(population, states):
 
     return condition_column
 
-def get_all_cause_mortality_rate():
-    """Get the all cause mortality rate.
-
-
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'rate' columns
-    """
-
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    return functions.load_data_from_cache(functions.get_all_cause_mortality_rate, \
-            'rate', \
-            location_id,
-            year_start,
-            year_end,
-            src_column='all_cause_mortality_rate_{draw}')
 
 def get_cause_deleted_mortality_rate(list_of_csmrs):
     # This sort is a because we don't want the cache to invalidate when
