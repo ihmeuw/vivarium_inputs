@@ -253,24 +253,6 @@ def get_disease_states(population, states):
 
     return condition_column
 
-def get_all_cause_mortality_rate():
-    """Get the all cause mortality rate.
-
-
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'rate' columns
-    """
-
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    return functions.load_data_from_cache(functions.get_all_cause_mortality_rate, \
-            'rate', \
-            location_id,
-            year_start,
-            year_end,
-            src_column='all_cause_mortality_rate_{draw}')
 
 def get_cause_deleted_mortality_rate(list_of_csmrs):
     # This sort is a because we don't want the cache to invalidate when
@@ -315,7 +297,7 @@ def get_exposures(risk_id):
     year_start, year_end = gbd_year_range()
     gbd_round_id = config.simulation_parameters.gbd_round_id
 
-    funct_output = functions.load_data_from_cache(functions.get_exposures, col_name='exposure', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_idi, gbd_round_id=gbd_round_id)
+    funct_output = functions.load_data_from_cache(functions.get_exposures, col_name='exposure', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, gbd_round_id=gbd_round_id)
 
     # need to reshape the funct output since there can be multiple categories
     output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['exposure'])
