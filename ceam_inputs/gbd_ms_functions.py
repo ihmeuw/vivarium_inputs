@@ -236,10 +236,10 @@ def generate_ceam_population(location_id, year_start, number_of_simulants, initi
 
     # TODO: If we're setting initial ages, we probably just want a 50/50 distribution of men/women too
     if initial_age is None:
-        assert pop_age_start is None, "do not set values for initial age and pop_age_start/pop_age_end"
-        assert pop_age_end is None, "do not set values for initial age and pop_age_start/pop_age_end"
         simulants = create_age_column(simulants, pop, number_of_simulants)
     else:
+        assert pop_age_start is None, "do not set values for initial age and pop_age_start/pop_age_end"
+        assert pop_age_end is None, "do not set values for initial age and pop_age_start/pop_age_end"
         simulants['age'] = initial_age
 
     simulants = create_sex_id_column(simulants, location_id, year_start)
