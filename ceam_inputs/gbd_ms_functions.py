@@ -838,7 +838,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id,
     else:
         raise ValueError('paf_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
 
-    age_groups = list(range(1,22))+[30,31,32,33]
+    age_groups = list(range(1,22))
     worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
     pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=gbd_round_id, include_risks=True, num_workers=worker_count)
 
