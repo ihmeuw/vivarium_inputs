@@ -35,6 +35,7 @@ from ceam_inputs import get_excess_mortality
 # FIXME: Make this test pass regardless of age groups selected in the config file
 # FIXME: Add a random seed to this test so that it will always pass
 def test_generate_ceam_population():
+    np.random.seed(1430)
     pop = generate_ceam_population(180, 1990, 1000000, pop_age_start=0, pop_age_end=110)
 
     num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
