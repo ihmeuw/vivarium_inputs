@@ -30,6 +30,7 @@ from ceam_inputs import get_cause_specific_mortality
 from hierarchies.tree import Node
 from ceam_inputs.gbd_ms_functions import get_severe_diarrhea_excess_mortality
 from ceam_inputs import get_excess_mortality
+import random
 
 # generate_ceam_population
 # FIXME: Make this test pass regardless of age groups selected in the config file
