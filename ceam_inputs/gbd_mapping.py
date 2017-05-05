@@ -109,7 +109,6 @@ raw_cause_mapping = {
             'incidence': meid(1181),
             'mortality': meid(1181),
         },
-        {
         'death_due_to_severe_diarrhea': {
             'mortality': meid(1181),
         },
