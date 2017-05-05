@@ -182,7 +182,7 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
     pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_id, sex_id=sex_id)
 
     # Don't include the older ages in the 2015 runs
-    # if config.getint('simulation_parameters', 'gbd_round_id') == 3:
+    # if config.simulation_parameters.gbd_round_id == 3:
     #    pop = pop.query("age_group_id <= 21")
 
     # use auxilliary function extract_age_from_age_group_name to create an age
@@ -200,7 +200,7 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
     pop = pop.rename(columns={'population': 'pop_scaled'})
 
     # FIXME: As of 1-23, get_populations is only function we use that has data for detailed 5 year age groups over age of 80. We need to get the 80+ age group to make data compatible with other data, but will likely not need this in the future if all other estimates start giving data for more detailed age groups over the age of 80
-    # if config.getint('simulation_parameters', 'gbd_round_id') != 3:
+    # if config.simulation_parameters.gbd_round_id != 3:
     if sum_up_80_plus == True:
         older_pop = pop.query("age >= 80").copy()
 
@@ -334,7 +334,7 @@ def create_sex_id_column(simulants_df, location_id, year_start):
     return new_sim_file
 
 
-def get_all_cause_mortality_rate(location_id, year_start, year_end):
+def get_all_cause_mortality_rate(location_id, year_start, year_end, gbd_round_id):
     '''Get cause-deleted mortality rate from year_start to year_end (inclusive)
 
     Parameters
@@ -347,6 +347,9 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
 
     year_end : int, end year
         year_end is the year in which you want to end the simulation
+
+    gbd_round_id: int
+        GBD round to pull data for
 
     Returns
     -------
@@ -367,7 +370,7 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end):
     # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
     # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
     worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
-    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, age_group_ids=list(range(2,22)), location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'), year_ids=range(year_start, year_end+1), num_workers=worker_count)
+    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, age_group_ids=list(range(2,22)), location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=gbd_round_id, year_ids=range(year_start, year_end+1), num_workers=worker_count)
 
     # filter so that only metric id 1 (deaths) is in our dataframe
     all_cause_deaths = all_cause_draws.query("metric_id == 1")
@@ -433,7 +436,7 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
     
     healthstate_id_df = query('''
     SELECT modelable_entity_id, healthstate_id
-    FROM epi.sequela
+    FROM epi.sequela_hierarchy_history
     WHERE modelable_entity_id = {}
     '''.format(int(dis_weight_modelable_entity_id))
     , conn_def='epi')

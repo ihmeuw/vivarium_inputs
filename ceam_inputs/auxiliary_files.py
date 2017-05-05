@@ -46,6 +46,18 @@ FILES = {
         'path': 'FINAL_min_pred_ex.csv',
         'source': '/home/j/WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv',
         },
+    'Doctor Visit Costs': {
+        'path': 'doctor_visit_cost_KEN_20160804.csv',
+        'owner': 'Mark Moses <mwm6@uw.edu>',
+    },
+    'Inpatient Visit Costs': {
+        'path': 'inpatient_visit_cost_KEN_20170125.csv',
+        'owner': 'Mark Moses <mwm6@uw.edu>',
+    },
+    'Hypertension Drug Costs': {
+        'path': 'higashi_drug_costs_20160804.csv',
+        'owner': 'Mark Moses <mwm6@uw.edu>',
+    },
 
 }
 
@@ -56,7 +68,7 @@ def auxiliary_file_path(name, **kwargs):
     else:
         template_parameters['j_drive'] = '/home/j'
     raw_path = FILES[name]['path']
-    auxiliary_data_folder = config.get('input_data', 'auxiliary_data_folder')
+    auxiliary_data_folder = config.input_data.auxiliary_data_folder
     return join(auxiliary_data_folder, raw_path).format(**template_parameters)
 
 def open_auxiliary_file(name, **kwargs):

@@ -30,18 +30,18 @@ def make_measure_cube_from_gbd(year_start, year_end, locations, draws, measures)
 
     # TODO: This fiddling of the config is awkward but it's necessary
     # unless we re-architect the existing ceam_input functions.
-    old_year_start = config.get('simulation_parameters', 'year_start')
-    old_year_end = config.get('simulation_parameters', 'year_end')
-    old_location = config.get('simulation_parameters', 'location_id')
-    old_draw = config.get('run_configuration', 'draw_number')
-    config.set('simulation_parameters', 'year_start', str(year_start))
-    config.set('simulation_parameters', 'year_end', str(year_end))
+    old_year_start = config.simulation_parameters.year_start
+    old_year_end = config.simulation_parameters.year_end
+    old_location = config.simulation_parameters.location_id
+    old_draw = config.run_configuration.draw_number
+    config.simulation_parameters.year_start = year_start
+    config.simulation_parameters.year_end = year_end
 
     cube = pd.DataFrame(columns=['year', 'age', 'sex', 'measure', 'cause', 'draw', 'value'])
     for location in locations:
-        config.set('simulation_parameters', 'location_id', str(location))
+        config.simulation_parameters.location_id = location
         for draw in draws:
-            config.set('run_configuration', 'draw_number', str(draw))
+            config.run_configuration.draw_number = draw
             for cause, measure in measures:
                 if cause == 'all' and measure == 'mortality':
                     data = get_cause_deleted_mortality_rate({})
@@ -67,9 +67,9 @@ def make_measure_cube_from_gbd(year_start, year_end, locations, draws, measures)
 
                 cube = cube.append(data)
 
-    config.set('simulation_parameters', 'year_start', old_year_start)
-    config.set('simulation_parameters', 'year_end', old_year_end)
-    config.set('simulation_parameters', 'location_id', old_location)
-    config.set('run_configuration', 'draw_number', old_draw)
+    config.simulation_parameters.year_start = old_year_start
+    config.simulation_parameters.year_end = old_year_end
+    config.simulation_parameters.location_id = old_location
+    config.run_configuration.draw_number = old_draw
 
     return cube.set_index(['year', 'age', 'sex', 'measure', 'cause', 'draw', 'location'])

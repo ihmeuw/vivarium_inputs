@@ -2,6 +2,8 @@ import pytest
 from unittest.mock import patch
 import numpy as np
 import pandas as pd
+from datetime import datetime
+from ceam import config
 from ceam_inputs.gbd_ms_functions import get_sbp_mean_sd
 from ceam_inputs.gbd_ms_functions import get_relative_risks
 from ceam_inputs.gbd_ms_functions import get_pafs
@@ -17,7 +19,7 @@ from ceam_inputs.gbd_ms_functions import determine_which_seq_diseased_sim_has
 from ceam_inputs.gbd_ms_functions import get_post_mi_heart_failure_proportion_draws
 from ceam.framework.util import from_yearly, rate_to_probability
 from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
-from ceam_inputs import get_all_cause_mortality_rate
+from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
 from ceam_inputs import get_cause_deleted_mortality_rate
 from ceam_inputs.gbd_ms_functions import assign_subregions
@@ -37,7 +39,7 @@ import random
 # FIXME: Add a random seed to this test so that it will always pass
 def test_generate_ceam_population():
     np.random.seed(1430)
-    pop = generate_ceam_population(180, 1990, 1000000, pop_age_start=0, pop_age_end=110)
+    pop = generate_ceam_population(180, datetime(1990, 1, 1), 1000000, pop_age_start=0, pop_age_end=110)
 
     num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
 
@@ -148,7 +150,7 @@ def test_determine_which_seq_diseased_sim_has():
 
 # def test_get_post_mi_heart_failure_proportion_draws
 def test_get_post_mi_heart_failure_proportion_draws():
-    df = get_post_mi_heart_failure_proportion_draws(180, 1990, 2015)
+    df = get_post_mi_heart_failure_proportion_draws(180, 1990, 2015, draw_number=0)
 
     # manually check for 82.5 yr old women in 2010 in Kenya
     assert np.isclose(df.get_value(199, 'draw_0'), rate_to_probability(np.multiply(0.16197485, 0.01165705))), "get_post_mi_heart_failure proportion draws needs to return the correct proportion of simulants that will have heart failure after suffering an mi"
@@ -159,7 +161,7 @@ def test_get_post_mi_heart_failure_proportion_draws():
 
 # get_relative_risks
 def test_get_relative_risks():
-    df = get_relative_risks(180, 1990, 1990, 107, 493)
+    df = get_relative_risks(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0)
 
     draw_number = 19
 
@@ -178,7 +180,7 @@ def test_get_relative_risks():
 
 # get_pafs
 def test_get_pafs():
-    df = get_pafs(180, 1990, 1990, 107, 493, 3, 'morbidity') 
+    df = get_pafs(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0, paf_type='morbidity')
 
     # pick a random draw to test
     draw_number = 19
@@ -198,7 +200,7 @@ def test_get_pafs():
 
 # get_exposures
 def test_get_exposures():
-    df = get_exposures(180, 1990, 1990, 166, 3)
+    df = get_exposures(180, 1990, 1990, 166, gbd_round_id=3)
 
     # assert that exposures are 0 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2 and parameter == 'cat1'")
@@ -283,11 +285,17 @@ def test_sum_up_csmrs_for_all_causes_in_microsim():
 def test_get_cause_deleted_mortality_rate():
     age = 67.5    
 
-    all_cause_mr = get_all_cause_mortality_rate()
+    location_id = config.simulation_parameters.location_id
+    year_start = config.simulation_parameters.year_start
+    year_end = config.simulation_parameters.year_end
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    draw_number = config.run_configuration.draw_number
+
+    all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(location_id, year_start, year_end, gbd_round_id))
 
     all_cause_filter = all_cause_mr.query("age == {a} and sex == 'Male'".format(a=age))
 
-    all_cause_val = all_cause_filter['rate'].values[0]
+    all_cause_val = all_cause_filter['all_cause_mortality_rate_{}'.format(draw_number)].values[0]
 
     csmr1814 = get_cause_specific_mortality(1814)
 
@@ -319,14 +327,14 @@ def test_get_angina_proportions():
 
 def test_get_disability_weight():
     # me_id 2608 = mild diarrhea
-    assert np.allclose(get_disability_weight(dis_weight_modelable_entity_id=2608), 0.0983228), "get_disability_weight should return the correct disability weight from the flat files prepared by central comp"
+    assert np.allclose(get_disability_weight(dis_weight_modelable_entity_id=2608, draw_number=0), 0.0983228), "get_disability_weight should return the correct disability weight from the flat files prepared by central comp"
 
 
 # get_asympt_ihd_proportions
 def test_get_asympt_ihd_proportions():
     angina_proportions = get_angina_proportions()
 
-    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 2000)
+    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 2000, draw_number=0)
 
     ang_filter = angina_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
 
@@ -336,7 +344,7 @@ def test_get_asympt_ihd_proportions():
 
     hf_value = hf_filter.set_index('age').get_value(32.5, 'draw_19')
 
-    asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000)
+    asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000, draw_number=0)
    
     asy_filter = asympt_ihd_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
      
@@ -378,7 +386,7 @@ def test_assign_subregions_without_subregions(get_populations_mock, dbtrees_mock
 
 # get_etiology_specific_incidence
 def test_get_etiology_specific_incidence():
-    df = get_etiology_specific_incidence(180, 1990, 2000, 181, 302, 1181)
+    df = get_etiology_specific_incidence(180, 1990, 2000, 181, 302, 1181, gbd_round_id=3, draw_number=0)
 
     df = df.query("year_id == 1995 and sex_id ==1") 
 
@@ -389,7 +397,7 @@ def test_get_etiology_specific_incidence():
 
 # get_etiology_specific_prevalence
 def test_get_etiology_specific_prevalence():
-    df = get_etiology_specific_prevalence(180, 1990, 2000, 181, 302, 1181)
+    df = get_etiology_specific_prevalence(180, 1990, 2000, 181, 302, 1181, gbd_round_id=3, draw_number=0)
 
     df = df.query("year_id == 1995 and sex_id ==1")
 

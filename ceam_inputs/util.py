@@ -12,11 +12,11 @@ from ceam import config
 STATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'cen_functions_scripts')
 
 def get_cache_directory():
-    return config.get('input_data', 'intermediary_data_cache_path').format(username=getuser())
+    return config.input_data.intermediary_data_cache_path.format(username=getuser())
 
 def gbd_year_range():
-    year_start = round_to_gbd_year(config.getint('simulation_parameters', 'year_start'))
-    year_end = round_to_gbd_year(config.getint('simulation_parameters', 'year_end'), down=False)
+    year_start = round_to_gbd_year(config.simulation_parameters.year_start)
+    year_end = round_to_gbd_year(config.simulation_parameters.year_end, down=False)
     if year_end == year_start:
         year_end += 5
     return year_start, year_end
