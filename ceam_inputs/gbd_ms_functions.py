@@ -756,11 +756,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
     Unit test in place? -- Yes
     """
 
-    # FIXME: I don't like this. it seems like sometimes we get a RuntimeError when draws don't exist for a year, but other times we get a dataframe with "error" values. So I've come up with the solution below. A TODO is to confirm that the "error" values issue still exists and hasn't been replaced by RuntimeErrors.
-    try:
-        # FIXME: Will want this pull to be linked to a publication id.
-        rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=config.getint('simulation_parameters', 'gbd_round_id'))
-
     # FIXME: Will want this pull to be linked to a publication id.
     rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=gbd_round_id)
 
@@ -1381,7 +1376,7 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
     # For some of the diarrhea etiologies, PAFs are negative. Wouldn't make sense for the simulation to use negative pafs (i.e. incidence * PAF returns a negative incidence if PAF is negative), so we'll clip to 0. Guessing that any other diseases that deal with etiologies in the future won't need to be treated this way. --EM 12/13
     # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
     if risk_id != 'unattributed':
-        eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id, config.getint('simulation_parameters', 'gbd_round_id'), 'morbidity')
+        eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, 'morbidity')
  
     elif risk_id == 'unattributed':
         dict_of_etiologies_and_eti_risks = {'cholera': 173, 
