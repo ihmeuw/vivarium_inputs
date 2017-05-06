@@ -800,7 +800,7 @@ RR estimates for every age, so check to see that the function is correctly assig
 
 # 7. get_pafs
 
-def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, paf_type):
+def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, draw_number, paf_type):
     """
     Parameters
     ----------
