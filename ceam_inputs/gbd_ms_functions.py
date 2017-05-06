@@ -1376,7 +1376,7 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
     # For some of the diarrhea etiologies, PAFs are negative. Wouldn't make sense for the simulation to use negative pafs (i.e. incidence * PAF returns a negative incidence if PAF is negative), so we'll clip to 0. Guessing that any other diseases that deal with etiologies in the future won't need to be treated this way. --EM 12/13
     # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
     if risk_id != 'unattributed':
-        eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, 'morbidity')
+        eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, draw_number, 'morbidity')
  
     elif risk_id == 'unattributed':
         dict_of_etiologies_and_eti_risks = {'cholera': 173, 
@@ -1396,7 +1396,7 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
         all_dfs = pd.DataFrame()
         for value in dict_of_etiologies_and_eti_risks.values():
             # FIXME: Is it correct to have this function call itself? Seems strange
-            df = get_etiology_pafs(location_id, year_start, year_end, value, cause_id)
+            df = get_etiology_pafs(location_id, year_start, year_end, value, cause_id, gbd_round_id, draw_number)
             all_dfs = all_dfs.append(df)
 
         grouped = all_dfs.groupby(['age', 'sex_id', 'year_id']).sum()
@@ -1406,8 +1406,6 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
         eti_pafs.reset_index(inplace=True)
     else:
         raise ValueError("get_etiology_pafs can take either a valid etiology_risk_id or 'unattributed'. the risk id that you supplied -- {} -- is invalid".format(risk_id))
-
-    eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
 
     # now make the negative etiology paf draws 0
     draws = eti_pafs._get_numeric_data()
