@@ -450,12 +450,12 @@ def get_ors_exposure():
 
 
 def get_severity_splits(parent_meid, child_meid):
-    draw_number = config.getint('run_configuration', 'draw_number')
+    draw_number = config.run_configuration.draw_number
 
     return functions.get_severity_splits(parent_meid=parent_meid, child_meid=child_meid, draw_number=draw_number)
     
 def get_severe_diarrhea_excess_mortality():
-    draw_number = config.getint('run_configuration', 'draw_number')
+    draw_number = config.run_configuration.draw_number
     severe_diarrhea_proportion = get_severity_splits(1181, 2610) 
 
     return functions.get_severe_diarrhea_excess_mortality(excess_mortality_dataframe=get_excess_mortality(1181), severe_diarrhea_proportion=severe_diarrhea_proportion)
