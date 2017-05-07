@@ -515,3 +515,8 @@ def make_age_group_1_to_4_rates_constant(df):
     
     return df
 
+
+def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=None):
+    draw_number = config.run_configuration.draw_number
+
+    return functions.get_disability_weight(draw_number, dis_weight_modelable_entity_id, healthstate_id)
