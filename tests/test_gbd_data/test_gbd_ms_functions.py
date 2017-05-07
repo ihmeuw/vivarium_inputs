@@ -161,7 +161,7 @@ def test_get_post_mi_heart_failure_proportion_draws():
 
 # get_relative_risks
 def test_get_relative_risks():
-    df = get_relative_risks(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0)
+    df = get_relative_risks(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0, rr_type='morbidity')
 
     draw_number = 19
 
