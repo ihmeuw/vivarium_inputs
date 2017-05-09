@@ -435,11 +435,11 @@ def make_gbd_disease_state(cause, dwell_time=0, side_effect_function=None):
 def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
     return functions.get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split)
 
-def get_covariate_estimates(covariate_short_name):
+def get_covariate_estimates(covariate_name_short):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
 
-    return functions.get_covariate_estimates(location_id, year_start, year_end, covariate_name_short) 
+    return functions.load_data_from_cache(functions.get_covariate_estimates, location_id=location_id, year_start=year_start, year_end=year_end, covariate_name_short=covariate_name_short, col_name=None) 
 
 def get_ors_exposure():
     location_id = config.simulation_parameters.location_id
