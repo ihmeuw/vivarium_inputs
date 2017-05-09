@@ -1554,7 +1554,7 @@ def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, sev
 
 # TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of covariate short name, because names are subject to change but ids should stay the same
 # TODO: Also link that covariate id to a publication id, if possible
-def get_covariate_estimates(location_id, year_start, year_end, covariate_short_name):
+def get_covariate_estimates(covariate_name_short=None, location_id=-1, year_id=-1, sex_id=-1):
     """
     Gets covariate estimates for a specified location. Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.
 
@@ -1573,19 +1573,17 @@ def get_covariate_estimates(location_id, year_start, year_end, covariate_short_n
     A dataframe of covariate_estimates.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    from db_queries import get_covariate_estimates # This import is not at global scope because I only want the dependency if cached data is unavailable
+    # This import is not at global scope because I only want the dependency if cached data is unavailable
+    from db_queries import get_covariate_estimates
 
-    covariate_estimates = get_covariate_estimates(covariate_short_name=covariate_short_name)
-
-    covariate_estimates = covariate_estimates.query("location_id == @location_id")
-
-    expanded_estimates = expand_ages_for_dfs_w_all_age_estimates(covariate_estimates)
-
-    expanded_estimates = expanded_estimates.query("year_id >= @year_start and year_id <= @year_end")
-
-    keepcols = ['location_id', 'year_id', 'sex_id', 'age', 'covariate_id', 'covariate_name_short', 'mean_value', 'lower_value', 'upper_value']
-
-    return expanded_estimates[keepcols]
+    covariate_estimates = get_covariate_estimates(covariate_name_short=covariate_name_short,
+                                                  covariate_id=None,
+                                                  location_id=location_id,
+                                                  year_id=year_id,
+                                                  sex_id=sex_id,
+                                                  age_group_id=-1,
+                                                  model_version_id=None)
+    return covariate_estimates
 
 
 # FIXME: Won't need function below once ORS exposure and RR estimates are uploaded to the database
