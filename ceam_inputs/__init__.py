@@ -520,3 +520,23 @@ def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=No
     draw_number = config.run_configuration.draw_number
 
     return functions.get_disability_weight(draw_number, dis_weight_modelable_entity_id, healthstate_id)
+
+
+def get_rota_vaccine_coverage():
+    """Get rota vaccine coverage.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table with 'age', 'sex', 'year' and 'coverage' columns
+    """
+    year_start, year_end = gbd_year_range()
+
+    df = functions.load_data_from_cache(
+            functions.get_rota_vaccine_coverage,
+            'coverage',
+            location_id=config.simulation_parameters.location_id,
+            year_start=year_start,
+            year_end=year_end,
+        )
+    return df
