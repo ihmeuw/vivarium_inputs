@@ -333,13 +333,6 @@ def get_age_specific_fertility_rates():
     return functions.load_data_from_cache(functions.get_age_specific_fertility_rates, col_name=['mean_value', 'lower_value', 'upper_value'], src_column=['mean_value', 'lower_value', 'upper_value'], location_id=location_id, year_start=year_start, year_end=year_end)
 
 
-def get_etiology_probability(etiology_name):
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name, location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number)
-
-
 def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()

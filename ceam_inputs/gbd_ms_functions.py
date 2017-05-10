@@ -41,7 +41,7 @@ from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize
                                                     get_all_cause_mortality_rate, get_healthstate_id,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
                                                     get_age_group_midpoint_from_age_group_id, get_populations,
-                                                    create_sex_id_column, get_age_group)
+                                                    create_sex_id_column)
 
 from joblib import Memory
 import logging
@@ -1364,55 +1364,6 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
     draws[draws < 0] = 0
 
     return eti_pafs
-
-
-def get_etiology_probability(etiology_name, location_id, year_start, year_end, draw_number):
-    """
-    Gets the proportion of diarrhea cases that are associated with a specific etiology
-
-    Parameters
-    ----------
-    etiology_name: str
-        etiology_name is the name of the etiology of interest
-
-    location_id: int
-        Location to pull data fol
-
-    year_start: int
-       Initial year
-
-    year_end: int
-       Final year
-
-    draw_number: int
-       GBD draw to pull data from
-
-    Returns
-    -------
-    """
-
-    etiology_df = pd.DataFrame()
-
-    # TODO: Ask Chris T. if this works for cholera and c diff, since they are modeled differently than the other etiologies
-    # TODO: Will want to cache this data in the future instead of pulling it from Chris Troeger's J Temp file
-    etiology_proportion_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/diarrhea_{}_eti_draw_proportion.dta".format(etiology_name))
-
-    etiology_proportion_draws = etiology_proportion_draws.query("location_id == {}".format(location_id))
-
-    etiology_proportion_draws = get_age_from_age_group_id(etiology_proportion_draws)
-
-    for sex in (1, 2):
-        one_sex = etiology_proportion_draws.query("sex_id == @sex")
-        # TODO: Figure out if we want to get info from the config in this script or elsewhere
-        one_sex = set_age_year_index(one_sex, 'early neonatal', 3, year_start , year_end)
-
-        etiology_df = etiology_df.append(one_sex)
-
-    etiology_df.reset_index(level=['age', 'year_id'], inplace=True)
-
-    keepcol = ['year_id', 'sex_id', 'age', 'draw_{i}'.format(i=draw_number)]
-
-    return etiology_df[keepcol]
 
 
 def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id, gbd_round_id, draw_number):
