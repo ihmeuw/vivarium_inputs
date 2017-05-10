@@ -531,6 +531,10 @@ def get_rota_vaccine_coverage():
         Table with 'age', 'sex', 'year' and 'coverage' columns
     """
     year_start, year_end = gbd_year_range()
+    # NOTE: There are no rota_vaccine_coverage estimates for GBD 2015, so we're pulling GBD 2016 estimates
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    if gbd_round_id == 3:
+        gbd_round_id = 4
 
     df = functions.load_data_from_cache(
             functions.get_rota_vaccine_coverage,
@@ -538,5 +542,6 @@ def get_rota_vaccine_coverage():
             location_id=config.simulation_parameters.location_id,
             year_start=year_start,
             year_end=year_end,
+            gbd_round_id=gbd_round_id
         )
     return df

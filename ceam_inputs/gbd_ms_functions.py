@@ -1673,8 +1673,8 @@ def get_severity_splits(parent_meid, child_meid, draw_number):
 
 
 # TODO: Write a test for get_rota_vaccine_coverage. Make sure values make sense for year/age in test, similar to get_relative_risk tests
-def get_rota_vaccine_coverage(location_id, year_start, year_end):
-    draws = get_draws('modelable_entity_id', 10596, location_ids=location_id, source='dismod', sex_ids=[1,2], age_group_ids=list(range(2,22)))
+def get_rota_vaccine_coverage(location_id, year_start, year_end, gbd_round_id):
+    draws = get_draws('modelable_entity_id', 10596, location_ids=location_id, source='dismod', sex_ids=[1,2], age_group_ids=list(range(2,6)), gbd_round_id=gbd_round_id)
 
     draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
                          ys=year_start, ye=year_end))
