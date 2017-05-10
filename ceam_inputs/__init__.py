@@ -516,3 +516,19 @@ def get_utilization_proportion():
                                           measure=18,
                                           me_id=9458)
 
+
+def get_ckd_prevalence(stage, location_id, year_start, year_end):
+    stage_map = {'three': 2018, 'four': 2019, 'five': 2022}
+    return functions.get_modelable_entity_draws(location_id, year_start,
+                                                year_end, 5, stage_map[stage])
+
+
+def get_bmi_category_prevalence(category, location_id, year_start, year_end):
+    category_map = {'obese': 9364, 'overweight': 9363}
+    return functions.get_modelable_entity_draws(location_id, year_start,
+                                                year_end, 18, category_map[category])
+
+
+def get_smoking_exposure(location_id, year_start, year_end):
+    return functions.get_modelable_entity_draws(location_id, year_start,
+                                                year_end, 18, 8941)

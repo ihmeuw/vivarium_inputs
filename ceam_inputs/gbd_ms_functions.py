@@ -33,13 +33,11 @@ except ImportError:
 from ceam import config, CEAMError
 from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
-from ceam.framework.util import from_yearly, rate_to_probability
+from ceam.framework.util import rate_to_probability
 
 from ceam_inputs.util import get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
 from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
-                                                    get_age_group_midpoint_from_age_group_id,
-                                                    get_populations, create_sex_id_column,
                                                     get_all_cause_mortality_rate, get_healthstate_id,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages)
 
