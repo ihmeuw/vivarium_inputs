@@ -251,7 +251,12 @@ def get_disease_states(population, states):
 
     population = population.reset_index()
     population['simulant_id'] = population['index']
-    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], year_start=year_start, states=states)
+    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation,
+                                                      col_name=None,
+                                                      simulants_df=population[['simulant_id', 'age', 'sex']],
+                                                      location_id=location_id,
+                                                      year_start=year_start,
+                                                      states=states)
 
     return condition_column
 
