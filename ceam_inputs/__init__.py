@@ -529,3 +529,8 @@ def get_smoking_exposure(location_id, year_start, year_end):
 
 def assign_subregions(population, location_id, year_start):
     return functions.assign_subregions(population, location_id, year_start)
+
+
+def assign_cause_at_beginning_of_simulation(population, location_id, year, states={}):
+    return functions.assign_cause_at_beginning_of_simulation(population, location_id,
+                                                             year, states=states)

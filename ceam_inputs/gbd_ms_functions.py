@@ -443,7 +443,7 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file):
     return new_sim_file
 
 
-def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
+def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_start, states):
     """
     Function that assigns chronic ihd status to starting population of
     simulants
