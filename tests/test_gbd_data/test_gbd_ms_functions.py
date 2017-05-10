@@ -32,6 +32,7 @@ from ceam_inputs import get_cause_specific_mortality
 from hierarchies.tree import Node
 from ceam_inputs.gbd_ms_functions import get_severe_diarrhea_excess_mortality
 from ceam_inputs import get_excess_mortality
+from ceam_inputs.gbd_ms_functions import get_rota_vaccine_coverage
 import random
 
 # generate_ceam_population
@@ -416,5 +417,23 @@ def test_get_severe_diarrhea_excess_mortality():
     assert all(result['rate'] == pd.Series(8, index=result.index)), "get_severe_diarrhea_excess mortality should return the excess mortality rate for severe diarrhea cases only"
     
 
+# get_rota_vaccine_coverage
+def test_get_rota_vaccine_coverage():
+    cov = get_rota_vaccine_coverage(180, 2000, 2015, 4)
 
-# End.
+    # assert that coverage is 0 for all ages before 2014
+    cov_filter1 = cov.query("year_id < 2014")
+    cov1 =  cov_filter1.draw_0.values
+
+    assert np.all(cov1 == 0), "this function should return an estimate of 0% coverage in Kenya for all ages before 2014"
+
+    cov_filter2 = cov.query("year_id > 2014 and age > 5")
+    cov2 = cov_filter2.draw_0.values
+
+    assert np.all(cov2 == 0), "this function should return an estimate of 0% coverage for all people over the age of 5"
+
+    cov_filter3 = cov.query("year_id > 2014 and age <5")
+    cov3 = cov_filter3.values
+
+    assert np.all(cov3 != 0), "this function should return an estimate of GT 0% coverage for all people under the age of 5 after 2014"
+
