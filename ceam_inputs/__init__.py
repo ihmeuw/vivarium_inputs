@@ -435,15 +435,26 @@ def make_gbd_disease_state(cause, dwell_time=0, side_effect_function=None):
 def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
     return functions.get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split)
 
-def get_covariate_estimates(covariate_short_name):
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
 
-    return functions.get_covariate_estimates(location_id, year_start, year_end, covariate_short_name) 
+def get_annual_live_births(location_id, year, sex_id=3):
+    data = functions.load_data_from_cache(functions.get_covariate_estimates,
+                                          covariate_name_short='live_births_by_sex',
+                                          location_id=location_id,
+                                          year_id=year,
+                                          sex_id=sex_id,
+                                          col_name=None)
+    return data['mean_value']
+
+
+
 
 def get_ors_exposure():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
 
-    return functions.load_data_from_cache(functions.get_ors_exposure, location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number, col_name=None)
+    return functions.load_data_from_cache(functions.get_ors_exposure,
+                                          location_id=location_id,
+                                          year_start=year_start,
+                                          year_end=year_end,
+                                          draw_number=draw_number, col_name=None)
