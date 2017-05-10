@@ -445,6 +445,7 @@ def get_annual_live_births(location_id, year, sex_id=3):
                                           col_name=None)
     return data['mean_value']
 
+
 def get_ors_exposure():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
@@ -514,3 +515,4 @@ def get_utilization_proportion():
                                           location_id=location_id,
                                           measure=18,
                                           me_id=9458)
+
