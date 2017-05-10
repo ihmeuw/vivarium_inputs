@@ -965,6 +965,7 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
         if len(list_of_meids) > 1:
             raise UnhandledRiskError("the risk -- rei_id {} --that you are trying to pull has multiple modelable entity ids. are you sure you know how this risk is modeled? If not, go talk to the modeler. after talking to the modeler, you'll probably want to write some code to handle the risk, since it's modeled differently than most risks. you can override this error by adding a multiple_meids_override=True argument to your get_exposures query after you determine how to incorporate this risk into your simulation".format(risk_id))
 
+        # FIXME: I'm almost positive this expand_ages should occur outside of this else statement (EM 5.9.2017)
         exposure = expand_ages(exposure)
 
     exposure[['draw_{}'.format(i) for i in range(0,1000)]] = exposure[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
