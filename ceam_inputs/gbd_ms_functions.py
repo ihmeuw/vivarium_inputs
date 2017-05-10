@@ -1,20 +1,22 @@
-# coding: utf-8
+"""Microsim functions
+This notebook contains the functions that will be used to
+re-format GBD data into a format that can be used for the cost-effectiveness
+microsim. Wherever possible, these functions will leverage the existing
+central comp functions (please see this link for more information on the
+central computation functions
+https://hub.ihme.washington.edu/display/GBD2016/Shared+functions
+"""
 
 # TODO: MAKE SURE NEW PYTHON FUNCTIONS ARE USING THE PUBLICATION IDS!!
+# em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
+# TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
 
 import os.path
 import os
-import shutil
-from datetime import timedelta
 from multiprocessing.process import current_process
 
 import numpy as np
 import pandas as pd
-
-from scipy.stats import beta
-
-from joblib import Memory
-from flufl.lock import Lock
 
 try:
     from transmogrifier.draw_ops import get_draws
@@ -28,54 +30,33 @@ except ImportError:
     def dbtrees(*args, **kwargs):
         raise ImportError("No module named 'hierarchies' (you must install central_comp's hierarchies package _or_ supply precached data)")
 
-from ceam import config
+from ceam import config, CEAMError
 from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
+from ceam.framework.util import from_yearly, rate_to_probability
 
 from ceam_inputs.util import get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
+from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
+                                                    get_age_group_midpoint_from_age_group_id,
+                                                    get_populations, create_sex_id_column,
+                                                    get_all_cause_mortality_rate, get_healthstate_id,
+                                                    expand_ages_for_dfs_w_all_age_estimates, expand_ages)
 
-from ceam_inputs.gbd_ms_auxiliary_functions import create_age_column
-from ceam_inputs.gbd_ms_auxiliary_functions import normalize_for_simulation
-from ceam_inputs.gbd_ms_auxiliary_functions import get_age_group_midpoint_from_age_group_id
-from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
-from ceam_inputs.gbd_ms_auxiliary_functions import create_sex_id_column
-from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
-from ceam.interpolation import Interpolation
-from ceam.framework.randomness import choice
-from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages_for_dfs_w_all_age_estimates
-# em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
-# TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
-from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages
 from joblib import Memory
-import warnings
-
-from ceam.framework.util import from_yearly, rate_to_probability
-
 import logging
+
 _log = logging.getLogger(__name__)
-
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
-
-from ceam import CEAMError
 
 
 class CEAMDataIngestionError(CEAMError):
     pass
+
+
 class UnhandledRiskError(CEAMDataIngestionError):
    pass
 
-
-
-
-# # Microsim functions
-# This notebook contains the functions that will be used to
-# re-format GBD data into a format that can be used for the cost-effectiveness
-# microsim. Wherever possible, these functions will leverage the existing
-# central comp functions (please see this link for more information on the
-# central computation functions
-# https://hub.ihme.washington.edu/display/GBD2016/Shared+functions
 
 def get_model_versions():
     """Return a mapping from modelable_entity_id to the version of that entity 
