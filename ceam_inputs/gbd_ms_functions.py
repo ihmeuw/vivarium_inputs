@@ -39,7 +39,9 @@ from ceam_inputs.util import get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
 from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
                                                     get_all_cause_mortality_rate, get_healthstate_id,
-                                                    expand_ages_for_dfs_w_all_age_estimates, expand_ages)
+                                                    expand_ages_for_dfs_w_all_age_estimates, expand_ages,
+                                                    get_age_group_midpoint_from_age_group_id, get_populations,
+                                                    create_sex_id_column, get_age_group)
 
 from joblib import Memory
 import logging
@@ -80,13 +82,11 @@ def _cached_model_versions(publication_ids):
     return mapping
 
 
-# 1. get_modelable_entity_draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
-
-
-def get_modelable_entity_draws(location_id, year_start, year_end, measure,
-                               me_id):
-    """
-    Returns draws for a given measure and modelable entity
+def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id):
+    """Returns draws for a given measure and modelable entity
+    
+    Gives you incidence, prevalence, csmr, excess mortality, and 
+    other metrics at draw level.
 
     Parameters
     ----------
@@ -233,6 +233,7 @@ def generate_ceam_population(location_id, time, number_of_simulants, initial_age
     ) == 0, "there are duplicates in the dataframe that generate_ceam_population just tried to output. check the function and its auxiliary functions (get_populations and assign_sex_id)"
 
     return simulants
+
 
 @memory.cache
 def assign_subregions(index, location_id, year):
@@ -773,7 +774,8 @@ RR estimates for every age, so check to see that the function is correctly assig
 # 7. get_pafs
 
 
-def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, draw_number, paf_type='morbidity'):
+def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
+             gbd_round_id, draw_number, paf_type='morbidity'):
     """
     Parameters
     ----------
@@ -820,12 +822,14 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id,
     elif paf_type == 'mortality':
         measure_id = 1
     else:
-        raise ValueError('paf_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
+        raise ValueError('paf_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(paf_type))
 
     age_groups = list(range(1,22))
     if current_process().daemon:
-        # I'm cargo culting here. When the simulation is hosted by a dask worker, we can't spawn subprocesses in the way that get_draws wants to
-        # There are better ways of solving this but they involve understanding dask better or working on shared function code, neither of
+        # I'm cargo culting here. When the simulation is hosted by a dask worker,
+        # we can't spawn sub-processes in the way that get_draws wants to
+        # There are better ways of solving this but they involve understanding dask
+        # better or working on shared function code, neither of
         # which I'm going to do right now. -Alec
         worker_count = 0
     else:

@@ -532,3 +532,7 @@ def get_bmi_category_prevalence(category, location_id, year_start, year_end):
 def get_smoking_exposure(location_id, year_start, year_end):
     return functions.get_modelable_entity_draws(location_id, year_start,
                                                 year_end, 18, 8941)
+
+
+def assign_subregions(population, location_id, year_start):
+    return functions.assign_subregions(population, location_id, year_start)
