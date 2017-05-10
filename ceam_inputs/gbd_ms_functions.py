@@ -1672,4 +1672,30 @@ def get_severity_splits(parent_meid, child_meid, draw_number):
     return splits[["scaled"]].values.item(0)
 
 
-# End.
+# TODO: Write a test for get_rota_vaccine_coverage. Make sure values make sense for year/age in test, similar to get_relative_risk tests
+def get_rota_vaccine_coverage(location_id, year_start, year_end):
+    draws = get_draws('modelable_entity_id', 10596, location_ids=location_id, source='dismod', sex_ids=[1,2], age_group_ids=list(range(2,22)))
+
+    draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
+                         ys=year_start, ye=year_end))
+
+    draws = get_age_group_midpoint_from_age_group_id(draws)
+
+    draws = expand_ages(draws)
+
+    draws[['draw_{}'.format(i) for i in range(0,1000)]] = draws[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
+
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
+
+    draws = draws[keepcol]
+
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert draws.isnull().values.any() == False, "there are nulls in the dataframe that get_rota_vaccine_coverage just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert draws.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_rota_vaccine_coverage just tried to output. check the cache to make sure that the data you're pulling is correct"
+
+    return draws.sort_values(by=['year_id', 'age', 'sex_id'])
+
