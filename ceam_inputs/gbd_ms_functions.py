@@ -194,7 +194,7 @@ def generate_ceam_population(location_id, time, number_of_simulants, initial_age
     # Use auxilliary get_populations function to bring in the both sex
     # population
     # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
-    pop = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
+    pop = get_populations(location_id, year_start, 3, sum_up_80_plus=True)
 
     if pop_age_start is not None:
         pop_age_start = float(pop_age_start)
@@ -541,7 +541,8 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
 
 
 @memory.cache
-def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_csmrs, gbd_round_id, draw_number):
+def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
+                                     list_of_csmrs, gbd_round_id, draw_number):
     '''Returns the cause-delted mortality rate for a given time period and location
 
     Parameters
@@ -574,34 +575,35 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
     Unit test in place? -- Yes
     '''
 
+
     all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(
         location_id, year_start, year_end, gbd_round_id=gbd_round_id))
+
     all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw_number)]]
     all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
-
     if list_of_csmrs:
-        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs).query('year >= @year_start and year <= @year_end').set_index(['age', 'sex', 'year'])
 
-        cause_del_mr = all_cause_mr.set_index(['age', 'sex', 'year']) 
-
-
+        total_csmr = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs)
+        mort_rates = all_cause_mr.merge(total_csmr, on=['age', 'sex', 'year'])
         # get cause-deleted mortality rate by subtracting out all of the csmrs from
         # all-cause mortality rate
-        deleted = (cause_del_mr.all_cause_mortality_rate - all_me_id_draws.rate).reset_index()
-        deleted.columns = ['age', 'sex', 'year', 'cause_deleted_mortality_rate']
+        mort_rates['cause_deleted_mortality_rate'] = (mort_rates.all_cause_mortality_rate
+                                                      - mort_rates.rate)
+
+        cause_del_mr = mort_rates[['age', 'sex', 'year', 'cause_deleted_mortality_rate']]
 
         # assert an error to make sure data is dense (i.e. no missing data)
-        assert deleted.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
+        assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
         # assert an error if there are duplicate rows
-        assert deleted.duplicated(['age', 'year', 'sex']).sum(
+        assert cause_del_mr.duplicated(['age', 'year', 'sex']).sum(
         ) == 0, "there are duplicates in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
         # assert that non of the cause-deleted mortality rate values are less than or equal to 0
-        assert np.all(deleted.cause_deleted_mortality_rate > 0), "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
+        assert np.all(cause_del_mr.cause_deleted_mortality_rate > 0), "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
 
-        return deleted
+        return cause_del_mr
     else:
         return all_cause_mr
 

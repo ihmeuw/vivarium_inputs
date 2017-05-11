@@ -12,16 +12,15 @@ from ceam_inputs.gbd_ms_functions import get_angina_proportions
 from ceam_inputs.gbd_ms_functions import get_disability_weight
 from ceam_inputs.gbd_ms_functions import generate_ceam_population
 from ceam_inputs.gbd_ms_functions import get_cause_level_prevalence
-from ceam_inputs import get_prevalence
 from ceam_inputs.gbd_ms_functions import determine_if_sim_has_cause
 from ceam_inputs.gbd_ms_functions import get_sequela_proportions
 from ceam_inputs.gbd_ms_functions import determine_which_seq_diseased_sim_has
 from ceam_inputs.gbd_ms_functions import get_post_mi_heart_failure_proportion_draws
-from ceam.framework.util import from_yearly, rate_to_probability
+from ceam.framework.util import rate_to_probability
 from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
 from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
-from ceam_inputs import get_cause_deleted_mortality_rate
+from ceam_inputs.gbd_ms_functions import get_cause_deleted_mortality_rate
 from ceam_inputs.gbd_ms_functions import assign_subregions
 from ceam_tests.util import build_table
 from ceam_inputs.gbd_ms_functions import get_etiology_specific_incidence
@@ -46,7 +45,7 @@ def test_generate_ceam_population():
 
     val = val / 1000000
 
-    assert np.allclose(val, 0.0823207075530383, .01), "there should be about 8.23% 7.5 year old males in Kenya in 1990, based on data uploaded by em 1/5/2017"
+    assert np.isclose(val, 0.0823207075530383, atol=.01), "there should be about 8.23% 7.5 year old males in Kenya in 1990, based on data uploaded by em 1/5/2017"
 
 
 # get_cause_level_prevalence
@@ -278,7 +277,7 @@ def test_sum_up_csmrs_for_all_causes_in_microsim():
 
 
 def test_get_cause_deleted_mortality_rate():
-    age = 67.5    
+    age = 67.5
 
     location_id = config.simulation_parameters.location_id
     year_start = config.simulation_parameters.year_start
@@ -287,25 +286,22 @@ def test_get_cause_deleted_mortality_rate():
     draw_number = config.run_configuration.draw_number
 
     all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(location_id, year_start, year_end, gbd_round_id))
+    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw_number)]]
+    all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
-    all_cause_filter = all_cause_mr.query("age == {a} and sex == 'Male'".format(a=age))
-
-    all_cause_val = all_cause_filter['all_cause_mortality_rate_{}'.format(draw_number)].values[0]
+    all_cause_filter = all_cause_mr.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
+    all_cause_val = all_cause_filter['all_cause_mortality_rate'].values[0]
 
     csmr1814 = get_cause_specific_mortality(1814)
-
-    csmr_filter = csmr1814.query("age == {a} and sex == 'Male'".format(a=age))
-
+    csmr_filter = csmr1814.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
     cause_val = csmr_filter['rate'].values[0]
 
-    cause_deleted = get_cause_deleted_mortality_rate([csmr1814])
-
-    cause_deleted_filter = cause_deleted.query("age == {a} and sex == 'Male'".format(a=age))
-
+    cause_deleted = get_cause_deleted_mortality_rate(location_id, year_start, year_end,
+                                                     [csmr1814], gbd_round_id, draw_number)
+    cause_deleted_filter = cause_deleted.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
     cause_deleted_val = cause_deleted_filter['cause_deleted_mortality_rate'].values[0]
 
     assert cause_deleted_val == all_cause_val - cause_val, "cause deleted mortality rate was incorrectly calculated"
-
 
 def test_get_angina_proportions():
     
