@@ -29,10 +29,19 @@ from ceam_inputs.gbd_ms_functions import get_asympt_ihd_proportions
 from ceam_inputs.gbd_ms_functions import normalize_for_simulation
 from ceam_inputs import get_cause_specific_mortality
 from hierarchies.tree import Node
+from ceam_inputs.gbd_ms_functions import get_severe_diarrhea_excess_mortality
+from ceam_inputs import get_excess_mortality
+from ceam_inputs.gbd_ms_functions import get_rota_vaccine_coverage
+import random
 
 # generate_ceam_population
 # FIXME: Make this test pass regardless of age groups selected in the config file
+# FIXME: Add a random seed to this test so that it will always pass
 def test_generate_ceam_population():
+<<<<<<< HEAD
+=======
+    np.random.seed(1430)
+>>>>>>> 6d57fa262a5ac14725791a5988ea62fde559c207
     pop = generate_ceam_population(180, datetime(1990, 1, 1), 1000000, pop_age_start=0, pop_age_end=110)
 
     num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
@@ -155,7 +164,11 @@ def test_get_post_mi_heart_failure_proportion_draws():
 
 # get_relative_risks
 def test_get_relative_risks():
+<<<<<<< HEAD
     df = get_relative_risks(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0)
+=======
+    df = get_relative_risks(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0, rr_type='morbidity')
+>>>>>>> 6d57fa262a5ac14725791a5988ea62fde559c207
 
     draw_number = 19
 
@@ -174,7 +187,11 @@ def test_get_relative_risks():
 
 # get_pafs
 def test_get_pafs():
+<<<<<<< HEAD
     df = get_pafs(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0)
+=======
+    df = get_pafs(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0, paf_type='morbidity')
+>>>>>>> 6d57fa262a5ac14725791a5988ea62fde559c207
 
     # pick a random draw to test
     draw_number = 19
@@ -289,8 +306,10 @@ def test_get_cause_deleted_mortality_rate():
     all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw_number)]]
     all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
+
     all_cause_filter = all_cause_mr.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
     all_cause_val = all_cause_filter['all_cause_mortality_rate'].values[0]
+
 
     csmr1814 = get_cause_specific_mortality(1814)
     csmr_filter = csmr1814.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
@@ -394,4 +413,36 @@ def test_get_etiology_specific_prevalence():
 
     val = df.set_index('age').get_value(82.5, 'draw_10')
 
-    assert np.isclose(val, 0.02491546 * 0.06306237), "get_etiology_specific_prevalence needs to ensure the eti pafs and envelope were multiplied together correctly"
+    assert np.allclose(val, (0.02491546 * 0.06306237)), "get_etiology_specific_prevalence needs to ensure the eti pafs and envelope were multiplied together correctly"
+
+
+def test_get_severe_diarrhea_excess_mortality():
+    # supply a dataframe with fake excess mortality data, fake severity split data, and ensure that output is the rate divided by the severity split
+    df = get_excess_mortality(1181)
+    df['rate'] = 4
+    severe_diarrhea_proportion=.5
+    result = get_severe_diarrhea_excess_mortality(df, severe_diarrhea_proportion)
+
+    assert all(result['rate'] == pd.Series(8, index=result.index)), "get_severe_diarrhea_excess mortality should return the excess mortality rate for severe diarrhea cases only"
+    
+
+# get_rota_vaccine_coverage
+def test_get_rota_vaccine_coverage():
+    cov = get_rota_vaccine_coverage(180, 2000, 2015, 4)
+
+    # assert that coverage is 0 for all ages before 2014
+    cov_filter1 = cov.query("year_id < 2014")
+    cov1 =  cov_filter1.draw_0.values
+
+    assert np.all(cov1 == 0), "this function should return an estimate of 0% coverage in Kenya for all ages before 2014"
+
+    cov_filter2 = cov.query("year_id > 2014 and age > 5")
+    cov2 = cov_filter2.draw_0.values
+
+    assert np.all(cov2 == 0), "this function should return an estimate of 0% coverage for all people over the age of 5"
+
+    cov_filter3 = cov.query("year_id > 2014 and age <5")
+    cov3 = cov_filter3.values
+
+    assert np.all(cov3 != 0), "this function should return an estimate of GT 0% coverage for all people under the age of 5 after 2014"
+

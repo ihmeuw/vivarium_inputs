@@ -101,10 +101,22 @@ raw_cause_mapping = {
             'prevalence': meid(9312),
             'mortality': meid(9312),
         },
+        'diarrhea': {
+            'gbd_cause': cid(302),
+            'disability_weight': 0.23,
+            'excess_mortality': meid(1181),
+            'prevalence': meid(1181),
+            'incidence': meid(1181),
+            'mortality': meid(1181),
+        },
+        'death_due_to_severe_diarrhea': {
+            'mortality': meid(1181),
+        },
         'chronic_kidney_disease': {
             'gbd_cause': cid(591),
         }
 }
+
 for k,v in raw_cause_mapping.items():
     v['name'] = k
 

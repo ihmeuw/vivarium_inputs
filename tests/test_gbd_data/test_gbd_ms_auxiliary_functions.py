@@ -7,6 +7,10 @@ from ceam_inputs.gbd_ms_auxiliary_functions import expand_grid
 from ceam_inputs.gbd_ms_auxiliary_functions import assign_sex_id
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
 from scipy import stats
+from ceam_tests.util import setup_simulation, generate_test_population
+from ceam_public_health.components.diarrhea_disease_model import diarrhea_factory
+from ceam_public_health.components.risks.categorical_risk_handler import CategoricalRiskHandler
+from datetime import datetime
 import pandas as pd
 import numpy as np
 
@@ -78,6 +82,3 @@ def test_expand_grid():
     
     assert df.year_id.tolist() == np.repeat([1990, 1991, 1992], 6).tolist(), "expand_grid should expand a df to get row for each age/year combo"
     assert df.age.tolist() == [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5], "expand_grid should expand a df to get row for each age/year combo"
-
-
-# End.

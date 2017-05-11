@@ -289,12 +289,14 @@ def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     return output
 
 
-def get_pafs(risk_id, cause_id):
+def get_pafs(risk_id, cause_id, paf_type='morbidity'):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
-    df = functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
+
+    df = functions.load_data_from_cache(functions.get_pafs, col_name='PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=risk_id, cause_id=cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number, paf_type=paf_type)
+
     df.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
     return df
 
@@ -376,11 +378,11 @@ def get_fpg_distributions():
     return distributions.get_fpg_distributions(location_id, year_start, year_end, draw)
 
 
-def make_gbd_risk_effects(risk_id, causes, effect_function):
+def make_gbd_risk_effects(risk_id, causes, effect_function, risk_name):
     return [RiskEffect(
         get_relative_risks(risk_id=risk_id, cause_id=cause_id),
         get_pafs(risk_id=risk_id, cause_id=cause_id),
-        cause_name,
+        cause_name, risk_name,
         effect_function)
         for cause_id, cause_name in causes]
 
@@ -433,7 +435,6 @@ def make_gbd_disease_state(cause, dwell_time=0, side_effect_function=None):
 def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
     return functions.get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split)
 
-
 def get_annual_live_births(location_id, year, sex_id=3):
     data = functions.load_data_from_cache(functions.get_covariate_estimates,
                                           covariate_name_short='live_births_by_sex',
@@ -442,6 +443,7 @@ def get_annual_live_births(location_id, year, sex_id=3):
                                           sex_id=sex_id,
                                           col_name=None)
     return data['mean_value']
+
 
 
 def get_ors_exposure():
@@ -539,3 +541,102 @@ def assign_subregions(population, location_id, year_start):
 def assign_cause_at_beginning_of_simulation(population, location_id, year, states={}):
     return functions.assign_cause_at_beginning_of_simulation(population, location_id,
                                                              year, states=states)
+
+
+def get_severity_splits(parent_meid, child_meid):
+    draw_number = config.run_configuration.draw_number
+
+    return functions.get_severity_splits(parent_meid=parent_meid, child_meid=child_meid, draw_number=draw_number)
+    
+def get_severe_diarrhea_excess_mortality():
+    draw_number = config.run_configuration.draw_number
+    severe_diarrhea_proportion = get_severity_splits(1181, 2610) 
+
+    return functions.get_severe_diarrhea_excess_mortality(excess_mortality_dataframe=get_excess_mortality(1181), severe_diarrhea_proportion=severe_diarrhea_proportion)
+
+
+def make_age_group_1_to_4_rates_constant(df):
+    """
+    Takes a dataframe where incidence or excess mortality rates are
+        being set at age group midpoints and reassigns the values
+        that are set at the age group 1 - 4 midpoint (3) and assigns
+        those values to the age group end and age group start. That
+        way our interpolation spline will yield constant values in
+        between the age group start and age group end for the 1 to
+        4 age group
+
+    Parameters
+    ----------
+    df: pd.DataFrame()
+        df with excess mortality or incidence rates for each age, 
+        sex, year, and location
+    """
+    age_bins = get_age_bins()
+    new_rows = pd.DataFrame()
+    
+    assert 3 in df.age.values, "the input dataframe needs to" + \
+                               " simulants that are at the" + \
+                               " age group midpoint"
+    
+    assert [1, 2, 4, 5] not in df.age.values, "the input df" + \
+        "should only have simulants that are at the age" + \
+        "group midpoint for the 1 to 4 age group"
+    
+
+    # get estimates for the age 1-4 age group (select at the age
+    #     group midpoint)
+    for index, row in df.loc[df.age == 3].iterrows():
+        year = (row['year'])
+        age_group_max = age_bins.set_index('age_group_name').get_value('1 to 4', 'age_group_years_end')  # the age group max for the 1-4 age group
+        age = age_group_max
+        if 'rate' in df.columns:
+            value_col = 'rate'
+            value = (row['rate'])
+        elif 'eti_inc' in df.columns:
+            value_col = 'eti_inc'
+            value = (row['eti_inc'])
+        sex = (row['sex'])
+        # create a new line in the daataframe
+        line = pd.DataFrame({"year": year,
+                            "age": 5, value_col: value, "sex": sex},
+                            index=[index+1])
+        new_rows = new_rows.append(line)
+        
+    df = pd.concat([df, new_rows]).sort_values(
+        by=['year', 'sex', 'age']).reset_index(drop=True)
+    age_group_min = age_bins.set_index('age_group_name').get_value('1 to 4', 'age_group_years_start')  # the age group min for the 1-4 age group
+    df.loc[df.age == 3, 'age'] = age_group_min
+    
+    return df
+
+
+def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=None):
+    draw_number = config.run_configuration.draw_number
+
+    return functions.get_disability_weight(draw_number, dis_weight_modelable_entity_id, healthstate_id)
+
+
+def get_rota_vaccine_coverage():
+    """Get rota vaccine coverage.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table with 'age', 'sex', 'year' and 'coverage' columns
+    """
+    year_start, year_end = gbd_year_range()
+    # NOTE: There are no rota_vaccine_coverage estimates for GBD 2015, so we're pulling GBD 2016 estimates
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    if gbd_round_id == 3:
+        gbd_round_id = 4
+
+    df = functions.load_data_from_cache(
+            functions.get_rota_vaccine_coverage,
+            'coverage',
+            location_id=config.simulation_parameters.location_id,
+            year_start=year_start,
+            year_end=year_end,
+            gbd_round_id=gbd_round_id
+        )
+    return df
+
