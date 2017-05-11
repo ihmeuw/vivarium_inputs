@@ -38,10 +38,9 @@ import random
 # FIXME: Make this test pass regardless of age groups selected in the config file
 # FIXME: Add a random seed to this test so that it will always pass
 def test_generate_ceam_population():
-<<<<<<< HEAD
-=======
+
     np.random.seed(1430)
->>>>>>> 6d57fa262a5ac14725791a5988ea62fde559c207
+
     pop = generate_ceam_population(180, datetime(1990, 1, 1), 1000000, pop_age_start=0, pop_age_end=110)
 
     num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
@@ -164,11 +163,8 @@ def test_get_post_mi_heart_failure_proportion_draws():
 
 # get_relative_risks
 def test_get_relative_risks():
-<<<<<<< HEAD
-    df = get_relative_risks(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0)
-=======
+
     df = get_relative_risks(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0, rr_type='morbidity')
->>>>>>> 6d57fa262a5ac14725791a5988ea62fde559c207
 
     draw_number = 19
 
@@ -187,11 +183,9 @@ def test_get_relative_risks():
 
 # get_pafs
 def test_get_pafs():
-<<<<<<< HEAD
-    df = get_pafs(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0)
-=======
+
     df = get_pafs(180, 1990, 1990, 107, 493, gbd_round_id=3, draw_number=0, paf_type='morbidity')
->>>>>>> 6d57fa262a5ac14725791a5988ea62fde559c207
+
 
     # pick a random draw to test
     draw_number = 19
