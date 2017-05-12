@@ -378,11 +378,11 @@ def get_fpg_distributions():
     return distributions.get_fpg_distributions(location_id, year_start, year_end, draw)
 
 
-def make_gbd_risk_effects(risk_id, causes, effect_function, risk_name):
+def make_gbd_risk_effects(risk_id, causes, effect_function):#, risk_name):
     return [RiskEffect(
         get_relative_risks(risk_id=risk_id, cause_id=cause_id),
         get_pafs(risk_id=risk_id, cause_id=cause_id),
-        cause_name, risk_name,
+        cause_name, #risk_name,
         effect_function)
         for cause_id, cause_name in causes]
 
