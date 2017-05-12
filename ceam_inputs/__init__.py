@@ -485,7 +485,7 @@ def get_post_mi_heart_failure_proportion_draws():
 
 
 def get_angina_proportions():
-    return functions.load_data_from_cache(get_angina_proportions,
+    return functions.load_data_from_cache(functions.get_angina_proportions,
                                           col_name='proportion',
                                           src_column='angina_prop')
 
