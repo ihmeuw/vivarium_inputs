@@ -1,16 +1,12 @@
 # 1. set_age_year_index
 from ceam_inputs.gbd_ms_auxiliary_functions import get_age_group_midpoint_from_age_group_id
 from ceam_inputs.gbd_ms_auxiliary_functions import create_age_column
-from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
+
 from ceam_inputs.gbd_ms_auxiliary_functions import normalize_for_simulation
 from ceam_inputs.gbd_ms_auxiliary_functions import expand_grid
 from ceam_inputs.gbd_ms_auxiliary_functions import assign_sex_id
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
-from scipy import stats
-from ceam_tests.util import setup_simulation, generate_test_population
-from ceam_public_health.components.diarrhea_disease_model import diarrhea_factory
-from ceam_public_health.components.risks.categorical_risk_handler import CategoricalRiskHandler
-from datetime import datetime
+
 import pandas as pd
 import numpy as np
 
