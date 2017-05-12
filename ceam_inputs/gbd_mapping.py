@@ -160,9 +160,61 @@ raw_risk_mapping = {
             'tmrl': 5.1,
             'scale': 1,
         },
+        'cholera': {
+            'gbd_risk': rid(173),
+            'effected_causes': [causes.diarrhea]
+        },
+        'other_salmonella': {
+            'gbd_risk': rid(174),
+            'effected_causes': [causes.diarrhea]
+        },
+        'shigellosis': {
+            'gbd_risk': rid(175),
+            'effected_causes': [causes.diarrhea]
+        },
+        'EPEC': {
+            'gbd_risk': rid(176),
+            'effected_causes': [causes.diarrhea]
+        },
+        'ETEC': {
+            'gbd_risk': rid(177),
+            'effected_causes': [causes.diarrhea]
+        },
+        'campylobacter': {
+            'gbd_risk': rid(178),
+            'effected_causes': [causes.diarrhea]
+        },
+        'amoebiasis': {
+            'gbd_risk': rid(179),
+            'effected_causes': [causes.diarrhea]
+        },
+        'cryptosporidiosis': {
+            'gbd_risk': rid(180),
+            'effected_causes': [causes.diarrhea]
+        },
+        'rotaviral_entiritis': {
+            'gbd_risk': rid(181),
+            'effected_causes': [causes.diarrhea]
+        },
+        'aeromonas': {
+            'gbd_risk': rid(182),
+            'effected_causes': [causes.diarrhea]
+        },
+        'clostridium_difficile': {
+            'gbd_risk': rid(183),
+            'effected_causes': [causes.diarrhea]
+        },
+        'norovirus': {
+            'gbd_risk': rid(184),
+            'effected_causes': [causes.diarrhea]
+        },
+        'adenovirus': {
+            'gbd_risk': rid(185),
+            'effected_causes': [causes.diarrhea]
+        }
 }
 
-for k,v in raw_risk_mapping.items():
+for k, v in raw_risk_mapping.items():
     v['name'] = k
 
 risk_factors = ConfigTree(raw_risk_mapping)
