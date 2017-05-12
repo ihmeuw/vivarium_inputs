@@ -251,7 +251,12 @@ def get_disease_states(population, states):
 
     population = population.reset_index()
     population['simulant_id'] = population['index']
-    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], year_start=year_start, states=states)
+    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation,
+                                                      col_name=None,
+                                                      simulants_df=population[['simulant_id', 'age', 'sex']],
+                                                      location_id=location_id,
+                                                      year_start=year_start,
+                                                      states=states)
 
     return condition_column
 
@@ -331,13 +336,6 @@ def get_age_specific_fertility_rates():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
     return functions.load_data_from_cache(functions.get_age_specific_fertility_rates, col_name=['mean_value', 'lower_value', 'upper_value'], src_column=['mean_value', 'lower_value', 'upper_value'], location_id=location_id, year_start=year_start, year_end=year_end)
-
-
-def get_etiology_probability(etiology_name):
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name, location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number)
 
 
 def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
@@ -516,3 +514,28 @@ def get_utilization_proportion():
                                           measure=18,
                                           me_id=9458)
 
+
+def get_ckd_prevalence(stage, location_id, year_start, year_end):
+    stage_map = {'three': 2018, 'four': 2019, 'five': 2022}
+    return functions.get_modelable_entity_draws(location_id, year_start,
+                                                year_end, 5, stage_map[stage])
+
+
+def get_bmi_category_prevalence(category, location_id, year_start, year_end):
+    category_map = {'obese': 9364, 'overweight': 9363}
+    return functions.get_modelable_entity_draws(location_id, year_start,
+                                                year_end, 18, category_map[category])
+
+
+def get_smoking_exposure(location_id, year_start, year_end):
+    return functions.get_modelable_entity_draws(location_id, year_start,
+                                                year_end, 18, 8941)
+
+
+def assign_subregions(population, location_id, year_start):
+    return functions.assign_subregions(population, location_id, year_start)
+
+
+def assign_cause_at_beginning_of_simulation(population, location_id, year, states={}):
+    return functions.assign_cause_at_beginning_of_simulation(population, location_id,
+                                                             year, states=states)
