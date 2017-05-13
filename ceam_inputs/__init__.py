@@ -1,24 +1,39 @@
 import os
+from datetime import datetime
 
-from ceam import config
-_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
-config.load(_config_path, layer='base', source=_config_path)
-
+import pandas as pd
 import joblib
 from joblib import Memory
 
-import pandas as pd
-from datetime import datetime
-
-from ceam_inputs import gbd_ms_functions as functions
-from ceam_inputs import distributions
+from ceam_inputs import distributions, gbd_ms_functions as functions
 from ceam_inputs.util import get_cache_directory, gbd_year_range
 from ceam_inputs.gbd_mapping import meid
 
-memory = Memory(cachedir=get_cache_directory(), verbose=1)
+from ceam import config
 
 from ceam_public_health.util.risk import RiskEffect
 
+_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
+config.load(_config_path, layer='base', source=_config_path)
+
+memory = Memory(cachedir=get_cache_directory(), verbose=1)
+
+
+def _get_modelable_entity_draws(column_name, measure, modelable_entity_id):
+    year_start, year_end = gbd_year_range()
+
+    df = functions.load_data_from_cache(
+        functions.get_modelable_entity_draws,
+        col_name=column_name,
+        location_id=config.simulation_parameters.location_id,
+        year_start=year_start,
+        year_end=year_end,
+        measure=measure,
+        me_id=modelable_entity_id
+    )
+    df.metadata = {'modelable_entity_id': modelable_entity_id}
+
+    return df
 
 
 def get_excess_mortality(modelable_entity_id):
@@ -34,19 +49,8 @@ def get_excess_mortality(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    year_start, year_end = gbd_year_range()
+    return _get_modelable_entity_draws(column_name='rate', measure=9, modelable_entity_id=modelable_entity_id)
 
-    df = functions.load_data_from_cache(
-            functions.get_modelable_entity_draws,
-            'rate',
-            location_id=config.simulation_parameters.location_id,
-            year_start=year_start,
-            year_end=year_end,
-            measure=9,
-            me_id=modelable_entity_id
-        )
-    df.metadata = {'modelable_entity_id': modelable_entity_id}
-    return df
 
 def get_incidence(modelable_entity_id):
     """Get incidence rates for a modelable entity.
@@ -61,19 +65,7 @@ def get_incidence(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    year_start, year_end = gbd_year_range()
-
-    df = functions.load_data_from_cache(
-            functions.get_modelable_entity_draws,
-            'rate',
-            location_id=config.simulation_parameters.location_id,
-            year_start=year_start,
-            year_end=year_end,
-            measure=6,
-            me_id=modelable_entity_id
-        )
-    df.metadata = {'modelable_entity_id': modelable_entity_id}
-    return df
+    return _get_modelable_entity_draws(column_name='rate', measure=6, modelable_entity_id=modelable_entity_id)
 
 
 def get_cause_specific_mortality(modelable_entity_id):
@@ -89,18 +81,7 @@ def get_cause_specific_mortality(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    year_start, year_end = gbd_year_range()
-
-    df = functions.load_data_from_cache(
-            functions.get_modelable_entity_draws, 'rate',
-            location_id=config.simulation_parameters.location_id,
-            year_start=year_start,
-            year_end=year_end,
-            measure=15,
-            me_id=modelable_entity_id
-        )
-    df.metadata = {'modelable_entity_id': modelable_entity_id}
-    return df
+    return _get_modelable_entity_draws(column_name='rate', measure=15, modelable_entity_id=modelable_entity_id)
 
 
 def get_remission(modelable_entity_id):
@@ -116,43 +97,7 @@ def get_remission(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    year_start, year_end = gbd_year_range()
-
-    df = functions.load_data_from_cache(
-            functions.get_modelable_entity_draws, 'remission',
-            location_id=config.simulation_parameters.location_id,
-            year_start=year_start,
-            year_end=year_end,
-            measure=7,
-            me_id=modelable_entity_id
-        )
-    df.metadata = {'modelable_entity_id': modelable_entity_id}
-    return df
-
-
-def get_duration_in_days(modelable_entity_id):
-    """Get duration of disease for a modelable entity in days.
-
-    Parameters
-    ----------
-    modelable_entity_id : int
-                          The entity to retrieve
-
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'duration' columns
-    """
-
-    remission = get_remission(modelable_entity_id)
-
-    duration = remission.copy()
-
-    duration['duration'] = (1 / duration['remission']) *365
-
-    duration.metadata = {'modelable_entity_id': modelable_entity_id}
-
-    return duration[['year', 'age', 'duration', 'sex']]
+    return _get_modelable_entity_draws(column_name='remission', measure=7, modelable_entity_id=modelable_entity_id)
 
 
 def get_continuous(modelable_entity_id):
@@ -169,19 +114,7 @@ def get_continuous(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'value' columns
     """
-    year_start, year_end = gbd_year_range()
-
-    df = functions.load_data_from_cache(
-            functions.get_modelable_entity_draws,
-            'value',
-            location_id=config.simulation_parameters.location_id,
-            year_start=year_start,
-            year_end=year_end,
-            measure=19,
-            me_id=modelable_entity_id
-        )
-    df.metadata = {'modelable_entity_id': modelable_entity_id}
-    return df
+    return _get_modelable_entity_draws(column_name='value', measure=19, modelable_entity_id=modelable_entity_id)
 
 
 def get_proportion(modelable_entity_id):
@@ -198,24 +131,17 @@ def get_proportion(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'proportion' columns
     """
-    year_start, year_end = gbd_year_range()
+    return _get_modelable_entity_draws(column_name='proportion', measure=19, modelable_entity_id=modelable_entity_id)
 
-    df = functions.load_data_from_cache(
-            functions.get_modelable_entity_draws,
-            'proportion',
-            location_id=config.simulation_parameters.location_id,
-            year_start=year_start,
-            year_end=year_end,
-            measure=18,
-            me_id=modelable_entity_id
-        )
-    df.metadata = {'modelable_entity_id': modelable_entity_id}
-    return df
 
 @memory.cache
 def get_age_bins():
-    from db_tools import ezfuncs # This import is here to make the dependency on db_tools optional if the data is available from cache
-    return ezfuncs.query('''select age_group_id, age_group_years_start, age_group_years_end, age_group_name from age_group''', conn_def='shared')
+    # This import is here to make the dependency on db_tools optional if the data is available from cache
+    from db_tools import ezfuncs
+    return ezfuncs.query('''
+        SELECT age_group_id, age_group_years_start, age_group_years_end, age_group_name 
+        FROM age_group''', conn_def='shared')
+
 
 def get_prevalence(modelable_entity_id):
     """Get prevalence data for a modelable entity.
@@ -230,19 +156,8 @@ def get_prevalence(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'prevalence' columns
     """
+    return _get_modelable_entity_draws(column_name='prevalence', measure=5, modelable_entity_id=modelable_entity_id)
     year_start, year_end = gbd_year_range()
-
-    df = functions.load_data_from_cache(
-            functions.get_modelable_entity_draws,
-            'prevalence',
-            location_id=config.simulation_parameters.location_id,
-            year_start=year_start,
-            year_end=year_end,
-            measure=5,
-            me_id=modelable_entity_id
-        )
-    df.metadata = {'modelable_entity_id': modelable_entity_id}
-    return df
 
 
 def get_disease_states(population, states):

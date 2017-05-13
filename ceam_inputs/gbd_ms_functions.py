@@ -1015,7 +1015,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
 
     Parameters
     ----------
-    funct : str
+    funct : callable
         function to run if data is not already loaded into the cache
         (e.g. get_cause_deleted_mortality_rate)
 
@@ -1364,10 +1364,18 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
         df with columns year_id, sex_id, age, val, upper, and lower
 
     """
-    # For some of the diarrhea etiologies, PAFs are negative. Wouldn't make sense for the simulation to use negative pafs (i.e. incidence * PAF returns a negative incidence if PAF is negative), so we'll clip to 0. Guessing that any other diseases that deal with etiologies in the future won't need to be treated this way. --EM 12/13
-    # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
+    # For some of the diarrhea etiologies, PAFs are negative.
+    # Wouldn't make sense for the simulation to use negative pafs (i.e.
+    # incidence * PAF returns a negative incidence if PAF is negative),
+    # so we'll clip to 0. Guessing that any other diseases that deal with
+    # etiologies in the future won't need to be treated this way. --EM 12/13
+    # uses get pafs, but then scales the negative pafs to 0. the
+    # diarrhea team has some pafs that are negative because they wanted to
+    # include full uncertainty. this seems implausible in the real world,
+    # unless one is arguing that some pathogens have a protective effect
     if risk_id != 'unattributed':
-        eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, draw_number, 'morbidity')
+        eti_pafs = get_pafs(location_id, year_start, year_end,
+                            risk_id, cause_id, gbd_round_id, draw_number, 'morbidity')
  
     elif risk_id == 'unattributed':
         dict_of_etiologies_and_eti_risks = {'cholera': 173, 
