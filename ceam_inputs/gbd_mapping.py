@@ -15,6 +15,11 @@ class cid(int):
     def __repr__(self):
         return 'cid({:d})'.format(self)
 
+class hid(int):
+    """Healthstate ID"""
+    def __repr__(self):
+        return 'hid({:d})'.format(self)
+
 raw_cause_mapping = {
         'heart_attack': {
             'gbd_cause': cid(493),
@@ -108,6 +113,22 @@ raw_cause_mapping = {
             'prevalence': meid(1181),
             'incidence': meid(1181),
             'mortality': meid(1181),
+            'duration': meid(1181),
+            'severity': {
+                'mild': {
+                    'incidence': meid(2608),
+                    'disability_weight': hid(355)
+                },
+                'moderate': {
+                    'incidence': meid(2609),
+                    'disability_weight': hid(356)
+                },
+                'severe': {
+                    'incidence': meid(2610),
+                    'disability_weight': hid(357),
+                    'excess_mortality': meid(1181)
+                }
+            }
         },
         'death_due_to_severe_diarrhea': {
             'mortality': meid(1181),
