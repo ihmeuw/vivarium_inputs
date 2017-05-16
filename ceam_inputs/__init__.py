@@ -249,7 +249,12 @@ def get_disease_states(population, states):
 
     population = population.reset_index()
     population['simulant_id'] = population['index']
-    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=population[['simulant_id', 'age', 'sex']], year_start=year_start, states=states)
+    condition_column = functions.load_data_from_cache(functions.assign_cause_at_beginning_of_simulation,
+                                                      col_name=None,
+                                                      simulants_df=population[['simulant_id', 'age', 'sex']],
+                                                      location_id=location_id,
+                                                      year_start=year_start,
+                                                      states=states)
 
     return condition_column
 
@@ -329,13 +334,6 @@ def get_age_specific_fertility_rates():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
     return functions.load_data_from_cache(functions.get_age_specific_fertility_rates, col_name=['mean_value', 'lower_value', 'upper_value'], src_column=['mean_value', 'lower_value', 'upper_value'], location_id=location_id, year_start=year_start, year_end=year_end)
-
-
-def get_etiology_probability(etiology_name):
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    return functions.load_data_from_cache(functions.get_etiology_probability, etiology_name=etiology_name, location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number)
 
 
 def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
@@ -424,15 +422,109 @@ def make_gbd_disease_state(cause, dwell_time=0, side_effect_function=None):
 def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
     return functions.get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split)
 
-def get_covariate_estimates(covariate_short_name):
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
 
-    return functions.get_covariate_estimates(location_id, year_start, year_end, covariate_short_name) 
+def get_annual_live_births(location_id, year, sex_id=3):
+    data = functions.load_data_from_cache(functions.get_covariate_estimates,
+                                          covariate_name_short='live_births_by_sex',
+                                          location_id=location_id,
+                                          year_id=year,
+                                          sex_id=sex_id,
+                                          col_name=None)
+    return data['mean_value']
+
 
 def get_ors_exposure():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
 
-    return functions.load_data_from_cache(functions.get_ors_exposure, location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number, col_name=None)
+    return functions.load_data_from_cache(functions.get_ors_exposure,
+                                          location_id=location_id,
+                                          year_start=year_start,
+                                          year_end=year_end,
+                                          draw_number=draw_number, col_name=None)
+
+
+def get_sbp_distribution():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+
+    return functions.load_data_from_cache(functions.get_sbp_mean_sd,
+                                          col_name=['log_mean', 'log_sd'],
+                                          src_column=['log_mean_{draw}', 'log_sd_{draw}'],
+                                          location_id=location_id,
+                                          year_start=year_start,
+                                          year_end=year_end)
+
+
+def get_post_mi_heart_failure_proportion_draws():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw = config.run_configuration.draw_number
+
+    return functions.load_data_from_cache(functions.get_post_mi_heart_failure_proportion_draws,
+                                          col_name='proportion',
+                                          src_column='draw_{draw}',
+                                          location_id=location_id,
+                                          year_start=year_start,
+                                          year_end=year_end,
+                                          draw_number=draw)
+
+
+def get_angina_proportions():
+    return functions.load_data_from_cache(functions.get_angina_proportions,
+                                          col_name='proportion',
+                                          src_column='angina_prop')
+
+
+def get_asympt_ihd_proportions():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw = config.run_configuration.draw_number
+    return functions.load_data_from_cache(functions.get_asympt_ihd_proportions,
+                                          col_name='proportion',
+                                          src_column='asympt_prop_{draw}',
+                                          location_id=location_id,
+                                          year_start=year_start,
+                                          year_end=year_end,
+                                          draw_number=draw)
+
+def get_utilization_proportion():
+    year_start, year_end = gbd_year_range()
+    location_id = config.simulation_parameters.location_id
+    # me_id 9458 is 'out patient visits'
+    # measure 18 is 'Proportion'
+    # TODO: Currently this is monthly, not anually
+    return functions.load_data_from_cache(functions.get_modelable_entity_draws,
+                                          col_name='utilization_proportion',
+                                          year_start=year_start,
+                                          year_end=year_end,
+                                          location_id=location_id,
+                                          measure=18,
+                                          me_id=9458)
+
+
+def get_ckd_prevalence(stage, location_id, year_start, year_end):
+    stage_map = {'three': 2018, 'four': 2019, 'five': 2022}
+    return functions.get_modelable_entity_draws(location_id, year_start,
+                                                year_end, 5, stage_map[stage])
+
+
+def get_bmi_category_prevalence(category, location_id, year_start, year_end):
+    category_map = {'obese': 9364, 'overweight': 9363}
+    return functions.get_modelable_entity_draws(location_id, year_start,
+                                                year_end, 18, category_map[category])
+
+
+def get_smoking_exposure(location_id, year_start, year_end):
+    return functions.get_modelable_entity_draws(location_id, year_start,
+                                                year_end, 18, 8941)
+
+
+def assign_subregions(population, location_id, year_start):
+    return functions.assign_subregions(population, location_id, year_start)
+
+
+def assign_cause_at_beginning_of_simulation(population, location_id, year, states={}):
+    return functions.assign_cause_at_beginning_of_simulation(population, location_id,
+                                                             year, states=states)

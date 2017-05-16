@@ -1,3 +1,5 @@
+from multiprocessing.process import current_process
+
 import numpy as np
 import pandas as pd
 
@@ -369,7 +371,13 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end, gbd_round_id
 
     # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
     # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
-    worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
+    if current_process().daemon:
+        # I'm cargo culting here. When the simulation is hosted by a dask worker, we can't spawn subprocesses in the way that get_draws wants to
+        # There are better ways of solving this but they involve understanding dask better or working on shared function code, neither of
+        # which I'm going to do right now. -Alec
+        worker_count = 0
+    else:
+        worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
     all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, age_group_ids=list(range(2,22)), location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=gbd_round_id, year_ids=range(year_start, year_end+1), num_workers=worker_count)
 
     # filter so that only metric id 1 (deaths) is in our dataframe

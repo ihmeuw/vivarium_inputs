@@ -42,7 +42,7 @@ states = {'diarrhea' : get_prevalence(1181)}
 
 pop_w_causes = {}
 for i in range(0, number_of_distinct_pops):
-    pop_w_causes['{}'.format(i)] = assign_cause_at_beginning_of_simulation(pop, 1990, states)
+    pop_w_causes['{}'.format(i)] = assign_cause_at_beginning_of_simulation(pop, 180, 1990, states)
 
 
 # In[118]:

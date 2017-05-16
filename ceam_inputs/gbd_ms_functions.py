@@ -1,19 +1,22 @@
-# coding: utf-8
+"""Microsim functions
+This notebook contains the functions that will be used to
+re-format GBD data into a format that can be used for the cost-effectiveness
+microsim. Wherever possible, these functions will leverage the existing
+central comp functions (please see this link for more information on the
+central computation functions
+https://hub.ihme.washington.edu/display/GBD2016/Shared+functions
+"""
 
 # TODO: MAKE SURE NEW PYTHON FUNCTIONS ARE USING THE PUBLICATION IDS!!
+# em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
+# TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
 
 import os.path
 import os
-import shutil
-from datetime import timedelta
+from multiprocessing.process import current_process
 
 import numpy as np
 import pandas as pd
-
-from scipy.stats import beta
-
-from joblib import Memory
-from flufl.lock import Lock
 
 try:
     from transmogrifier.draw_ops import get_draws
@@ -27,54 +30,33 @@ except ImportError:
     def dbtrees(*args, **kwargs):
         raise ImportError("No module named 'hierarchies' (you must install central_comp's hierarchies package _or_ supply precached data)")
 
-from ceam import config
+from ceam import config, CEAMError
 from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
+from ceam.framework.util import rate_to_probability
 
 from ceam_inputs.util import get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
+from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
+                                                    get_all_cause_mortality_rate, get_healthstate_id,
+                                                    expand_ages_for_dfs_w_all_age_estimates, expand_ages,
+                                                    get_age_group_midpoint_from_age_group_id, get_populations,
+                                                    create_sex_id_column)
 
-from ceam_inputs.gbd_ms_auxiliary_functions import create_age_column
-from ceam_inputs.gbd_ms_auxiliary_functions import normalize_for_simulation
-from ceam_inputs.gbd_ms_auxiliary_functions import get_age_group_midpoint_from_age_group_id
-from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
-from ceam_inputs.gbd_ms_auxiliary_functions import create_sex_id_column
-from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
-from ceam.interpolation import Interpolation
-from ceam.framework.randomness import choice
-from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages_for_dfs_w_all_age_estimates
-# em 9/21: do we want to be converting from rates to probabilities in gbd_ms_functions.py?
-# TODO: Yes bring in probabilities. BUT CONFIRM WITH ABIE THAT WE WANT TO BE USING ANNUAL RATES HERE
-from ceam_inputs.gbd_ms_auxiliary_functions import expand_ages
 from joblib import Memory
-import warnings
-
-from ceam.framework.util import from_yearly, rate_to_probability
-
 import logging
+
 _log = logging.getLogger(__name__)
-
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
-
-from ceam import CEAMError
 
 
 class CEAMDataIngestionError(CEAMError):
     pass
+
+
 class UnhandledRiskError(CEAMDataIngestionError):
    pass
 
-
-
-
-# # Microsim functions
-# This notebook contains the functions that will be used to
-# re-format GBD data into a format that can be used for the cost-effectiveness
-# microsim. Wherever possible, these functions will leverage the existing
-# central comp functions (please see this link for more information on the
-# central computation functions
-# https://hub.ihme.washington.edu/display/GBD2016/Shared+functions
 
 def get_model_versions():
     """Return a mapping from modelable_entity_id to the version of that entity 
@@ -100,13 +82,11 @@ def _cached_model_versions(publication_ids):
     return mapping
 
 
-# 1. get_modelable_entity_draws (gives you incidence, prevalence, csmr, excess mortality, and other metrics at draw level)
-
-
-def get_modelable_entity_draws(location_id, year_start, year_end, measure,
-                               me_id):
-    """
-    Returns draws for a given measure and modelable entity
+def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id):
+    """Returns draws for a given measure and modelable entity
+    
+    Gives you incidence, prevalence, csmr, excess mortality, and 
+    other metrics at draw level.
 
     Parameters
     ----------
@@ -214,7 +194,7 @@ def generate_ceam_population(location_id, time, number_of_simulants, initial_age
     # Use auxilliary get_populations function to bring in the both sex
     # population
     # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
-    pop = get_populations(location_id, year_start, 3, sum_up_80_plus = True)
+    pop = get_populations(location_id, year_start, 3, sum_up_80_plus=True)
 
     if pop_age_start is not None:
         pop_age_start = float(pop_age_start)
@@ -253,6 +233,7 @@ def generate_ceam_population(location_id, time, number_of_simulants, initial_age
     ) == 0, "there are duplicates in the dataframe that generate_ceam_population just tried to output. check the function and its auxiliary functions (get_populations and assign_sex_id)"
 
     return simulants
+
 
 @memory.cache
 def assign_subregions(index, location_id, year):
@@ -462,7 +443,7 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file):
     return new_sim_file
 
 
-def assign_cause_at_beginning_of_simulation(simulants_df, year_start, states):
+def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_start, states):
     """
     Function that assigns chronic ihd status to starting population of
     simulants
@@ -560,7 +541,8 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
 
 
 @memory.cache
-def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_csmrs, gbd_round_id, draw_number):
+def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
+                                     list_of_csmrs, gbd_round_id, draw_number):
     '''Returns the cause-delted mortality rate for a given time period and location
 
     Parameters
@@ -593,34 +575,35 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end, list_of_
     Unit test in place? -- Yes
     '''
 
+
     all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(
         location_id, year_start, year_end, gbd_round_id=gbd_round_id))
+
     all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw_number)]]
     all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
-
     if list_of_csmrs:
-        all_me_id_draws = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs).query('year >= @year_start and year <= @year_end').set_index(['age', 'sex', 'year'])
 
-        cause_del_mr = all_cause_mr.set_index(['age', 'sex', 'year']) 
-
-
+        total_csmr = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs)
+        mort_rates = all_cause_mr.merge(total_csmr, on=['age', 'sex', 'year'])
         # get cause-deleted mortality rate by subtracting out all of the csmrs from
         # all-cause mortality rate
-        deleted = (cause_del_mr.all_cause_mortality_rate - all_me_id_draws.rate).reset_index()
-        deleted.columns = ['age', 'sex', 'year', 'cause_deleted_mortality_rate']
+        mort_rates['cause_deleted_mortality_rate'] = (mort_rates.all_cause_mortality_rate
+                                                      - mort_rates.rate)
+
+        cause_del_mr = mort_rates[['age', 'sex', 'year', 'cause_deleted_mortality_rate']]
 
         # assert an error to make sure data is dense (i.e. no missing data)
-        assert deleted.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
+        assert cause_del_mr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
         # assert an error if there are duplicate rows
-        assert deleted.duplicated(['age', 'year', 'sex']).sum(
+        assert cause_del_mr.duplicated(['age', 'year', 'sex']).sum(
         ) == 0, "there are duplicates in the dataframe that get_cause_deleted_mortality_rate just tried to output. check the function as well as get_all_cause_mortality_rate"
 
         # assert that non of the cause-deleted mortality rate values are less than or equal to 0
-        assert np.all(deleted.cause_deleted_mortality_rate > 0), "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
+        assert np.all(cause_del_mr.cause_deleted_mortality_rate > 0), "something went wrong with the get_cause_deleted_mortality_rate calculation. cause-deleted mortality can't be <= 0"
 
-        return deleted
+        return cause_del_mr
     else:
         return all_cause_mr
 
@@ -793,7 +776,8 @@ RR estimates for every age, so check to see that the function is correctly assig
 # 7. get_pafs
 
 
-def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, draw_number, paf_type='morbidity'):
+def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
+             gbd_round_id, draw_number, paf_type='morbidity'):
     """
     Parameters
     ----------
@@ -840,10 +824,18 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id,
     elif paf_type == 'mortality':
         measure_id = 1
     else:
-        raise ValueError('paf_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(rr_type))
+        raise ValueError('paf_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(paf_type))
 
     age_groups = list(range(1,22))
-    worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
+    if current_process().daemon:
+        # I'm cargo culting here. When the simulation is hosted by a dask worker,
+        # we can't spawn sub-processes in the way that get_draws wants to
+        # There are better ways of solving this but they involve understanding dask
+        # better or working on shared function code, neither of
+        # which I'm going to do right now. -Alec
+        worker_count = 0
+    else:
+        worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
     pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=gbd_round_id, include_risks=True, num_workers=worker_count)
 
     keepcol = ['year_id', 'sex_id', 'age']
@@ -1376,55 +1368,6 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
     return eti_pafs
 
 
-def get_etiology_probability(etiology_name, location_id, year_start, year_end, draw_number):
-    """
-    Gets the proportion of diarrhea cases that are associated with a specific etiology
-
-    Parameters
-    ----------
-    etiology_name: str
-        etiology_name is the name of the etiology of interest
-
-    location_id: int
-        Location to pull data fol
-
-    year_start: int
-       Initial year
-
-    year_end: int
-       Final year
-
-    draw_number: int
-       GBD draw to pull data from
-
-    Returns
-    -------
-    """
-
-    etiology_df = pd.DataFrame()
-
-    # TODO: Ask Chris T. if this works for cholera and c diff, since they are modeled differently than the other etiologies
-    # TODO: Will want to cache this data in the future instead of pulling it from Chris Troeger's J Temp file
-    etiology_proportion_draws = pd.read_stata("/home/j/temp/ctroeger/Diarrhea/DALYs/Draws/diarrhea_{}_eti_draw_proportion.dta".format(etiology_name))
-
-    etiology_proportion_draws = etiology_proportion_draws.query("location_id == {}".format(location_id))
-
-    etiology_proportion_draws = get_age_from_age_group_id(etiology_proportion_draws)
-
-    for sex in (1, 2):
-        one_sex = etiology_proportion_draws.query("sex_id == @sex")
-        # TODO: Figure out if we want to get info from the config in this script or elsewhere
-        one_sex = set_age_year_index(one_sex, 'early neonatal', 3, year_start , year_end)
-
-        etiology_df = etiology_df.append(one_sex)
-
-    etiology_df.reset_index(level=['age', 'year_id'], inplace=True)
-
-    keepcol = ['year_id', 'sex_id', 'age', 'draw_{i}'.format(i=draw_number)]
-
-    return etiology_df[keepcol]
-
-
 def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_id, cause_id, me_id, gbd_round_id, draw_number):
     """
     Gets the paf of diarrhea cases that are associated with a specific etiology
@@ -1547,7 +1490,7 @@ def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, sev
 
 # TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of covariate short name, because names are subject to change but ids should stay the same
 # TODO: Also link that covariate id to a publication id, if possible
-def get_covariate_estimates(location_id, year_start, year_end, covariate_short_name):
+def get_covariate_estimates(covariate_name_short=None, location_id=-1, year_id=-1, sex_id=-1):
     """
     Gets covariate estimates for a specified location. Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.
 
@@ -1566,19 +1509,17 @@ def get_covariate_estimates(location_id, year_start, year_end, covariate_short_n
     A dataframe of covariate_estimates.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    from db_queries import get_covariate_estimates # This import is not at global scope because I only want the dependency if cached data is unavailable
+    # This import is not at global scope because I only want the dependency if cached data is unavailable
+    from db_queries import get_covariate_estimates
 
-    covariate_estimates = get_covariate_estimates(covariate_short_name=covariate_short_name)
-
-    covariate_estimates = covariate_estimates.query("location_id == @location_id")
-
-    expanded_estimates = expand_ages_for_dfs_w_all_age_estimates(covariate_estimates)
-
-    expanded_estimates = expanded_estimates.query("year_id >= @year_start and year_id <= @year_end")
-
-    keepcols = ['location_id', 'year_id', 'sex_id', 'age', 'covariate_id', 'covariate_name_short', 'mean_value', 'lower_value', 'upper_value']
-
-    return expanded_estimates[keepcols]
+    covariate_estimates = get_covariate_estimates(covariate_name_short=covariate_name_short,
+                                                  covariate_id=None,
+                                                  location_id=location_id,
+                                                  year_id=year_id,
+                                                  sex_id=sex_id,
+                                                  age_group_id=-1,
+                                                  model_version_id=None)
+    return covariate_estimates
 
 
 # FIXME: Won't need function below once ORS exposure and RR estimates are uploaded to the database
