@@ -301,54 +301,6 @@ def make_gbd_risk_effects(risk_id, causes, effect_function):#, risk_name):
         effect_function)
         for cause_id, cause_name in causes]
 
-def make_gbd_disease_state(cause, dwell_time=0, side_effect_function=None):
-    from ceam_public_health.components.disease import ExcessMortalityState
-    if 'mortality' in cause:
-        if isinstance(cause.mortality, meid):
-            csmr = get_cause_specific_mortality(cause.mortality)
-        else:
-            csmr = cause.mortality
-    else:
-        csmr = pd.DataFrame()
-
-    if 'disability_weight' in cause:
-        draw = config.run_configuration.draw_number
-        if isinstance(cause.disability_weight, meid):
-            disability_weight = functions.get_disability_weight(draw, cause.disability_weight)
-        else:
-            disability_weight = cause.disability_weight
-    else:
-        disability_weight = 0.0
-
-    if 'excess_mortality' in cause:
-        if isinstance(cause.excess_mortality, meid):
-            excess_mortality = get_excess_mortality(cause.excess_mortality)
-        else:
-            excess_mortality = cause.excess_mortality
-    else:
-        excess_mortality = 0.0
-
-    if 'prevalence' in cause:
-        if isinstance(cause.prevalence, meid):
-            prevalence = get_prevalence(cause.prevalence)
-        else:
-            prevalence = cause.prevalence
-    else:
-        prevalence = 0.0
-
-    return ExcessMortalityState(
-            cause.name,
-            dwell_time=dwell_time,
-            disability_weight=disability_weight,
-            excess_mortality_data=excess_mortality,
-            prevalence_data=prevalence,
-            csmr_data=csmr,
-            side_effect_function=side_effect_function
-        )
-
-
-def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
-    return functions.get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split)
 
 def get_annual_live_births(location_id, year, sex_id=3):
     data = functions.load_data_from_cache(functions.get_covariate_estimates,
