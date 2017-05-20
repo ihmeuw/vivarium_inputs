@@ -114,21 +114,23 @@ raw_cause_mapping = {
             'incidence': meid(1181),
             'mortality': meid(1181),
             'duration': meid(1181),
-            'severity': {
-                'mild': {
-                    'incidence': meid(2608),
-                    'disability_weight': hid(355)
-                },
-                'moderate': {
-                    'incidence': meid(2609),
-                    'disability_weight': hid(356)
-                },
-                'severe': {
-                    'incidence': meid(2610),
-                    'disability_weight': hid(357),
-                    'excess_mortality': meid(1181)
-                }
-            }
+        },
+        'mild_diarrhea': {
+            'incidence': meid(2608),
+            'disability_weight': hid(355),
+            'duration': meid(1181)
+        },
+        'moderate_diarrhea': {
+            'incidence': meid(2609),
+            'disability_weight': hid(356),
+            'duration': meid(1181)
+        },
+        'severe_diarrhea': {
+            'incidence': meid(2610),
+            'disability_weight': hid(357),
+            'mortality': meid(1181),
+            'excess_mortality': meid(1181),
+            'duration': meid(1181)
         },
         'death_due_to_severe_diarrhea': {
             'mortality': meid(1181),
