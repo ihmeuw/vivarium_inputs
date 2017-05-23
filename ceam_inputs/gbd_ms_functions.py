@@ -151,6 +151,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
 
 # 2. generate_ceam_population
 
+# TODO: Think initial age is broken
 # TODO: Write a test to make sure that getting a representative sample of people in a specific age group works
 def generate_ceam_population(location_id, time, number_of_simulants, initial_age=None, pop_age_start=None, pop_age_end=None):
     """
@@ -197,10 +198,14 @@ def generate_ceam_population(location_id, time, number_of_simulants, initial_age
     pop = get_populations(location_id, year_start, 3, sum_up_80_plus=True)
 
     if pop_age_start is not None:
+        assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
+        assert pop_age_end is not None, "if you set pop_age_start, also supply pop_age_end"
         pop_age_start = float(pop_age_start)
         pop = pop.query("age >= @pop_age_start").copy()
 
     if pop_age_end is not None:
+        assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
+        assert pop_age_start is not None, "if you set pop_age_end, also supply pop_age_start"
         pop_age_end = float(pop_age_end)
         pop = pop.query("age < @pop_age_end").copy()
 
@@ -216,9 +221,14 @@ def generate_ceam_population(location_id, time, number_of_simulants, initial_age
     if initial_age is None:
         simulants = create_age_column(simulants, pop, number_of_simulants)
     else:
+        assert pop_age_start is None, "do not set values for initial age and pop_age_start/pop_age_end"
+        assert pop_age_end is None, "do not set values for initial age and pop_age_start/pop_age_end"
         simulants['age'] = initial_age
 
     simulants = create_sex_id_column(simulants, location_id, year_start)
+
+    # Create location column
+    simulants['location'] = location_id
 
     # TODO: Design and implement test that makes sure CEAM population looks
     # like population file pulled from GBD
@@ -239,7 +249,7 @@ def generate_ceam_population(location_id, time, number_of_simulants, initial_age
 def assign_subregions(index, location_id, year):
     """
     Assigns a location to each simulant. If the location_id
-    has sub regions in the hierarchy than the simulants will be
+    has sub regions in the hierarchy then the simulants will be
     distributed across them uniformly weighted by each region's population.
     Otherwise all simulants will be assigned location_id.
 
@@ -257,7 +267,6 @@ def assign_subregions(index, location_id, year):
     This ignores demographic details. So if there is some region that has a
     age or sex bias in it's population, that will not be captured.
     """
-    # TODO: Test is failing because "'int' object has no attribute 'id'"
     region_ids = [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
 
     if not region_ids:
@@ -575,7 +584,6 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
     Unit test in place? -- Yes
     '''
 
-
     all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(
         location_id, year_start, year_end, gbd_round_id=gbd_round_id))
 
@@ -684,9 +692,6 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 
     return output_df[keepcol]
 
-
-# 6. get_relative_risks
-
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, draw_number, rr_type='morbidity'):
     """
     Parameters
@@ -729,7 +734,6 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
 
     Unit test in place? -- Yes
     """
-
 
     # FIXME: Will want this pull to be linked to a publication id.
     rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=gbd_round_id)
@@ -774,7 +778,6 @@ RR estimates for every age, so check to see that the function is correctly assig
 
 
 # 7. get_pafs
-
 
 def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
              gbd_round_id, draw_number, paf_type='morbidity'):
@@ -836,6 +839,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
         worker_count = 0
     else:
         worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
+
     pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=gbd_round_id, include_risks=True, num_workers=worker_count)
 
     keepcol = ['year_id', 'sex_id', 'age']
@@ -936,6 +940,10 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
         residual_exposure = residual_exposure.reset_index()
         exposure = exposure.append(residual_exposure)
 
+    # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable entity ids for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
+    elif risk_id in [84, 94, 241]:
+        pass
+
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # TODO: Confirm that we want to be using cat1 here. Cat1 seems really high for risk_id=238 (handwashing without soap) for Kenya
     # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data? It's an exceptionally strong assumption. We could use the exposure for the youngest age for which we do have data, or do something else, if we wanted to. --EM 12/12
@@ -946,6 +954,7 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
         if len(list_of_meids) > 1:
             raise UnhandledRiskError("the risk -- rei_id {} --that you are trying to pull has multiple modelable entity ids. are you sure you know how this risk is modeled? If not, go talk to the modeler. after talking to the modeler, you'll probably want to write some code to handle the risk, since it's modeled differently than most risks. you can override this error by adding a multiple_meids_override=True argument to your get_exposures query after you determine how to incorporate this risk into your simulation".format(risk_id))
 
+        # FIXME: I'm almost positive this expand_ages should occur outside of this else statement (EM 5.9.2017)
         exposure = expand_ages(exposure)
 
     exposure[['draw_{}'.format(i) for i in range(0,1000)]] = exposure[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
@@ -1006,7 +1015,7 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
 
     Parameters
     ----------
-    funct : str
+    funct : callable
         function to run if data is not already loaded into the cache
         (e.g. get_cause_deleted_mortality_rate)
 
@@ -1053,9 +1062,6 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
 
         return normalize_for_simulation(function_output)
     return function_output
-
-
-# 11. get_severity_splits
 
 
 # 12. get_sbp_mean_sd
@@ -1209,7 +1215,8 @@ def get_angina_proportions():
 
 # 14. get_disability_weight
 
-
+# TODO: Figure out if sequela can have multiple healthstate ids and change this function if necessary
+# TODO: Make a wrapper for this function in the __init__ file. We want this function output to be cached
 def get_disability_weight(draw_number, dis_weight_modelable_entity_id=None, healthstate_id=None):
     """Returns a dataframe with disability weight draws for a given healthstate id
 
@@ -1326,6 +1333,7 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     return asfr
 
 
+# TODO: Need to add a test to make sure that unattributed burden is accurately captured
 def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, draw_number):
     """
     Parameters
@@ -1339,8 +1347,8 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
     year_end : int, end year
         year_end is the year in which you want to end the simulation
 
-    risk_id: int, risk id
-        risk_id takes same risk_id values as are used for GBD
+    risk_id: int or str, risk id
+        risk_id takes same risk_id values as are used for GBD or "unattributed"
 
     cause_id: int, cause id
         cause_id takes same cause_id values as are used for GBD
@@ -1356,10 +1364,48 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
         df with columns year_id, sex_id, age, val, upper, and lower
 
     """
-    # For some of the diarrhea etiologies, PAFs are negative. Wouldn't make sense for the simulation to use negative pafs (i.e. incidence * PAF returns a negative incidence if PAF is negative), so we'll clip to 0. Guessing that any other diseases that deal with etiologies in the future won't need to be treated this way. --EM 12/13
-    # uses get pafs, but then scales the negative pafs to 0. the diarrhea team has some pafs that are negative because they wanted to include full uncertainty. this seems implausible in the real world, unless one is arguing that some pathogens have a protective effect
+    # For some of the diarrhea etiologies, PAFs are negative.
+    # Wouldn't make sense for the simulation to use negative pafs (i.e.
+    # incidence * PAF returns a negative incidence if PAF is negative),
+    # so we'll clip to 0. Guessing that any other diseases that deal with
+    # etiologies in the future won't need to be treated this way. --EM 12/13
+    # uses get pafs, but then scales the negative pafs to 0. the
+    # diarrhea team has some pafs that are negative because they wanted to
+    # include full uncertainty. this seems implausible in the real world,
+    # unless one is arguing that some pathogens have a protective effect
+    if risk_id != 'unattributed':
+        eti_pafs = get_pafs(location_id, year_start, year_end,
+                            risk_id, cause_id, gbd_round_id, draw_number, 'morbidity')
+ 
+    elif risk_id == 'unattributed':
+        dict_of_etiologies_and_eti_risks = {'cholera': 173, 
+                                     'other_salmonella': 174, 
+                                     'shigellosis': 175, 
+                                     'EPEC': 176, 
+                                     'ETEC': 177, 
+                                     'campylobacter': 178, 
+                                     'amoebiasis': 179, 
+                                     'cryptosporidiosis': 180, 
+                                     'rotaviral_entiritis': 181, 
+                                     'aeromonas': 182, 
+                                     'clostridium_difficile': 183, 
+                                     'norovirus': 184, 
+                                     'adenovirus': 185}
 
-    eti_pafs = get_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
+        all_dfs = pd.DataFrame()
+        for value in dict_of_etiologies_and_eti_risks.values():
+            # FIXME: Is it correct to have this function call itself? Seems strange
+            df = get_etiology_pafs(location_id, year_start, year_end, value, cause_id, gbd_round_id, draw_number)
+            all_dfs = all_dfs.append(df)
+
+        grouped = all_dfs.groupby(['age', 'sex_id', 'year_id']).sum()
+
+        pafs = grouped[['draw_{}'.format(i) for i in range(0, 1000)]].values
+        eti_pafs = pd.DataFrame(1-pafs, columns=['draw_{}'.format(i) for i in range(0, 1000)], index=grouped.index)
+        eti_pafs.reset_index(inplace=True)
+    else:
+        raise ValueError("get_etiology_pafs can take either a valid etiology_risk_id or 'unattributed'. the risk id that you supplied -- {} -- is invalid".format(risk_id))
+
 
     # now make the negative etiology paf draws 0
     draws = eti_pafs._get_numeric_data()
@@ -1459,7 +1505,8 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
                                                            measure=5, me_id=me_id) # measure=prevalence, me_id=diarrhea envelope
 
-    etiology_paf = get_pafs(location_id, year_start, year_end, eti_risk_id, cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
+    etiology_paf = get_etiology_pafs(location_id, year_start, year_end, eti_risk_id, cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
+
 
     etiology_specific_prevalence= pd.merge(diarrhea_envelope_prevalence, etiology_paf, on=['age', 'year_id', 'sex_id'], 
                                           suffixes=('_envelope', '_pafs'))
@@ -1473,24 +1520,28 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     return output_df.reset_index()
 
 
-# TODO: Figure out if we need to do anything to the remission rates. We have remission for all diarrhea.
-# Do we need to split out remission to get remission from the different severity states?7
-def get_diarrhea_severity_split_excess_mortality(excess_mortality_dataframe, severity_split):
-    if severity_split == 'severe':
-        # FIXME: Need to use severity split draws. Manually setting proportions for now
-        severe_diarrhea_proportion = .14
-        excess_mortality_dataframe['rate'] = excess_mortality_dataframe['rate'] / severe_diarrhea_proportion
-    elif severity_split in ['mild', 'moderate']:
-        # set the excess mortality rate to 0
-        excess_mortality_dataframe['rate'] = 0
-    else:
-        raise ValueError("you supplied an invalid value for severity split argument. you wrote '{}'. acceptable severity splits are mild, moderate, or severe".format(severity_split))
+# TODO: Write a test for this function
+def get_severe_diarrhea_excess_mortality(excess_mortality_dataframe, severe_diarrhea_proportion):
+    """
+    Returns an excess mortality rate for severe diarrhea
+
+    Parameters
+    ----------
+    excess_mortality_dataframe: pd.DataFrame
+        excess mortality estimates for diarrhea from GBD
+
+    draw_number: int
+        specific draw number
+    """
+    excess_mortality_dataframe['rate'] = excess_mortality_dataframe['rate'] / severe_diarrhea_proportion
     return excess_mortality_dataframe
 
 
 # TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of covariate short name, because names are subject to change but ids should stay the same
 # TODO: Also link that covariate id to a publication id, if possible
+
 def get_covariate_estimates(covariate_name_short=None, location_id=-1, year_id=-1, sex_id=-1):
+
     """
     Gets covariate estimates for a specified location. Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.
 
@@ -1541,3 +1592,61 @@ def get_ors_exposure(location_id, year_start, year_end, draw_number):
     expanded_estimates = expanded_estimates[keepcols]
 
     return normalize_for_simulation(expanded_estimates)
+
+
+def get_severity_splits(parent_meid, child_meid, draw_number):
+    """
+    Returns a severity split proportion for a given cause
+    
+    parent_meid: int, modelable_entity_id
+        the modelable entity id for the severity split
+    
+    child_meid: int, modelable_entity_id
+        the modelable entity id for the severity split
+    
+    draw_number: int
+        specific draw number
+        
+    See also
+    --------
+    To determine parent and child meids, see here: http://dev-tomflem.ihme.washington.edu/sevsplits/editor
+    If the severity splits that you are require are no in the filepath below, email central comp to ask them to create the splits
+    """
+    splits = pd.read_hdf("/share/epi/split_prop_draws_2016/{}/prop_draws.h5".format(parent_meid))
+
+    # the splits don't always add up exactly to one, so I get the sum of the splits and then divide each split by the total to scale to 1
+    total = splits[['draw_{}'.format(draw_number)]].sum()
+    splits['scaled'] = splits['draw_{}'.format(draw_number)] / total.values
+    
+    splits = splits.query("child_meid == {}".format(child_meid))
+    # TODO: Use get_value in line below
+    return splits[["scaled"]].values.item(0)
+
+
+# TODO: Write a test for get_rota_vaccine_coverage. Make sure values make sense for year/age in test, similar to get_relative_risk tests
+def get_rota_vaccine_coverage(location_id, year_start, year_end, gbd_round_id):
+    draws = get_draws('modelable_entity_id', 10596, location_ids=location_id, source='dismod', sex_ids=[1,2], age_group_ids=list(range(2,6)), gbd_round_id=gbd_round_id)
+
+    draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
+                         ys=year_start, ye=year_end))
+
+    draws = get_age_group_midpoint_from_age_group_id(draws)
+
+    draws = expand_ages(draws)
+
+    draws[['draw_{}'.format(i) for i in range(0,1000)]] = draws[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
+
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
+
+    draws = draws[keepcol]
+
+    # assert an error to make sure data is dense (i.e. no missing data)
+    assert draws.isnull().values.any() == False, "there are nulls in the dataframe that get_rota_vaccine_coverage just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert draws.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_rota_vaccine_coverage just tried to output. check the cache to make sure that the data you're pulling is correct"
+
+    return draws.sort_values(by=['year_id', 'age', 'sex_id'])
+
