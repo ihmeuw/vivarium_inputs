@@ -1,6 +1,11 @@
 import os
 from datetime import datetime
 
+from ceam import config
+
+_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
+config.load(_config_path, layer='base', source=_config_path)
+
 import pandas as pd
 import joblib
 from joblib import Memory
@@ -9,12 +14,8 @@ from ceam_inputs import distributions, gbd_ms_functions as functions
 from ceam_inputs.util import get_cache_directory, gbd_year_range
 from ceam_inputs.gbd_mapping import meid
 
-from ceam import config
 
 from ceam_public_health.util.risk import RiskEffect
-
-_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
-config.load(_config_path, layer='base', source=_config_path)
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
