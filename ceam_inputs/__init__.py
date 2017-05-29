@@ -14,6 +14,7 @@ from ceam_inputs import distributions, gbd_ms_functions as functions
 from ceam_inputs.util import get_cache_directory, gbd_year_range
 from ceam_inputs.auxiliary_files import open_auxiliary_file
 
+from ceam_inputs.gbd_mapping import causes, risk_factors
 
 from ceam_public_health.util.risk import RiskEffect
 
@@ -234,7 +235,11 @@ def get_exposures(risk_id):
 
 
 def get_populations(location_id, year, sex_id=3):
-    return functions.load_data_from_cache(get_populations(location_id, year, sex_id=sex_id))
+    return functions.load_data_from_cache(functions.get_populations,
+                                          col_name=None,
+                                          location_id=location_id,
+                                          year_start=year,
+                                          sex_id=sex_id)
 
 
 def generate_ceam_population(number_of_simulants, initial_age=None, time=None):
@@ -512,7 +517,27 @@ def get_rota_vaccine_coverage():
         )
     return df
 
+
 def get_life_table():
     with open_auxiliary_file('Life Table') as f:
         life_table = pd.read_csv(f)
     return life_table
+
+
+def get_doctor_visit_costs():
+    with open_auxiliary_file('Doctor Visit Costs') as f:
+        visit_costs = pd.read_csv(f, index_col=0)
+    return visit_costs
+
+
+def get_inpatient_visit_costs():
+    with open_auxiliary_file('Inpatient Visit Costs') as f:
+        visit_costs = pd.read_csv(f, index_col=0)
+    return visit_costs
+
+
+def get_hypertension_drug_costs():
+    with open_auxiliary_file('Hypertension Drug Costs') as f:
+        costs = pd.read_csv(f, index_col='name')
+    return costs
+
