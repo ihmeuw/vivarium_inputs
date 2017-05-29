@@ -12,7 +12,7 @@ from joblib import Memory
 
 from ceam_inputs import distributions, gbd_ms_functions as functions
 from ceam_inputs.util import get_cache_directory, gbd_year_range
-from ceam_inputs.gbd_mapping import meid
+from ceam_inputs.auxiliary_files import open_auxiliary_file
 
 
 from ceam_public_health.util.risk import RiskEffect
@@ -233,7 +233,7 @@ def get_exposures(risk_id):
     return output
 
 
-def get_populations(location_id, year, sex_id=3)
+def get_populations(location_id, year, sex_id=3):
     return functions.load_data_from_cache(get_populations(location_id, year, sex_id=sex_id))
 
 
@@ -512,3 +512,7 @@ def get_rota_vaccine_coverage():
         )
     return df
 
+def get_life_table():
+    with open_auxiliary_file('Life Table') as f:
+        life_table = pd.read_csv(f)
+    return life_table
