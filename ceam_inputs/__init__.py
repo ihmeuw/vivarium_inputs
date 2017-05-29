@@ -233,6 +233,10 @@ def get_exposures(risk_id):
     return output
 
 
+def get_populations(location_id, year, sex_id=3)
+    return functions.load_data_from_cache(get_populations(location_id, year, sex_id=sex_id))
+
+
 def generate_ceam_population(number_of_simulants, initial_age=None, time=None):
     location_id = config.simulation_parameters.location_id
     pop_age_start = config.simulation_parameters.pop_age_start
@@ -415,10 +419,10 @@ def get_severity_splits(parent_meid, child_meid):
     draw_number = config.run_configuration.draw_number
 
     return functions.get_severity_splits(parent_meid=parent_meid, child_meid=child_meid, draw_number=draw_number)
-    
+
 def get_severe_diarrhea_excess_mortality():
     draw_number = config.run_configuration.draw_number
-    severe_diarrhea_proportion = get_severity_splits(1181, 2610) 
+    severe_diarrhea_proportion = get_severity_splits(1181, 2610)
 
     return functions.get_severe_diarrhea_excess_mortality(excess_mortality_dataframe=get_excess_mortality(1181), severe_diarrhea_proportion=severe_diarrhea_proportion)
 
@@ -441,15 +445,15 @@ def make_age_group_1_to_4_rates_constant(df):
     """
     age_bins = get_age_bins()
     new_rows = pd.DataFrame()
-    
+
     assert 3 in df.age.values, "the input dataframe needs to" + \
                                " simulants that are at the" + \
                                " age group midpoint"
-    
+
     assert [1, 2, 4, 5] not in df.age.values, "the input df" + \
         "should only have simulants that are at the age" + \
         "group midpoint for the 1 to 4 age group"
-    
+
 
     # get estimates for the age 1-4 age group (select at the age
     #     group midpoint)
@@ -469,12 +473,12 @@ def make_age_group_1_to_4_rates_constant(df):
                             "age": 5, value_col: value, "sex": sex},
                             index=[index+1])
         new_rows = new_rows.append(line)
-        
+
     df = pd.concat([df, new_rows]).sort_values(
         by=['year', 'sex', 'age']).reset_index(drop=True)
     age_group_min = age_bins.set_index('age_group_name').get_value('1 to 4', 'age_group_years_start')  # the age group min for the 1-4 age group
     df.loc[df.age == 3, 'age'] = age_group_min
-    
+
     return df
 
 
