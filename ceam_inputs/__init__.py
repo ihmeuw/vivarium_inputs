@@ -16,7 +16,6 @@ from ceam_inputs.auxiliary_files import open_auxiliary_file
 
 from ceam_inputs.gbd_mapping import causes, risk_factors
 
-from ceam_public_health.util.risk import RiskEffect
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
