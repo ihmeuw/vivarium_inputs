@@ -1667,6 +1667,8 @@ def get_ors_pafs(location_id, year_start, year_end, draw_number):
 
     pafs = expand_ages(pafs)
 
+    pafs = pafs.query("year_id >= @year_start and year_id <= @year_end")
+
     pafs[['paf_{}'.format(i) for i in range(0,1000)]] = pafs[['paf_{}'.format(i) for i in range(0,1000)]].fillna(value=0)    
 
     keepcol = ['year_id', 'sex_id', 'age', 'paf_{}'.format(draw_number)]
@@ -1688,6 +1690,13 @@ def get_ors_relative_risks(location_id, year_start, year_end, draw_number):
     ors_rr = pd.read_csv("/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv")
     
     rr = expand_ages_for_dfs_w_all_age_estimates(ors_rr)
+    
+    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid for children under 5 the input data only uses the all ages age group id since the covariates database requires that covariates apply to all ages
+    rr = rr.query("age < 5")
+    
+    rr = expand_ages(rr)
+    
+    rr[['draw_{}'.format(i) for i in range(0,1000)]] = rr[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=1)  
     
     rr = rr.query("year_id >= @year_start and year_id <= @year_end")
     
@@ -1712,6 +1721,13 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
     exp = expand_ages_for_dfs_w_all_age_estimates(ors_exp)
     
     exp = exp.query("year_id >= @year_start and year_id <= @year_end")
+
+    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid for children under 5 the input data only uses the all ages age group id since the covariates database requires that covariates apply to all ages
+    exp = exp.query("age < 5")
+    
+    exp = expand_ages(exp)
+    
+    exp[['draw_{}'.format(i) for i in range(0,1000)]] = exp[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
     
     keepcol = ['year_id', 'sex_id', 'age', 'parameter', 'draw_{}'.format(draw_number)]
     
