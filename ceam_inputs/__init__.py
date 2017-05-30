@@ -14,7 +14,8 @@ from ceam_inputs import distributions, gbd_ms_functions as functions
 from ceam_inputs.util import get_cache_directory, gbd_year_range
 from ceam_inputs.auxiliary_files import open_auxiliary_file
 
-from ceam_inputs.gbd_mapping import causes, risk_factors
+# Make these toplevel imports until external references can be removed.
+from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid
 
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
