@@ -19,8 +19,11 @@ def gbd_year_range():
     return year_start, year_end
 
 
+# FIXME: Need to handle GBD 2013!!
 def round_to_gbd_year(year, down=True):
     rounded_year = int(year/5)*5
     if not down and rounded_year != year:
         rounded_year += 5
+    if year >= 2015:
+        rounded_year = year
     return rounded_year

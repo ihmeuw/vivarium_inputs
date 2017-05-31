@@ -15,6 +15,11 @@ class cid(int):
     def __repr__(self):
         return 'cid({:d})'.format(self)
 
+class hid(int):
+    """Healthstate ID"""
+    def __repr__(self):
+        return 'hid({:d})'.format(self)
+
 raw_cause_mapping = {
         'heart_attack': {
             'gbd_cause': cid(493),
@@ -101,10 +106,40 @@ raw_cause_mapping = {
             'prevalence': meid(9312),
             'mortality': meid(9312),
         },
+        'diarrhea': {
+            'gbd_cause': cid(302),
+            'disability_weight': 0.23,
+            'excess_mortality': meid(1181),
+            'prevalence': meid(1181),
+            'incidence': meid(1181),
+            'mortality': meid(1181),
+            'duration': meid(1181),
+        },
+        'mild_diarrhea': {
+            'incidence': meid(2608),
+            'disability_weight': hid(355),
+            'duration': meid(1181)
+        },
+        'moderate_diarrhea': {
+            'incidence': meid(2609),
+            'disability_weight': hid(356),
+            'duration': meid(1181)
+        },
+        'severe_diarrhea': {
+            'incidence': meid(2610),
+            'disability_weight': hid(357),
+            'mortality': meid(1181),
+            'excess_mortality': meid(1181),
+            'duration': meid(1181)
+        },
+        'death_due_to_severe_diarrhea': {
+            'mortality': meid(1181),
+        },
         'chronic_kidney_disease': {
             'gbd_cause': cid(591),
         }
 }
+
 for k,v in raw_cause_mapping.items():
     v['name'] = k
 
@@ -148,9 +183,61 @@ raw_risk_mapping = {
             'tmrl': 5.1,
             'scale': 1,
         },
+        'cholera': {
+            'gbd_risk': rid(173),
+            'effected_causes': [causes.diarrhea]
+        },
+        'other_salmonella': {
+            'gbd_risk': rid(174),
+            'effected_causes': [causes.diarrhea]
+        },
+        'shigellosis': {
+            'gbd_risk': rid(175),
+            'effected_causes': [causes.diarrhea]
+        },
+        'EPEC': {
+            'gbd_risk': rid(176),
+            'effected_causes': [causes.diarrhea]
+        },
+        'ETEC': {
+            'gbd_risk': rid(177),
+            'effected_causes': [causes.diarrhea]
+        },
+        'campylobacter': {
+            'gbd_risk': rid(178),
+            'effected_causes': [causes.diarrhea]
+        },
+        'amoebiasis': {
+            'gbd_risk': rid(179),
+            'effected_causes': [causes.diarrhea]
+        },
+        'cryptosporidiosis': {
+            'gbd_risk': rid(180),
+            'effected_causes': [causes.diarrhea]
+        },
+        'rotaviral_entiritis': {
+            'gbd_risk': rid(181),
+            'effected_causes': [causes.diarrhea]
+        },
+        'aeromonas': {
+            'gbd_risk': rid(182),
+            'effected_causes': [causes.diarrhea]
+        },
+        'clostridium_difficile': {
+            'gbd_risk': rid(183),
+            'effected_causes': [causes.diarrhea]
+        },
+        'norovirus': {
+            'gbd_risk': rid(184),
+            'effected_causes': [causes.diarrhea]
+        },
+        'adenovirus': {
+            'gbd_risk': rid(185),
+            'effected_causes': [causes.diarrhea]
+        }
 }
 
-for k,v in raw_risk_mapping.items():
+for k, v in raw_risk_mapping.items():
     v['name'] = k
 
 risk_factors = ConfigTree(raw_risk_mapping)

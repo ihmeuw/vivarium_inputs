@@ -1,12 +1,12 @@
 # 1. set_age_year_index
 from ceam_inputs.gbd_ms_auxiliary_functions import get_age_group_midpoint_from_age_group_id
 from ceam_inputs.gbd_ms_auxiliary_functions import create_age_column
-from ceam_inputs.gbd_ms_auxiliary_functions import get_populations
+
 from ceam_inputs.gbd_ms_auxiliary_functions import normalize_for_simulation
 from ceam_inputs.gbd_ms_auxiliary_functions import expand_grid
 from ceam_inputs.gbd_ms_auxiliary_functions import assign_sex_id
 from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
-from scipy import stats
+
 import pandas as pd
 import numpy as np
 
@@ -78,6 +78,3 @@ def test_expand_grid():
     
     assert df.year_id.tolist() == np.repeat([1990, 1991, 1992], 6).tolist(), "expand_grid should expand a df to get row for each age/year combo"
     assert df.age.tolist() == [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5], "expand_grid should expand a df to get row for each age/year combo"
-
-
-# End.
