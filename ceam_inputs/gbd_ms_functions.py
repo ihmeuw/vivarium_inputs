@@ -356,7 +356,7 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
     Unit test in place? -- Yes
     """
 
-    # TODO: Need to include Interpolation in this function for cause_level_prevalence. There are more age values for simulants df (older ages) than there are for cause_level_prevalence, hence why an interpolation function is needed. 
+    # TODO: Need to include Interpolation in this function for cause_level_prevalence. There are more age values for simulants df (older ages) than there are for cause_level_prevalence, hence why an interpolation function is needed.
 
     #TODO: this is weird and not general but I don't think we should be doing this lookup here anyway
     assert len(set(cause_level_prevalence.year)) == 1
@@ -370,7 +370,7 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
 
     results = simulants_df.copy()
 
-    results = results.set_index('simulant_id') 
+    results = results.set_index('simulant_id')
 
     # Need to sort results so that the simulants are in the same order as the weights
     results['condition_envelope'] = choice('determine_if_sim_has_cause', results.index, [False, True], weights)
@@ -488,11 +488,11 @@ def assign_cause_at_beginning_of_simulation(simulants_df, location_id, year_star
     TODO: Automate and allow randomness in the graph production code
     """
 
-    cause_level_prevalence, prevalence_draws_dictionary = get_cause_level_prevalence(states, year_start) 
+    cause_level_prevalence, prevalence_draws_dictionary = get_cause_level_prevalence(states, year_start)
 
     # TODO: Should we be using groupby for these loops to ensure that we're
     # not looping over an age/sex combo that does not exist
-    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, cause_level_prevalence)    
+    post_cause_assignment_population = determine_if_sim_has_cause(simulants_df, cause_level_prevalence)
 
     sequela_proportions = get_sequela_proportions(cause_level_prevalence, states)
 
@@ -673,7 +673,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 
     # TODO: Manual calculation of the multiplication below gave a little bit different values. Should I be using np.multiply or somethig else to make sure python is handling these floats correctly?
     # TODO: Ensure rate_to_probability is calculating annual rates
-    output_df = pd.DataFrame(rate_to_probability(np.multiply(envelope, proportion)), columns=['draw_{}'.format(i) for i in range(1000)], index=cause_of_hf.index)  
+    output_df = pd.DataFrame(rate_to_probability(np.multiply(envelope, proportion)), columns=['draw_{}'.format(i) for i in range(1000)], index=cause_of_hf.index)
 
     output_df = output_df.reset_index()
 
@@ -859,7 +859,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
     # TODO: Need to set age, year, sex index here again to make sure that we assign the correct value to points outside of the range
     # need to back calculate PAFS to earlier ages for risks that don't
     # start until a certain age
-    pafs[['draw_{}'.format(i) for i in range(0,1000)]] = pafs[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)    
+    pafs[['draw_{}'.format(i) for i in range(0,1000)]] = pafs[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
 
     # assert an error to make sure data is dense (i.e. no missing data)
     assert pafs[keepcol].isnull().values.any() == False, "there are nulls in the dataframe that get_pafs just tried to output. check that the cache to make sure the data you're pulling is correct"
@@ -1117,10 +1117,10 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     draws.set_index(['year_id', 'sex_id', 'age'], inplace=True)
 
     # set nulls to be 1 to keep from messing up the math below. the nulls are the younger age groups (simulants less than 27.5 years old) and they'll get an sbp of 112 and an sd of .001 because we want them to be at the TMRED
-    draws[['exp_mean_{}'.format(i) for i in range(0,1000)]] = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].fillna(value=1) 
+    draws[['exp_mean_{}'.format(i) for i in range(0,1000)]] = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].fillna(value=1)
     draws[['exp_sd_{}'.format(i) for i in range(0,1000)]] = draws[['exp_sd_{}'.format(i) for i in range(0,1000)]].fillna(value=1)
 
-    # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing        
+    # FIXME: This process does produce a df that has null values for simulants under 27.5 years old for the exp_mean and exp_sd cols. Dont think this will affect anything but may be worth fixing
     exp_mean = draws[['exp_mean_{}'.format(i) for i in range(0,1000)]].values
     exp_sd = draws[['exp_sd_{}'.format(i) for i in range(0,1000)]].values
 
@@ -1182,7 +1182,7 @@ def get_angina_proportions():
 
     # not sure why income is included in this file. estimates are the same for high and low income countries. we'll filter
     # on high income to get rid of the superfluous rows.
-    ang = ang.query("income == 'high'")    
+    ang = ang.query("income == 'high'")
 
     ang = get_age_group_midpoint_from_age_group_id(ang)
 
@@ -1190,10 +1190,10 @@ def get_angina_proportions():
     # 20 with the same proportion that we have for 20 year olds
     # TODO: Should check this assumption w/ Abie
     # creating a copy of ang to use pd.get_value
-    ang_copy = ang.set_index('age').copy()  
+    ang_copy = ang.set_index('age').copy()
 
-    # values are same for each sex, so we can grab the value 
-    # for the lowest age from either sex to apply to the younger age 
+    # values are same for each sex, so we can grab the value
+    # for the lowest age from either sex to apply to the younger age
     # groups for which we do not have data
     value_at_youngest_age_for_which_we_have_data = ang_copy.query("sex_id == 1").get_value(22.5, 'angina_prop')
 
@@ -1201,10 +1201,10 @@ def get_angina_proportions():
 
     # the data is not year specific. we manually add year_id values here
     # TODO: Probably a more sophisticated way to do this
-    for year in [1990, 1995, 2000, 2005, 2010, 2013, 2015]: 
+    for year in [1990, 1995, 2000, 2005, 2010, 2013, 2015]:
         one_year = ang.copy()
         one_year['year_id'] = year
-        total_ang = total_ang.append(one_year)    
+        total_ang = total_ang.append(one_year)
 
     total_ang = total_ang[['year_id', 'sex_id', 'age', 'angina_prop']]
 
@@ -1264,7 +1264,7 @@ def get_disability_weight(draw_number, dis_weight_modelable_entity_id=None, heal
         raise ValueError("""the modelable entity id {m} has a healthstate_id of {h}. it looks like there 
         are no draws for this healthstate_id in the csvs that get_healthstate_id_draws checked.
         look in this folder for the draws for healthstate_id{h}: /home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom.
-        if you can't find draws there, talk w/ central comp""".format(m=dis_weight_modelable_entity_id, h=healthstate_id)) 
+        if you can't find draws there, talk w/ central comp""".format(m=dis_weight_modelable_entity_id, h=healthstate_id))
 
     return df['draw{}'.format(draw_number)].iloc[0]
 
@@ -1309,14 +1309,14 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end, draw_number):
 
     # TODO: RAISE AN ERROR IF PROPORTIONS ARE GREATER THAN 1 FOR NOW. MAY WANT TO DELETE
     # ERROR IN THE FUTURE AND SCALE DOWN TO 1 INSTEAD
-    # assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"      
+    # assert all(hf_values + angina_values) <= 1, "post mi proportions cannot be gt 1"
 
     asympt_prop_df = pd.DataFrame(1 - hf_values - angina_values, columns=['asympt_prop_{}'.format(i) for i in range(1000)], index=merged.index)
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
 
-    return asympt_prop_df.reset_index()[keepcol] 
+    return asympt_prop_df.reset_index()[keepcol]
 
 
 def get_age_specific_fertility_rates(location_id, year_start, year_end):
@@ -1376,20 +1376,20 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
     if risk_id != 'unattributed':
         eti_pafs = get_pafs(location_id, year_start, year_end,
                             risk_id, cause_id, gbd_round_id, draw_number, 'morbidity')
- 
+
     elif risk_id == 'unattributed':
-        dict_of_etiologies_and_eti_risks = {'cholera': 173, 
-                                     'other_salmonella': 174, 
-                                     'shigellosis': 175, 
-                                     'EPEC': 176, 
-                                     'ETEC': 177, 
-                                     'campylobacter': 178, 
-                                     'amoebiasis': 179, 
-                                     'cryptosporidiosis': 180, 
-                                     'rotaviral_entiritis': 181, 
-                                     'aeromonas': 182, 
-                                     'clostridium_difficile': 183, 
-                                     'norovirus': 184, 
+        dict_of_etiologies_and_eti_risks = {'cholera': 173,
+                                     'other_salmonella': 174,
+                                     'shigellosis': 175,
+                                     'EPEC': 176,
+                                     'ETEC': 177,
+                                     'campylobacter': 178,
+                                     'amoebiasis': 179,
+                                     'cryptosporidiosis': 180,
+                                     'rotaviral_entiritis': 181,
+                                     'aeromonas': 182,
+                                     'clostridium_difficile': 183,
+                                     'norovirus': 184,
                                      'adenovirus': 185}
 
         all_dfs = pd.DataFrame()
@@ -1508,7 +1508,7 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     etiology_paf = get_etiology_pafs(location_id, year_start, year_end, eti_risk_id, cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
 
 
-    etiology_specific_prevalence= pd.merge(diarrhea_envelope_prevalence, etiology_paf, on=['age', 'year_id', 'sex_id'], 
+    etiology_specific_prevalence= pd.merge(diarrhea_envelope_prevalence, etiology_paf, on=['age', 'year_id', 'sex_id'],
                                           suffixes=('_envelope', '_pafs'))
 
     etiology_specific_prevalence.set_index(['year_id', 'sex_id', 'age'], inplace=True)
@@ -1617,7 +1617,7 @@ def get_severity_splits(parent_meid, child_meid, draw_number):
     # the splits don't always add up exactly to one, so I get the sum of the splits and then divide each split by the total to scale to 1
     total = splits[['draw_{}'.format(draw_number)]].sum()
     splits['scaled'] = splits['draw_{}'.format(draw_number)] / total.values
-    
+
     splits = splits.query("child_meid == {}".format(child_meid))
     # TODO: Use get_value in line below
     return splits[["scaled"]].values.item(0)

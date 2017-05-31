@@ -12,10 +12,11 @@ from joblib import Memory
 
 from ceam_inputs import distributions, gbd_ms_functions as functions
 from ceam_inputs.util import get_cache_directory, gbd_year_range
-from ceam_inputs.gbd_mapping import meid
+from ceam_inputs.auxiliary_files import open_auxiliary_file
 
+# Make these toplevel imports until external references can be removed.
+from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid
 
-from ceam_public_health.util.risk import RiskEffect
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
@@ -233,6 +234,14 @@ def get_exposures(risk_id):
     return output
 
 
+def get_populations(location_id, year, sex_id=3):
+    return functions.load_data_from_cache(functions.get_populations,
+                                          col_name=None,
+                                          location_id=location_id,
+                                          year_start=year,
+                                          sex_id=sex_id)
+
+
 def generate_ceam_population(number_of_simulants, initial_age=None, time=None):
     location_id = config.simulation_parameters.location_id
     pop_age_start = config.simulation_parameters.pop_age_start
@@ -292,15 +301,6 @@ def get_fpg_distributions():
     draw = config.run_configuration.draw_number
 
     return distributions.get_fpg_distributions(location_id, year_start, year_end, draw)
-
-
-def make_gbd_risk_effects(risk_id, causes, effect_function, risk_name):
-    return [RiskEffect(
-        get_relative_risks(risk_id=risk_id, cause_id=cause_id),
-        get_pafs(risk_id=risk_id, cause_id=cause_id),
-        cause_name, risk_name,
-        effect_function)
-        for cause_id, cause_name in causes]
 
 
 def get_annual_live_births(location_id, year, sex_id=3):
@@ -415,10 +415,10 @@ def get_severity_splits(parent_meid, child_meid):
     draw_number = config.run_configuration.draw_number
 
     return functions.get_severity_splits(parent_meid=parent_meid, child_meid=child_meid, draw_number=draw_number)
-    
+
 def get_severe_diarrhea_excess_mortality():
     draw_number = config.run_configuration.draw_number
-    severe_diarrhea_proportion = get_severity_splits(1181, 2610) 
+    severe_diarrhea_proportion = get_severity_splits(1181, 2610)
 
     return functions.get_severe_diarrhea_excess_mortality(excess_mortality_dataframe=get_excess_mortality(1181), severe_diarrhea_proportion=severe_diarrhea_proportion)
 
@@ -441,15 +441,15 @@ def make_age_group_1_to_4_rates_constant(df):
     """
     age_bins = get_age_bins()
     new_rows = pd.DataFrame()
-    
+
     assert 3 in df.age.values, "the input dataframe needs to" + \
                                " simulants that are at the" + \
                                " age group midpoint"
-    
+
     assert [1, 2, 4, 5] not in df.age.values, "the input df" + \
         "should only have simulants that are at the age" + \
         "group midpoint for the 1 to 4 age group"
-    
+
 
     # get estimates for the age 1-4 age group (select at the age
     #     group midpoint)
@@ -469,12 +469,12 @@ def make_age_group_1_to_4_rates_constant(df):
                             "age": 5, value_col: value, "sex": sex},
                             index=[index+1])
         new_rows = new_rows.append(line)
-        
+
     df = pd.concat([df, new_rows]).sort_values(
         by=['year', 'sex', 'age']).reset_index(drop=True)
     age_group_min = age_bins.set_index('age_group_name').get_value('1 to 4', 'age_group_years_start')  # the age group min for the 1-4 age group
     df.loc[df.age == 3, 'age'] = age_group_min
-    
+
     return df
 
 
@@ -507,4 +507,28 @@ def get_rota_vaccine_coverage():
             gbd_round_id=gbd_round_id
         )
     return df
+
+
+def get_life_table():
+    with open_auxiliary_file('Life Table') as f:
+        life_table = pd.read_csv(f)
+    return life_table
+
+
+def get_doctor_visit_costs():
+    with open_auxiliary_file('Doctor Visit Costs') as f:
+        visit_costs = pd.read_csv(f, index_col=0)
+    return visit_costs
+
+
+def get_inpatient_visit_costs():
+    with open_auxiliary_file('Inpatient Visit Costs') as f:
+        visit_costs = pd.read_csv(f, index_col=0)
+    return visit_costs
+
+
+def get_hypertension_drug_costs():
+    with open_auxiliary_file('Hypertension Drug Costs') as f:
+        costs = pd.read_csv(f, index_col='name')
+    return costs
 
