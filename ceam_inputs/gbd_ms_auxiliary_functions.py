@@ -544,6 +544,3 @@ def expand_ages_for_dfs_w_all_age_estimates(df):
     total_data = male_data.append(female_data)
 
     return total_data
-
-
-# End.
