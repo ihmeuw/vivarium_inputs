@@ -10,7 +10,7 @@ import pandas as pd
 import joblib
 from joblib import Memory
 
-from ceam_inputs import distributions, gbd_ms_functions as functions
+from ceam_inputs import distributions, risk_factor_correlation, gbd_ms_functions as functions
 from ceam_inputs.util import get_cache_directory, gbd_year_range
 from ceam_inputs.auxiliary_files import open_auxiliary_file
 
@@ -532,3 +532,5 @@ def get_hypertension_drug_costs():
         costs = pd.read_csv(f, index_col='name')
     return costs
 
+def load_risk_correlation_matrices():
+    return risk_factor_correlation.load_matrices()
