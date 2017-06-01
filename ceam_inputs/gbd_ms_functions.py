@@ -1655,11 +1655,17 @@ def get_ors_pafs(location_id, year_start, year_end, draw_number):
     """
     Parameters
     ----------
-    location_id: int
-    
-    year_start: int
-    
-    year_end: int
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+ 
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    draw_number: int
+        current draw number (as specified in config.run_configuration.draw_number)
     """
     pafs = pd.read_csv("/share/epi/risk/bmgf/paf/diarrhea_ors/paf_yll_{}.csv".format(location_id))
 
@@ -1680,13 +1686,19 @@ def get_ors_relative_risks(location_id, year_start, year_end, draw_number):
     """
     Parameters
     ----------
-    location_id: int
-    
-    year_start: int
-    
-    year_end: int
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+ 
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    draw_number: int
+        current draw number (as specified in config.run_configuration.draw_number)
     """
-    
+        
     ors_rr = pd.read_csv("/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv")
     
     rr = expand_ages_for_dfs_w_all_age_estimates(ors_rr)
@@ -1709,11 +1721,17 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
     """
     Parameters
     ----------
-    location_id: int
-    
-    year_start: int
-    
-    year_end: int
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+ 
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    draw_number: int
+        current draw number (as specified in config.run_configuration.draw_number)
     """
     
     ors_exp = pd.read_csv("/share/epi/risk/bmgf/exp/diarrhea_ors/{}.csv".format(location_id))
@@ -1732,3 +1750,31 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
     keepcol = ['year_id', 'sex_id', 'age', 'parameter', 'draw_{}'.format(draw_number)]
     
     return exp[keepcol]
+
+def get_outpatient_visit_cost(location_id, year_start, year_end, draw_number):
+    """
+    Parameters
+    ----------
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+ 
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+
+    draw_number: int
+        current draw number (as specified in config.run_configuration.draw_number)
+    """
+    assert location_id in [179, 161,214], "we only currently have outpatient costs for Ethiopia, Bangladesh, and Nigeria"
+    
+    costs = pd.read_csv("/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_cost.csv")
+
+    costs = costs.query("location_id == @location_id")
+
+    costs = costs.query("variable == 'draw_{}'".format(draw_number))
+
+    costs = costs.query("year_id >= @year_start and year_id <= @year_end")
+
+    return costs
