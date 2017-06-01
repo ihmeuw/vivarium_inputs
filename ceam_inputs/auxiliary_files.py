@@ -1,4 +1,5 @@
-"""This module is a version controlled listing of data that CEAM uses which is not stored in a standard location, like the modelable entity database.
+"""This module is a version controlled listing of data that CEAM 
+uses which is not stored in a standard location, like the modelable entity database.
 """
 
 import platform
@@ -26,11 +27,11 @@ FILES = {
         'path': 'combined_dws.csv',
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv',
         },
-        'Systolic Blood Pressure Distributions': {
-            'path': 'systolic_blood_pressure/exp_{location_id}_{year_id}_{sex_id}.dta',
-            'source': '/share/epi/risk/paf/metab_sbp_interm',
-            'encoding': 'latin1',
-            'owner': 'Stan Biryukov <stan0625@uw.edu>',
+    'Systolic Blood Pressure Distributions': {
+        'path': 'systolic_blood_pressure/exp_{location_id}_{year_id}_{sex_id}.dta',
+        'source': '/share/epi/risk/paf/metab_sbp_interm',
+        'encoding': 'latin1',
+        'owner': 'Stan Biryukov <stan0625@uw.edu>',
         },
     'Body Mass Index Distributions': {
         'path': 'bmi/{parameter}/19_{location_id}_{year_id}_{sex_id}.csv',
@@ -65,6 +66,7 @@ FILES = {
 
 }
 
+
 def auxiliary_file_path(name, **kwargs):
     template_parameters = dict(kwargs)
     if platform.system() == 'Windows':
@@ -74,6 +76,7 @@ def auxiliary_file_path(name, **kwargs):
     raw_path = FILES[name]['path']
     auxiliary_data_folder = config.input_data.auxiliary_data_folder
     return join(auxiliary_data_folder, raw_path).format(**template_parameters)
+
 
 def open_auxiliary_file(name, **kwargs):
     path = auxiliary_file_path(name, **kwargs)
