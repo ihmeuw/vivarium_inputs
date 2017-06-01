@@ -1751,7 +1751,7 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
     
     return exp[keepcol]
 
-def get_outpatient_visit_cost(location_id, year_start, year_end, draw_number):
+def get_outpatient_visit_costs(location_id, year_start, year_end, draw_number):
     """
     Parameters
     ----------

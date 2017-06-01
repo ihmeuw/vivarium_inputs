@@ -552,11 +552,11 @@ def get_ors_exposures():
     return output
 
 
-def get_outpatient_visit_cost():
+def get_outpatient_visit_costs():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
     
-    output = functions.get_outpatient_visit_cost(location_id, year_start, year_end, draw_number)
+    output = functions.get_outpatient_visit_costs(location_id, year_start, year_end, draw_number)
     
     return output
