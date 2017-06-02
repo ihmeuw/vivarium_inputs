@@ -63,7 +63,10 @@ FILES = {
         'path': 'higashi_drug_costs_20160804.csv',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
-
+    'Outpatient Visit Costs': {
+        'path': 'op_cost.csv',
+        'source': "/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_cost.csv"
+    },
 }
 
 
