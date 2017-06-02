@@ -509,6 +509,68 @@ def get_rota_vaccine_coverage():
     return df
 
 
+def get_ors_pafs():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw_number = config.run_configuration.draw_number
+
+    return functions.load_data_from_cache(functions.get_ors_pafs,
+                                          col_name='paf',
+                                          src_column='paf_{draw}',
+                                          location_id=location_id,
+                                          year_start=year_start,
+                                          year_end=year_end,
+                                          draw_number=draw_number)
+
+
+def get_ors_relative_risks():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw_number = config.run_configuration.draw_number
+
+    funct_output = functions.load_data_from_cache(functions.get_ors_relative_risks,
+                                                  col_name='rr',
+                                                  src_column=None,
+                                                  location_id=location_id,
+                                                  year_start=year_start,
+                                                  year_end=year_end,
+                                                  draw_number=draw_number)
+
+    output = funct_output.pivot_table(index=['age', 'year', 'sex'],
+                                      columns=[funct_output.parameter.values], values=['rr'])
+
+    output.columns = output.columns.droplevel()
+    output.reset_index(inplace=True)
+
+    return output.reset_index()
+
+def get_ors_exposures():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw_number = config.run_configuration.draw_number
+
+    funct_output = functions.load_data_from_cache(functions.get_ors_exposures, col_name='exp', src_column=None,
+                                        location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number)
+
+    output = funct_output.pivot_table(index=['age', 'year', 'sex'], columns=[funct_output.parameter.values], values=['exp'])
+
+    output.columns = output.columns.droplevel()
+
+    output.reset_index(inplace=True)
+
+    return output
+
+
+def get_outpatient_visit_costs():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw_number = config.run_configuration.draw_number
+
+    output = functions.get_outpatient_visit_costs(location_id, year_start, year_end, draw_number)
+
+    return output
+
+
 def get_life_table():
     with open_auxiliary_file('Life Table') as f:
         life_table = pd.read_csv(f)
