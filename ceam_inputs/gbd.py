@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from ceam_inputs.util import get_cache_directory
-from ceam_inputs.auxiliary_files import open_auxiliary_file
+from ceam_inputs.auxiliary_files import auxiliary_file_path
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
@@ -129,7 +129,7 @@ def _get_risk_draws(location_id, risk_id, draw_type, gbd_round_id):
 def get_relative_risks(location_id, risk_id, gbd_round_id):
     return _get_risk_draws(location_id=location_id,
                            risk_id=risk_id,
-                           draw_type='err',
+                           draw_type='rr',
                            gbd_round_id=gbd_round_id)
 
 
@@ -178,12 +178,16 @@ def get_deaths(location_id, gbd_round_id):
 
 @memory.cache
 def get_data_from_auxiliary_file(file_name, **kwargs):
-    with open_auxiliary_file(file_name, **kwargs) as f:
-        file_type = file_name.split('.')[-1]
-        if file_type == 'csv':
-            data = pd.read_csv(f)
-        elif file_type == 'h5':
-            data = pd.read_hdf(f)
+    path, encoding = auxiliary_file_path(file_name, **kwargs)
+    file_type = path.split('.')[-1]
+    if file_type == 'csv':
+        data = pd.read_csv(path, encoding=encoding)
+    elif file_type == 'h5':
+        data = pd.read_hdf(path, encoding=encoding)
+    elif file_type == 'dta':
+        data = pd.read_stata(path, encoding=encoding)
+    else:
+        raise NotImplementedError("File type {} is not supported".format(file_type))
     return data
 
 

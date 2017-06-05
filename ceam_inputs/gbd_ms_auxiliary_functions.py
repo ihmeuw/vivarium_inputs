@@ -1,9 +1,5 @@
-from multiprocessing.process import current_process
-
 import numpy as np
 import pandas as pd
-
-from scipy import stats
 
 from ceam import config
 from ceam_inputs import gbd
@@ -61,7 +57,8 @@ def normalize_for_simulation(df):
 
     Returns
     -------
-    Returns a df with column year_id changed to year, sex_id changed to sex, and sex values changed from 1 and 2 to Male and Female
+    Returns a df with column year_id changed to year, 
+    sex_id changed to sex, and sex values changed from 1 and 2 to Male and Female
 
     Notes
     -----
@@ -73,12 +70,8 @@ def normalize_for_simulation(df):
 
     Unit test in place? -- Yes
     """
-
-    # Convert sex_id to a categorical
-    df['sex'] = df.sex_id.map(
-        {1: 'Male', 2: 'Female', 3: 'Both'}).astype('category')
+    df['sex'] = df.sex_id.map({1: 'Male', 2: 'Female', 3: 'Both'}).astype('category')
     df = df.drop('sex_id', axis=1)
-
     df = df.rename(columns={'year_id': 'year'})
     return df
 
@@ -96,13 +89,11 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     Notes
     -----
-    Used by -- get_modelable_entity_draws, get_relative_risks, get_pafs, get_exposures, get_sbp_mean_sd, get_bmi_distributions, get_age_specific_fertility_rates, get_populations
-
-    Assumptions -- We assume that using a midpoint of age 82.5 for the 80+ year old age group is ok for the purposes of CEAM. Everett proposed that we could get the life expectancy at age 80 for each location and use that as the midpoint for the 80+ group, but Abie suggested that we keep the midpoint as 82.5 for now. GBD populations have data for each age group up until the age 95+ age group, at which point I'm assuming we can use 97.5 as the midpoint.
-
-    Questions -- None
-
-    Unit test in place? -- Yes
+    Assumptions -- We assume that using a midpoint of age 82.5 for the 80+ year old age group is 
+    ok for the purposes of CEAM. Everett proposed that we could get the life expectancy at age 80 
+    for each location and use that as the midpoint for the 80+ group, but Abie suggested that we 
+    keep the midpoint as 82.5 for now. GBD populations have data for each age group up until the 
+    age 95+ age group, at which point I'm assuming we can use 97.5 as the midpoint.
     """
     if df.empty:
         df['age'] = 0
@@ -120,7 +111,8 @@ def get_age_group_midpoint_from_age_group_id(df):
     # Assumption: We're using 82.5 as the midpoint for the age 80+ age group. May want to change in the future.
     df.loc[df.age == 102.5, 'age'] = 82.5
 
-    # TODO: Confirm this is an ok assumption. GBD produces population data for 80-84, 85-89, and 90-94 year olds. We're seeting the midpoint for the age 95+ year old age group to be 97.5
+    # TODO: Confirm this is an ok assumption. GBD produces population data for 80-84, 85-89, and 90-94 year olds.
+    # We're setting the midpoint for the age 95+ year old age group to be 97.5
     df.loc[df.age == 110, 'age'] = 97.5
 
     df = df.set_index(idx)
@@ -129,54 +121,45 @@ def get_age_group_midpoint_from_age_group_id(df):
 
 
 def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up_80_plus=False):
-    """
-    Get age-/sex-specific population structure
+    """Get age-/sex-specific population structure
 
     Parameters
     ----------
     location_id : int, location id
         location_id takes same location_id values as are used for GBD
-
     year_start : int, year
         year_start is the year in which you want to start the simulation
-
     sex_id: str, sex
         sex_id takes values 1, 2, or 3
+    get_all_years: bool
+    sum_up_80_plus: bool
 
     Returns
     -------
-    df with columns year_id, location_name, location_id, age, sex_id, and
-        pop_scaled
+    df with columns year_id, location_name, location_id, age, sex_id, and pop_scaled
         pop_scaled is the population for a given age/year/sex
 
     Notes
     -----
-    Used by -- generate_ceam_population, create_sex_id_column
-
-    Assumptions --  None
-
-    Questions -- None
-
-    Unit test in place? -- No. Don't think one is needed. We just use the central comp get_population function to get the population data and then select a specific year, specific sex, and use the get_age_group_midpoint_from_age_group_id function to get the age group midpoints.
-
-    Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using central comp's get_populations function.
+    Unit test in place? -- No. Don't think one is needed. We just use the central comp get_population 
+    function to get the population data and then select a specific year, specific sex, and use the 
+    get_age_group_midpoint_from_age_group_id function to get the age group midpoints.
+    Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty 
+    estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and 
+    maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using 
+    central comp's get_populations function.
     """
     pop = gbd.get_populations(location_id, gbd_round_id=config.simulation_parameters.gbd_round_id)
     pop = pop[pop.sex_id == sex_id]
     if not get_all_years:
         pop = pop[pop.year_id == year_start]
 
-    # use auxilliary function extract_age_from_age_group_name to create an age column
     pop = get_age_group_midpoint_from_age_group_id(pop)
-
-    # Determine gender of interest. Can be 1, 2, or 3 (Male, Female, or Both)
     pop = pop.query("sex_id == {s}".format(s=sex_id))
-
-    # Keep only the relevant columns
     pop = pop[['year_id', 'location_id', 'age', 'sex_id', 'population']]
 
-    # The population column was called pop_scaled in GBD 2015, but name was changed. Changing it back
-    # since all of our code uses pop_scaled as the col name
+    # The population column was called pop_scaled in GBD 2015, but name was changed.
+    # Changing it back since all of our code uses pop_scaled as the col name
     pop = pop.rename(columns={'population': 'pop_scaled'})
 
     # FIXME: As of 1-23, get_populations is only function we use that has data for detailed
@@ -184,17 +167,12 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
     # with other data, but will likely not need this in the future if all other estimates
     # start giving data for more detailed age groups over the age of 80
     # if config.simulation_parameters.gbd_round_id != 3:
-    if sum_up_80_plus == True:
+    if sum_up_80_plus:
         older_pop = pop.query("age >= 80").copy()
-
         older_grouped = older_pop.groupby(['year_id', 'location_id', 'sex_id'], as_index=False).sum()
-
         older_grouped['age'] = 82.5
-
         younger_pop = pop.query("age < 80").copy()
-
-        del(pop)
-
+        del pop
         pop = younger_pop.append(older_grouped)
 
     # assert an error if there are duplicate rows
@@ -394,29 +372,6 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end, gbd_round_id
     return all_cause_mortality_rate
 
 
-def get_healthstate_id(dis_weight_modelable_entity_id):
-    """Returns a healthstate_id for a given modelable entity id
-
-    Parameters
-    ----------
-    dis_weight_modelable_entity_id : int
-
-    Returns
-    -------
-    integer specifying healthstate_id for modelable entity id that was supplied
-
-    Used by -- get_disability_weight
-
-    Assumptions -- None
-
-    Questions -- None
-
-    Unit test in place? -- Yes
-    """
-
-    return gbd.get_healthstate_id(dis_weight_modelable_entity_id)
-
-
 def expand_grid(a, y):
     """
     Creates an expanded dataframe of ages and years
@@ -434,16 +389,15 @@ def expand_grid(a, y):
     Dataframe of expanded ages and years
     """
 
-    aG, yG = np.meshgrid(a, y)  # create the actual grid
-    aG = aG.flatten()  # make the grid 1d
-    yG = yG.flatten()  # make the grid 1d
-    df = pd.DataFrame({'age': aG, 'year_id': yG})  # return a dataframe
+    ages, years = np.meshgrid(a, y)  # create the actual grid
+    ages = ages.flatten()  # make the grid 1d
+    years = years.flatten()  # make the grid 1d
+    df = pd.DataFrame({'age': ages, 'year_id': years})  # return a dataframe
     return df[['year_id', 'age']].sort_values(by=['year_id', 'age'])
 
 
 def get_all_age_groups_for_years_in_df(df):
-    """
-    returns a dataframe with all ages for all years in df
+    """Returns a dataframe with all ages for all years in df
 
     columns are age and year_id
     """
@@ -459,9 +413,7 @@ def get_all_age_groups_for_years_in_df(df):
 
 def expand_ages(df):
     expanded_cols = get_all_age_groups_for_years_in_df(df)
-
     expanded_indexed = expanded_cols.set_index(['year_id', 'age'])
-
     indexed_df = df.set_index(['year_id', 'age']).sortlevel()
     total_df = pd.DataFrame()
 
@@ -469,7 +421,8 @@ def expand_ages(df):
     if 'parameter' in df.columns:
         for sex in pd.unique(df.sex_id.values):
             for param in pd.unique(df.parameter.values):
-                one_df = pd.DataFrame(indexed_df.query('parameter == @param and sex_id == @sex'), index=expanded_indexed.index)
+                one_df = pd.DataFrame(indexed_df.query('parameter == @param and sex_id == @sex'),
+                                      index=expanded_indexed.index)
                 one_df['sex_id'] = sex
                 one_df['parameter'] = param
                 total_df = total_df.append(one_df)
@@ -484,19 +437,15 @@ def expand_ages(df):
 
 
 def expand_ages_for_dfs_w_all_age_estimates(df):
-    '''
-    Some tables only have estimates for the "all ages" age group instead of broken out for the different age group ids. We need estimates for each age group separately, so this function expands tables with estimates for only the "all ages" to include estimates for each age group id
-    '''
+    """Some tables only have estimates for the "all ages" age group instead of 
+    broken out for the different age group ids. We need estimates for each age 
+    group separately, so this function expands tables with estimates for only 
+    the "all ages" to include estimates for each age group id
+    """
     expanded_cols = get_all_age_groups_for_years_in_df(df)
-
     male_data = pd.merge(df, expanded_cols)
-
     male_data['sex_id'] = 1
-
     female_data = pd.merge(df, expanded_cols)
-
     female_data['sex_id'] = 2
-
     total_data = male_data.append(female_data)
-
     return total_data

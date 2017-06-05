@@ -94,7 +94,7 @@ def auxiliary_file_path(name, **kwargs):
         template_parameters['j_drive'] = '/home/j'
     raw_path = FILES[name]['path']
     auxiliary_data_folder = config.input_data.auxiliary_data_folder
-    return join(auxiliary_data_folder, raw_path).format(**template_parameters)
+    return join(auxiliary_data_folder, raw_path).format(**template_parameters), FILES[name].get('encoding')
 
 
 def open_auxiliary_file(name, **kwargs):

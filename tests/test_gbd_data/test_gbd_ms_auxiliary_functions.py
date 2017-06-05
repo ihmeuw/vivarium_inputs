@@ -5,7 +5,6 @@ from ceam_inputs.gbd_ms_auxiliary_functions import create_age_column
 from ceam_inputs.gbd_ms_auxiliary_functions import normalize_for_simulation
 from ceam_inputs.gbd_ms_auxiliary_functions import expand_grid
 from ceam_inputs.gbd_ms_auxiliary_functions import assign_sex_id
-from ceam_inputs.gbd_ms_auxiliary_functions import get_healthstate_id
 
 import pandas as pd
 import numpy as np
@@ -61,20 +60,12 @@ def test_assign_sex_id():
     assert np.allclose(grouped.proportion.tolist(), [x for x in np.arange(.25, 1.25, .25)] + [x for x in np.arange(0, 1.25, .25)][4:0:-1], .1), 'assign_sex_id needs to assign sexes so that they are correlated with age'
 
 
-# 5. get_healthstate_id
-def test_get_healthstate_id():
-    # modelable entity id 1823 = severe heart failure
-    val = get_healthstate_id(dis_weight_modelable_entity_id=1823)
-
-    assert val == 383, "modelable entity id 1823 should have a healthstate of 383 as of 9/30"
-
-
 #6. expand_grid
 def test_expand_grid():
     ages = pd.Series([0, 1, 2, 3, 4, 5])
     years = pd.Series([1990, 1991, 1992])
 
     df = expand_grid(ages, years)
-    
+
     assert df.year_id.tolist() == np.repeat([1990, 1991, 1992], 6).tolist(), "expand_grid should expand a df to get row for each age/year combo"
     assert df.age.tolist() == [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5], "expand_grid should expand a df to get row for each age/year combo"
