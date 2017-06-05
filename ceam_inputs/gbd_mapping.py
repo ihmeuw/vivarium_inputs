@@ -234,6 +234,46 @@ raw_risk_mapping = {
         'adenovirus': {
             'gbd_risk': rid(185),
             'effected_causes': [causes.diarrhea]
+        },
+        'wash_hygiene': {
+            'gbd_risk': rid(238),
+            'effected_causes': [causes.diarrhea]
+        },
+        'nutrition_vitamina': {
+            'gbd_risk': rid(96),
+            'effected_causes': [causes.diarrhea]
+        },
+        'wash_water': {
+            'gbd_risk': rid(83),
+            'effected_causes': [causes.diarrhea]
+        },
+        'wash_sanitation': {
+            'gbd_risk': rid(84),
+            'effected_causes': [causes.diarrhea]
+        },
+        'nutrition_zinc': {
+            'gbd_risk': rid(97),
+            'effected_causes': [causes.diarrhea]
+        },
+        'nutrition_breast_disc': {
+            'gbd_risk': rid(137),
+            'effected_causes': [causes.diarrhea]
+        },
+        'nutrition_breast_nonexc': {
+            'gbd_risk': rid(136),
+            'effected_causes': [causes.diarrhea]
+        },
+        'nutrition_wasting': {
+            'gbd_risk': rid(240),
+            'effected_causes': [causes.diarrhea]
+        },
+        'nutrition_stunting': {
+            'gbd_risk': rid(241),
+            'effected_causes': [causes.diarrhea]
+        },
+        'vacc_mcv1': {
+            'gbd_risk': rid(318),
+            'effected_causes': [causes.diarrhea]
         }
 }
 
