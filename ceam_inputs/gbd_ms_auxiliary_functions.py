@@ -6,18 +6,7 @@ import pandas as pd
 from scipy import stats
 
 from ceam import config
-
-try:
-    from db_tools.ezfuncs import query
-except ImportError:
-    def query(*args, **kwarg):
-        raise ImportError("No module named 'db_tools' (you must install central_comp's db_tools package _or_ supply precached data)")
-
-# This file contains auxiliary functions that are used
-# in gbd_ms_functions.py to prepare data for ceam
-
-
-# TODO: MAKE SURE NEW PYTHON FUNCTIONS ARE USING THE PUBLICATION IDS!!
+from ceam_inputs import gbd
 
 
 def create_age_column(simulants_file, population_file, number_of_simulants):
@@ -58,7 +47,7 @@ def create_age_column(simulants_file, population_file, number_of_simulants):
     ages = population_file.age.values
     proportions = population_file.proportion_of_total_pop.values
     simulant_ages = np.random.choice(ages, number_of_simulants, p=list(proportions))
-    simulants_file['age'] = simulant_ages    
+    simulants_file['age'] = simulant_ages
 
     return simulants_file
 
@@ -121,7 +110,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     df = df.copy()
     idx = df.index
-    mapping = query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
+    mapping = gbd.get_age_bins()
     mapping = mapping.set_index('age_group_id')
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
 
@@ -130,7 +119,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     # Assumption: We're using 82.5 as the midpoint for the age 80+ age group. May want to change in the future.
     df.loc[df.age == 102.5, 'age'] = 82.5
-    
+
     # TODO: Confirm this is an ok assumption. GBD produces population data for 80-84, 85-89, and 90-94 year olds. We're seeting the midpoint for the age 95+ year old age group to be 97.5
     df.loc[df.age == 110, 'age'] = 97.5
 
@@ -138,7 +127,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     return df
 
-# TODO: Make the central comp get_populations call take a gbd_round_id argument
+
 def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up_80_plus=False):
     """
     Get age-/sex-specific population structure
@@ -172,36 +161,28 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
 
     Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using central comp's get_populations function.
     """
-    from db_queries import get_population # This import is not at global scope because I only want the dependency if cached data is unavailable
+    pop = gbd.get_populations(location_id, gbd_round_id=config.simulation_parameters.gbd_round_id)
+    pop = pop[pop.sex_id == sex_id]
+    if not get_all_years:
+        pop = pop[pop.year_id == year_start]
 
-    # use central comp's get_population function to get gbd populations
-    # the age group id arguments get the age group ids for each age group up through age 95+
-    if get_all_years:
-        year_id = -1
-    else:
-        # Grab population for year_start only (to initialize microsim population)
-        year_id = year_start
-    pop = get_population(age_group_id=list(range(2,21)) + [30, 31, 32] + [235], location_id=location_id, year_id=year_id, sex_id=sex_id)
-
-    # Don't include the older ages in the 2015 runs
-    # if config.simulation_parameters.gbd_round_id == 3:
-    #    pop = pop.query("age_group_id <= 21")
-
-    # use auxilliary function extract_age_from_age_group_name to create an age
-    # column
+    # use auxilliary function extract_age_from_age_group_name to create an age column
     pop = get_age_group_midpoint_from_age_group_id(pop)
 
     # Determine gender of interest. Can be 1, 2, or 3 (Male, Female, or Both)
     pop = pop.query("sex_id == {s}".format(s=sex_id))
 
     # Keep only the relevant columns
-    pop = pop[['year_id', 
-               'location_id', 'age', 'sex_id', 'population']]
+    pop = pop[['year_id', 'location_id', 'age', 'sex_id', 'population']]
 
-    # The population column was called pop_scaled in GBD 2015, but name was changed. Changing it back since all of our code uses pop_scaled as the col name
+    # The population column was called pop_scaled in GBD 2015, but name was changed. Changing it back
+    # since all of our code uses pop_scaled as the col name
     pop = pop.rename(columns={'population': 'pop_scaled'})
 
-    # FIXME: As of 1-23, get_populations is only function we use that has data for detailed 5 year age groups over age of 80. We need to get the 80+ age group to make data compatible with other data, but will likely not need this in the future if all other estimates start giving data for more detailed age groups over the age of 80
+    # FIXME: As of 1-23, get_populations is only function we use that has data for detailed
+    # 5 year age groups over age of 80. We need to get the 80+ age group to make data compatible
+    # with other data, but will likely not need this in the future if all other estimates
+    # start giving data for more detailed age groups over the age of 80
     # if config.simulation_parameters.gbd_round_id != 3:
     if sum_up_80_plus == True:
         older_pop = pop.query("age >= 80").copy()
@@ -214,7 +195,7 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
 
         del(pop)
 
-        pop = younger_pop.append(older_grouped)        
+        pop = younger_pop.append(older_grouped)
 
     # assert an error if there are duplicate rows
     assert pop.duplicated(['age', 'year_id', 'sex_id']).sum(
@@ -367,20 +348,9 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end, gbd_round_id
 
     Unit test in place? -- Not currently, but one does need to be put in place
     '''
-    from transmogrifier.draw_ops import get_draws # This import is not at global scope because I only want the dependency if cached data is unavailable
 
-    # Potential FIXME: Should all_cause_draws and pop be made arguments to the function instead of data grabbed inside the function?
-    # TODO: Make this get_draws call more flexible. Currently hardcoded to grab 2015 data.
-
-    if current_process().daemon:
-        # I'm cargo culting here. When the simulation is hosted by a dask worker, we can't spawn subprocesses in the way that get_draws wants to
-        # There are better ways of solving this but they involve understanding dask better or working on shared function code, neither of
-        # which I'm going to do right now. -Alec
-        worker_count = 0
-    else:
-        worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
-
-    all_cause_draws = get_draws(gbd_id_field="cause_id", gbd_id=294, age_group_ids=list(range(2,22)), location_ids=location_id, measure_ids=1, source="dalynator", status="best", gbd_round_id=gbd_round_id, year_ids=range(year_start, year_end+1), num_workers=worker_count)
+    all_cause_draws = gbd.get_deaths(location_id, gbd_round_id)
+    all_cause_draws = all_cause_draws.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
 
     # filter so that only metric id 1 (deaths) is in our dataframe
     all_cause_deaths = all_cause_draws.query("metric_id == 1")
@@ -443,22 +413,8 @@ def get_healthstate_id(dis_weight_modelable_entity_id):
 
     Unit test in place? -- Yes
     """
-    
-    healthstate_id_df = query('''
-    SELECT modelable_entity_id, healthstate_id
-    FROM epi.sequela_hierarchy_history
-    WHERE modelable_entity_id = {}
-    '''.format(int(dis_weight_modelable_entity_id))
-    , conn_def='epi')
-    
-    if healthstate_id_df.empty:
-        raise ValueError("""modelable entity id {} does not have a healthstate id. 
-        there is not a disability weight associated with this sequela, 
-        so you should not try to pull draws for it""".format(dis_weight_modelable_entity_id))
-    
-    healthstate_id = healthstate_id_df.at[0,'healthstate_id']
 
-    return healthstate_id
+    return gbd.get_healthstate_id(dis_weight_modelable_entity_id)
 
 
 def expand_grid(a, y):
@@ -491,7 +447,7 @@ def get_all_age_groups_for_years_in_df(df):
 
     columns are age and year_id
     """
-    mapping = query('''select age_group_id, age_group_years_start, age_group_years_end from age_group''', conn_def='shared')
+    mapping = gbd.get_age_bins()
     mapping_filter = mapping.query('age_group_id >=2 and age_group_id <=21').copy()
     mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5
@@ -500,15 +456,15 @@ def get_all_age_groups_for_years_in_df(df):
 
     return expanded_data
 
+
 def expand_ages(df):
-    expanded_cols = get_all_age_groups_for_years_in_df(df) 
+    expanded_cols = get_all_age_groups_for_years_in_df(df)
 
     expanded_indexed = expanded_cols.set_index(['year_id', 'age'])
 
-    
     indexed_df = df.set_index(['year_id', 'age']).sortlevel()
     total_df = pd.DataFrame()
-    
+
     # for rrs and exposures, there are multiple parameters
     if 'parameter' in df.columns:
         for sex in pd.unique(df.sex_id.values):
@@ -517,7 +473,7 @@ def expand_ages(df):
                 one_df['sex_id'] = sex
                 one_df['parameter'] = param
                 total_df = total_df.append(one_df)
-    
+
     else:
         for sex in pd.unique(df.sex_id.values):
             one_df = pd.DataFrame(indexed_df.query('sex_id == @sex'), index=expanded_indexed.index)

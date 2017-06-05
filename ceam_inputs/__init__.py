@@ -10,7 +10,7 @@ import pandas as pd
 import joblib
 from joblib import Memory
 
-from ceam_inputs import distributions, risk_factor_correlation, gbd_ms_functions as functions
+from ceam_inputs import distributions, gbd, risk_factor_correlation, gbd_ms_functions as functions
 from ceam_inputs.util import get_cache_directory, gbd_year_range
 from ceam_inputs.auxiliary_files import open_auxiliary_file
 
@@ -136,13 +136,8 @@ def get_proportion(modelable_entity_id):
     return _get_modelable_entity_draws(column_name='proportion', measure=19, modelable_entity_id=modelable_entity_id)
 
 
-@memory.cache
 def get_age_bins():
-    # This import is here to make the dependency on db_tools optional if the data is available from cache
-    from db_tools import ezfuncs
-    return ezfuncs.query('''
-        SELECT age_group_id, age_group_years_start, age_group_years_end, age_group_name 
-        FROM age_group''', conn_def='shared')
+    gbd.get_age_bins()
 
 
 def get_prevalence(modelable_entity_id):
@@ -262,7 +257,10 @@ def generate_ceam_population(number_of_simulants, initial_age=None, time=None):
 def get_age_specific_fertility_rates():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
-    return functions.load_data_from_cache(functions.get_age_specific_fertility_rates, col_name=['mean_value', 'lower_value', 'upper_value'], src_column=['mean_value', 'lower_value', 'upper_value'], location_id=location_id, year_start=year_start, year_end=year_end)
+    return functions.load_data_from_cache(functions.get_age_specific_fertility_rates,
+                                          col_name=['mean_value', 'lower_value', 'upper_value'],
+                                          src_column=['mean_value', 'lower_value', 'upper_value'],
+                                          location_id=location_id, year_start=year_start, year_end=year_end)
 
 
 def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
@@ -312,18 +310,6 @@ def get_annual_live_births(location_id, year, sex_id=3):
                                           col_name=None)
     return data['mean_value']
 
-
-
-def get_ors_exposure():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-
-    return functions.load_data_from_cache(functions.get_ors_exposure,
-                                          location_id=location_id,
-                                          year_start=year_start,
-                                          year_end=year_end,
-                                          draw_number=draw_number, col_name=None)
 
 
 def get_sbp_distribution():

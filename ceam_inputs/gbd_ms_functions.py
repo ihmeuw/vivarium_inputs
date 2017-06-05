@@ -13,28 +13,18 @@ https://hub.ihme.washington.edu/display/GBD2016/Shared+functions
 
 import os.path
 import os
+import inspect
 from multiprocessing.process import current_process
 
 import numpy as np
 import pandas as pd
-
-try:
-    from transmogrifier.draw_ops import get_draws
-except ImportError:
-    def get_draws(*args, **kwargs):
-        raise ImportError("No module named 'transmogrifier' (you must install central_comp's transmogrifier package _or_ supply precached data)")
-
-try:
-    from hierarchies import dbtrees
-except ImportError:
-    def dbtrees(*args, **kwargs):
-        raise ImportError("No module named 'hierarchies' (you must install central_comp's hierarchies package _or_ supply precached data)")
 
 from ceam import config, CEAMError
 from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
 from ceam.framework.util import rate_to_probability
 
+from ceam_inputs import gbd
 from ceam_inputs.util import get_cache_directory
 from ceam_inputs.auxiliary_files import open_auxiliary_file, auxiliary_file_path
 from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
@@ -56,30 +46,6 @@ class CEAMDataIngestionError(CEAMError):
 
 class UnhandledRiskError(CEAMDataIngestionError):
    pass
-
-
-def get_model_versions():
-    """Return a mapping from modelable_entity_id to the version of that entity 
-    associated with the GBD publications currently configured.
-    """
-    return _cached_model_versions(config.input_data.gbd_publication_ids)
-
-@memory.cache
-def _cached_model_versions(publication_ids):
-    from db_tools import ezfuncs # This import is not at global scope because I only want the dependency if cached data is unavailable
-
-    mapping = ezfuncs.query('''
-    SELECT modelable_entity_id, model_version_id
-    FROM epi.publication_model_version
-    JOIN epi.model_version USING (model_version_id)
-    JOIN shared.publication USING (publication_id)
-    WHERE publication_id in ({})
-    '''.format(','.join([str(pid) for pid in publication_ids]))
-    , conn_def='epi')
-
-    mapping = dict(mapping[['modelable_entity_id', 'model_version_id']].values)
-
-    return mapping
 
 
 def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id):
@@ -122,18 +88,9 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     Unit test in place? -- No. Don't think it's necessary, since this function merely pulls draws from the database and then filters a dataframe so that only one measure is included in the output and that only the years in b/w the simulation year start and year end are included in the df.
     """
 
-    meid_version_map = get_model_versions()
-    model_version = meid_version_map[me_id]
-
-    draws = get_draws('modelable_entity_id', me_id, location_ids=location_id, source='dismod', sex_ids=[1,2], age_group_ids=list(range(2,22)), model_version_id=model_version)
-
-    # draws = python_wrapper('get_modelable_entity_draws.py', 'draws_for_location{l}_for_meid{m}.csv'.format(m=me_id, l=location_id), location_id, me_id, model_version)
-
+    draws = gbd.get_modelable_entity_draws(location_id, me_id, config.input_data.gbd_publication_ids)
     draws = draws[draws.measure_id == measure]
-
-    draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
-                         ys=year_start, ye=year_end))
-
+    draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     draws = get_age_group_midpoint_from_age_group_id(draws)
 
     keepcol = ['year_id', 'sex_id', 'age']
@@ -194,7 +151,8 @@ def generate_ceam_population(location_id, time, number_of_simulants, initial_age
     year_start = time.year
     # Use auxilliary get_populations function to bring in the both sex
     # population
-    # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80, CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
+    # FIXME: IF/WHEN THE OTHER FUNCTIONS INCLUDE ESTIMATES FOR 5 YEAR AGE GROUPS OVER 80,
+    # CHANGE SUM_UP_80_PLUS TO = FALSE!!!!
     pop = get_populations(location_id, year_start, 3, sum_up_80_plus=True)
 
     if pop_age_start is not None:
@@ -267,7 +225,7 @@ def assign_subregions(index, location_id, year):
     This ignores demographic details. So if there is some region that has a
     age or sex bias in it's population, that will not be captured.
     """
-    region_ids = [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
+    region_ids = gbd.get_subregions(location_id)
 
     if not region_ids:
         # The location has no sub regions
@@ -692,6 +650,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
 
     return output_df[keepcol]
 
+
 def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, draw_number, rr_type='morbidity'):
     """
     Parameters
@@ -734,16 +693,7 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id, gbd
 
     Unit test in place? -- Yes
     """
-
-    # FIXME: Will want this pull to be linked to a publication id.
-    rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=gbd_round_id)
-
-    # Not all rrs are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    if np.all(rr.values == "error"):
-        rr = get_draws(gbd_id_field='rei_id', gbd_id=risk_id, location_ids=location_id, year_ids=range(year_start, year_end+1), sex_ids=[1,2], status='best', source='risk', draw_type='rr', gbd_round_id=gbd_round_id - 1)
-    elif np.any(rr.values == "error"):
-        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
-
+    rr = gbd.get_relative_risks(location_id=location_id, risk_id=risk_id, gbd_round_id=gbd_round_id)
     if rr_type == 'morbidity':
         rr = rr.query("morbidity == 1")
     elif rr_type == 'mortality':
@@ -829,7 +779,7 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
     else:
         raise ValueError('paf_type accepts one of two values, morbidity or mortality. you typed "{}" which is incorrect'.format(paf_type))
 
-    age_groups = list(range(1,22))
+
     if current_process().daemon:
         # I'm cargo culting here. When the simulation is hosted by a dask worker,
         # we can't spawn sub-processes in the way that get_draws wants to
@@ -840,7 +790,8 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
     else:
         worker_count = int((year_end - year_start)/5) # One worker per 5-year dalynator file
 
-    pafs = get_draws('cause_id', cause_id, location_ids=location_id, sex_ids=[1,2], year_ids=range(year_start, year_end+1), source='dalynator', age_group_ids=age_groups, measure_ids=measure_id, status='best', gbd_round_id=gbd_round_id, include_risks=True, num_workers=worker_count)
+    pafs = gbd.get_pafs(location_id=location_id, cause_id=cause_id, gbd_round_id=gbd_round_id)
+    pafs = pafs[pafs.measure_id == measure_id]
 
     keepcol = ['year_id', 'sex_id', 'age']
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
@@ -912,15 +863,7 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
 
     Unit test in place? -- No. Just pulls exposures from the database and then does some light processing (e.g. gets age group midpoints)
     """
-    age_groups = list(range(1,22))
-    exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', age_group_ids=age_groups, gbd_round_id=gbd_round_id)
-
-    # Not all exposures are updated every round. For those that aren't updated every round, we can pull the rrs from a previous gbd_round
-    if np.all(exposure.values == "error"):
-        exposure = get_draws('rei_id', risk_id, 'risk', location_ids=location_id, year_ids=range(year_start, year_end+1), draw_type='exposure', gbd_round_id=gbd_round_id - 1)
-    elif np.any(exposure.values == "error"):
-        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
-
+    exposure = gbd.get_exposures(location_id=location_id, risk_id=risk_id, gbd_round_id=gbd_round_id)
     exposure = exposure.query("year_id >= @year_start and year_id <= @year_end")
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
@@ -971,37 +914,6 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
     return exposure[keepcol]
 
 
-# ### 9. TMREDs
-# # TODO: Confirm that TMREDs are being calculated correct
-
-# tmred_df = pd.read_excel('/snfs1/Project/Cost_Effectiveness/dev/data/gbd/risk_data/risk_variables.xlsx')
-
-# # theoretical minimum risk exposure levels
-# tmred_df = pd.read_excel('/snfs1/Project/Cost_Effectiveness/dev/data/gbd/risk_data/risk_variables.xlsx')
-
-# # dictionary to hold TMREDs
-# risk_tmred = {}
-
-# # save max and min TMREDs to dictionary (distributions are all uniform)
-# for risk in ['metab_sbp','smoking']:
-#     risk_tmred[risk] = tmred_df.loc[tmred_df.risk==risk,['tmred_dist','tmred_para1','tmred_para2','rr_scalar','inv_exp']]
-
-# risk_tmred['metab_sbp']
-
-# risk_tmrel = {}
-
-# # draw from uniform distribution for each risk factor
-# for risk in ['metab_sbp']:
-#     risk_tmrel[risk] = np.random.uniform(low=risk_tmred[risk]['tmred_para1'],high=risk_tmred[risk]['tmred_para2'],size=1)[0]
-#     risk_tmrel[risk] = ((risk_tmred[risk]['tmred_para1'].values.astype(float)
-#                          + risk_tmred[risk]['tmred_para2'].values.astype(float))/2)[0]
-
-# risk_tmrel['metab_sbp']
-
-
-# 10. load_data_from_cache
-
-
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 
@@ -1041,27 +953,32 @@ def load_data_from_cache(funct, col_name, *args, src_column=None, **kwargs):
     os.umask(old_umask)
 
     draw = config.run_configuration.draw_number
+    return select_draw_data(function_output, draw, col_name, src_column)
 
-    if col_name:
+
+def select_draw_data(data, draw, column_name, src_column=None):
+    if column_name:
         if src_column is not None:
             if isinstance(src_column, str):
-                column_map = {src_column.format(draw=draw): col_name}
+                column_map = {src_column.format(draw=draw): column_name}
             else:
-                column_map = {src.format(draw=draw):dest for src, dest in zip(src_column, col_name)}
+                column_map = {src.format(draw=draw): dest for src, dest in zip(src_column, column_name)}
         else:
-            column_map = {'draw_{draw}'.format(draw=draw): col_name}
+            column_map = {'draw_{draw}'.format(draw=draw): column_name}
 
-        # if 'parameter' is in columns, then keep it, else do not keep it (need parameter for the relative risk estimations)
-        if 'parameter' in function_output.columns:
+        # if 'parameter' is in columns, then keep it, else do
+        # not keep it (need parameter for the relative risk estimations)
+        if 'parameter' in data.columns:
             keepcol = ['year_id', 'age', 'sex_id', 'parameter'] + list(column_map.keys())
         else:
             keepcol = ['year_id', 'age', 'sex_id'] + list(column_map.keys())
 
-        function_output = function_output[keepcol]
-        function_output = function_output.rename(columns=column_map)
+        data = data[keepcol]
+        data = data.rename(columns=column_map)
 
-        return normalize_for_simulation(function_output)
-    return function_output
+        return normalize_for_simulation(data)
+    return data
+
 
 
 # 12. get_sbp_mean_sd
@@ -1176,11 +1093,13 @@ def get_angina_proportions():
     Unit test in place? -- Yes
     '''
 
-    # TODO: Need to figure out a way to check to see if this file is ever updated. Would be nice if we could think of a better way to make sure we're using the most up to date data.
+    # TODO: Need to figure out a way to check to see if this file is ever updated.
+    # Would be nice if we could think of a better way to make sure we're using the most up to date data.
     with open_auxiliary_file('Angina Proportions') as f:
         ang = pd.read_csv(f)
 
-    # not sure why income is included in this file. estimates are the same for high and low income countries. we'll filter
+    # not sure why income is included in this file. estimates are the same for
+    # high and low income countries. we'll filter
     # on high income to get rid of the superfluous rows.
     ang = ang.query("income == 'high'")
 
@@ -1529,9 +1448,7 @@ def get_severe_diarrhea_excess_mortality(excess_mortality_dataframe, severe_diar
     ----------
     excess_mortality_dataframe: pd.DataFrame
         excess mortality estimates for diarrhea from GBD
-
-    draw_number: int
-        specific draw number
+    severe_diarrhea_proportion: float
     """
     excess_mortality_dataframe['rate'] = excess_mortality_dataframe['rate'] / severe_diarrhea_proportion
     return excess_mortality_dataframe
@@ -1540,8 +1457,7 @@ def get_severe_diarrhea_excess_mortality(excess_mortality_dataframe, severe_diar
 # TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of covariate short name, because names are subject to change but ids should stay the same
 # TODO: Also link that covariate id to a publication id, if possible
 
-def get_covariate_estimates(covariate_name_short=None, location_id=-1, year_id=-1, sex_id=-1):
-
+def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex_id=None):
     """
     Gets covariate estimates for a specified location. Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.
 
@@ -1549,49 +1465,24 @@ def get_covariate_estimates(covariate_name_short=None, location_id=-1, year_id=-
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
-
-    covariate_short_name: str
+    covariate_name_short: str
         the covariate_short_name for the covariate of interest.
         you can look up covariate_short_names here: http://cn307.ihme.washington.edu:9998/
         (check the covariate_metadata_tab in website above)
+    year_id: int
+    sex_id: int
 
     Returns
     -------
     A dataframe of covariate_estimates.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    # This import is not at global scope because I only want the dependency if cached data is unavailable
-    from db_queries import get_covariate_estimates
-
-    covariate_estimates = get_covariate_estimates(covariate_name_short=covariate_name_short,
-                                                  covariate_id=None,
-                                                  location_id=location_id,
-                                                  year_id=year_id,
-                                                  sex_id=sex_id,
-                                                  age_group_id=-1,
-                                                  model_version_id=None)
+    covariate_estimates = gbd.get_covariate_estimates(covariate_name_short, location_id)
+    if year_id:
+        covariate_estimates = covariate_estimates[covariate_estimates.year_id == year_id]
+    if sex_id:
+        covariate_estimates = covariate_estimates[covariate_estimates.year_id == sex_id]
     return covariate_estimates
-
-
-# FIXME: Won't need function below once ORS exposure and RR estimates are uploaded to the database
-def get_ors_exposure(location_id, year_start, year_end, draw_number):
-    covariate_estimates_input = pd.read_csv("/share/epi/risk/bmgf/draws/exp/diarrhea_ors.csv")
-
-    covariate_estimates = covariate_estimates_input.query("location_id == {}".format(location_id)).copy()
-
-    expanded = expand_ages_for_dfs_w_all_age_estimates(covariate_estimates)
-
-    expanded_estimates = expanded.query("year_id >= {ys} and year_id <= {ye}".format(ys = year_start, ye = year_end)).copy()
-
-    keepcols = ['year_id', 'sex_id', 'age', 'cat1', 'cat2']
-
-    expanded_estimates.rename(columns={'draw_{}'.format(draw_number): 'cat1'}, inplace=True)
-
-    expanded_estimates['cat2'] = 1 - expanded_estimates['cat1']
-
-    expanded_estimates = expanded_estimates[keepcols]
-
-    return normalize_for_simulation(expanded_estimates)
 
 
 def get_severity_splits(parent_meid, child_meid, draw_number):
@@ -1610,43 +1501,37 @@ def get_severity_splits(parent_meid, child_meid, draw_number):
     See also
     --------
     To determine parent and child meids, see here: http://dev-tomflem.ihme.washington.edu/sevsplits/editor
-    If the severity splits that you are require are no in the filepath below, email central comp to ask them to create the splits
+    If the severity splits that you are require are not in the file path below, 
+    email central comp to ask them to create the splits.
     """
-    splits = pd.read_hdf("/share/epi/split_prop_draws_2016/{}/prop_draws.h5".format(parent_meid))
+    splits = gbd.get_data_from_auxiliary_file('Severity Splits', parent_meid=parent_meid)
 
-    # the splits don't always add up exactly to one, so I get the sum of the splits and then divide each split by the total to scale to 1
+    # the splits don't always add up exactly to one, so I get the sum of the splits and
+    # then divide each split by the total to scale to 1
     total = splits[['draw_{}'.format(draw_number)]].sum()
     splits['scaled'] = splits['draw_{}'.format(draw_number)] / total.values
-
     splits = splits.query("child_meid == {}".format(child_meid))
-    # TODO: Use get_value in line below
+
     return splits[["scaled"]].values.item(0)
 
 
-# TODO: Write a test for get_rota_vaccine_coverage. Make sure values make sense for year/age in test, similar to get_relative_risk tests
+# TODO: Write a test for get_rota_vaccine_coverage.
+# Make sure values make sense for year/age in test, similar to get_relative_risk tests
 def get_rota_vaccine_coverage(location_id, year_start, year_end, gbd_round_id):
-    draws = get_draws('modelable_entity_id', 10596, location_ids=location_id, source='dismod', sex_ids=[1,2], age_group_ids=list(range(2,6)), gbd_round_id=gbd_round_id)
-
-    draws = draws.query('year_id>={ys} and year_id<={ye}'.format(
-                         ys=year_start, ye=year_end))
-
+    draws = gbd.get_modelable_entity_draws(location_id, me_id=10596, gbd_round_id=gbd_round_id)
+    draws = draws.query('age_group_id < {}'.format(6))
+    draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     draws = get_age_group_midpoint_from_age_group_id(draws)
-
     draws = expand_ages(draws)
+    draws[['draw_{}'.format(i) for i in range(1000)]] = draws[
+        ['draw_{}'.format(i) for i in range(1000)]].fillna(value=0)
 
-    draws[['draw_{}'.format(i) for i in range(0,1000)]] = draws[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
+    keep_columns = ['year_id', 'sex_id', 'age']
+    keep_columns.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
-    keepcol = ['year_id', 'sex_id', 'age']
-    keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
+    draws = draws[keep_columns]
 
-    draws = draws[keepcol]
-
-    # assert an error to make sure data is dense (i.e. no missing data)
-    assert draws.isnull().values.any() == False, "there are nulls in the dataframe that get_rota_vaccine_coverage just tried to output. check that the cache to make sure the data you're pulling is correct"
-
-    # assert an error if there are duplicate rows
-    assert draws.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_rota_vaccine_coverage just tried to output. check the cache to make sure that the data you're pulling is correct"
+    validate_data(draws, ['age', 'year_id', 'sex_id'])
 
     return draws.sort_values(by=['year_id', 'age', 'sex_id'])
 
@@ -1667,19 +1552,16 @@ def get_ors_pafs(location_id, year_start, year_end, draw_number):
     draw_number: int
         current draw number (as specified in config.run_configuration.draw_number)
     """
-    pafs = pd.read_csv("/share/epi/risk/bmgf/paf/diarrhea_ors/paf_yll_{}.csv".format(location_id))
-
+    pafs = gbd.get_data_from_auxiliary_file('Ors Pafs', location_id=location_id)
     pafs = get_age_group_midpoint_from_age_group_id(pafs)
-
     pafs = expand_ages(pafs)
+    pafs = pafs.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
 
-    pafs = pafs.query("year_id >= @year_start and year_id <= @year_end")
+    pafs[['paf_{}'.format(i) for i in range(1000)]] = pafs[['paf_{}'.format(i) for i in range(1000)]].fillna(value=0)
 
-    pafs[['paf_{}'.format(i) for i in range(0,1000)]] = pafs[['paf_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
+    keep_columns = ['year_id', 'sex_id', 'age', 'paf_{}'.format(draw_number)]
 
-    keepcol = ['year_id', 'sex_id', 'age', 'paf_{}'.format(draw_number)]
-
-    return pafs[keepcol]
+    return pafs[keep_columns]
 
 
 def get_ors_relative_risks(location_id, year_start, year_end, draw_number):
@@ -1698,23 +1580,20 @@ def get_ors_relative_risks(location_id, year_start, year_end, draw_number):
     draw_number: int
         current draw number (as specified in config.run_configuration.draw_number)
     """
-
-    ors_rr = pd.read_csv("/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv")
+    ors_rr = gbd.get_data_from_auxiliary_file('Ors Relative Risks')
 
     rr = expand_ages_for_dfs_w_all_age_estimates(ors_rr)
 
-    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid for children under 5 the input data only uses the all ages age group id since the covariates database requires that covariates apply to all ages
+    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid
+    # for children under 5 the input data only uses the all ages age group id since
+    # the covariates database requires that covariates apply to all ages
     rr = rr.query("age < 5")
-
     rr = expand_ages(rr)
+    rr[['draw_{}'.format(i) for i in range(1000)]] = rr[['draw_{}'.format(i) for i in range(1000)]].fillna(value=1)
+    rr = rr.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
 
-    rr[['draw_{}'.format(i) for i in range(0,1000)]] = rr[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=1)
-
-    rr = rr.query("year_id >= @year_start and year_id <= @year_end")
-
-    keepcol = ['year_id', 'sex_id', 'age', 'parameter', 'draw_{}'.format(draw_number)]
-
-    return rr[keepcol]
+    keep_columns = ['year_id', 'sex_id', 'age', 'parameter', 'draw_{}'.format(draw_number)]
+    return rr[keep_columns]
 
 
 def get_ors_exposures(location_id, year_start, year_end, draw_number):
@@ -1734,22 +1613,21 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
         current draw number (as specified in config.run_configuration.draw_number)
     """
 
-    ors_exp = pd.read_csv("/share/epi/risk/bmgf/exp/diarrhea_ors/{}.csv".format(location_id))
+    ors_exp = gbd.get_data_from_auxiliary_file('Ors Exposure', location_id=location_id)
 
     exp = expand_ages_for_dfs_w_all_age_estimates(ors_exp)
+    exp = exp.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
 
-    exp = exp.query("year_id >= @year_start and year_id <= @year_end")
-
-    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid for children under 5 the input data only uses the all ages age group id since the covariates database requires that covariates apply to all ages
+    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid
+    # for children under 5 the input data only uses the all ages age group id since
+    # the covariates database requires that covariates apply to all ages.
     exp = exp.query("age < 5")
-
     exp = expand_ages(exp)
+    exp[['draw_{}'.format(i) for i in range(1000)]] = exp[['draw_{}'.format(i) for i in range(1000)]].fillna(value=0)
 
-    exp[['draw_{}'.format(i) for i in range(0,1000)]] = exp[['draw_{}'.format(i) for i in range(0,1000)]].fillna(value=0)
+    keep_columns = ['year_id', 'sex_id', 'age', 'parameter', 'draw_{}'.format(draw_number)]
+    return exp[keep_columns]
 
-    keepcol = ['year_id', 'sex_id', 'age', 'parameter', 'draw_{}'.format(draw_number)]
-
-    return exp[keepcol]
 
 def get_outpatient_visit_costs(location_id, year_start, year_end, draw_number):
     """
@@ -1767,14 +1645,27 @@ def get_outpatient_visit_costs(location_id, year_start, year_end, draw_number):
     draw_number: int
         current draw number (as specified in config.run_configuration.draw_number)
     """
-    assert location_id in [179, 161, 214], \
-        "We only currently have outpatient costs for Ethiopia, Bangladesh, and Nigeria"
+    if location_id not in [179, 161, 214]:
+        raise ValueError("We only currently have outpatient costs for Ethiopia, Bangladesh, and Nigeria")
 
-    with open_auxiliary_file('Outpatient Visit Costs') as f:
-        costs = pd.read_csv(f)
-
-    costs = costs.query("location_id == @location_id")
+    costs = gbd.get_data_from_auxiliary_file('Outpatient Visit Costs')
+    costs = costs.query("location_id == {}".format(location_id))
     costs = costs.query("variable == 'draw_{}'".format(draw_number))
-    costs = costs.query("year_id >= @year_start and year_id <= @year_end")
+    costs = costs.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
 
     return costs
+
+
+def validate_data(draws, duplicate_columns):
+    # Use introspection to get the name of the calling function.
+    current_frame = inspect.currentframe()
+    caller_frame = inspect.getouterframes(current_frame, 2)
+    caller_name = caller_frame[1][3]
+
+    assert not np.any(draws.isnull()), ("There are nulls in the data that {} tried to output. ".format(caller_name)
+                                        + "Check the cache to to make sure the data you're pulling is correct.")
+
+    assert not draws.duplicated(duplicate_columns).sum(), ("There are duplicates in the dataframe that "
+                                                           + "{} tried to output. ".format(caller_name)
+                                                           + "Check the cache to to make sure the data "
+                                                           + "you're pulling is correct.")

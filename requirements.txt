@@ -1,2 +1,3 @@
+joblib
 -e git+ssh://git@stash.ihme.washington.edu:7999/cste/ceam.git#egg=ceam
 -e git+ssh://git@stash.ihme.washington.edu:7999/cste/ceam-public-health.git#egg=ceam_public_health
