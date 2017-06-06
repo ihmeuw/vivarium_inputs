@@ -54,6 +54,58 @@ raw_cause_mapping = {
         'excess_mortality': meid(1181),
         'duration': meid(1181)
     },
+    'cholera': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(173),
+    },
+    'other_salmonella': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(174),
+    },
+    'shigellosis': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(175),
+    },
+    'EPEC': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(176),
+    },
+    'ETEC': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(177),
+    },
+    'campylobacter': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(178),
+    },
+    'amoebiasis': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(179),
+    },
+    'cryptosporidiosis': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(180),
+    },
+    'rotaviral_entiritis': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(181),
+    },
+    'aeromonas': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(182),
+    },
+    'clostridium_difficile': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(183),
+    },
+    'norovirus': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(184),
+    },
+    'adenovirus': {
+        'gbd_parent_cause': cid(302),
+        'gbd_cause': rid(185),
+    },
     'rheumatic_heart_disease': {
         'gbd_cause': cid(492),
     },
@@ -187,6 +239,14 @@ causes = ConfigTree(raw_cause_mapping)
 causes.freeze()
 
 raw_risk_mapping = {
+    'unsafe_water_source': {
+        'gbd_risk': rid(83),
+        'effected_causes': [causes.diarrhea],
+    },
+    'unsafe_sanitation': {
+        'gbd_risk': rid(84),
+        'effected_causes': [causes.diarrhea],
+    },
     'ambient_particulate_matter_pollution': {
         'gbd_risk': rid(86),
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
@@ -196,6 +256,14 @@ raw_risk_mapping = {
         'gbd_risk': rid(87),
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke],
+    },
+    'vitamin_a_deficiency': {
+        'gbd_risk': rid(96),
+        'effected_causes': [causes.diarrhea],
+    },
+    'zinc_deficiency': {
+        'gbd_risk': rid(97),
+        'effected_causes': [causes.diarrhea],
     },
     'secondhand_smoke': {
         'gbd_risk': rid(100),
@@ -299,6 +367,14 @@ raw_risk_mapping = {
         'gbd_risk': rid(125),
         'effected_causes': [causes.ischemic_heart_disease, causes.ischemic_stroke],
     },
+    'non_exclusive_breastfeeding': {
+        'gbd_risk': rid(136),
+        'effected_causes': [causes.diarrhea],
+    },
+    'discontinued_breastfeeding': {
+        'gbd_risk': rid(137),
+        'effected_causes': [causes.diarrhea],
+    },
     'high_fasting_plasma_glucose_continuous': {
         'gbd_risk': rid(141),
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
@@ -329,57 +405,17 @@ raw_risk_mapping = {
                             causes.atrial_fibrillation_and_flutter, causes.aortic_aneurysm,
                             causes.peripheral_vascular_disease, causes.other_cardiovascular_and_circulatory_diseases],
     },
-    'cholera': {
-        'gbd_risk': rid(173),
-        'effected_causes': [causes.diarrhea]
+    'no_access_to_handwashing_facility': {
+        'gbd_risk': rid(238),
+        'effected_causes': [causes.diarrhea],
     },
-    'other_salmonella': {
-        'gbd_risk': rid(174),
-        'effected_causes': [causes.diarrhea]
+    'child_wasting': {
+        'gbd_risk': rid(240),
+        'effected_causes': [causes.diarrhea],
     },
-    'shigellosis': {
-        'gbd_risk': rid(175),
-        'effected_causes': [causes.diarrhea]
-    },
-    'EPEC': {
-        'gbd_risk': rid(176),
-        'effected_causes': [causes.diarrhea]
-    },
-    'ETEC': {
-        'gbd_risk': rid(177),
-        'effected_causes': [causes.diarrhea]
-    },
-    'campylobacter': {
-        'gbd_risk': rid(178),
-        'effected_causes': [causes.diarrhea]
-    },
-    'amoebiasis': {
-        'gbd_risk': rid(179),
-        'effected_causes': [causes.diarrhea]
-    },
-    'cryptosporidiosis': {
-        'gbd_risk': rid(180),
-        'effected_causes': [causes.diarrhea]
-    },
-    'rotaviral_entiritis': {
-        'gbd_risk': rid(181),
-        'effected_causes': [causes.diarrhea]
-    },
-    'aeromonas': {
-        'gbd_risk': rid(182),
-        'effected_causes': [causes.diarrhea]
-    },
-    'clostridium_difficile': {
-        'gbd_risk': rid(183),
-        'effected_causes': [causes.diarrhea]
-    },
-    'norovirus': {
-        'gbd_risk': rid(184),
-        'effected_causes': [causes.diarrhea]
-    },
-    'adenovirus': {
-        'gbd_risk': rid(185),
-        'effected_causes': [causes.diarrhea]
+    'child_stunting': {
+        'gbd_risk': rid(241),
+        'effected_causes': [causes.diarrhea],
     },
     'lead_exposure_in_bone': {
         'gbd_risk': rid(243),
@@ -392,6 +428,10 @@ raw_risk_mapping = {
                             causes.chronic_kidney_disease_due_to_hypertension,
                             causes.chronic_kidney_disease_due_to_glomerulonephritis,
                             causes.chronic_kidney_disease_due_to_other_causes],
+    },
+    'low_measles_vaccine_coverage_1st_dose': {
+        'gbd_risk': rid(318),
+        'effected_causes': [causes.diarrhea],
     },
 }
 

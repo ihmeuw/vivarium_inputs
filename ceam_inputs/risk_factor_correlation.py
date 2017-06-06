@@ -11,7 +11,7 @@ from ceam_inputs.gbd_mapping import risk_factors
 COLUMN_NORMALIZATION = {
         'sbp': risk_factors.high_systolic_blood_pressure.name,
         'bmi': risk_factors.high_body_mass_index.name,
-        'chol': risk_factors.hihg_total_cholesterol.name,
+        'chol': risk_factors.high_total_cholesterol.name,
         'smoke2': risk_factors.smoking_prevalence_approach.name,
         'fpg2': risk_factors.high_fasting_plasma_glucose_continuous.name,
 }
