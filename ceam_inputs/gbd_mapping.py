@@ -228,7 +228,7 @@ raw_risk_mapping = {
         'tmrl': 112.5,
         'scale': 10,
     },
-    'high_body-mass_index': {
+    'high_body_mass_index': {
         'gbd_risk': rid(108),
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke,
                             causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
@@ -259,7 +259,7 @@ raw_risk_mapping = {
         'gbd_risk': rid(117),
         'effected_causes': [causes.ischemic_heart_disease],
     },
-    'diet_high_in_sugar-sweetened_beverages': {
+    'diet_high_in_sugar_sweetened_beverages': {
         'gbd_risk': rid(118),
         'effected_causes': [causes.ischemic_heart_disease, causes.ischemic_stroke, causes.hemorrhagic_stroke,
                             causes.hypertensive_heart_disease, causes.chronic_kidney_disease_due_to_diabetes_mellitus,
@@ -271,7 +271,7 @@ raw_risk_mapping = {
         'gbd_risk': rid(119),
         'effected_causes': [causes.ischemic_heart_disease],
     },
-    'diet_low_in_seafood_omega-3_fatty_acids': {
+    'diet_low_in_seafood_omega_3_fatty_acids': {
         'gbd_risk': rid(121),
         'effected_causes': [causes.ischemic_heart_disease],
     },
@@ -299,7 +299,7 @@ raw_risk_mapping = {
         'gbd_risk': rid(125),
         'effected_causes': [causes.ischemic_heart_disease, causes.ischemic_stroke],
     },
-    'high_fasting_plasma_glucose_(continuous)': {
+    'high_fasting_plasma_glucose_continuous': {
         'gbd_risk': rid(141),
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke,
@@ -310,7 +310,7 @@ raw_risk_mapping = {
         'tmrl': 5.1,
         'scale': 1,
     },
-    'high_fasting_plasma_glucose_(categorical)': {
+    'high_fasting_plasma_glucose_categorical': {
         'gbd_risk': rid(142),
         'effected_causes': [causes.peripheral_vascular_disease],
     },
@@ -322,7 +322,7 @@ raw_risk_mapping = {
                             causes.chronic_kidney_disease_due_to_glomerulonephritis,
                             causes.chronic_kidney_disease_due_to_other_causes],
     },
-    'smoking_(prevalence_approach)': {
+    'smoking_prevalence_approach': {
         'gbd_risk': rid(166),
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke,
                             causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
