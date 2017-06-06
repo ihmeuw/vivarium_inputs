@@ -65,7 +65,23 @@ FILES = {
     },
     'Outpatient Visit Costs': {
         'path': 'op_cost.csv',
-        'source': "/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_cost.csv"
+        'source': "/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_cost.csv",
+    },
+    'Ors Exposure': {
+        'path': 'diarrhea_ors/exposure/{location_id}.csv',
+        'source': '/share/epi/risk/bmgf/exp/diarrhea_ors/{location_id}.csv',
+    },
+    'Ors Relative Risks': {
+        'path': 'diarrhea_ors/diarrhea_ors_rrs.csv',
+        'source': '/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv',
+    },
+    'Ors Pafs': {
+        'path': 'diarrhea_ors/pafs/paf_yll_{location_id}.csv',
+        'source': '/share/epi/risk/bmgf/paf/diarrhea_ors/paf_yll_{location_id}.csv',
+    },
+    'Severity Splits': {
+        'path': 'severity_splits/{parent_meid}/prop_draws.h5',
+        'source': '/share/epi/split_prop_draws_2016/{parent_meid}/prop_draws.h5',
     },
 }
 
@@ -78,7 +94,7 @@ def auxiliary_file_path(name, **kwargs):
         template_parameters['j_drive'] = '/home/j'
     raw_path = FILES[name]['path']
     auxiliary_data_folder = config.input_data.auxiliary_data_folder
-    return join(auxiliary_data_folder, raw_path).format(**template_parameters)
+    return join(auxiliary_data_folder, raw_path).format(**template_parameters), FILES[name].get('encoding')
 
 
 def open_auxiliary_file(name, **kwargs):
