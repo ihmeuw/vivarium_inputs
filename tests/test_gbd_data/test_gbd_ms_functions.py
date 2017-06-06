@@ -1,36 +1,25 @@
 from unittest.mock import patch
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
+
 from ceam import config
-from ceam_inputs.gbd_ms_functions import get_sbp_mean_sd
-from ceam_inputs.gbd_ms_functions import get_relative_risks
-from ceam_inputs.gbd_ms_functions import get_pafs
-from ceam_inputs.gbd_ms_functions import get_exposures
-from ceam_inputs.gbd_ms_functions import get_angina_proportions
-from ceam_inputs.gbd_ms_functions import get_disability_weight
-from ceam_inputs.gbd_ms_functions import generate_ceam_population
-from ceam_inputs.gbd_ms_functions import get_cause_level_prevalence
-from ceam_inputs.gbd_ms_functions import determine_if_sim_has_cause
-from ceam_inputs.gbd_ms_functions import get_sequela_proportions
-from ceam_inputs.gbd_ms_functions import determine_which_seq_diseased_sim_has
-from ceam_inputs.gbd_ms_functions import get_post_mi_heart_failure_proportion_draws
 from ceam.framework.util import rate_to_probability
-from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
-from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
-from ceam_inputs.gbd_ms_functions import get_cause_deleted_mortality_rate
-from ceam_inputs.gbd_ms_functions import assign_subregions
 from ceam_tests.util import build_table
-from ceam_inputs.gbd_ms_functions import get_etiology_specific_incidence
-from ceam_inputs.gbd_ms_functions import get_etiology_specific_prevalence
-from ceam_inputs.gbd_ms_functions import get_asympt_ihd_proportions
-from ceam_inputs.gbd_ms_functions import normalize_for_simulation
-from ceam_inputs import get_cause_specific_mortality
-from hierarchies.tree import Node
-from ceam_inputs.gbd_ms_functions import get_severe_diarrhea_excess_mortality
-from ceam_inputs import get_excess_mortality
-from ceam_inputs.gbd_ms_functions import get_rota_vaccine_coverage
+
+from ceam_inputs import get_cause_specific_mortality, get_excess_mortality
+from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
+                                          get_angina_proportions, get_disability_weight, generate_ceam_population,
+                                          get_cause_level_prevalence, determine_if_sim_has_cause,
+                                          get_sequela_proportions, determine_which_seq_diseased_sim_has,
+                                          get_post_mi_heart_failure_proportion_draws, get_modelable_entity_draws,
+                                          sum_up_csmrs_for_all_causes_in_microsim, get_cause_deleted_mortality_rate,
+                                          assign_subregions, get_etiology_specific_incidence,
+                                          get_etiology_specific_prevalence, get_asympt_ihd_proportions,
+                                          normalize_for_simulation, get_severe_diarrhea_excess_mortality,
+                                          get_rota_vaccine_coverage, get_mediation_factors)
+from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 
 
 # FIXME: Make this test pass regardless of age groups selected in the config file
@@ -432,3 +421,8 @@ def test_get_rota_vaccine_coverage():
 
     assert np.all(cov3 != 0), "this function should return an estimate of GT 0% coverage for all people under the age of 5 after 2014"
 
+
+def test_get_mediation_factors():
+    assert np.isclose(get_mediation_factors(108, 493, 0), 0.53957565)
+    assert np.isclose(get_mediation_factors(108, 499, 2), 0.48045271)
+    assert np.isclose(get_mediation_factors(108, 500, 1), 0.54893082)
