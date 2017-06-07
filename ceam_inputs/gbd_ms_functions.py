@@ -1459,7 +1459,7 @@ def get_bmi_distribution_parameters(location_id, year_start, year_end, draw):
     parameters['scale'] = scale['draw_{}'.format(draw)]
 
     parameters = parameters.reset_index()
-    parameters = get_age_group_midpoint_from_age_group_id(distributions)
+    parameters = get_age_group_midpoint_from_age_group_id(parameters)
     parameters['year'] = parameters.year_id
     parameters.loc[parameters.sex_id == 1, 'sex'] = 'Male'
     parameters.loc[parameters.sex_id == 2, 'sex'] = 'Female'
