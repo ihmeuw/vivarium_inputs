@@ -1372,7 +1372,7 @@ def get_outpatient_visit_costs(location_id, year_start, year_end, draw_number):
 def get_mediation_factors(risk_id, cause_id, draw_number):
     mediation_factors = gbd.get_data_from_auxiliary_file('Mediation Factors')
     mediation_factors = mediation_factors.query("rei_id == {} and cause_id == {}".format(risk_id, cause_id))
-    return np.prod(1 - mediation_factors['draw_{}'.format(draw_number)])
+    return 0 if mediation_factors.empty else np.prod(1 - mediation_factors['draw_{}'.format(draw_number)])
 
 
 def validate_data(draws, duplicate_columns=None):
