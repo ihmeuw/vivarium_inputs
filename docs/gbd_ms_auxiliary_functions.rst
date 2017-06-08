@@ -67,7 +67,7 @@ Unit test in place? -- No. Don't think one is needed. We just use the central co
 
 Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using central comp's get_populations function.
 
-TODO -- There is a python function for get_population, but I am not currently able to import anything from db_queries 
+TODO -- There is a python function for get_population, but I am not currently able to import anything from db_queries
 
 
 assign_sex_id
@@ -104,9 +104,9 @@ get_all_cause_mortality_rate
 ----------------------------
 Purpose -- We need the all cause mortality rate as an input for cause-deleted mortality rate
 
-Functionality -- Pulls in the number of deaths in a location, age, sex, year group and divides the number of deaths by the population in each location, age, sex, year group to get the mortality rate. 
+Functionality -- Pulls in the number of deaths in a location, age, sex, year group and divides the number of deaths by the population in each location, age, sex, year group to get the mortality rate.
 
-Used by -- get_cause_deleted_mortality_rate 
+Used by -- get_cause_deleted_mortality_rate
 
 Assumptions -- None
 
@@ -114,17 +114,3 @@ Questions -- Is the dalynator the correct source for pulling the all-cause morta
 
 Unit test in place? -- Not currently, but one does need to be put in place
 
-
-get_healthstate_id
-------------------
-Purpose -- Gets the health state id for a given modelable entity id. Disability weights are assigned to health states, so we need to get the health state id to determine the disability weight for a given modelable entity id.
-
-Functionality -- Uses central comp's db_tools.ezfuncs to connect to the epi database to get the healthstate_id that corresponds with a specific modelable entity id
-
-Used by -- get_disability_weight
-
-Assumptions -- None
-
-Questions -- None
-
-Unit test in place? -- Yes 
