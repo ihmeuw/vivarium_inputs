@@ -385,11 +385,11 @@ raw_risk_mapping = {
                             causes.chronic_kidney_disease_due_to_glomerulonephritis,
                             causes.chronic_kidney_disease_due_to_other_causes],
     },
-    'low_physical_activity': {
-        'gbd_risk': rid(125),
-        'risk_type': 'continuous',
-        'effected_causes': [causes.ischemic_heart_disease, causes.ischemic_stroke],
-    },
+    # 'low_physical_activity': {
+    #     'gbd_risk': rid(125),
+    #     'risk_type': 'continuous',
+    #     'effected_causes': [causes.ischemic_heart_disease, causes.ischemic_stroke],
+    # },
     'non_exclusive_breastfeeding': {
         'gbd_risk': rid(136),
         'risk_type': 'categorical',
@@ -417,17 +417,17 @@ raw_risk_mapping = {
         'risk_type': 'categorical',
         'effected_causes': [causes.peripheral_vascular_disease],
     },
-    'low_glomerular_filtration_rate': {
-        'gbd_risk': rid(143),
-        'effected_causes': [causes.ischemic_heart_disease, causes.ischemic_stroke, causes.hemorrhagic_stroke,
-                            causes.peripheral_vascular_disease, causes.chronic_kidney_disease_due_to_diabetes_mellitus,
-                            causes.chronic_kidney_disease_due_to_hypertension,
-                            causes.chronic_kidney_disease_due_to_glomerulonephritis,
-                            causes.chronic_kidney_disease_due_to_other_causes],
-    },
+    # 'low_glomerular_filtration_rate': {
+    #     'gbd_risk': rid(143),
+    #     'effected_causes': [causes.ischemic_heart_disease, causes.ischemic_stroke, causes.hemorrhagic_stroke,
+    #                         causes.peripheral_vascular_disease, causes.chronic_kidney_disease_due_to_diabetes_mellitus,
+    #                         causes.chronic_kidney_disease_due_to_hypertension,
+    #                         causes.chronic_kidney_disease_due_to_glomerulonephritis,
+    #                         causes.chronic_kidney_disease_due_to_other_causes],
+    # },
     'smoking_prevalence_approach': {
         'gbd_risk': rid(166),
-        'risk_type': None,
+        'risk_type': 'categorical',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke,
                             causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
                             causes.atrial_fibrillation_and_flutter, causes.aortic_aneurysm,
