@@ -1,69 +1,50 @@
-import pytest
 from unittest.mock import patch
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
-from datetime import datetime
+
 from ceam import config
-from ceam_inputs.gbd_ms_functions import get_sbp_mean_sd
-from ceam_inputs.gbd_ms_functions import get_relative_risks
-from ceam_inputs.gbd_ms_functions import get_pafs
-from ceam_inputs.gbd_ms_functions import get_exposures
-from ceam_inputs.gbd_ms_functions import get_angina_proportions
-from ceam_inputs.gbd_ms_functions import get_disability_weight
-from ceam_inputs.gbd_ms_functions import generate_ceam_population
-from ceam_inputs.gbd_ms_functions import get_cause_level_prevalence
-from ceam_inputs.gbd_ms_functions import determine_if_sim_has_cause
-from ceam_inputs.gbd_ms_functions import get_sequela_proportions
-from ceam_inputs.gbd_ms_functions import determine_which_seq_diseased_sim_has
-from ceam_inputs.gbd_ms_functions import get_post_mi_heart_failure_proportion_draws
 from ceam.framework.util import rate_to_probability
-from ceam_inputs.gbd_ms_functions import get_modelable_entity_draws
-from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
-from ceam_inputs.gbd_ms_functions import sum_up_csmrs_for_all_causes_in_microsim
-from ceam_inputs.gbd_ms_functions import get_cause_deleted_mortality_rate
-from ceam_inputs.gbd_ms_functions import assign_subregions
 from ceam_tests.util import build_table
-from ceam_inputs.gbd_ms_functions import get_etiology_specific_incidence
-from ceam_inputs.gbd_ms_functions import get_etiology_specific_prevalence
-from ceam_inputs.gbd_ms_functions import get_asympt_ihd_proportions
-from ceam_inputs.gbd_ms_functions import normalize_for_simulation
-from ceam_inputs import get_cause_specific_mortality
-from hierarchies.tree import Node
-from ceam_inputs.gbd_ms_functions import get_severe_diarrhea_excess_mortality
-from ceam_inputs import get_excess_mortality
-from ceam_inputs.gbd_ms_functions import get_rota_vaccine_coverage
-import random
 
-# generate_ceam_population
+from ceam_inputs import get_cause_specific_mortality, get_excess_mortality
+from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
+                                          get_angina_proportions, get_disability_weight, generate_ceam_population,
+                                          get_cause_level_prevalence, determine_if_sim_has_cause,
+                                          get_sequela_proportions, determine_which_seq_diseased_sim_has,
+                                          get_post_mi_heart_failure_proportion_draws, get_modelable_entity_draws,
+                                          sum_up_csmrs_for_all_causes_in_microsim, get_cause_deleted_mortality_rate,
+                                          assign_subregions, get_etiology_specific_incidence,
+                                          get_etiology_specific_prevalence, get_asympt_ihd_proportions,
+                                          normalize_for_simulation, get_severe_diarrhea_excess_mortality,
+                                          get_rota_vaccine_coverage, get_mediation_factors)
+from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
+
+
 # FIXME: Make this test pass regardless of age groups selected in the config file
-# FIXME: Add a random seed to this test so that it will always pass
 def test_generate_ceam_population():
-
     np.random.seed(1430)
-
     pop = generate_ceam_population(180, datetime(1990, 1, 1), 1000000, pop_age_start=0, pop_age_end=110)
 
     num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
-
     num_7_and_half_yr_old_males['count'] = 1
 
     val = num_7_and_half_yr_old_males.groupby('age')[['count']].sum()
-
     val = val.get_value(7.5, 'count')
-
     val = val / 1000000
 
-    assert np.isclose(val, 0.0823207075530383, atol=.01), "there should be about 8.23% 7.5 year old males in Kenya in 1990, based on data uploaded by em 1/5/2017"
+    assert np.isclose(val, 0.0823207075530383, atol=.01), ("there should be about 8.23% 7.5 year old males in "
+                                                           "Kenya in 1990, based on data uploaded by em 1/5/2017")
 
 
-# get_cause_level_prevalence
 def test_get_cause_level_prevalence():
-    # pass in a states dict with only two sequela and make sure for one age/sex/year combo that the value in cause_level_prevalence is equal to the sum of the two seq prevalences
-    prev_df1 = build_table(0.03).rename(columns={'rate':'prevalence'})[['year', 'age', 'prevalence', 'sex']]
-    prev_df2 = build_table(0.02).rename(columns={'rate':'prevalence'})[['year', 'age', 'prevalence', 'sex']]
+    # pass in a states dict with only two sequela and make sure for one age/sex/year combo
+    # that the value in cause_level_prevalence is equal to the sum of the two seq prevalences
+    prev_df1 = build_table(0.03).rename(columns={'rate': 'prevalence'})[['year', 'age', 'prevalence', 'sex']]
+    prev_df2 = build_table(0.02).rename(columns={'rate': 'prevalence'})[['year', 'age', 'prevalence', 'sex']]
 
-    dict_of_disease_states = {'severe_heart_failure' : prev_df1, 'moderate_heart_failure' : prev_df2}    
-
+    dict_of_disease_states = {'severe_heart_failure': prev_df1, 'moderate_heart_failure': prev_df2}
     cause_level, seq_level_dict = get_cause_level_prevalence(dict_of_disease_states, 2005)
 
     # pick a random age and sex to test
@@ -78,10 +59,10 @@ def test_get_cause_level_prevalence():
 
     # add up the prevalences of the 2 sequela to see if we get cause-level prevalence
     cause_level = cause_level.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
-    cause_prev = cause_level['prevalence'].values[0]    
+    cause_prev = cause_level['prevalence'].values[0]
 
     assert np.isclose(cause_prev, seq_prevalence_1 + seq_prevalence_2), 'get_cause_level_prevalence error. seq prevs need to add up to cause prev'
-    assert np.allclose(cause_prev, .05), 'get_cause_level prevalence should match data from database as of 1/5/2017' 
+    assert np.allclose(cause_prev, .05), 'get_cause_level prevalence should match data from database as of 1/5/2017'
 
 
 # determine_if_sim_has_cause
@@ -147,7 +128,7 @@ def test_determine_which_seq_diseased_sim_has():
     val2 = val2 / 100000
 
     assert np.allclose(val1, .75, .1), "determine which seq diseased sim has needs to assign sequelas according to sequela prevalence"
-    assert np.allclose(val2, .25, .1), "determine which seq diseased sim has needs to assign sequelas according to sequela prevalence" 
+    assert np.allclose(val2, .25, .1), "determine which seq diseased sim has needs to assign sequelas according to sequela prevalence"
 
 
 # def test_get_post_mi_heart_failure_proportion_draws
@@ -171,14 +152,14 @@ def test_get_relative_risks():
     # assert that relative risks are 1 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2")
     df_filter1.set_index('age', inplace=True)
-    rr1 =  df_filter1.get_value(7.5, 'rr_{}'.format(draw_number))    
+    rr1 = df_filter1.get_value(7.5, 'rr_{}'.format(draw_number))
 
     df_filter2 = df.query("age == 82.5 and sex_id == 2")
     df_filter2.set_index('age', inplace=True)
-    rr2 =  df_filter2.get_value(82.5, 'rr_{}'.format(draw_number))
+    rr2 = df_filter2.get_value(82.5, 'rr_{}'.format(draw_number))
 
-    assert rr1 == 1.0, 'get_relative_risks should return rr=1 for younger ages for the risks which dont estimate relative risk for all ages'
-    assert np.isclose(rr2, 1.3506), 'get_relative risks should return rrs that match what is pulled from the database'
+    assert np.allclose(rr1, 1.0), 'get_relative_risks should return rr=1 for younger ages for the risks which dont estimate relative risk for all ages'
+    assert np.allclose(rr2, 1.3506), 'get_relative risks should return rrs that match what is pulled from the database'
 
 
 # get_pafs
@@ -317,7 +298,7 @@ def test_get_cause_deleted_mortality_rate():
     assert cause_deleted_val == all_cause_val - cause_val, "cause deleted mortality rate was incorrectly calculated"
 
 def test_get_angina_proportions():
-    
+
     props = get_angina_proportions()
 
     props.set_index('age', inplace=True)
@@ -326,7 +307,7 @@ def test_get_angina_proportions():
 
     assert np.allclose(props.get_value(7.5, 'angina_prop'), props.get_value(22.5, 'angina_prop')), "get_angina_proportions needs to assign values for people younger than age group 9 to get the same value as people in age group 9"
 
-    assert np.allclose(props.get_value(82.5, 'angina_prop'), 0.128526646), "get_angina_proportions needs to return values that match input file" 
+    assert np.allclose(props.get_value(82.5, 'angina_prop'), 0.128526646), "get_angina_proportions needs to return values that match input file"
 
 
 def test_get_disability_weight():
@@ -349,17 +330,18 @@ def test_get_asympt_ihd_proportions():
     hf_value = hf_filter.set_index('age').get_value(32.5, 'draw_19')
 
     asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000, draw_number=0)
-   
+
     asy_filter = asympt_ihd_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
-     
+
     asy_value = asy_filter.set_index('age').get_value(32.5, 'asympt_prop_19')
 
     assert 1 - hf_value - ang_value == asy_value, "get_asympt_ihd_proportions needs to ensure that the sum of heart failure, angina, and asympt ihd add up to 1"
 
-@patch('ceam_inputs.gbd_ms_functions.dbtrees')
+
 @patch('ceam_inputs.gbd_ms_functions.get_populations')
-def test_assign_subregions_with_subregions(get_populations_mock, dbtrees_mock):
-    dbtrees_mock.loctree().get_node_by_id().children = [Node(10, None, None), Node(11, None, None), Node(12, None, None)]
+@patch('ceam_inputs.gbd_ms_functions.gbd')
+def test_assign_subregions_with_subregions(gbd_mock, get_populations_mock):
+    gbd_mock.get_subregions.side_effect = lambda location_id: [10, 11, 12]
     test_populations = {
             10: build_table(20, ['age', 'year', 'sex', 'pop_scaled']),
             11: build_table(30, ['age', 'year', 'sex', 'pop_scaled']),
@@ -375,10 +357,10 @@ def test_assign_subregions_with_subregions(get_populations_mock, dbtrees_mock):
     assert np.allclose(counts, [.2, .3, .5], rtol=0.01)
 
 
-@patch('ceam_inputs.gbd_ms_functions.dbtrees')
 @patch('ceam_inputs.gbd_ms_functions.get_populations')
-def test_assign_subregions_without_subregions(get_populations_mock, dbtrees_mock):
-    dbtrees_mock.loctree().get_node_by_id().children = []
+@patch('ceam_inputs.gbd_ms_functions.gbd')
+def test_assign_subregions_without_subregions(gbd_mock, get_populations_mock):
+    gbd_mock.get_subregions.side_effect = lambda location_id: []
     test_populations = {
             190: build_table(100, ['age', 'year', 'sex', 'pop_scaled']),
     }
@@ -388,18 +370,17 @@ def test_assign_subregions_without_subregions(get_populations_mock, dbtrees_mock
 
     assert np.all(locations == 190)
 
-# get_etiology_specific_incidence
+
 def test_get_etiology_specific_incidence():
     df = get_etiology_specific_incidence(180, 1990, 2000, 181, 302, 1181, gbd_round_id=3, draw_number=0)
 
-    df = df.query("year_id == 1995 and sex_id ==1") 
+    df = df.query("year_id == 1995 and sex_id ==1")
 
     val = df.set_index('age').get_value(82.5, 'draw_10')
 
     assert np.isclose(val, 0.06306237 * 2.5101927), "get_etiology_specific_incidence needs to ensure the eti pafs and envelope were multiplied together correctly"
 
 
-# get_etiology_specific_prevalence
 def test_get_etiology_specific_prevalence():
     df = get_etiology_specific_prevalence(180, 1990, 2000, 181, 302, 1181, gbd_round_id=3, draw_number=0)
 
@@ -418,7 +399,7 @@ def test_get_severe_diarrhea_excess_mortality():
     result = get_severe_diarrhea_excess_mortality(df, severe_diarrhea_proportion)
 
     assert all(result['rate'] == pd.Series(8, index=result.index)), "get_severe_diarrhea_excess mortality should return the excess mortality rate for severe diarrhea cases only"
-    
+
 
 # get_rota_vaccine_coverage
 def test_get_rota_vaccine_coverage():
@@ -440,3 +421,8 @@ def test_get_rota_vaccine_coverage():
 
     assert np.all(cov3 != 0), "this function should return an estimate of GT 0% coverage for all people under the age of 5 after 2014"
 
+
+def test_get_mediation_factors():
+    assert np.isclose(get_mediation_factors(108, 493, 0), 0.53957565)
+    assert np.isclose(get_mediation_factors(108, 499, 2), 0.48045271)
+    assert np.isclose(get_mediation_factors(108, 500, 1), 0.54893082)

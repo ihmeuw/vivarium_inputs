@@ -65,7 +65,33 @@ FILES = {
     },
     'Outpatient Visit Costs': {
         'path': 'op_cost.csv',
-        'source': "/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_cost.csv"
+        'source': "/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_cost.csv",
+        'owner': 'Mark Moses <mwm6@uw.edu>',
+    },
+    'Ors Exposure': {
+        'path': 'diarrhea_ors/exposure/{location_id}.csv',
+        'source': '/share/epi/risk/bmgf/exp/diarrhea_ors/{location_id}.csv',
+        'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
+    },
+    'Ors Relative Risks': {
+        'path': 'diarrhea_ors/diarrhea_ors_rrs.csv',
+        'source': '/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv',
+        'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
+    },
+    'Ors Pafs': {
+        'path': 'diarrhea_ors/pafs/paf_yll_{location_id}.csv',
+        'source': '/share/epi/risk/bmgf/paf/diarrhea_ors/paf_yll_{location_id}.csv',
+        'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
+    },
+    'Severity Splits': {
+        'path': 'severity_splits/{parent_meid}/prop_draws.h5',
+        'source': '/share/epi/split_prop_draws_2016/{parent_meid}/prop_draws.h5',
+        'owner': 'Ben Miltz <benmiltz@uw.edu>'
+    },
+    'Mediation Factors': {
+        'path': 'mediation_matrix_corrected.csv',
+        'source': '/home/j/WORK/05_risk/mediation/mediation_matrix_corrected.csv',
+        'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
 }
 
@@ -78,7 +104,7 @@ def auxiliary_file_path(name, **kwargs):
         template_parameters['j_drive'] = '/home/j'
     raw_path = FILES[name]['path']
     auxiliary_data_folder = config.input_data.auxiliary_data_folder
-    return join(auxiliary_data_folder, raw_path).format(**template_parameters)
+    return join(auxiliary_data_folder, raw_path).format(**template_parameters), FILES[name].get('encoding')
 
 
 def open_auxiliary_file(name, **kwargs):
