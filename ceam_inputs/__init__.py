@@ -545,3 +545,9 @@ def get_hypertension_drug_costs():
 
 def load_risk_correlation_matrices():
     return risk_factor_correlation.load_matrices()
+
+
+def get_mediation_factors(risk_id, cause_id):
+    draw_number = config.run_configuration.draw_number
+
+    return functions.get_mediation_factors(risk_id, cause_id, draw_number)
