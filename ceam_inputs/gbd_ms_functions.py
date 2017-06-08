@@ -1389,3 +1389,80 @@ def validate_data(draws, duplicate_columns=None):
                                                                + "{} tried to output. ".format(caller_name)
                                                                + "Check the cache to to make sure the data "
                                                                + "you're pulling is correct.")
+
+
+def get_fpg_distribution_parameters(location_id, year_start, year_end, draw):
+    parameters = pd.DataFrame()
+    columns = ['age_group_id', 'sex_id', 'year_id', 'sll_loc_{}'.format(draw),
+               'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]
+    sub_location_ids = gbd.get_subregions(location_id)
+    if not sub_location_ids:
+        sub_location_ids = [location_id]
+
+    for sub_location_id in sub_location_ids:
+        for sex_id in [1, 2]:
+            for year_id in np.arange(year_start, year_end + 1, 5):
+                df = gbd.get_data_from_auxiliary_file('Fasting Plasma Glucose Distributions',
+                                                      location_id=sub_location_id,
+                                                      year_id=year_id,
+                                                      sex_id=sex_id)
+                df = df[columns]
+                df['location'] = sub_location_id
+                parameters = pd.concat([parameters, df])
+    parameters = parameters.drop_duplicates()
+    parameters.loc[parameters.sex_id == 1, 'sex'] = 'Male'
+    parameters.loc[parameters.sex_id == 2, 'sex'] = 'Female'
+    parameters = get_age_group_midpoint_from_age_group_id(parameters)
+    parameters = parameters[['age', 'sex', 'year_id', 'location', 'sll_loc_{}'.format(draw),
+                             'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]]
+    parameters.columns = ['age', 'sex', 'year', 'location', 'loc', 'scale', 'error']
+    return parameters[['age', 'year', 'sex', 'error', 'scale', 'loc', 'location']]
+
+
+def get_bmi_distribution_parameters(location_id, year_start, year_end, draw):
+    a = pd.DataFrame()
+    b = pd.DataFrame()
+    loc = pd.DataFrame()
+    scale = pd.DataFrame()
+    for sex_id in [1, 2]:
+        for year_id in np.arange(year_start, year_end + 1, 5):
+            a = a.append(gbd.get_data_from_auxiliary_file('Body Mass Index Distributions',
+                                                          parameter='bshape1',
+                                                          location_id=location_id,
+                                                          year_id=year_id,
+                                                          sex_id=sex_id))
+
+            b = b.append(gbd.get_data_from_auxiliary_file('Body Mass Index Distributions',
+                                                          parameter='bshape2',
+                                                          location_id=location_id,
+                                                          year_id=year_id,
+                                                          sex_id=sex_id))
+            loc = loc.append(gbd.get_data_from_auxiliary_file('Body Mass Index Distributions',
+                                                              parameter='mm',
+                                                              location_id=location_id,
+                                                              year_id=year_id,
+                                                              sex_id=sex_id))
+            scale = scale.append(gbd.get_data_from_auxiliary_file('Body Mass Index Distributions',
+                                                                  parameter='scale',
+                                                                  location_id=location_id,
+                                                                  year_id=year_id,
+                                                                  sex_id=sex_id))
+    a = a.set_index(['age_group_id', 'sex_id', 'year_id'])
+    b = b.set_index(['age_group_id', 'sex_id', 'year_id'])
+    loc = loc.set_index(['age_group_id', 'sex_id', 'year_id'])
+    scale = scale.set_index(['age_group_id', 'sex_id', 'year_id'])
+
+    parameters = pd.DataFrame()
+    parameters['a'] = a['draw_{}'.format(draw)]
+    parameters['b'] = b['draw_{}'.format(draw)]
+    parameters['loc'] = loc['draw_{}'.format(draw)]
+    parameters['scale'] = scale['draw_{}'.format(draw)]
+
+    parameters = parameters.reset_index()
+    parameters = get_age_group_midpoint_from_age_group_id(parameters)
+    parameters['year'] = parameters.year_id
+    parameters.loc[parameters.sex_id == 1, 'sex'] = 'Male'
+    parameters.loc[parameters.sex_id == 2, 'sex'] = 'Female'
+
+    return parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']]
+
