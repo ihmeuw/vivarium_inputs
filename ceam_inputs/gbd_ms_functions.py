@@ -1466,3 +1466,43 @@ def get_bmi_distribution_parameters(location_id, year_start, year_end, draw):
 
     return parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']]
 
+def get_codem_csmr(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
+    """
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+        
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+        
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+        
+    cause_id: int
+        cause_id takes same cause_id values as are used for GBD
+    
+    gbd_round_id: int
+        GBD round of interest
+    
+    draw_number: int
+        GBD draw of interest
+    """
+    
+    csmr = gbd.get_codem_draws(location_id, cause_id, gbd_round_id)
+    
+    csmr['csmr_{}'.format(draw_number)] = csmr['draw_{}'.format(draw_number)] / csmr['envelope']
+    
+    csmr = csmr.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
+    
+    csmr = get_age_group_midpoint_from_age_group_id(csmr)
+    
+    keep_columns = ['year_id', 'sex_id', 'age', 'csmr_{}'.format(draw_number)]
+
+    csmr = csmr[keep_columns]
+
+    assert csmr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_specific_mortality just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert csmr.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_cause_specific_mortality just tried to output. check the cache to make sure that the data you're pulling is correct"
+
+    return csmr.sort_values(by=['year_id', 'age', 'sex_id'])

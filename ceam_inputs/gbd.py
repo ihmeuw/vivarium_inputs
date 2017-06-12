@@ -86,6 +86,20 @@ def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_rou
                      model_version_id=model_version,
                      gbd_round_id=gbd_round_id)
 
+@memory.cache
+def get_codem_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
+    from transmogrifier.draw_ops import get_draws
+    # FIXME: Can we get a specific model version for codem models?
+    # model_version = get_model_versions(publication_ids)[me_id] if publication_ids else None
+
+    return get_draws(gbd_id_field='cause_id',
+                     gbd_id=cause_id,
+                     source="codem",
+                     location_ids=location_id,
+                     sex_ids=MALE + FEMALE,
+                     age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                     # model_version_id=model_version,
+                     gbd_round_id=gbd_round_id)
 
 @memory.cache
 def get_covariate_estimates(covariate_name_short, location_id):

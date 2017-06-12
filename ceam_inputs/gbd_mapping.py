@@ -31,7 +31,7 @@ raw_cause_mapping = {
         'excess_mortality': meid(1181),
         'prevalence': meid(1181),
         'incidence': meid(1181),
-        'mortality': meid(1181),
+        'mortality': cid(302),
         'duration': meid(1181),
     },
     'mild_diarrhea': {
@@ -50,7 +50,7 @@ raw_cause_mapping = {
         'gbd_cause': cid(302),
         'incidence': meid(2610),
         'disability_weight': hid(357),
-        'mortality': meid(1181),
+        'mortality': cid(302),
         'excess_mortality': meid(1181),
         'duration': meid(1181)
     },
