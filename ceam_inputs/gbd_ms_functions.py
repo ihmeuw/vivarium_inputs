@@ -18,7 +18,6 @@ from ceam.framework.util import rate_to_probability
 
 from ceam_inputs import gbd
 from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
-                                                    get_all_cause_mortality_rate,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
                                                     get_age_group_midpoint_from_age_group_id, get_populations,
                                                     create_sex_id_column)
@@ -366,6 +365,48 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
     return df.groupby(['age', 'sex', 'year'], as_index=False).sum()
 
 
+def get_codcorrect_csmr(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
+    """
+    location_id : int
+        location_id takes same location_id values as are used for GBD
+        
+    year_start : int, year
+        year_start is the year in which you want to start the simulation
+        
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation
+        
+    cause_id: int
+        cause_id takes same cause_id values as are used for GBD
+    
+    gbd_round_id: int
+        GBD round of interest
+    
+    draw_number: int
+        GBD draw of interest
+    """
+    
+    csmr = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
+    
+    csmr['csmr_{}'.format(draw_number)] = csmr['draw_{}'.format(draw_number)] / csmr['pop']
+    
+    csmr = csmr.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
+    
+    csmr = get_age_group_midpoint_from_age_group_id(csmr)
+    
+    keep_columns = ['year_id', 'sex_id', 'age', 'csmr_{}'.format(draw_number)]
+
+    csmr = csmr[keep_columns]
+
+    assert csmr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_specific_mortality just tried to output. check that the cache to make sure the data you're pulling is correct"
+
+    # assert an error if there are duplicate rows
+    assert csmr.duplicated(['age', 'year_id', 'sex_id']).sum(
+    ) == 0, "there are duplicates in the dataframe that get_cause_specific_mortality just tried to output. check the cache to make sure that the data you're pulling is correct"
+
+    return csmr.sort_values(by=['year_id', 'age', 'sex_id'])
+
+
 def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
                                      list_of_csmrs, gbd_round_id, draw_number):
     """Returns the cause-deleted mortality rate for a given time period and location
@@ -393,10 +434,14 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
     the cause-deleted mortality rate
     """
 
-    all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(
-        location_id, year_start, year_end, gbd_round_id=gbd_round_id))
+    all_cause_mr = normalize_for_simulation(get_codcorrect_csmr(location_id=location_id,
+                                                                year_start=year_start,
+                                                                year_end=year_end,
+                                                                cause_id=294, # FIXME: add all cause mortality to the gbd_mapping suite
+                                                                gbd_round_id=gbd_round_id,
+                                                                draw_number=draw_number))
 
-    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw_number)]]
+    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'csmr_{}'.format(draw_number)]]
     all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
     if list_of_csmrs:
@@ -1466,43 +1511,3 @@ def get_bmi_distribution_parameters(location_id, year_start, year_end, draw):
 
     return parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']]
 
-def get_codcorrect_csmr(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
-    """
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-        
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-        
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-        
-    cause_id: int
-        cause_id takes same cause_id values as are used for GBD
-    
-    gbd_round_id: int
-        GBD round of interest
-    
-    draw_number: int
-        GBD draw of interest
-    """
-    
-    csmr = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
-    
-    csmr['csmr_{}'.format(draw_number)] = csmr['draw_{}'.format(draw_number)] / csmr['pop']
-    
-    csmr = csmr.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
-    
-    csmr = get_age_group_midpoint_from_age_group_id(csmr)
-    
-    keep_columns = ['year_id', 'sex_id', 'age', 'csmr_{}'.format(draw_number)]
-
-    csmr = csmr[keep_columns]
-
-    assert csmr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_specific_mortality just tried to output. check that the cache to make sure the data you're pulling is correct"
-
-    # assert an error if there are duplicate rows
-    assert csmr.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_cause_specific_mortality just tried to output. check the cache to make sure that the data you're pulling is correct"
-
-    return csmr.sort_values(by=['year_id', 'age', 'sex_id'])

@@ -18,8 +18,7 @@ from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, g
                                           assign_subregions, get_etiology_specific_incidence,
                                           get_etiology_specific_prevalence, get_asympt_ihd_proportions,
                                           normalize_for_simulation, get_severe_diarrhea_excess_mortality,
-                                          get_rota_vaccine_coverage, get_mediation_factors)
-from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
+                                          get_rota_vaccine_coverage, get_mediation_factors, get_codcorrect_csmr)
 
 
 # FIXME: Make this test pass regardless of age groups selected in the config file
@@ -277,8 +276,14 @@ def test_get_cause_deleted_mortality_rate():
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
 
-    all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(location_id, year_start, year_end, gbd_round_id))
-    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw_number)]]
+    all_cause_mr = normalize_for_simulation(get_codcorrect_csmr(location_id=location_id,
+                                                                year_start=year_start,
+                                                                year_end=year_end,
+                                                                cause_id=294, # FIXME: add all cause mortality to the gbd_mapping suite
+                                                                gbd_round_id=gbd_round_id,
+                                                                draw_number=draw_number)
+                                           )
+    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'csmr_{}'.format(draw_number)]]
     all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
 
