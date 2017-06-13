@@ -286,12 +286,12 @@ def test_get_cause_deleted_mortality_rate():
     all_cause_val = all_cause_filter['all_cause_mortality_rate'].values[0]
 
 
-    csmr1814 = get_cause_specific_mortality(1814)
-    csmr_filter = csmr1814.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
+    csmr493 = get_cause_specific_mortality(493)
+    csmr_filter = csmr493.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
     cause_val = csmr_filter['rate'].values[0]
 
     cause_deleted = get_cause_deleted_mortality_rate(location_id, year_start, year_end,
-                                                     [csmr1814], gbd_round_id, draw_number)
+                                                     [csmr493], gbd_round_id, draw_number)
     cause_deleted_filter = cause_deleted.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
     cause_deleted_val = cause_deleted_filter['cause_deleted_mortality_rate'].values[0]
 
