@@ -82,7 +82,7 @@ def get_cause_specific_mortality(cause_id):
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
 
-    csmr = functions.get_codem_csmr(location_id=location_id, year_start=year_start, year_end=year_end, cause_id=cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
+    csmr = functions.get_codcorrect_csmr(location_id=location_id, year_start=year_start, year_end=year_end, cause_id=cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
 
     return functions.select_draw_data(data=csmr, draw=draw_number, column_name='rate', src_column='csmr_{draw}')
 

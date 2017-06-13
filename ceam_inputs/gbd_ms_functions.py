@@ -1466,7 +1466,7 @@ def get_bmi_distribution_parameters(location_id, year_start, year_end, draw):
 
     return parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']]
 
-def get_codem_csmr(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
+def get_codcorrect_csmr(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
     """
     location_id : int
         location_id takes same location_id values as are used for GBD
@@ -1487,9 +1487,9 @@ def get_codem_csmr(location_id, year_start, year_end, cause_id, gbd_round_id, dr
         GBD draw of interest
     """
     
-    csmr = gbd.get_codem_draws(location_id, cause_id, gbd_round_id)
+    csmr = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
     
-    csmr['csmr_{}'.format(draw_number)] = csmr['draw_{}'.format(draw_number)] / csmr['envelope']
+    csmr['csmr_{}'.format(draw_number)] = csmr['draw_{}'.format(draw_number)] / csmr['pop']
     
     csmr = csmr.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     
