@@ -25,7 +25,7 @@ from ceam_inputs.gbd_ms_auxiliary_functions import get_all_cause_mortality_rate
 # FIXME: Make this test pass regardless of age groups selected in the config file
 def test_generate_ceam_population():
     np.random.seed(1430)
-    pop = generate_ceam_population(180, datetime(1990, 1, 1), 1000000, pop_age_start=0, pop_age_end=110)
+    pop = generate_ceam_population(180, datetime(1990, 1, 1), 1000000, 3, pop_age_start=0, pop_age_end=110)
 
     num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
     num_7_and_half_yr_old_males['count'] = 1
@@ -349,7 +349,7 @@ def test_assign_subregions_with_subregions(gbd_mock, get_populations_mock):
     }
     get_populations_mock.side_effect = lambda location_id, year, sex: test_populations[location_id]
 
-    locations = assign_subregions(pd.Index(range(100000)), 180, 2005)
+    locations = assign_subregions(pd.Index(range(100000)), 180, 2005, 3)
 
     counts = locations.value_counts()
     counts = np.array([counts[lid] for lid in [10, 11, 12]])
@@ -366,7 +366,7 @@ def test_assign_subregions_without_subregions(gbd_mock, get_populations_mock):
     }
     get_populations_mock.side_effect = lambda location_id, year, sex: test_populations[location_id]
 
-    locations = assign_subregions(pd.Index(range(1000)), 190, 2005)
+    locations = assign_subregions(pd.Index(range(1000)), 190, 2005, 3)
 
     assert np.all(locations == 190)
 

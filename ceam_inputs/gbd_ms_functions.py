@@ -90,7 +90,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     return draws[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
-def generate_ceam_population(location_id, time, number_of_simulants,
+def generate_ceam_population(location_id, time, number_of_simulants, gbd_round_id,
                              initial_age=None, pop_age_start=None, pop_age_end=None):
     """Returns a population of simulants to be fed into CEAM
 
@@ -111,7 +111,7 @@ def generate_ceam_population(location_id, time, number_of_simulants,
     -------
     df with columns simulant_id, age, sex_id, and columns to indicate if simulant has different diseases
     """
-    pop = get_populations(location_id, time.year, 3, sum_up_80_plus=True)
+    pop = get_populations(location_id, time.year, 3, gbd_round_id)
 
     if pop_age_start is not None:
         assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
@@ -135,7 +135,7 @@ def generate_ceam_population(location_id, time, number_of_simulants,
         assert pop_age_start is None, "do not set values for initial age and pop_age_start/pop_age_end"
         assert pop_age_end is None, "do not set values for initial age and pop_age_start/pop_age_end"
         simulants['age'] = initial_age
-    simulants = create_sex_id_column(simulants, location_id, time.year)
+    simulants = create_sex_id_column(simulants, location_id, time.year, gbd_round_id)
     simulants['location'] = location_id
 
     validate_data(simulants, ['simulant_id'])
@@ -143,7 +143,7 @@ def generate_ceam_population(location_id, time, number_of_simulants,
     return simulants
 
 
-def assign_subregions(index, location_id, year):
+def assign_subregions(index, location_id, year, gbd_round_id):
     """
     Assigns a location to each simulant. If the location_id
     has sub regions in the hierarchy then the simulants will be
@@ -172,7 +172,7 @@ def assign_subregions(index, location_id, year):
 
     # Get the population of each subregion and calculate the ratio of it to the
     # total, which gives us the weights to use when distributing simulants
-    populations = np.array([get_populations(region_id, year, 3).pop_scaled.sum() for region_id in region_ids])
+    populations = np.array([get_populations(region_id, year, 3, gbd_round_id).pop_scaled.sum() for region_id in region_ids])
     populations = populations / populations.sum()
 
     return choice('assign_subregions_{}'.format(year), index, region_ids, p=populations)

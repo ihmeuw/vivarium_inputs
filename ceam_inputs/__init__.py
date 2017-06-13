@@ -254,19 +254,22 @@ def get_exposures(risk_id):
 
 
 def get_populations(location_id, year, sex_id=3):
-    return functions.get_populations(location_id=location_id, year_start=year, sex_id=sex_id)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_populations(location_id=location_id, year_start=year, gbd_round_id=gbd_round_id, sex_id=sex_id)
 
 
 def generate_ceam_population(number_of_simulants, initial_age=None, time=None):
     location_id = config.simulation_parameters.location_id
     pop_age_start = config.simulation_parameters.pop_age_start
     pop_age_end = config.simulation_parameters.pop_age_end
+    gbd_round_id = config.simulation_parameters.gbd_round_id
     if time is None:
         year_start, year_end = gbd_year_range()
         time = datetime(year_start, 1, 1)
     population = functions.generate_ceam_population(location_id=location_id,
                                                     time=time,
                                                     number_of_simulants=number_of_simulants,
+                                                    gbd_round_id=gbd_round_id,
                                                     initial_age=initial_age,
                                                     pop_age_start=pop_age_start,
                                                     pop_age_end=pop_age_end)
@@ -392,7 +395,8 @@ def get_asympt_ihd_proportions():
 
 
 def assign_subregions(population, location_id, year_start):
-    return functions.assign_subregions(population, location_id, year_start)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.assign_subregions(population, location_id, year_start, gbd_round_id)
 
 
 def assign_cause_at_beginning_of_simulation(population, location_id, year, states):

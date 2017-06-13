@@ -120,7 +120,7 @@ def get_age_group_midpoint_from_age_group_id(df):
     return df
 
 
-def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up_80_plus=False):
+def get_populations(location_id, year_start, sex_id, gbd_round_id, get_all_years=False):
     """Get age-/sex-specific population structure
 
     Parameters
@@ -132,7 +132,6 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
     sex_id: str, sex
         sex_id takes values 1, 2, or 3
     get_all_years: bool
-    sum_up_80_plus: bool
 
     Returns
     -------
@@ -141,16 +140,17 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
 
     Notes
     -----
-    Unit test in place? -- No. Don't think one is needed. We just use the central comp get_population 
-    function to get the population data and then select a specific year, specific sex, and use the 
+    Unit test in place? -- No. Don't think one is needed. We just use the central comp get_population
+    function to get the population data and then select a specific year, specific sex, and use the
     get_age_group_midpoint_from_age_group_id function to get the age group midpoints.
-    Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty 
-    estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and 
-    maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using 
+    Uncertainty draws -- Need to be cognizant of the fact that there are not currently uncertainty
+    estimates for populations in GBD, but that these estimates will be produced for GBD 2017, and
+    maybe even GBD 2016. Hopefully, when the draws are ready, we will be able to continue using
     central comp's get_populations function.
     """
-    pop = gbd.get_populations(location_id, gbd_round_id=config.simulation_parameters.gbd_round_id)
+    pop = gbd.get_populations(location_id, gbd_round_id=gbd_round_id)
     pop = pop[pop.sex_id == sex_id]
+
     if not get_all_years:
         pop = pop[pop.year_id == year_start]
 
@@ -161,19 +161,6 @@ def get_populations(location_id, year_start, sex_id, get_all_years=False, sum_up
     # The population column was called pop_scaled in GBD 2015, but name was changed.
     # Changing it back since all of our code uses pop_scaled as the col name
     pop = pop.rename(columns={'population': 'pop_scaled'})
-
-    # FIXME: As of 1-23, get_populations is only function we use that has data for detailed
-    # 5 year age groups over age of 80. We need to get the 80+ age group to make data compatible
-    # with other data, but will likely not need this in the future if all other estimates
-    # start giving data for more detailed age groups over the age of 80
-    # if config.simulation_parameters.gbd_round_id != 3:
-    if sum_up_80_plus:
-        older_pop = pop.query("age >= 80").copy()
-        older_grouped = older_pop.groupby(['year_id', 'location_id', 'sex_id'], as_index=False).sum()
-        older_grouped['age'] = 82.5
-        younger_pop = pop.query("age < 80").copy()
-        del pop
-        pop = younger_pop.append(older_grouped)
 
     # assert an error if there are duplicate rows
     assert pop.duplicated(['age', 'year_id', 'sex_id']).sum(
@@ -242,7 +229,7 @@ def assign_sex_id(simulants_df, male_pop, female_pop):
     return new_sim_file
 
 
-def create_sex_id_column(simulants_df, location_id, year_start):
+def create_sex_id_column(simulants_df, location_id, year_start, gbd_round_id):
     """
     creates a sex_id column and ensures correlation between age and sex
 
@@ -277,8 +264,8 @@ def create_sex_id_column(simulants_df, location_id, year_start):
 
     # pull in male and female populations so that we can assign sex according
     # to GBD population estimates (with age/sex correlation)
-    male_pop = get_populations(location_id, year_start, 1)
-    female_pop = get_populations(location_id, year_start, 2)
+    male_pop = get_populations(location_id, year_start, 1, gbd_round_id)
+    female_pop = get_populations(location_id, year_start, 2, gbd_round_id)
 
     # assign sex_id according to proportions calculated from GBD data
     new_sim_file = assign_sex_id(simulants_df, male_pop, female_pop)
@@ -340,8 +327,8 @@ def get_all_cause_mortality_rate(location_id, year_start, year_end, gbd_round_id
     # get population estimates for each age, sex, year group. population estimates will serve
     # as the estimates for # of Person Years in each age group
     # pop = get_populations(age_group_id=list(range(2,22)), location_id=location_id, year_id=-1, sex_id=[1,2])
-    pop_male = get_populations(location_id, year_start, 1, get_all_years=True, sum_up_80_plus=True)
-    pop_female = get_populations(location_id, year_start, 2, get_all_years=True, sum_up_80_plus=True)
+    pop_male = get_populations(location_id, year_start, 1, gbd_round_id, get_all_years=True)
+    pop_female = get_populations(location_id, year_start, 2, gbd_round_id, get_all_years=True)
 
     pop = pop_male.append(pop_female)
 
