@@ -398,11 +398,7 @@ def get_codcorrect_csmr(location_id, year_start, year_end, cause_id, gbd_round_i
 
     csmr = csmr[keep_columns]
 
-    assert csmr.isnull().values.any() == False, "there are nulls in the dataframe that get_cause_specific_mortality just tried to output. check that the cache to make sure the data you're pulling is correct"
-
-    # assert an error if there are duplicate rows
-    assert csmr.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_cause_specific_mortality just tried to output. check the cache to make sure that the data you're pulling is correct"
+    validate_data(csmr, ['year_id', 'sex_id', 'age']) 
 
     return csmr.sort_values(by=['year_id', 'age', 'sex_id'])
 
