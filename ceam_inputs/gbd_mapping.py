@@ -241,21 +241,20 @@ causes.freeze()
 raw_risk_mapping = {
     'unsafe_water_source': {
         'gbd_risk': rid(83),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
     'unsafe_sanitation': {
         'gbd_risk': rid(84),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
     'ambient_particulate_matter_pollution': {
         'gbd_risk': rid(86),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 2.4,
             'max': 5.9,
@@ -265,23 +264,23 @@ raw_risk_mapping = {
     },
     'household_air_pollution_from_solid_fuels': {
         'gbd_risk': rid(87),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke],
     },
     'vitamin_a_deficiency': {
         'gbd_risk': rid(96),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
     'zinc_deficiency': {
         'gbd_risk': rid(97),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
     'secondhand_smoke': {
         'gbd_risk': rid(100),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke],
     },
@@ -294,10 +293,9 @@ raw_risk_mapping = {
     # },
     'high_total_cholesterol': {
         'gbd_risk': rid(106),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 2.78,
             'max': 3.38,
@@ -308,7 +306,6 @@ raw_risk_mapping = {
     },
     'high_systolic_blood_pressure': {
         'gbd_risk': rid(107),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.rheumatic_heart_disease, causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
@@ -319,7 +316,7 @@ raw_risk_mapping = {
                             causes.chronic_kidney_disease_due_to_hypertension,
                             causes.chronic_kidney_disease_due_to_glomerulonephritis,
                             causes.chronic_kidney_disease_due_to_other_causes],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 110,
             'max': 115,
@@ -330,7 +327,6 @@ raw_risk_mapping = {
     },
     'high_body_mass_index': {
         'gbd_risk': rid(108),
-        'risk_type': 'continuous',
         'distribution': 'beta',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke,
                             causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
@@ -338,7 +334,7 @@ raw_risk_mapping = {
                             causes.chronic_kidney_disease_due_to_hypertension,
                             causes.chronic_kidney_disease_due_to_glomerulonephritis,
                             causes.chronic_kidney_disease_due_to_other_causes],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 20,
             'max': 25,
@@ -349,11 +345,10 @@ raw_risk_mapping = {
     },
     'diet_low_in_fruits': {
         'gbd_risk': rid(111),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 200,
             'max': 300,
@@ -364,11 +359,10 @@ raw_risk_mapping = {
     },
     'diet_low_in_vegetables': {
         'gbd_risk': rid(112),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 290,
             'max': 430,
@@ -379,11 +373,10 @@ raw_risk_mapping = {
     },
     'diet_low_in_whole_grains': {
         'gbd_risk': rid(113),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 100,
             'max': 150,
@@ -394,10 +387,9 @@ raw_risk_mapping = {
     },
     'diet_low_in_nuts_and_seeds': {
         'gbd_risk': rid(114),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 16,
             'max': 25,
@@ -408,10 +400,9 @@ raw_risk_mapping = {
     },
     'diet_high_in_processed_meat': {
         'gbd_risk': rid(117),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 0,
             'max': 4,
@@ -422,7 +413,6 @@ raw_risk_mapping = {
     },
     'diet_high_in_sugar_sweetened_beverages': {
         'gbd_risk': rid(118),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke,
                             causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
@@ -430,7 +420,7 @@ raw_risk_mapping = {
                             causes.chronic_kidney_disease_due_to_hypertension,
                             causes.chronic_kidney_disease_due_to_glomerulonephritis,
                             causes.chronic_kidney_disease_due_to_other_causes],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 0,
             'max': 5,
@@ -441,10 +431,9 @@ raw_risk_mapping = {
     },
     'diet_low_in_fiber': {
         'gbd_risk': rid(119),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 19,
             'max': 28,
@@ -455,10 +444,9 @@ raw_risk_mapping = {
     },
     'diet_low_in_seafood_omega_3_fatty_acids': {
         'gbd_risk': rid(121),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 200,
             'max': 300,
@@ -469,10 +457,9 @@ raw_risk_mapping = {
     },
     'diet_low_in_polyunsaturated_fatty_acids': {
         'gbd_risk': rid(122),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 0.09,
             'max': 0.13,
@@ -483,10 +470,9 @@ raw_risk_mapping = {
     },
     'diet_high_in_trans_fatty_acids': {
         'gbd_risk': rid(123),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 0,
             'max': 0.01,
@@ -497,7 +483,6 @@ raw_risk_mapping = {
     },
     'diet_high_in_sodium': {
         'gbd_risk': rid(124),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.rheumatic_heart_disease, causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
@@ -508,7 +493,7 @@ raw_risk_mapping = {
                             causes.chronic_kidney_disease_due_to_hypertension,
                             causes.chronic_kidney_disease_due_to_glomerulonephritis,
                             causes.chronic_kidney_disease_due_to_other_causes],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 1,
             'max': 5,
@@ -522,7 +507,7 @@ raw_risk_mapping = {
     #     'risk_type': 'continuous',
     #     'distribution': 'weibull',
     #     'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke],
-    #     'tmrl': {
+    #     'tmred': {
     #         'distribution': 'uniform',
     #         'min': 3000,
     #         'max': 4500,
@@ -533,17 +518,16 @@ raw_risk_mapping = {
     # },
     'non_exclusive_breastfeeding': {
         'gbd_risk': rid(136),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
     'discontinued_breastfeeding': {
         'gbd_risk': rid(137),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
     'high_fasting_plasma_glucose_continuous': {
         'gbd_risk': rid(141),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke,
@@ -551,7 +535,7 @@ raw_risk_mapping = {
                             causes.chronic_kidney_disease_due_to_hypertension,
                             causes.chronic_kidney_disease_due_to_glomerulonephritis,
                             causes.chronic_kidney_disease_due_to_other_causes],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 4.88488,
             'max': 5.301205,
@@ -562,7 +546,7 @@ raw_risk_mapping = {
     },
     'high_fasting_plasma_glucose_categorical': {
         'gbd_risk': rid(142),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.peripheral_vascular_disease],
     },
     # 'low_glomerular_filtration_rate': {
@@ -575,7 +559,7 @@ raw_risk_mapping = {
     # },
     'smoking_prevalence_approach': {
         'gbd_risk': rid(166),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke,
                             causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
                             causes.atrial_fibrillation_and_flutter, causes.aortic_aneurysm,
@@ -583,22 +567,21 @@ raw_risk_mapping = {
     },
     'no_access_to_handwashing_facility': {
         'gbd_risk': rid(238),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
     'child_wasting': {
         'gbd_risk': rid(240),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
     'child_stunting': {
         'gbd_risk': rid(241),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
     'lead_exposure_in_bone': {
         'gbd_risk': rid(243),
-        'risk_type': 'continuous',
         'distribution': 'lognormal',
         'effected_causes': [causes.rheumatic_heart_disease, causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
@@ -609,7 +592,7 @@ raw_risk_mapping = {
                             causes.chronic_kidney_disease_due_to_hypertension,
                             causes.chronic_kidney_disease_due_to_glomerulonephritis,
                             causes.chronic_kidney_disease_due_to_other_causes],
-        'tmrl': {
+        'tmred': {
             'distribution': 'uniform',
             'min': 0,
             'max': 20,
@@ -620,7 +603,7 @@ raw_risk_mapping = {
     },
     'low_measles_vaccine_coverage_1st_dose': {
         'gbd_risk': rid(318),
-        'risk_type': 'categorical',
+        'distribution': 'categorical',
         'effected_causes': [causes.diarrhea],
     },
 }
