@@ -783,16 +783,16 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
     output_df = mean_df.join(sd_df)
 
-    for i in range(1000):
-        output_df.loc[pd.IndexSlice[output_df.index.levels[2] < 27.5], 'log_mean_{}'.format(i)] = np.log(112)
-        output_df.loc[pd.IndexSlice[output_df.index.levels[2] < 27.5], 'log_sd_{}'.format(i)] = .001
-
     output_df = output_df.reset_index()
+    mean_columns = ['log_mean_{}'.format(i) for i in range(1000)]
+    sd_columns = ['log_sd_{}'.format(i) for i in range(1000)]
+    young_idx = output_df.age <= 27.5
+    output_df.loc[young_idx, mean_columns] = np.log(112)
+    output_df.loc[young_idx, sd_columns] = 0.001
+
     validate_data(output_df, ['age', 'year_id', 'sex_id'])
 
-    keep_columns = ['year_id', 'sex_id', 'age']
-    keep_columns.extend(('log_mean_{i}'.format(i=i) for i in range(0, 1000)))
-    keep_columns.extend(('log_sd_{i}'.format(i=i) for i in range(0, 1000)))
+    keep_columns = ['year_id', 'sex_id', 'age'] + mean_columns + sd_columns
 
     return output_df[keep_columns].sort_values(by=['year_id', 'age', 'sex_id'])
 
