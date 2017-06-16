@@ -352,7 +352,7 @@ def test_assign_subregions_with_subregions(gbd_mock, get_populations_mock):
             11: build_table(30, ['age', 'year', 'sex', 'pop_scaled']),
             12: build_table(50, ['age', 'year', 'sex', 'pop_scaled']),
     }
-    get_populations_mock.side_effect = lambda location_id, year, sex: test_populations[location_id]
+    get_populations_mock.side_effect = lambda location_id, year, sex, gbd_round_id: test_populations[location_id]
 
     locations = assign_subregions(pd.Index(range(100000)), 180, 2005, 3)
 
