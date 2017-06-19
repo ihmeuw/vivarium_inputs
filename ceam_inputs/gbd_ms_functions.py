@@ -365,42 +365,40 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
     return df.groupby(['age', 'sex', 'year'], as_index=False).sum()
 
 
-def get_codcorrect_csmr(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
+def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
     """
     location_id : int
-        location_id takes same location_id values as are used for GBD
-        
+        location_id takes same location_id values as are used for GBD        
     year_start : int, year
-        year_start is the year in which you want to start the simulation
-        
+        year_start is the year in which you want to start the simulation        
     year_end : int, end year
-        year_end is the year in which you want to end the simulation
-        
+        year_end is the year in which you want to end the simulation        
     cause_id: int
-        cause_id takes same cause_id values as are used for GBD
-    
+        cause_id takes same cause_id values as are used for GBD    
     gbd_round_id: int
-        GBD round of interest
-    
+        GBD round of interest    
     draw_number: int
         GBD draw of interest
     """
-    
-    csmr = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
-    
-    csmr['csmr_{}'.format(draw_number)] = csmr['draw_{}'.format(draw_number)] / csmr['pop']
-    
-    csmr = csmr.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
-    
-    csmr = get_age_group_midpoint_from_age_group_id(csmr)
-    
-    keep_columns = ['year_id', 'sex_id', 'age', 'csmr_{}'.format(draw_number)]
+    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
+    draws = draws[(draws.year_id >= year_start) & (draws.year_id <= year_end)]
+    draws = get_age_group_midpoint_from_age_group_id(draws)
+    keep_columns = ['year_id', 'sex_id', 'age'] + ['draw_{}'.format(i) for i in range(1000)]
+    draws = draws[keep_columns]
+    validate_data(draws, ['year_id', 'sex_id', 'age'])
+    cause_specific_deaths = select_draw_data(draws, draw_number, 'deaths')
 
-    csmr = csmr[keep_columns]
+    pop = gbd.get_populations(location_id, gbd_round_id)
+    pop = get_age_group_midpoint_from_age_group_id(pop)
+    pop = pop[['year_id', 'age', 'sex_id', 'population']]
+    pop = pop.rename(columns={'population': 'pop_scaled'})
+    validate_data(pop, ['year_id', 'sex_id', 'age'])
+    pop = normalize_for_simulation(pop)
 
-    validate_data(csmr, ['year_id', 'sex_id', 'age']) 
+    cause_specific_deaths.merge(pop, on=['age', 'sex', 'year'])
+    cause_specific_deaths['rate'] = np.divide(cause_specific_deaths.deaths.values, pop.pop_scaled.values)
 
-    return csmr.sort_values(by=['year_id', 'age', 'sex_id'])
+    return cause_specific_deaths[['age', 'sex', 'year', 'rate']]
 
 
 def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
@@ -735,7 +733,6 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
 
     validate_data(exposure, ['age', 'year_id', 'sex_id', 'parameter'])
     return exposure
-
 
 
 def select_draw_data(data, draw, column_name, src_column=None):

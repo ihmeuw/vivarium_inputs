@@ -19,14 +19,13 @@ from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid
 
 def _get_modelable_entity_draws(column_name, measure, modelable_entity_id):
     year_start, year_end = gbd_year_range()
-    draw = config.run_configuration.draw_number
     draws = functions.get_modelable_entity_draws(location_id=config.simulation_parameters.location_id,
                                                  year_start=year_start,
                                                  year_end=year_end,
                                                  measure=measure,
                                                  me_id=modelable_entity_id)
 
-    df = functions.select_draw_data(draws, draw, column_name=column_name)
+    df = functions.select_draw_data(draws, config.run_configuration.draw_number, column_name=column_name)
     df.metadata = {'modelable_entity_id': modelable_entity_id}
 
     return df
@@ -77,14 +76,14 @@ def get_cause_specific_mortality(cause_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    draw_number = config.run_configuration.draw_number
 
-    csmr = functions.get_codcorrect_csmr(location_id=location_id, year_start=year_start, year_end=year_end, cause_id=cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
-
-    return functions.select_draw_data(data=csmr, draw=draw_number, column_name='rate', src_column='csmr_{draw}')
+    return functions.get_cause_specific_mortality(cause_id=cause_id,
+                                                  location_id=config.simulation_parameters.location_id,
+                                                  year_start=year_start,
+                                                  year_end=year_end,
+                                                  gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                                  draw_number=config.run_configuration.draw_number)
 
 
 def get_remission(modelable_entity_id):

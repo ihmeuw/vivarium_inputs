@@ -86,11 +86,13 @@ def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_rou
                      model_version_id=model_version,
                      gbd_round_id=gbd_round_id)
 
+
 @memory.cache
-def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
+def get_codcorrect_draws(location_id, cause_id, gbd_round_id):
     from transmogrifier.draw_ops import get_draws
 
-    # FIXME: Should submit a ticket to IT to determine if we need to specify an output_version_id or a model_version_id to ensure we're getting the correct results
+    # FIXME: Should submit a ticket to IT to determine if we need to specify an
+    # output_version_id or a model_version_id to ensure we're getting the correct results
     return get_draws(gbd_id_field='cause_id',
                      gbd_id=cause_id,
                      source="codcorrect",
@@ -98,6 +100,7 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=No
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
                      gbd_round_id=gbd_round_id)
+
 
 @memory.cache
 def get_covariate_estimates(covariate_name_short, location_id):
