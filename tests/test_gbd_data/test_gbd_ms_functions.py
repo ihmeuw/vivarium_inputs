@@ -246,28 +246,20 @@ def test_get_sbp_mean_sd_kenya_2000():
 
 
 def test_sum_up_csmrs_for_all_causes_in_microsim():
-    csmr1 = normalize_for_simulation(get_modelable_entity_draws(location_id=KENYA,
-                                                                year_start=1990,
-                                                                year_end=1990,
-                                                                measure=15,
-                                                                me_id=causes.heart_attack.mortality))
-    csmr2 = normalize_for_simulation(get_modelable_entity_draws(location_id=KENYA,
-                                                                year_start=1990,
-                                                                year_end=1990,
-                                                                measure=15,
-                                                                me_id=causes.ischemic_stroke.mortality))
+    csmr1 = get_cause_specific_mortality(causes.heart_attack.gbd_cause)
+    csmr2 = get_cause_specific_mortality(causes.ischemic_stroke.gbd_cause)
+
     sex = 'Female'
     age = 72.5
-    draw_number = 77
 
     csmr1_filter = csmr1.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
     csmr2_filter = csmr2.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
-    csmr1_val = csmr1_filter['draw_{}'.format(draw_number)].values[0]
-    csmr2_val = csmr2_filter['draw_{}'.format(draw_number)].values[0]
+    csmr1_val = csmr1_filter['rate'].values[0]
+    csmr2_val = csmr2_filter['rate'].values[0]
 
     df = sum_up_csmrs_for_all_causes_in_microsim([csmr1_filter, csmr2_filter])
     df_filter = df.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
-    df_val = df_filter['draw_{}'.format(draw_number)].values[0]
+    df_val = df_filter['rate'].values[0]
 
     assert df_val == csmr1_val + csmr2_val, "sum_up_csmrs_for_all_causes_in_microsim did not correctly sum up csmrs"
 
