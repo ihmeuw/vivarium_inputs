@@ -17,6 +17,7 @@ from ceam.framework.randomness import choice
 from ceam.framework.util import rate_to_probability
 
 from ceam_inputs import gbd, causes
+from ceam_inputs.gbd_mapping import cid
 from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
                                                     get_age_group_midpoint_from_age_group_id, get_populations,
@@ -380,6 +381,7 @@ def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gb
     draw_number: int
         GBD draw of interest
     """
+    assert isinstance(cause_id, cid)
     draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
     draws = draws[(draws.year_id >= year_start) & (draws.year_id <= year_end)]
     draws = get_age_group_midpoint_from_age_group_id(draws)
