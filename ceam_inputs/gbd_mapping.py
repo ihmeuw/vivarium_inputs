@@ -25,6 +25,9 @@ class hid(int):
         return 'hid({:d})'.format(self)
 
 raw_cause_mapping = {
+    'all_causes': {
+        'gbd_cause': cid(294),
+    },
     'diarrhea': {
         'gbd_cause': cid(302),
         'disability_weight': 0.23,

@@ -8,13 +8,12 @@ from ceam import config
 _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
 config.load(_config_path, layer='base', source=_config_path)
 
+# Make these toplevel imports until external references can be removed.
+from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid
 from ceam_inputs import gbd, risk_factor_correlation, gbd_ms_functions as functions
 from ceam_inputs.util import gbd_year_range
 
 
-
-# Make these toplevel imports until external references can be removed.
-from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid
 
 
 def _get_modelable_entity_draws(column_name, measure, modelable_entity_id):

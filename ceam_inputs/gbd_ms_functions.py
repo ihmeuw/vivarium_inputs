@@ -16,7 +16,7 @@ from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
 from ceam.framework.util import rate_to_probability
 
-from ceam_inputs import gbd
+from ceam_inputs import gbd, causes
 from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
                                                     get_age_group_midpoint_from_age_group_id, get_populations,
@@ -395,10 +395,10 @@ def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gb
     validate_data(pop, ['year_id', 'sex_id', 'age'])
     pop = normalize_for_simulation(pop)
 
-    cause_specific_deaths.merge(pop, on=['age', 'sex', 'year'])
-    cause_specific_deaths['rate'] = np.divide(cause_specific_deaths.deaths.values, pop.pop_scaled.values)
+    csmr = cause_specific_deaths.merge(pop, on=['age', 'sex', 'year'])
+    csmr['rate'] = np.divide(csmr.deaths.values, csmr.pop_scaled.values)
 
-    return cause_specific_deaths[['age', 'sex', 'year', 'rate']]
+    return csmr[['age', 'sex', 'year', 'rate']]
 
 
 def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
@@ -428,14 +428,12 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
     the cause-deleted mortality rate
     """
 
-    all_cause_mr = normalize_for_simulation(get_codcorrect_csmr(location_id=location_id,
-                                                                year_start=year_start,
-                                                                year_end=year_end,
-                                                                cause_id=294, # FIXME: add all cause mortality to the gbd_mapping suite
-                                                                gbd_round_id=gbd_round_id,
-                                                                draw_number=draw_number))
-
-    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'csmr_{}'.format(draw_number)]]
+    all_cause_mr = get_cause_specific_mortality(location_id=location_id,
+                                                year_start=year_start,
+                                                year_end=year_end,
+                                                cause_id=causes.all_causes.gbd_cause,
+                                                gbd_round_id=gbd_round_id,
+                                                draw_number=draw_number)
     all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
     if list_of_csmrs:
