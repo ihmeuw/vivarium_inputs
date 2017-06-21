@@ -114,6 +114,7 @@ raw_cause_mapping = {
     },
     'ischemic_heart_disease': {
         'gbd_cause': cid(493),
+        'mortality': cid(493),
     },
     'heart_attack': {
         'gbd_cause': cid(493),
