@@ -8,25 +8,23 @@ from ceam import config
 _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
 config.load(_config_path, layer='base', source=_config_path)
 
+# Make these toplevel imports until external references can be removed.
+from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid
 from ceam_inputs import gbd, risk_factor_correlation, gbd_ms_functions as functions
 from ceam_inputs.util import gbd_year_range
 
 
 
-# Make these toplevel imports until external references can be removed.
-from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid
-
 
 def _get_modelable_entity_draws(column_name, measure, modelable_entity_id):
     year_start, year_end = gbd_year_range()
-    draw = config.run_configuration.draw_number
     draws = functions.get_modelable_entity_draws(location_id=config.simulation_parameters.location_id,
                                                  year_start=year_start,
                                                  year_end=year_end,
                                                  measure=measure,
                                                  me_id=modelable_entity_id)
 
-    df = functions.select_draw_data(draws, draw, column_name=column_name)
+    df = functions.select_draw_data(draws, config.run_configuration.draw_number, column_name=column_name)
     df.metadata = {'modelable_entity_id': modelable_entity_id}
 
     return df
@@ -64,20 +62,27 @@ def get_incidence(modelable_entity_id):
     return _get_modelable_entity_draws(column_name='rate', measure=6, modelable_entity_id=modelable_entity_id)
 
 
-def get_cause_specific_mortality(modelable_entity_id):
+def get_cause_specific_mortality(cause_id):
     """Get excess mortality associated with a modelable entity.
 
     Parameters
     ----------
-    modelable_entity_id : int
-                          The entity to retrieve
+    cause_id : int
+        The entity to retrieve
 
     Returns
     -------
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return _get_modelable_entity_draws(column_name='rate', measure=15, modelable_entity_id=modelable_entity_id)
+    year_start, year_end = gbd_year_range()
+
+    return functions.get_cause_specific_mortality(cause_id=cause_id,
+                                                  location_id=config.simulation_parameters.location_id,
+                                                  year_start=year_start,
+                                                  year_end=year_end,
+                                                  gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                                  draw_number=config.run_configuration.draw_number)
 
 
 def get_remission(modelable_entity_id):
@@ -247,19 +252,22 @@ def get_exposures(risk_id):
 
 
 def get_populations(location_id, year, sex_id=3):
-    return functions.get_populations(location_id=location_id, year_start=year, sex_id=sex_id)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_populations(location_id=location_id, year_start=year, gbd_round_id=gbd_round_id, sex_id=sex_id)
 
 
 def generate_ceam_population(number_of_simulants, initial_age=None, time=None):
     location_id = config.simulation_parameters.location_id
     pop_age_start = config.simulation_parameters.pop_age_start
     pop_age_end = config.simulation_parameters.pop_age_end
+    gbd_round_id = config.simulation_parameters.gbd_round_id
     if time is None:
         year_start, year_end = gbd_year_range()
         time = datetime(year_start, 1, 1)
     population = functions.generate_ceam_population(location_id=location_id,
                                                     time=time,
                                                     number_of_simulants=number_of_simulants,
+                                                    gbd_round_id=gbd_round_id,
                                                     initial_age=initial_age,
                                                     pop_age_start=pop_age_start,
                                                     pop_age_end=pop_age_end)
@@ -385,7 +393,8 @@ def get_asympt_ihd_proportions():
 
 
 def assign_subregions(population, location_id, year_start):
-    return functions.assign_subregions(population, location_id, year_start)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.assign_subregions(population, location_id, year_start, gbd_round_id)
 
 
 def assign_cause_at_beginning_of_simulation(population, location_id, year, states):

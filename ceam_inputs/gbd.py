@@ -1,5 +1,6 @@
-from joblib import Memory
+from multiprocessing.process import current_process
 
+from joblib import Memory
 import numpy as np
 import pandas as pd
 
@@ -88,6 +89,21 @@ def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_rou
 
 
 @memory.cache
+def get_codcorrect_draws(location_id, cause_id, gbd_round_id):
+    from transmogrifier.draw_ops import get_draws
+
+    # FIXME: Should submit a ticket to IT to determine if we need to specify an
+    # output_version_id or a model_version_id to ensure we're getting the correct results
+    return get_draws(gbd_id_field='cause_id',
+                     gbd_id=cause_id,
+                     source="codcorrect",
+                     location_ids=location_id,
+                     sex_ids=MALE + FEMALE,
+                     age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                     gbd_round_id=gbd_round_id)
+
+
+@memory.cache
 def get_covariate_estimates(covariate_name_short, location_id):
     # This import is not at global scope because I only want the dependency if cached data is unavailable
     from db_queries import get_covariate_estimates
@@ -143,6 +159,14 @@ def get_exposures(location_id, risk_id, gbd_round_id):
 @memory.cache
 def get_pafs(location_id, cause_id, gbd_round_id):
     from transmogrifier.draw_ops import get_draws
+
+    # I'm cargo culting here. When the simulation is hosted by a dask worker,
+    # we can't spawn sub-processes in the way that get_draws wants to
+    # There are better ways of solving this but they involve understanding dask
+    # better or working on shared function code, neither of
+    # which I'm going to do right now. -Alec
+    worker_count = 0 if current_process().daemon else 6  # One worker per 5-year dalynator file (1990 - 2015)
+
     return get_draws(gbd_id_field='cause_id',
                      gbd_id=cause_id,
                      source='dalynator',
@@ -150,7 +174,8 @@ def get_pafs(location_id, cause_id, gbd_round_id):
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
                      include_risks=True,
-                     gbd_round_id=gbd_round_id)
+                     gbd_round_id=gbd_round_id,
+                     num_workers=worker_count)
 
 
 @memory.cache
@@ -167,13 +192,22 @@ def get_populations(location_id, gbd_round_id):
 @memory.cache
 def get_deaths(location_id, gbd_round_id):
     from transmogrifier.draw_ops import get_draws
+
+    # I'm cargo culting here. When the simulation is hosted by a dask worker,
+    # we can't spawn sub-processes in the way that get_draws wants to
+    # There are better ways of solving this but they involve understanding dask
+    # better or working on shared function code, neither of
+    # which I'm going to do right now. -Alec
+    worker_count = 0 if current_process().daemon else 6  # One worker per 5-year dalynator file (1990 - 2015)
+
     return get_draws(gbd_id_field="cause_id",
                      gbd_id=294,
                      source="dalynator",
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
                      location_ids=location_id,
                      measure_ids=1,
-                     gbd_round_id=gbd_round_id)
+                     gbd_round_id=gbd_round_id,
+                     num_workers=worker_count)
 
 
 @memory.cache
@@ -189,8 +223,3 @@ def get_data_from_auxiliary_file(file_name, **kwargs):
     else:
         raise NotImplementedError("File type {} is not supported".format(file_type))
     return data
-
-
-
-
-

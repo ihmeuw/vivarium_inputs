@@ -25,13 +25,16 @@ class hid(int):
         return 'hid({:d})'.format(self)
 
 raw_cause_mapping = {
+    'all_causes': {
+        'gbd_cause': cid(294),
+    },
     'diarrhea': {
         'gbd_cause': cid(302),
         'disability_weight': 0.23,
         'excess_mortality': meid(1181),
         'prevalence': meid(1181),
         'incidence': meid(1181),
-        'mortality': meid(1181),
+        'mortality': cid(302),
         'duration': meid(1181),
     },
     'mild_diarrhea': {
@@ -50,7 +53,7 @@ raw_cause_mapping = {
         'gbd_cause': cid(302),
         'incidence': meid(2610),
         'disability_weight': hid(357),
-        'mortality': meid(1181),
+        'mortality': cid(302),
         'excess_mortality': meid(1181),
         'duration': meid(1181)
     },
@@ -111,6 +114,7 @@ raw_cause_mapping = {
     },
     'ischemic_heart_disease': {
         'gbd_cause': cid(493),
+        'mortality': cid(493),
     },
     'heart_attack': {
         'gbd_cause': cid(493),
@@ -124,19 +128,21 @@ raw_cause_mapping = {
         'disability_weight': meid(1821),
         'excess_mortality': meid(2412),
         'prevalence': meid(1821),
-        'mortality': meid(2412),
+        'mortality': cid(493),
     },
     'moderate_heart_failure': {
         'gbd_cause': cid(493),
         'disability_weight': meid(1822),
         'excess_mortality': meid(2412),
         'prevalence': meid(1822),
+        'mortality': cid(493),
     },
     'severe_heart_failure': {
         'gbd_cause': cid(493),
         'disability_weight': meid(1823),
         'excess_mortality': meid(2412),
         'prevalence': meid(1823),
+        'mortality': cid(493),
     },
     'angina_not_due_to_MI': {
         'gbd_cause': cid(493),
@@ -147,7 +153,7 @@ raw_cause_mapping = {
         'disability_weight': meid(1823),
         'excess_mortality': meid(1817),
         'prevalence': meid(3102),
-        'mortality': meid(1817),
+        'mortality': cid(493),
     },
     'mild_angina': {
         'gbd_cause': cid(493),
@@ -160,33 +166,35 @@ raw_cause_mapping = {
         'disability_weight': meid(1819),
         'excess_mortality': meid(1817),
         'prevalence': meid(1819),
+        'mortality': cid(493),
     },
     'severe_angina': {
         'gbd_cause': cid(493),
         'disability_weight': meid(1820),
         'excess_mortality': meid(1817),
         'prevalence': meid(1820),
+        'mortality': cid(493),
     },
     'asymptomatic_ihd': {
         'gbd_cause': cid(493),
         'disability_weight': meid(3233),
         'excess_mortality': 0.0,
         'prevalence': meid(3233),
-        'mortality': meid(3233),
+        'mortality': cid(493),
     },
     'chronic_stroke': {
         'gbd_cause': cid(494),
         'disability_weight': 0.32,
         'excess_mortality': meid(9312),
         'prevalence': meid(9312),
-        'mortality': meid(9312),
+        'mortality': cid(494),
     },
     'ischemic_stroke': {
         'gbd_cause': cid(495),
         'disability_weight': 0.32,
         'excess_mortality': meid(9310),
         'prevalence': meid(9310),
-        'mortality': meid(9310),
+        'mortality': cid(495),
         'incidence': meid(9310),
     },
     'hemorrhagic_stroke': {
@@ -194,7 +202,7 @@ raw_cause_mapping = {
         'disability_weight': 0.32,
         'excess_mortality': meid(9311),
         'prevalence': meid(9311),
-        'mortality': meid(9311),
+        'mortality': cid(496),
         'incidence': meid(9311),
     },
     'hypertensive_heart_disease': {
