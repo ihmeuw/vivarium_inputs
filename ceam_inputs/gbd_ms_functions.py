@@ -16,9 +16,9 @@ from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
 from ceam.framework.util import rate_to_probability
 
-from ceam_inputs import gbd
+from ceam_inputs import gbd, causes
+from ceam_inputs.gbd_mapping import cid
 from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
-                                                    get_all_cause_mortality_rate,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
                                                     get_age_group_midpoint_from_age_group_id, get_populations,
                                                     create_sex_id_column)
@@ -90,7 +90,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     return draws[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
-def generate_ceam_population(location_id, time, number_of_simulants,
+def generate_ceam_population(location_id, time, number_of_simulants, gbd_round_id,
                              initial_age=None, pop_age_start=None, pop_age_end=None):
     """Returns a population of simulants to be fed into CEAM
 
@@ -111,7 +111,7 @@ def generate_ceam_population(location_id, time, number_of_simulants,
     -------
     df with columns simulant_id, age, sex_id, and columns to indicate if simulant has different diseases
     """
-    pop = get_populations(location_id, time.year, 3, sum_up_80_plus=True)
+    pop = get_populations(location_id, time.year, 3, gbd_round_id)
 
     if pop_age_start is not None:
         assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
@@ -135,7 +135,7 @@ def generate_ceam_population(location_id, time, number_of_simulants,
         assert pop_age_start is None, "do not set values for initial age and pop_age_start/pop_age_end"
         assert pop_age_end is None, "do not set values for initial age and pop_age_start/pop_age_end"
         simulants['age'] = initial_age
-    simulants = create_sex_id_column(simulants, location_id, time.year)
+    simulants = create_sex_id_column(simulants, location_id, time.year, gbd_round_id)
     simulants['location'] = location_id
 
     validate_data(simulants, ['simulant_id'])
@@ -143,7 +143,7 @@ def generate_ceam_population(location_id, time, number_of_simulants,
     return simulants
 
 
-def assign_subregions(index, location_id, year):
+def assign_subregions(index, location_id, year, gbd_round_id):
     """
     Assigns a location to each simulant. If the location_id
     has sub regions in the hierarchy then the simulants will be
@@ -172,7 +172,7 @@ def assign_subregions(index, location_id, year):
 
     # Get the population of each subregion and calculate the ratio of it to the
     # total, which gives us the weights to use when distributing simulants
-    populations = np.array([get_populations(region_id, year, 3).pop_scaled.sum() for region_id in region_ids])
+    populations = np.array([get_populations(region_id, year, 3, gbd_round_id).pop_scaled.sum() for region_id in region_ids])
     populations = populations / populations.sum()
 
     return choice('assign_subregions_{}'.format(year), index, region_ids, p=populations)
@@ -366,6 +366,43 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
     return df.groupby(['age', 'sex', 'year'], as_index=False).sum()
 
 
+def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
+    """
+    location_id : int
+        location_id takes same location_id values as are used for GBD        
+    year_start : int, year
+        year_start is the year in which you want to start the simulation        
+    year_end : int, end year
+        year_end is the year in which you want to end the simulation        
+    cause_id: int
+        cause_id takes same cause_id values as are used for GBD    
+    gbd_round_id: int
+        GBD round of interest    
+    draw_number: int
+        GBD draw of interest
+    """
+    assert isinstance(cause_id, cid)
+    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
+    draws = draws[(draws.year_id >= year_start) & (draws.year_id <= year_end)]
+    draws = get_age_group_midpoint_from_age_group_id(draws)
+    keep_columns = ['year_id', 'sex_id', 'age'] + ['draw_{}'.format(i) for i in range(1000)]
+    draws = draws[keep_columns]
+    validate_data(draws, ['year_id', 'sex_id', 'age'])
+    cause_specific_deaths = select_draw_data(draws, draw_number, 'deaths')
+
+    pop = gbd.get_populations(location_id, gbd_round_id)
+    pop = get_age_group_midpoint_from_age_group_id(pop)
+    pop = pop[['year_id', 'age', 'sex_id', 'population']]
+    pop = pop.rename(columns={'population': 'pop_scaled'})
+    validate_data(pop, ['year_id', 'sex_id', 'age'])
+    pop = normalize_for_simulation(pop)
+
+    csmr = cause_specific_deaths.merge(pop, on=['age', 'sex', 'year'])
+    csmr['rate'] = np.divide(csmr.deaths.values, csmr.pop_scaled.values)
+
+    return csmr[['age', 'sex', 'year', 'rate']]
+
+
 def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
                                      list_of_csmrs, gbd_round_id, draw_number):
     """Returns the cause-deleted mortality rate for a given time period and location
@@ -393,10 +430,12 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
     the cause-deleted mortality rate
     """
 
-    all_cause_mr = normalize_for_simulation(get_all_cause_mortality_rate(
-        location_id, year_start, year_end, gbd_round_id=gbd_round_id))
-
-    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'all_cause_mortality_rate_{}'.format(draw_number)]]
+    all_cause_mr = get_cause_specific_mortality(location_id=location_id,
+                                                year_start=year_start,
+                                                year_end=year_end,
+                                                cause_id=causes.all_causes.gbd_cause,
+                                                gbd_round_id=gbd_round_id,
+                                                draw_number=draw_number)
     all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
 
     if list_of_csmrs:
@@ -696,7 +735,6 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
     return exposure
 
 
-
 def select_draw_data(data, draw, column_name, src_column=None):
     if column_name:
         if src_column is not None:
@@ -783,16 +821,16 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
     output_df = mean_df.join(sd_df)
 
-    for i in range(1000):
-        output_df.loc[pd.IndexSlice[output_df.index.levels[2] < 27.5], 'log_mean_{}'.format(i)] = np.log(112)
-        output_df.loc[pd.IndexSlice[output_df.index.levels[2] < 27.5], 'log_sd_{}'.format(i)] = .001
-
     output_df = output_df.reset_index()
+    mean_columns = ['log_mean_{}'.format(i) for i in range(1000)]
+    sd_columns = ['log_sd_{}'.format(i) for i in range(1000)]
+    young_idx = output_df.age <= 27.5
+    output_df.loc[young_idx, mean_columns] = np.log(112)
+    output_df.loc[young_idx, sd_columns] = 0.001
+
     validate_data(output_df, ['age', 'year_id', 'sex_id'])
 
-    keep_columns = ['year_id', 'sex_id', 'age']
-    keep_columns.extend(('log_mean_{i}'.format(i=i) for i in range(0, 1000)))
-    keep_columns.extend(('log_sd_{i}'.format(i=i) for i in range(0, 1000)))
+    keep_columns = ['year_id', 'sex_id', 'age'] + mean_columns + sd_columns
 
     return output_df[keep_columns].sort_values(by=['year_id', 'age', 'sex_id'])
 
