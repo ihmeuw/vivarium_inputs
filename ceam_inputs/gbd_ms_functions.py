@@ -1504,3 +1504,22 @@ def get_bmi_distribution_parameters(location_id, year_start, year_end, draw):
 
     return parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']]
 
+
+def get_dtp3_coverage(location_id, year_start, year_end, draw_number):
+    # FIXME: Use Auxiliary File
+    dtp3 = pd.read_csv("/snfs1/temp/pyliu/scratch/draws/exp/vacc_dpt3/{}.csv".format(location_id))
+    
+    dtp3 = expand_ages_for_dfs_w_all_age_estimates(dtp3)
+    
+    # TODO: Confirm with Patty that results only apply to under 5s (basically want to confirm that
+    # comment below is valid for this function)
+    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid
+    # for children under 5 the input data only uses the all ages age group id since
+    # the covariates database requires that covariates apply to all ages
+    dtp3 = dtp3.query("age < 5")
+    dtp3 = expand_ages(dtp3)
+    dtp3[['draw_{}'.format(i) for i in range(1000)]] = dtp3[['draw_{}'.format(i) for i in range(1000)]].fillna(value=0)
+    dtp3 = dtp3.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
+    
+    keep_columns = ['year_id', 'sex_id', 'age','draw_{}'.format(draw_number)]
+    return dtp3[keep_columns]
