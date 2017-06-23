@@ -120,15 +120,16 @@ def get_covariate_estimates(covariate_name_short, location_id):
 @memory.cache
 def _get_risk_draws(location_id, risk_id, draw_type, gbd_round_id):
     from transmogrifier.draw_ops import get_draws
-    draws = get_draws(gbd_id_field='rei_id',
-                      gbd_id=risk_id,
-                      source='risk',
-                      location_ids=location_id,
-                      sex_ids=MALE + FEMALE,
-                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                      draw_type=draw_type,
-                      gbd_round_id=gbd_round_id)
-    if np.all(draws.values == "error"):
+    try:
+        draws = get_draws(gbd_id_field='rei_id',
+                          gbd_id=risk_id,
+                          source='risk',
+                          location_ids=location_id,
+                          sex_ids=MALE + FEMALE,
+                          age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                         draw_type=draw_type,
+                        gbd_round_id=gbd_round_id)
+    except ValueError:
         draws = get_draws(gbd_id_field='rei_id',
                           gbd_id=risk_id,
                           source='risk',
@@ -137,8 +138,6 @@ def _get_risk_draws(location_id, risk_id, draw_type, gbd_round_id):
                           age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
                           draw_type=draw_type,
                           gbd_round_id=gbd_round_id-1)
-    elif np.any(draws.values == "error"):
-        raise ValueError("Get draws failed for some rows but not all. It is unclear how to proceed so stopping")
     return draws
 
 
