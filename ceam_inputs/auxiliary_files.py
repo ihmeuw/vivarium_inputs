@@ -93,6 +93,11 @@ FILES = {
         'source': '/home/j/WORK/05_risk/mediation/mediation_matrix_corrected.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
+    'DTP3 Coverage': {
+        'path': 'vacc_dtp3/exp{location_id}.csv',
+        'source': '/snfs1/temp/pyliu/scratch/draws/exp/vacc_dpt3/{location_id}.csv', # FIXME: This filepath will change at some point in the future (not sure when though) -- EM 6.22.2017
+        'owner': 'Patrick Liu <pyliu@uw.edu>; GBD Vaccine Coverage Team',
+    },
 }
 
 
