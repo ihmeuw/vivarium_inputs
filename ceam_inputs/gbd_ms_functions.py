@@ -16,7 +16,7 @@ from ceam.interpolation import Interpolation
 from ceam.framework.randomness import choice
 from ceam.framework.util import rate_to_probability
 
-from ceam_inputs import gbd, causes
+from ceam_inputs import gbd, causes, risk_factors
 from ceam_inputs.gbd_mapping import cid
 from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
@@ -34,8 +34,8 @@ class UnhandledRiskError(ValueError):
 
 def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id):
     """Returns draws for a given measure and modelable entity
-    
-    Gives you incidence, prevalence, csmr, excess mortality, and 
+
+    Gives you incidence, prevalence, csmr, excess mortality, and
     other metrics at draw level.
 
     Parameters
@@ -195,7 +195,7 @@ def get_cause_level_prevalence(states, year_start):
     Notes
     -----
     Assumptions -- That the sequela prevalences associated with a cause will add up to the cause level prevalence
-    Questions -- Would it be better to just pull cause level prevalence? 
+    Questions -- Would it be better to just pull cause level prevalence?
     I'm a bit worried that the sequela prevalences won't add up
     """
     prevalence_df = pd.DataFrame()
@@ -213,8 +213,8 @@ def get_cause_level_prevalence(states, year_start):
 
 
 def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
-    """Returns a dataframe with new column 'condition_envelope' that will 
-    indicate whether the simulant has the cause or is healthy (healthy is 
+    """Returns a dataframe with new column 'condition_envelope' that will
+    indicate whether the simulant has the cause or is healthy (healthy is
     where condition_envelope = NaN at this point)
 
     Parameters
@@ -230,8 +230,8 @@ def determine_if_sim_has_cause(simulants_df, cause_level_prevalence):
 
     Notes
     -----
-    Questions -- I sort the prevalence and simulants dataframes by simulant_id 
-    to make sure that the prevalence is being assigned correctly to each demographic group. 
+    Questions -- I sort the prevalence and simulants dataframes by simulant_id
+    to make sure that the prevalence is being assigned correctly to each demographic group.
     Is there a better way to make sure that we're applying the correct prevalence rate to each simulant?
     """
     # TODO: Need to include Interpolation in this function for cause_level_prevalence.
@@ -264,7 +264,7 @@ def get_sequela_proportions(cause_level_prevalence, states):
 
     Returns
     -------
-    A dictionary of dataframes where each dataframe contains 
+    A dictionary of dataframes where each dataframe contains
     proportion of cause prevalence made up by a specific sequela
     """
 
@@ -285,14 +285,14 @@ def determine_which_seq_diseased_sim_has(sequela_proportions, new_sim_file):
     Parameters
     ----------
     sequela_proportions: dict
-        a dictionary of dataframes where each dataframe contains proportion of 
+        a dictionary of dataframes where each dataframe contains proportion of
         cause prevalence made up by a specific sequela
     new_sim_file: df
         dataframe of simulants
 
     Returns
     -------
-    dataframe of simulants with new column condition_state that indicates if simulant which 
+    dataframe of simulants with new column condition_state that indicates if simulant which
     sequela simulant has or indicates that they are healthy (i.e. they do not have the disease)
     """
     sequela_proportions = [(key, Interpolation(data[['sex', 'age', 'scaled_prevalence']], ['sex'], ['age']))
@@ -356,7 +356,7 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
 
     Notes
     -----
-    Assumptions -- That we can add together the csmrs for every cause in the microsim and 
+    Assumptions -- That we can add together the csmrs for every cause in the microsim and
     then subtract from the all-cause mortality rate to get the cause-deleted mortality rate.
     """
     df = pd.DataFrame()
@@ -369,15 +369,15 @@ def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
 def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
     """
     location_id : int
-        location_id takes same location_id values as are used for GBD        
+        location_id takes same location_id values as are used for GBD
     year_start : int, year
-        year_start is the year in which you want to start the simulation        
+        year_start is the year in which you want to start the simulation
     year_end : int, end year
-        year_end is the year in which you want to end the simulation        
+        year_end is the year in which you want to end the simulation
     cause_id: int
-        cause_id takes same cause_id values as are used for GBD    
+        cause_id takes same cause_id values as are used for GBD
     gbd_round_id: int
-        GBD round of interest    
+        GBD round of interest
     draw_number: int
         GBD draw of interest
     """
@@ -426,7 +426,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
 
     Notes
     -----
-    Assumptions -- That we can subtract the csmrs for the causes we care about to get 
+    Assumptions -- That we can subtract the csmrs for the causes we care about to get
     the cause-deleted mortality rate
     """
 
@@ -467,7 +467,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     year_start : int
         year_start is the year in which you want to start the simulation
     year_end : int
-        year_end is the year in which you want to end the 
+        year_end is the year in which you want to end the
     draw_number : int
         GBD draw to pull data for
 
@@ -478,8 +478,8 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     Notes
     -----
     Assumptions -- That the proportional prevalence is a good enough estimation of the proportional incidence.
-    Questions -- More of a general python question -- should I be using np.multiply for 
-    multiplication? Maybe it has to do with python's floating point issues, but I was 
+    Questions -- More of a general python question -- should I be using np.multiply for
+    multiplication? Maybe it has to do with python's floating point issues, but I was
     getting different results when using A*B instead of np.multiply(A,B).
     """
     # TODO: NEED TO WRITE TESTS TO MAKE SURE THAT POST_MI TRANSITIONS SCALE TO 1
@@ -541,8 +541,8 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id,
 
     Notes
     -----
-    Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't 
-    have estimates for all ages. I have set up the code so that each age group for which we 
+    Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't
+    have estimates for all ages. I have set up the code so that each age group for which we
     don't have GBD estimates has an RR of 1 (i.e. no elevated risk).
     Questions -- Should we set the RR to 1 for age groups for which we do not have rr estimates?
     """
@@ -613,10 +613,10 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
 
     Notes
     -----
-    Assumptions -- We should use PAFs for YLDs, since we use PAFs to affect incidence in CEAM. 
-    Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. 
+    Assumptions -- We should use PAFs for YLDs, since we use PAFs to affect incidence in CEAM.
+    Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages.
     I have set up the code so that each age group for which we don't have GBD estimates has a PAF of 0
-    Questions -- Should we set the PAF to 0 for age groups for which we do not have rr estimates? 
+    Questions -- Should we set the PAF to 0 for age groups for which we do not have rr estimates?
     Need to submit an epi help ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
     """
     if paf_type == 'morbidity':
@@ -673,11 +673,16 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
 
     Notes
     -----
-    Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages. 
+    Assumptions -- Some risks in GBD (e.g. Zinc deficiency and high sbp) don't have estimates for all ages.
     I have set up the code so that each age group for which we don't have GBD estimates has an exposure of 0
-    Questions -- Should we set the exposure to 0 for age groups for which we do not have rr estimates? 
-    Need to submit an epi help ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.    
+    Questions -- Should we set the exposure to 0 for age groups for which we do not have rr estimates?
+    Need to submit an epi help ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
     """
+
+    # Risks where there is no data for gbd_round_id 3
+    if risk_id in [risk_factors.ambient_particulate_matter_pollution.gbd_risk]:
+        gbd_round_id = 4
+
     exposure = gbd.get_exposures(location_id=location_id, risk_id=risk_id, gbd_round_id=gbd_round_id)
     exposure = exposure.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
@@ -726,6 +731,11 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
                                      + "this risk into your simulation")
 
     exposure = expand_ages(exposure)
+    # Hacky fix to an inconsistency in the database schema.  I'll do something nicer when I revise this
+    # bit of ceam inputs - J.C. 2017-07-26
+    if 'parameter' not in exposure.columns:
+        exposure['parameter'] = 'continuous'
+
     exposure[['draw_{}'.format(i) for i in range(1000)]] = exposure[
         ['draw_{}'.format(i) for i in range(1000)]].fillna(value=0)
     keep_columns = ['year_id', 'sex_id', 'age', 'parameter'] + ['draw_{i}'.format(i=i) for i in range(1000)]
@@ -775,9 +785,9 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
     Notes
     -----
     Assumptions -- That people under age 25 have the TMRED SBP
-    Questions -- We have estimates starting in the age 25-29 age group. Should we be using 
+    Questions -- We have estimates starting in the age 25-29 age group. Should we be using
     the midpoint or age 25 as the starting point?
-    TODO: Might want to change the TMRED. Need to catch up with Stan regarding calculating 
+    TODO: Might want to change the TMRED. Need to catch up with Stan regarding calculating
     TMREDs + write a function that will allow us to calculate TMREDs for a given risk.
     """
 
@@ -846,15 +856,15 @@ def get_angina_proportions():
 
     Notes
     -----
-    Assumptions -- The file does not have estimates for people under age 20. I've set the 
-    proportions for people under age 20 to be the same as the proportion for people that are 20 years old. 
-    This shouldn't have much of an impact on anything, since we don't expect for 
+    Assumptions -- The file does not have estimates for people under age 20. I've set the
+    proportions for people under age 20 to be the same as the proportion for people that are 20 years old.
+    This shouldn't have much of an impact on anything, since we don't expect for
     people under age 20 to have heart attacks.
 
-    Questions -- Is it valid to assign the angina proportion for 20 year olds to be the 
-    angina proportions for people under the age of 20? Who should we talk to about 
-    having these proportions stored in a better place (e.g. the database)? Who should 
-    we talk to about ensuring that this file doesn't move? How can we ensure that the 
+    Questions -- Is it valid to assign the angina proportion for 20 year olds to be the
+    angina proportions for people under the age of 20? Who should we talk to about
+    having these proportions stored in a better place (e.g. the database)? Who should
+    we talk to about ensuring that this file doesn't move? How can we ensure that the
     file is updated if need be?
     """
     ang = gbd.get_data_from_auxiliary_file('Angina Proportions')
@@ -905,10 +915,10 @@ def get_disability_weight(draw_number, dis_weight_modelable_entity_id=None, heal
     -----
     Assumptions -- None
 
-    Questions -- How can IHME create a more systematic way for access this data? 
-    The current way (looking in one csv prepared by central comp and then checking another 
-    if the draws are not in the first csv) is pretty disorganized. Since many disability 
-    weights are going to be updated in 2016, these files may move. I would propose that we 
+    Questions -- How can IHME create a more systematic way for access this data?
+    The current way (looking in one csv prepared by central comp and then checking another
+    if the draws are not in the first csv) is pretty disorganized. Since many disability
+    weights are going to be updated in 2016, these files may move. I would propose that we
     ask central comp to store the disability weights in the database.
 
     Unit test in place? -- Yes
@@ -944,7 +954,7 @@ def get_disability_weight(draw_number, dis_weight_modelable_entity_id=None, heal
 def get_asympt_ihd_proportions(location_id, year_start, year_end, draw_number):
     """
     Gets the proportion of post-mi simulants that will get asymptomatic ihd.
-    Proportion that will get asymptomatic ihd is equal to 1 - proportion of 
+    Proportion that will get asymptomatic ihd is equal to 1 - proportion of
     mi 1 month survivors that get angina + proportion of mi 1 month survivors
     that get heart failure
 
@@ -1022,7 +1032,7 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
         GBD draw to pull data for
 
     Returns
-    -------    
+    -------
     df with columns year_id, sex_id, age, val, upper, and lower
     """
     # For some of the diarrhea etiologies, PAFs are negative.
@@ -1166,7 +1176,7 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
 
     Returns
     -------
-    A dataframe of etiology specific prevalence draws. 
+    A dataframe of etiology specific prevalence draws.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
     diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
@@ -1208,8 +1218,8 @@ def get_severe_diarrhea_excess_mortality(excess_mortality_dataframe, severe_diar
 # covariate short name, because names are subject to change but ids should stay the same
 # TODO: Also link that covariate id to a publication id, if possible
 def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex_id=None):
-    """Gets covariate estimates for a specified location. 
-    
+    """Gets covariate estimates for a specified location.
+
     Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.)
 
     Parameters
@@ -1239,20 +1249,20 @@ def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex
 def get_severity_splits(parent_meid, child_meid, draw_number):
     """
     Returns a severity split proportion for a given cause
-    
+
     parent_meid: int, modelable_entity_id
         the modelable entity id for the severity split
-    
+
     child_meid: int, modelable_entity_id
         the modelable entity id for the severity split
-    
+
     draw_number: int
         specific draw number
-        
+
     See also
     --------
     To determine parent and child meids, see here: http://dev-tomflem.ihme.washington.edu/sevsplits/editor
-    If the severity splits that you are require are not in the file path below, 
+    If the severity splits that you are require are not in the file path below,
     email central comp to ask them to create the splits.
     """
     splits = gbd.get_data_from_auxiliary_file('Severity Splits', parent_meid=parent_meid)
@@ -1293,7 +1303,7 @@ def get_ors_pafs(location_id, year_start, year_end, draw_number):
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
- 
+
     year_start : int, year
         year_start is the year in which you want to start the simulation
 
@@ -1321,7 +1331,7 @@ def get_ors_relative_risks(location_id, year_start, year_end, draw_number):
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
- 
+
     year_start : int, year
         year_start is the year in which you want to start the simulation
 
@@ -1353,7 +1363,7 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
- 
+
     year_start : int, year
         year_start is the year in which you want to start the simulation
 
@@ -1386,7 +1396,7 @@ def get_outpatient_visit_costs(location_id, year_start, year_end, draw_number):
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
- 
+
     year_start : int, year
         year_start is the year in which you want to start the simulation
 

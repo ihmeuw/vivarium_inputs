@@ -269,6 +269,7 @@ raw_risk_mapping = {
             'inverted': False,
         },
         'scale': 1,
+        'max_rr': 500,
     },
     'household_air_pollution_from_solid_fuels': {
         'gbd_risk': rid(87),
