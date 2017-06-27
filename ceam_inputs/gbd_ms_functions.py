@@ -1380,7 +1380,7 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
     return exp[keep_columns]
 
 
-def get_outpatient_visit_costs(location_id, year_start, year_end, draw_number):
+def get_diarrhea_visit_costs(location_id, year_start, year_end, draw_number):
     """
     Parameters
     ----------
@@ -1399,13 +1399,12 @@ def get_outpatient_visit_costs(location_id, year_start, year_end, draw_number):
     if location_id not in [179, 161, 214]:
         raise ValueError("We only currently have outpatient costs for Ethiopia, Bangladesh, and Nigeria")
 
-    costs = gbd.get_data_from_auxiliary_file('Outpatient Visit Costs')
+    costs = gbd.get_data_from_auxiliary_file('Diarrhea Visit Costs')
     costs = costs.query("location_id == {}".format(location_id))
     costs = costs.query("variable == 'draw_{}'".format(draw_number))
     costs = costs.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
 
     return costs
-
 
 def get_mediation_factors(risk_id, cause_id, draw_number):
     mediation_factors = gbd.get_data_from_auxiliary_file('Mediation Factors')
