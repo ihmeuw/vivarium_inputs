@@ -57,7 +57,7 @@ def normalize_for_simulation(df):
 
     Returns
     -------
-    Returns a df with column year_id changed to year, 
+    Returns a df with column year_id changed to year,
     sex_id changed to sex, and sex values changed from 1 and 2 to Male and Female
 
     Notes
@@ -89,10 +89,10 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     Notes
     -----
-    Assumptions -- We assume that using a midpoint of age 82.5 for the 80+ year old age group is 
-    ok for the purposes of CEAM. Everett proposed that we could get the life expectancy at age 80 
-    for each location and use that as the midpoint for the 80+ group, but Abie suggested that we 
-    keep the midpoint as 82.5 for now. GBD populations have data for each age group up until the 
+    Assumptions -- We assume that using a midpoint of age 82.5 for the 80+ year old age group is
+    ok for the purposes of CEAM. Everett proposed that we could get the life expectancy at age 80
+    for each location and use that as the midpoint for the 80+ group, but Abie suggested that we
+    keep the midpoint as 82.5 for now. GBD populations have data for each age group up until the
     age 95+ age group, at which point I'm assuming we can use 97.5 as the midpoint.
     """
     if df.empty:
@@ -198,7 +198,7 @@ def assign_sex_id(simulants_df, male_pop, female_pop):
     Assumptions -- That we can assign ages/sexes at different times while still ensuring correlation.
 
     Questions -- Currently, when we generate a population of simulants, we assign age and then assign sex. Should we be assigning age and sex at the same time?
- 
+
     Unit test in place? -- Yes
     """
 
@@ -324,7 +324,7 @@ def get_all_age_groups_for_years_in_df(df):
 def expand_ages(df):
     expanded_cols = get_all_age_groups_for_years_in_df(df)
     expanded_indexed = expanded_cols.set_index(['year_id', 'age'])
-    indexed_df = df.set_index(['year_id', 'age']).sortlevel()
+    indexed_df = df.set_index(['year_id', 'age']).sort_index(level=0)
     total_df = pd.DataFrame()
 
     # for rrs and exposures, there are multiple parameters
@@ -347,9 +347,9 @@ def expand_ages(df):
 
 
 def expand_ages_for_dfs_w_all_age_estimates(df):
-    """Some tables only have estimates for the "all ages" age group instead of 
-    broken out for the different age group ids. We need estimates for each age 
-    group separately, so this function expands tables with estimates for only 
+    """Some tables only have estimates for the "all ages" age group instead of
+    broken out for the different age group ids. We need estimates for each age
+    group separately, so this function expands tables with estimates for only
     the "all ages" to include estimates for each age group id
     """
     expanded_cols = get_all_age_groups_for_years_in_df(df)
