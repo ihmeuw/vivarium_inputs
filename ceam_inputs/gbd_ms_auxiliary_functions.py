@@ -63,7 +63,7 @@ def get_age_group_midpoint_from_age_group_id(df):
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
 
     df = df.set_index('age_group_id')
-    df[['age', 'age_group_start', 'age_group_end']] = mapping[['age','age_group_years_start', 'age_group_years_end']]
+    df[['age', 'age_group_start', 'age_group_end']] = mapping[['age', 'age_group_years_start', 'age_group_years_end']]
 
     # Assumption: We're using 82.5 as the midpoint for the age 80+ age group. May want to change in the future.
     df.loc[df.age == 102.5, 'age'] = 82.5

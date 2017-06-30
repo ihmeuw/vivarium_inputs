@@ -261,13 +261,9 @@ def get_populations(location_id, year=-1, sex='All'):
 def get_age_specific_fertility_rates():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_age_specific_fertility_rates(location_id=location_id,
-                                                       year_start=year_start,
-                                                       year_end=year_end)
-    return functions.select_draw_data(draws, draw_number,
-                                      column_name=['mean_value', 'lower_value', 'upper_value'],
-                                      src_column=['mean_value', 'lower_value', 'upper_value'])
+    return functions.get_age_specific_fertility_rates(location_id=location_id,
+                                                      year_start=year_start,
+                                                      year_end=year_end)
 
 
 def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):

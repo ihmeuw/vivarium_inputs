@@ -978,10 +978,15 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     # any more stata. They say there should be something in a couple of weeks
     # and we should switch to it asap. -Alec 11/01/2016
     asfr = gbd.get_data_from_auxiliary_file('Age-Specific Fertility Rates')
-    asfr = asfr.query('location_id == {} and year_id >= {} and year_id <= {}'.format(location_id, year_start, year_end))
+    asfr = asfr.query('age_group_id in {} or age_group_id in {}'.format(gbd.ZERO_TO_EIGHTY, gbd.EIGHTY_PLUS))
+    asfr = asfr.query(
+        'location_id == {} and year_id >= {} and year_id <= {}'.format(location_id, year_start, year_end)).copy()
+    asfr['sex'] = 'Female'
+    asfr = asfr.rename(columns={'year_id': 'year', 'mean_value': 'rate'})
     asfr = get_age_group_midpoint_from_age_group_id(asfr)
+    keep_columns = ['age', 'sex', 'year', 'rate']
 
-    return asfr
+    return asfr.reset_index(level=0)[keep_columns]
 
 
 # TODO: Need to add a test to make sure that unattributed burden is accurately captured
