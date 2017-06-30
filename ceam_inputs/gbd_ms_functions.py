@@ -18,11 +18,9 @@ from ceam.framework.util import rate_to_probability
 
 from ceam_inputs import gbd, causes
 from ceam_inputs.gbd_mapping import cid
-from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
+from ceam_inputs.gbd_ms_auxiliary_functions import (normalize_for_simulation,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
-                                                    get_age_group_midpoint_from_age_group_id, get_populations,
-                                                    create_sex_id_column)
-
+                                                    get_age_group_midpoint_from_age_group_id)
 import logging
 
 _log = logging.getLogger(__name__)
@@ -90,57 +88,45 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     return draws[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
-def generate_ceam_population(location_id, time, number_of_simulants, gbd_round_id,
-                             initial_age=None, pop_age_start=None, pop_age_end=None):
-    """Returns a population of simulants to be fed into CEAM
+def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
+    """Get demographic population structure.
 
     Parameters
     ----------
     location_id : int
-        location_id takes same location_id values as are used for GBD
-    time : datetime.datetime
-        Reference time for the population generation
-    number_of_simulants : int, number
-        year_end is the year in which you want to end the simulation
-    initial_age : int
-        If not None simulants will all be set to this age otherwise their
-        ages will come from the population distribution
-    pop_age_start: int
-    pop_age_end: int
+        The GBD location id of the region of interest.
+    year : int, optional
+        If specified, return only the selected year's populations. Otherwise return all years.
+    sex: str in ['Male', 'Female', 'Both', 'All'], optional
+        If specified, return only the selected sex's populations.  Otherwise return Male, Female,
+        and the combined category Both.
+    gbd_round_id: int
+        The GBD round to pull data for.  Defaults to GBD 2015.
+
     Returns
     -------
-    df with columns simulant_id, age, sex_id, and columns to indicate if simulant has different diseases
+    `DataFrame` :
+        DataFrame with columns ['age', 'year', 'sex', 'location_id', 'pop_scaled']
+        where 'pop_scaled' is the total population of the demographic subgroup defined by
+        the first four columns.
     """
-    pop = get_populations(location_id, time.year, 3, gbd_round_id)
+    pop = gbd.get_populations(location_id=location_id, gbd_round_id=gbd_round_id)
 
-    if pop_age_start is not None:
-        assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
-        assert pop_age_end is not None, "if you set pop_age_start, also supply pop_age_end"
-        pop_age_start = float(pop_age_start)
-        pop = pop.query("age >= @pop_age_start").copy()
+    if year != -1:
+        pop = pop[pop.year_id == year]
+    if sex != 'All':
+        sex_map = {'Male': 1, 'Female': 2, 'Both': 3}
+        if sex not in sex_map:
+            raise ValueError("Sex must be one of {} or 'All'".format(list(sex_map.keys())))
+        pop = pop[pop.sex_id == {'Male': 1, 'Female': 2, 'Both': 3}[sex]]
+    pop = get_age_group_midpoint_from_age_group_id(pop)
 
-    if pop_age_end is not None:
-        assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
-        assert pop_age_start is not None, "if you set pop_age_end, also supply pop_age_start"
-        pop_age_end = float(pop_age_end)
-        pop = pop.query("age < @pop_age_end").copy()
-
-    total_pop_value = pop.sum()['pop_scaled']
-    pop['proportion_of_total_pop'] = pop['pop_scaled'] / total_pop_value
-
-    simulants = pd.DataFrame({'simulant_id': range(0, number_of_simulants)})
-    if initial_age is None:
-        simulants = create_age_column(simulants, pop, number_of_simulants)
-    else:
-        assert pop_age_start is None, "do not set values for initial age and pop_age_start/pop_age_end"
-        assert pop_age_end is None, "do not set values for initial age and pop_age_start/pop_age_end"
-        simulants['age'] = initial_age
-    simulants = create_sex_id_column(simulants, location_id, time.year, gbd_round_id)
-    simulants['location'] = location_id
-
-    validate_data(simulants, ['simulant_id'])
-
-    return simulants
+    # The population column was called pop_scaled in GBD 2015, but name was changed.
+    # Changing it back since all of our code uses pop_scaled as the col name
+    pop = pop.rename(columns={'population': 'pop_scaled'})
+    pop = pop[['year_id', 'location_id', 'age', 'age_group_start', 'age_group_end', 'sex_id', 'pop_scaled']]
+    validate_data(pop, ['age', 'year_id', 'sex_id'])
+    return normalize_for_simulation(pop)
 
 
 def assign_subregions(index, location_id, year, gbd_round_id):
@@ -172,7 +158,9 @@ def assign_subregions(index, location_id, year, gbd_round_id):
 
     # Get the population of each subregion and calculate the ratio of it to the
     # total, which gives us the weights to use when distributing simulants
-    populations = np.array([get_populations(region_id, year, 3, gbd_round_id).pop_scaled.sum() for region_id in region_ids])
+    populations = np.array([get_populations(location_id=region_id, year=year,
+                                            sex='Both', gbd_round_id=gbd_round_id).pop_scaled.sum()
+                            for region_id in region_ids])
     populations = populations / populations.sum()
 
     return choice('assign_subregions_{}'.format(year), index, region_ids, p=populations)
@@ -391,6 +379,7 @@ def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gb
     cause_specific_deaths = select_draw_data(draws, draw_number, 'deaths')
 
     pop = gbd.get_populations(location_id, gbd_round_id)
+    pop = pop[pop.sex_id != 3]
     pop = get_age_group_midpoint_from_age_group_id(pop)
     pop = pop[['year_id', 'age', 'sex_id', 'population']]
     pop = pop.rename(columns={'population': 'pop_scaled'})
@@ -1364,8 +1353,6 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
         current draw number (as specified in config.run_configuration.draw_number)
     """
     ors_exp = gbd.get_data_from_auxiliary_file('Ors Exposure', location_id=location_id)
-    ors_exp['age'] = -1
-
 
     exp = expand_ages_for_dfs_w_all_age_estimates(ors_exp)
     exp = exp.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
