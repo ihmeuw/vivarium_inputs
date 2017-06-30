@@ -567,3 +567,9 @@ def get_dtp3_coverage():
     draw_number = config.run_configuration.draw_number
     draws = functions.get_dtp3_coverage(location_id, year_start, year_end, draw_number)
     return functions.select_draw_data(draws, config.run_configuration.draw_number, column_name='coverage')
+
+def get_rota_vaccine_protection():
+    location_id = config.simulation_parameters.location_id
+    draw_number = config.run_configuration.draw_number
+
+    return functions.get_rota_vaccine_protection(location_id, draw_number)
