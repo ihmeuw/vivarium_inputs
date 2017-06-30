@@ -103,6 +103,11 @@ FILES = {
         'source': '/snfs1/temp/pyliu/scratch/draws/exp/vacc_dpt3/{location_id}.csv', # FIXME: This filepath will change at some point in the future (not sure when though) -- EM 6.22.2017
         'owner': 'Patrick Liu <pyliu@uw.edu>; GBD Vaccine Coverage Team',
     },
+    'Rota Vaccine Protection': {
+        'path': 'rota_protection_draws.csv',
+        'source': '', # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
+        'owner': 'Everett Mumford <emumford@uw.edu>',
+    },
 }
 
 
