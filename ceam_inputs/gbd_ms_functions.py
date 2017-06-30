@@ -1524,10 +1524,10 @@ def get_dtp3_coverage(location_id, year_start, year_end, draw_number):
     return dtp3[keep_columns]
 
 
-def get_rota_vaccine_effectiveness(location_id, draw_number):
+def get_rota_vaccine_protection(location_id, draw_number):
     # FIXME: Use Auxiliary File
-    coverage = pd.read_csv("/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/rota_protection_draws.csv")
-    assert location_id in coverage.location_id.unique(), "protection draws do not exist for the requested location id -- {}. you may need to generate them".format(location_id)
-    coverage_value = coverage.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
+    protection = pd.read_csv("/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/rota_protection_draws.csv")
+    assert location_id in protection.location_id.unique(), "protection draws do not exist for the requested location id -- {}. you may need to generate them".format(location_id)
+    protection_value = protection.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
                     
-    return coverage_value
+    return protection_value
