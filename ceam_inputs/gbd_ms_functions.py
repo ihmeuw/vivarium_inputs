@@ -1524,3 +1524,17 @@ def get_rota_vaccine_protection(location_id, draw_number):
                                                             + "requested location id -- {}. ".format(location_id)
                                                             + "you may need to generate them")
     return protection.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
+
+
+def get_diarrhea_costs(location_id, year_start, year_end, draw_number):
+    costs = gbd.get_data_from_auxiliary_file('Diarrhea Costs', location_id=location_id)
+    costs = costs[(costs.year_id >= year_start) & (costs.year_id <= year_end)]
+    costs = costs[[c for c in costs.columns if ('draw_{}'.format(draw_number) in c or 'draw' not in c)]]
+    return costs.rename(columns={'year_id': 'year'})
+
+
+def get_ors_costs(location_id, year_start, year_end, draw_number):
+    costs = gbd.get_data_from_auxiliary_file('ORS Costs', location_id=location_id)
+    costs = costs[(costs.year_id >= year_start) & (costs.year_id <= year_end)]
+    costs = costs[[c for c in costs.columns if ('draw_{}'.format(draw_number) in c or 'draw' not in c)]]
+    return costs.rename(columns={'year_id': 'year'})
