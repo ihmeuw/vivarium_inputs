@@ -118,7 +118,7 @@ def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
         sex_map = {'Male': 1, 'Female': 2, 'Both': 3}
         if sex not in sex_map:
             raise ValueError("Sex must be one of {} or 'All'".format(list(sex_map.keys())))
-        pop = pop[pop.sex_id == {'Male': 1, 'Female': 2, 'Both': 3}[sex]]
+        pop = pop[pop.sex_id == sex_map[sex]]
     pop = get_age_group_midpoint_from_age_group_id(pop)
 
     # The population column was called pop_scaled in GBD 2015, but name was changed.
