@@ -688,9 +688,9 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
         residual_exposure = 1 - residual_exposure
         residual_exposure = residual_exposure.reset_index()
         exposure = exposure.append(residual_exposure)
-    # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable
-    # entity ids for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
-    elif risk_id in [83, 84, 94, 240, 241]:
+
+    # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable entity ids for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
+    elif risk_id in [83, 84, 94, 136, 240, 241]:
         pass
     # TODO: Need to set age, year, sex index here again to make sure that we assign
     # the correct value to points outside of the range
@@ -1496,3 +1496,31 @@ def get_bmi_distribution_parameters(location_id, year_start, year_end, draw):
 
     return parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']]
 
+
+def get_dtp3_coverage(location_id, year_start, year_end, draw_number):
+    if gbd.get_subregions(location_id):
+        raise ValueError('DTP 3 coverage only available at the finest geographic level.  '
+                         'Use the subregion ids {}'.format(gbd.get_subregions(location_id)))
+    dtp3 = gbd.get_data_from_auxiliary_file('DTP3 Coverage', location_id=location_id)
+    dtp3 = expand_ages_for_dfs_w_all_age_estimates(dtp3)
+
+    # TODO: Confirm below assumption.
+    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid
+    # for children under 5 the input data only uses the all ages age group id since
+    # the covariates database requires that covariates apply to all ages
+    dtp3 = dtp3.query("age < 5")
+    dtp3 = expand_ages(dtp3)
+    dtp3[['draw_{}'.format(i) for i in range(1000)]] = dtp3[['draw_{}'.format(i) for i in range(1000)]].fillna(value=0)
+    dtp3 = dtp3.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
+
+    keep_columns = ['year_id', 'sex_id', 'age', 'draw_{}'.format(draw_number)]
+    return dtp3[keep_columns]
+
+
+def get_rota_vaccine_protection(location_id, draw_number):
+
+    protection = gbd.get_data_from_auxiliary_file('Rota Vaccine Protection')
+    assert location_id in protection.location_id.unique(), ("protection draws do not exist for the "
+                                                            + "requested location id -- {}. ".format(location_id)
+                                                            + "you may need to generate them")
+    return protection.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
