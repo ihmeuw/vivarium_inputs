@@ -127,8 +127,8 @@ def _get_risk_draws(location_id, risk_id, draw_type, gbd_round_id):
                           location_ids=location_id,
                           sex_ids=MALE + FEMALE,
                           age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                         draw_type=draw_type,
-                        gbd_round_id=gbd_round_id)
+                          draw_type=draw_type,
+                          gbd_round_id=gbd_round_id)
     except ValueError:
         draws = get_draws(gbd_id_field='rei_id',
                           gbd_id=risk_id,
