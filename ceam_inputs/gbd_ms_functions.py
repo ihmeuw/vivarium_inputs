@@ -1320,7 +1320,7 @@ def get_ors_relative_risks(draw_number):
         current draw number (as specified in config.run_configuration.draw_number)
     """
     rr = gbd.get_data_from_auxiliary_file('Ors Relative Risks')
-    return float(rr['draw_{}'.format(draw_number)][0])
+    return float(rr[rr.parameter == 'cat1']['draw_{}'.format(draw_number)][0])
 
 
 def get_ors_exposures(location_id, year_start, year_end, draw_number):
