@@ -464,8 +464,7 @@ def get_ors_pafs():
     draw_number = config.run_configuration.draw_number
     draws = functions.get_ors_pafs(location_id=location_id,
                                    year_start=year_start,
-                                   year_end=year_end,
-                                   draw_number=draw_number)
+                                   year_end=year_end)
     return functions.select_draw_data(draws, draw_number,
                                       column_name='paf',
                                       src_column='paf_{draw}')
