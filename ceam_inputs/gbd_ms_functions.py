@@ -1281,7 +1281,7 @@ def get_rota_vaccine_coverage(location_id, year_start, year_end, gbd_round_id):
     return draws.sort_values(by=['year_id', 'age', 'sex_id'])
 
 
-def get_ors_pafs(location_id, year_start, year_end, draw_number):
+def get_ors_pafs(location_id, year_start, year_end):
     """
     Parameters
     ----------
@@ -1299,17 +1299,11 @@ def get_ors_pafs(location_id, year_start, year_end, draw_number):
     """
     pafs = gbd.get_data_from_auxiliary_file('Ors Pafs', location_id=location_id)
     pafs = get_age_group_midpoint_from_age_group_id(pafs)
-    pafs = expand_ages(pafs)
     pafs = pafs.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
-
-    pafs[['paf_{}'.format(i) for i in range(1000)]] = pafs[['paf_{}'.format(i) for i in range(1000)]].fillna(value=0)
-
-    keep_columns = ['year_id', 'sex_id', 'age', 'paf_{}'.format(draw_number)]
-
-    return pafs[keep_columns]
+    return pafs
 
 
-def get_ors_relative_risks(location_id, year_start, year_end, draw_number):
+def get_ors_relative_risks(draw_number):
     """
     Parameters
     ----------
@@ -1325,20 +1319,8 @@ def get_ors_relative_risks(location_id, year_start, year_end, draw_number):
     draw_number: int
         current draw number (as specified in config.run_configuration.draw_number)
     """
-    ors_rr = gbd.get_data_from_auxiliary_file('Ors Relative Risks')
-
-    rr = expand_ages_for_dfs_w_all_age_estimates(ors_rr)
-
-    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid
-    # for children under 5 the input data only uses the all ages age group id since
-    # the covariates database requires that covariates apply to all ages
-    rr = rr.query("age < 5")
-    rr = expand_ages(rr)
-    rr[['draw_{}'.format(i) for i in range(1000)]] = rr[['draw_{}'.format(i) for i in range(1000)]].fillna(value=1)
-    rr = rr.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
-
-    keep_columns = ['year_id', 'sex_id', 'age', 'parameter', 'draw_{}'.format(draw_number)]
-    return rr[keep_columns]
+    rr = gbd.get_data_from_auxiliary_file('Ors Relative Risks')
+    return float(rr['draw_{}'.format(draw_number)][0])
 
 
 def get_ors_exposures(location_id, year_start, year_end, draw_number):

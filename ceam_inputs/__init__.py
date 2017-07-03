@@ -472,20 +472,7 @@ def get_ors_pafs():
 
 
 def get_ors_relative_risks():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_ors_relative_risks(location_id=location_id,
-                                             year_start=year_start,
-                                             year_end=year_end,
-                                             draw_number=draw_number)
-    funct_output = functions.select_draw_data(draws, draw_number, column_name='rr')
-
-    output = funct_output.pivot_table(index=['age', 'year', 'sex'],
-                                      columns=[funct_output.parameter.values], values=['rr'])
-    output.columns = output.columns.droplevel()
-    output.reset_index(inplace=True)
-    return output
+    return functions.get_ors_relative_risks(config.run_configuration.draw_number)
 
 
 def get_ors_exposures():
