@@ -18,11 +18,9 @@ from ceam.framework.util import rate_to_probability
 
 from ceam_inputs import gbd, causes, risk_factors
 from ceam_inputs.gbd_mapping import cid
-from ceam_inputs.gbd_ms_auxiliary_functions import (create_age_column, normalize_for_simulation,
+from ceam_inputs.gbd_ms_auxiliary_functions import (normalize_for_simulation,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
-                                                    get_age_group_midpoint_from_age_group_id, get_populations,
-                                                    create_sex_id_column)
-
+                                                    get_age_group_midpoint_from_age_group_id)
 import logging
 
 _log = logging.getLogger(__name__)
@@ -90,57 +88,45 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     return draws[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
 
-def generate_ceam_population(location_id, time, number_of_simulants, gbd_round_id,
-                             initial_age=None, pop_age_start=None, pop_age_end=None):
-    """Returns a population of simulants to be fed into CEAM
+def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
+    """Get demographic population structure.
 
     Parameters
     ----------
     location_id : int
-        location_id takes same location_id values as are used for GBD
-    time : datetime.datetime
-        Reference time for the population generation
-    number_of_simulants : int, number
-        year_end is the year in which you want to end the simulation
-    initial_age : int
-        If not None simulants will all be set to this age otherwise their
-        ages will come from the population distribution
-    pop_age_start: int
-    pop_age_end: int
+        The GBD location id of the region of interest.
+    year : int, optional
+        If specified, return only the selected year's populations. Otherwise return all years.
+    sex: str in ['Male', 'Female', 'Both', 'All'], optional
+        If specified, return only the selected sex's populations.  Otherwise return Male, Female,
+        and the combined category Both.
+    gbd_round_id: int
+        The GBD round to pull data for.  Defaults to GBD 2015.
+
     Returns
     -------
-    df with columns simulant_id, age, sex_id, and columns to indicate if simulant has different diseases
+    `DataFrame` :
+        DataFrame with columns ['age', 'year', 'sex', 'location_id', 'pop_scaled']
+        where 'pop_scaled' is the total population of the demographic subgroup defined by
+        the first four columns.
     """
-    pop = get_populations(location_id, time.year, 3, gbd_round_id)
+    pop = gbd.get_populations(location_id=location_id, gbd_round_id=gbd_round_id)
 
-    if pop_age_start is not None:
-        assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
-        assert pop_age_end is not None, "if you set pop_age_start, also supply pop_age_end"
-        pop_age_start = float(pop_age_start)
-        pop = pop.query("age >= @pop_age_start").copy()
+    if year != -1:
+        pop = pop[pop.year_id == year]
+    if sex != 'All':
+        sex_map = {'Male': 1, 'Female': 2, 'Both': 3}
+        if sex not in sex_map:
+            raise ValueError("Sex must be one of {} or 'All'".format(list(sex_map.keys())))
+        pop = pop[pop.sex_id == sex_map[sex]]
+    pop = get_age_group_midpoint_from_age_group_id(pop)
 
-    if pop_age_end is not None:
-        assert initial_age is None, "do not set values for initial age and pop_age_start/pop_age_end"
-        assert pop_age_start is not None, "if you set pop_age_end, also supply pop_age_start"
-        pop_age_end = float(pop_age_end)
-        pop = pop.query("age < @pop_age_end").copy()
-
-    total_pop_value = pop.sum()['pop_scaled']
-    pop['proportion_of_total_pop'] = pop['pop_scaled'] / total_pop_value
-
-    simulants = pd.DataFrame({'simulant_id': range(0, number_of_simulants)})
-    if initial_age is None:
-        simulants = create_age_column(simulants, pop, number_of_simulants)
-    else:
-        assert pop_age_start is None, "do not set values for initial age and pop_age_start/pop_age_end"
-        assert pop_age_end is None, "do not set values for initial age and pop_age_start/pop_age_end"
-        simulants['age'] = initial_age
-    simulants = create_sex_id_column(simulants, location_id, time.year, gbd_round_id)
-    simulants['location'] = location_id
-
-    validate_data(simulants, ['simulant_id'])
-
-    return simulants
+    # The population column was called pop_scaled in GBD 2015, but name was changed.
+    # Changing it back since all of our code uses pop_scaled as the col name
+    pop = pop.rename(columns={'population': 'pop_scaled'})
+    pop = pop[['year_id', 'location_id', 'age', 'age_group_start', 'age_group_end', 'sex_id', 'pop_scaled']]
+    validate_data(pop, ['age', 'year_id', 'sex_id'])
+    return normalize_for_simulation(pop)
 
 
 def assign_subregions(index, location_id, year, gbd_round_id):
@@ -172,7 +158,9 @@ def assign_subregions(index, location_id, year, gbd_round_id):
 
     # Get the population of each subregion and calculate the ratio of it to the
     # total, which gives us the weights to use when distributing simulants
-    populations = np.array([get_populations(region_id, year, 3, gbd_round_id).pop_scaled.sum() for region_id in region_ids])
+    populations = np.array([get_populations(location_id=region_id, year=year,
+                                            sex='Both', gbd_round_id=gbd_round_id).pop_scaled.sum()
+                            for region_id in region_ids])
     populations = populations / populations.sum()
 
     return choice('assign_subregions_{}'.format(year), index, region_ids, p=populations)
@@ -391,6 +379,7 @@ def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gb
     cause_specific_deaths = select_draw_data(draws, draw_number, 'deaths')
 
     pop = gbd.get_populations(location_id, gbd_round_id)
+    pop = pop[pop.sex_id != 3]
     pop = get_age_group_midpoint_from_age_group_id(pop)
     pop = pop[['year_id', 'age', 'sex_id', 'population']]
     pop = pop.rename(columns={'population': 'pop_scaled'})
@@ -704,9 +693,9 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
         residual_exposure = 1 - residual_exposure
         residual_exposure = residual_exposure.reset_index()
         exposure = exposure.append(residual_exposure)
-    # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable
-    # entity ids for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
-    elif risk_id in [83, 84, 94, 240, 241]:
+
+    # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable entity ids for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
+    elif risk_id in [83, 84, 94, 136, 240, 241]:
         pass
     # TODO: Need to set age, year, sex index here again to make sure that we assign
     # the correct value to points outside of the range
@@ -999,10 +988,15 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     # any more stata. They say there should be something in a couple of weeks
     # and we should switch to it asap. -Alec 11/01/2016
     asfr = gbd.get_data_from_auxiliary_file('Age-Specific Fertility Rates')
-    asfr = asfr.query('location_id == {} and year_id >= {} and year_id <= {}'.format(location_id, year_start, year_end))
+    asfr = asfr.query('age_group_id in {} or age_group_id in {}'.format(gbd.ZERO_TO_EIGHTY, gbd.EIGHTY_PLUS))
+    asfr = asfr.query(
+        'location_id == {} and year_id >= {} and year_id <= {}'.format(location_id, year_start, year_end)).copy()
+    asfr['sex'] = 'Female'
+    asfr = asfr.rename(columns={'year_id': 'year', 'mean_value': 'rate'})
     asfr = get_age_group_midpoint_from_age_group_id(asfr)
+    keep_columns = ['age', 'sex', 'year', 'rate']
 
-    return asfr
+    return asfr.reset_index(level=0)[keep_columns]
 
 
 # TODO: Need to add a test to make sure that unattributed burden is accurately captured
@@ -1373,7 +1367,6 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
     draw_number: int
         current draw number (as specified in config.run_configuration.draw_number)
     """
-
     ors_exp = gbd.get_data_from_auxiliary_file('Ors Exposure', location_id=location_id)
 
     exp = expand_ages_for_dfs_w_all_age_estimates(ors_exp)
@@ -1390,7 +1383,7 @@ def get_ors_exposures(location_id, year_start, year_end, draw_number):
     return exp[keep_columns]
 
 
-def get_outpatient_visit_costs(location_id, year_start, year_end, draw_number):
+def get_diarrhea_visit_costs(location_id, year_start, year_end, draw_number):
     """
     Parameters
     ----------
@@ -1409,13 +1402,12 @@ def get_outpatient_visit_costs(location_id, year_start, year_end, draw_number):
     if location_id not in [179, 161, 214]:
         raise ValueError("We only currently have outpatient costs for Ethiopia, Bangladesh, and Nigeria")
 
-    costs = gbd.get_data_from_auxiliary_file('Outpatient Visit Costs')
+    costs = gbd.get_data_from_auxiliary_file('Diarrhea Visit Costs')
     costs = costs.query("location_id == {}".format(location_id))
     costs = costs.query("variable == 'draw_{}'".format(draw_number))
     costs = costs.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
 
     return costs
-
 
 def get_mediation_factors(risk_id, cause_id, draw_number):
     mediation_factors = gbd.get_data_from_auxiliary_file('Mediation Factors')
@@ -1514,3 +1506,31 @@ def get_bmi_distribution_parameters(location_id, year_start, year_end, draw):
 
     return parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']]
 
+
+def get_dtp3_coverage(location_id, year_start, year_end, draw_number):
+    if gbd.get_subregions(location_id):
+        raise ValueError('DTP 3 coverage only available at the finest geographic level.  '
+                         'Use the subregion ids {}'.format(gbd.get_subregions(location_id)))
+    dtp3 = gbd.get_data_from_auxiliary_file('DTP3 Coverage', location_id=location_id)
+    dtp3 = expand_ages_for_dfs_w_all_age_estimates(dtp3)
+
+    # TODO: Confirm below assumption.
+    # Per Patrick Liu, the ors relative risk and exposure estimates are only valid
+    # for children under 5 the input data only uses the all ages age group id since
+    # the covariates database requires that covariates apply to all ages
+    dtp3 = dtp3.query("age < 5")
+    dtp3 = expand_ages(dtp3)
+    dtp3[['draw_{}'.format(i) for i in range(1000)]] = dtp3[['draw_{}'.format(i) for i in range(1000)]].fillna(value=0)
+    dtp3 = dtp3.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
+
+    keep_columns = ['year_id', 'sex_id', 'age', 'draw_{}'.format(draw_number)]
+    return dtp3[keep_columns]
+
+
+def get_rota_vaccine_protection(location_id, draw_number):
+
+    protection = gbd.get_data_from_auxiliary_file('Rota Vaccine Protection')
+    assert location_id in protection.location_id.unique(), ("protection draws do not exist for the "
+                                                            + "requested location id -- {}. ".format(location_id)
+                                                            + "you may need to generate them")
+    return protection.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))

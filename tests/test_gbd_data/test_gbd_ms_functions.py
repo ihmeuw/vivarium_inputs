@@ -1,5 +1,4 @@
 from unittest.mock import patch
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -11,36 +10,17 @@ from ceam_tests.util import build_table
 
 from ceam_inputs import get_cause_specific_mortality, get_excess_mortality, causes, risk_factors
 from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
-                                          get_angina_proportions, get_disability_weight, generate_ceam_population,
+                                          get_angina_proportions, get_disability_weight,
                                           get_cause_level_prevalence, determine_if_sim_has_cause,
                                           get_sequela_proportions, determine_which_seq_diseased_sim_has,
-                                          get_post_mi_heart_failure_proportion_draws, get_modelable_entity_draws,
+                                          get_post_mi_heart_failure_proportion_draws,
                                           sum_up_csmrs_for_all_causes_in_microsim, get_cause_deleted_mortality_rate,
                                           assign_subregions, get_etiology_specific_incidence,
                                           get_etiology_specific_prevalence, get_asympt_ihd_proportions,
-                                          normalize_for_simulation, get_severe_diarrhea_excess_mortality,
+                                          get_severe_diarrhea_excess_mortality,
                                           get_rota_vaccine_coverage, get_mediation_factors)
 
 KENYA = 180
-
-
-def test_generate_ceam_population():
-    np.random.seed(1430)
-    pop = generate_ceam_population(location_id=KENYA,
-                                   time=datetime(1990, 1, 1),
-                                   number_of_simulants=1000000,
-                                   gbd_round_id=3,
-                                   pop_age_start=0,
-                                   pop_age_end=110)
-
-    num_7_and_half_yr_old_males = pop.query("age == 7.5 and sex_id == 1").copy()
-    num_7_and_half_yr_old_males['count'] = 1
-    val = num_7_and_half_yr_old_males.groupby('age')[['count']].sum()
-    val = val.get_value(7.5, 'count')
-    val = val / 1000000
-
-    assert np.isclose(val, 0.0823207075530383, atol=.01), ("there should be about 8.23% 7.5 year old males in "
-                                                           "Kenya in 1990, based on data uploaded by em 1/5/2017")
 
 
 def test_get_cause_level_prevalence():

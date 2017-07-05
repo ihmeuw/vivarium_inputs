@@ -251,42 +251,19 @@ def get_exposures(risk_id):
     return output
 
 
-def get_populations(location_id, year, sex_id=3):
+def get_populations(location_id, year=-1, sex='All'):
     gbd_round_id = config.simulation_parameters.gbd_round_id
-    return functions.get_populations(location_id=location_id, year_start=year, gbd_round_id=gbd_round_id, sex_id=sex_id)
-
-
-def generate_ceam_population(number_of_simulants, initial_age=None, time=None):
-    location_id = config.simulation_parameters.location_id
-    pop_age_start = config.simulation_parameters.pop_age_start
-    pop_age_end = config.simulation_parameters.pop_age_end
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    if time is None:
-        year_start, year_end = gbd_year_range()
-        time = datetime(year_start, 1, 1)
-    population = functions.generate_ceam_population(location_id=location_id,
-                                                    time=time,
-                                                    number_of_simulants=number_of_simulants,
-                                                    gbd_round_id=gbd_round_id,
-                                                    initial_age=initial_age,
-                                                    pop_age_start=pop_age_start,
-                                                    pop_age_end=pop_age_end)
-    population['sex'] = population['sex_id'].map(
-        {1: 'Male', 2: 'Female'}).astype('category', categories=['Male', 'Female'])
-    population['alive'] = True
-    return population
-
+    return functions.get_populations(location_id=location_id,
+                                     year=year,
+                                     sex=sex,
+                                     gbd_round_id=gbd_round_id)
 
 def get_age_specific_fertility_rates():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_age_specific_fertility_rates(location_id=location_id,
-                                                       year_start=year_start,
-                                                       year_end=year_end)
-    return functions.select_draw_data(draws, draw_number,
-                                      column_name=['mean_value', 'lower_value', 'upper_value'],
-                                      src_column=['mean_value', 'lower_value', 'upper_value'])
+    return functions.get_age_specific_fertility_rates(location_id=location_id,
+                                                      year_start=year_start,
+                                                      year_end=year_end)
 
 
 def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
@@ -426,7 +403,7 @@ def make_age_group_1_to_4_rates_constant(df):
     Parameters
     ----------
     df: pd.DataFrame()
-        df with excess mortality or incidence rates for each age, 
+        df with excess mortality or incidence rates for each age,
         sex, year, and location
     """
     age_bins = gbd.get_age_bins()
@@ -528,11 +505,11 @@ def get_ors_exposures():
     return output
 
 
-def get_outpatient_visit_costs():
+def get_diarrhea_visit_costs():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
-    return functions.get_outpatient_visit_costs(location_id, year_start, year_end, draw_number)
+    return functions.get_diarrhea_visit_costs(location_id, year_start, year_end, draw_number)
 
 
 def get_life_table():
@@ -560,3 +537,16 @@ def get_mediation_factors(risk_id, cause_id):
     draw_number = config.run_configuration.draw_number
 
     return functions.get_mediation_factors(risk_id, cause_id, draw_number)
+
+def get_dtp3_coverage():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw_number = config.run_configuration.draw_number
+    draws = functions.get_dtp3_coverage(location_id, year_start, year_end, draw_number)
+    return functions.select_draw_data(draws, config.run_configuration.draw_number, column_name='coverage')
+
+def get_rota_vaccine_protection():
+    location_id = config.simulation_parameters.location_id
+    draw_number = config.run_configuration.draw_number
+
+    return functions.get_rota_vaccine_protection(location_id, draw_number)
