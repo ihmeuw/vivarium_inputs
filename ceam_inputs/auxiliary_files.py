@@ -1,4 +1,4 @@
-"""This module is a version controlled listing of data that CEAM 
+"""This module is a version controlled listing of data that CEAM
 uses which is not stored in a standard location, like the modelable entity database.
 """
 
@@ -97,6 +97,34 @@ FILES = {
         'path': 'mediation_matrix_corrected.csv',
         'source': '/home/j/WORK/05_risk/mediation/mediation_matrix_corrected.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
+    },
+    'DTP3 Coverage': {
+        'path': 'vacc_dtp3/exp/{location_id}.csv',
+        # This filepath will change at some point in the future (not sure when though) -- EM 6.22.2017
+        'source': '/snfs1/temp/pyliu/scratch/draws/exp/vacc_dpt3/{location_id}.csv',
+        'owner': 'Patrick Liu <pyliu@uw.edu>; GBD Vaccine Coverage Team',
+    },
+    'Rota Vaccine Protection': {
+        'path': 'rota_protection_draws.csv',
+        # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
+        'source': '',
+        'owner': 'Everett Mumford <emumford@uw.edu>',
+    }, 
+    'Rota Vaccine RRs': {
+        'path': 'rota_vaccine_rrs.csv',
+        # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
+        'source': '',
+        'owner': 'Everett Mumford <emumford@uw.edu>',
+    }, 
+    'Diarrhea Costs': {
+        'path': 'healthcare_access/diarrhea_cost/{location_id}.csv',
+        'source':  '/home/j/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_diarrhea_cost_all_country_years.csv',
+        'owner': 'Mark Moses <mwm6@uw.edu>',
+    },
+    'ORS Costs': {
+        'path': 'healthcare_access/ors_cost/{location_id}.csv',
+        'source':  '/home/j/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_diarrhea_cost_all_country_years.csv',
+        'owner': 'Mark Moses <mwm6@uw.edu>',
     },
 }
 
