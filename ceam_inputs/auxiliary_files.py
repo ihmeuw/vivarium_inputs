@@ -109,7 +109,13 @@ FILES = {
         # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
         'source': '',
         'owner': 'Everett Mumford <emumford@uw.edu>',
-    },
+    }, 
+    'Rota Vaccine RRs': {
+        'path': 'rota_vaccine_rrs.csv',
+        # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
+        'source': '',
+        'owner': 'Everett Mumford <emumford@uw.edu>',
+    }, 
     'Diarrhea Costs': {
         'path': 'healthcare_access/diarrhea_cost/{location_id}.csv',
         'source':  '/home/j/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_diarrhea_cost_all_country_years.csv',

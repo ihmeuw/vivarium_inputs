@@ -1507,6 +1507,14 @@ def get_rota_vaccine_protection(location_id, draw_number):
                                                             + "you may need to generate them")
     return protection.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
 
+def get_rota_vaccine_rrs(location_id, draw_number):
+
+    rrs = gbd.get_data_from_auxiliary_file('Rota Vaccine RRs')
+    assert location_id in rrs.location_id.unique(), ("rr draws do not exist for the "
+                                                            + "requested location id -- {}. ".format(location_id)
+                                                            + "you may need to generate them")
+    return rrs.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
+
 
 def get_diarrhea_costs(location_id, year_start, year_end, draw_number):
     costs = gbd.get_data_from_auxiliary_file('Diarrhea Costs', location_id=location_id)

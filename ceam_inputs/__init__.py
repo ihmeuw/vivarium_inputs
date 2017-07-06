@@ -539,6 +539,11 @@ def get_rota_vaccine_protection():
 
     return functions.get_rota_vaccine_protection(location_id, draw_number)
 
+def get_rota_vaccine_rrs():
+    location_id = config.simulation_parameters.location_id
+    draw_number = config.run_configuration.draw_number
+
+    return functions.get_rota_vaccine_rrs(location_id, draw_number)
 
 def get_diarrhea_costs():
     location_id = config.simulation_parameters.location_id
