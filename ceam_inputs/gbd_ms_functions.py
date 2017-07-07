@@ -1028,11 +1028,11 @@ def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_
     # diarrhea team has some pafs that are negative because they wanted to
     # include full uncertainty. this seems implausible in the real world,
     # unless one is arguing that some pathogens have a protective effect
-    if risk_id != 'unattributed':
+    if risk_id != 'unattributed_diarrhea':
         eti_pafs = get_pafs(location_id, year_start, year_end,
                             risk_id, cause_id, gbd_round_id, draw_number, 'morbidity')
 
-    elif risk_id == 'unattributed':
+    elif risk_id == 'unattributed_diarrhea':
         dict_of_etiologies_and_eti_risks = {'cholera': 173,
                                             'other_salmonella': 174,
                                             'shigellosis': 175,
