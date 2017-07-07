@@ -6,7 +6,7 @@ import pytest
 
 from ceam import config
 from ceam.framework.util import rate_to_probability
-from ceam_tests.util import build_table
+from ceam.test_util import build_table
 
 from ceam_inputs import get_cause_specific_mortality, get_excess_mortality, causes, risk_factors
 from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
