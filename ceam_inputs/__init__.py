@@ -260,14 +260,14 @@ def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
     year_start, year_end = gbd_year_range()
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
-    draws = functions.get_etiology_specific_incidence(location_id=location_id,
-                                                      year_start=year_start,
-                                                      year_end=year_end,
-                                                      eti_risk_id=eti_risk_id,
-                                                      cause_id=cause_id,
-                                                      me_id=me_id,
-                                                      gbd_round_id=gbd_round_id,
-                                                      draw_number=draw_number)
+    draws = functions.get_etiology_specific_prevalence(location_id=location_id,
+                                                       year_start=year_start,
+                                                       year_end=year_end,
+                                                       eti_risk_id=eti_risk_id,
+                                                       cause_id=cause_id,
+                                                       me_id=me_id,
+                                                       gbd_round_id=gbd_round_id,
+                                                       draw_number=draw_number)
     return functions.select_draw_data(draws, draw_number, column_name='prevalence')
 
 
