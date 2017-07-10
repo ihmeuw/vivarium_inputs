@@ -15,7 +15,7 @@ from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, g
                                           get_sequela_proportions, determine_which_seq_diseased_sim_has,
                                           get_post_mi_heart_failure_proportion_draws,
                                           sum_up_csmrs_for_all_causes_in_microsim, get_cause_deleted_mortality_rate,
-                                          assign_subregions, get_etiology_specific_incidence,
+                                          get_etiology_specific_incidence,
                                           get_etiology_specific_prevalence, get_asympt_ihd_proportions,
                                           get_severe_diarrhea_excess_mortality,
                                           get_rota_vaccine_coverage, get_mediation_factors)
@@ -311,39 +311,6 @@ def test_get_asympt_ihd_proportions():
 
     assert 1 - hf_value - ang_value == asy_value, ("get_asympt_ihd_proportions needs to ensure that the sum of "
                                                    "heart failure, angina, and asympt ihd add up to 1")
-
-
-@patch('ceam_inputs.gbd_ms_functions.get_populations')
-@patch('ceam_inputs.gbd_ms_functions.gbd')
-def test_assign_subregions_with_subregions(gbd_mock, get_populations_mock):
-    gbd_mock.get_subregions.side_effect = lambda location_id: [10, 11, 12]
-    test_populations = {
-            10: build_table(20, ['age', 'year', 'sex', 'pop_scaled']),
-            11: build_table(30, ['age', 'year', 'sex', 'pop_scaled']),
-            12: build_table(50, ['age', 'year', 'sex', 'pop_scaled']),
-    }
-    get_populations_mock.side_effect = lambda location_id, year, sex, gbd_round_id: test_populations[location_id]
-
-    locations = assign_subregions(pd.Index(range(100000)), 180, 2005, 3)
-
-    counts = locations.value_counts()
-    counts = np.array([counts[lid] for lid in [10, 11, 12]])
-    counts = counts / counts.sum()
-    assert np.allclose(counts, [.2, .3, .5], rtol=0.01)
-
-
-@patch('ceam_inputs.gbd_ms_functions.get_populations')
-@patch('ceam_inputs.gbd_ms_functions.gbd')
-def test_assign_subregions_without_subregions(gbd_mock, get_populations_mock):
-    gbd_mock.get_subregions.side_effect = lambda location_id: []
-    test_populations = {
-            190: build_table(100, ['age', 'year', 'sex', 'pop_scaled']),
-    }
-    get_populations_mock.side_effect = lambda location_id, year, sex: test_populations[location_id]
-
-    locations = assign_subregions(pd.Index(range(1000)), 190, 2005, 3)
-
-    assert np.all(locations == 190)
 
 
 def test_get_etiology_specific_incidence():

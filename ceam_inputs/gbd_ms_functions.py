@@ -129,43 +129,6 @@ def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
     return normalize_for_simulation(pop)
 
 
-def assign_subregions(index, location_id, year, gbd_round_id):
-    """
-    Assigns a location to each simulant. If the location_id
-    has sub regions in the hierarchy then the simulants will be
-    distributed across them uniformly weighted by each region's population.
-    Otherwise all simulants will be assigned location_id.
-
-    Parameters
-    ----------
-    index : pandas.Index
-        the simulants to assign
-    location_id : int
-        the location in the locations hierarchy to descend from
-    year : int
-        the year to use for population estimates
-
-    Notes
-    -----
-    This ignores demographic details. So if there is some region that has a
-    age or sex bias in it's population, that will not be captured.
-    """
-    region_ids = gbd.get_subregions(location_id)
-
-    if not region_ids:
-        # The location has no sub regions
-        return pd.Series(location_id, index=index)
-
-    # Get the population of each subregion and calculate the ratio of it to the
-    # total, which gives us the weights to use when distributing simulants
-    populations = np.array([get_populations(location_id=region_id, year=year,
-                                            sex='Both', gbd_round_id=gbd_round_id).pop_scaled.sum()
-                            for region_id in region_ids])
-    populations = populations / populations.sum()
-
-    return choice('assign_subregions_{}'.format(year), index, region_ids, p=populations)
-
-
 def get_cause_level_prevalence(states, year_start):
     """Takes all of the sequela in 'states' and adds them up to get a total prevalence for the cause
 

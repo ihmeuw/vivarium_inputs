@@ -369,9 +369,8 @@ def get_asympt_ihd_proportions():
                                       src_column='asympt_prop_{draw}')
 
 
-def assign_subregions(population, location_id, year_start):
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    return functions.assign_subregions(population, location_id, year_start, gbd_round_id)
+def get_subregions(location_id):
+    return gbd.get_subregions(location_id)
 
 
 def assign_cause_at_beginning_of_simulation(population, location_id, year, states):
