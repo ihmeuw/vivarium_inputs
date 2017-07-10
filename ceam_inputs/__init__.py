@@ -155,18 +155,6 @@ def get_prevalence(modelable_entity_id):
     return _get_modelable_entity_draws(column_name='prevalence', measure=5, modelable_entity_id=modelable_entity_id)
 
 
-def get_disease_states(population, states):
-    location_id = config.simulation_parameters.location_id
-    year_start = config.simulation_parameters.year_start
-
-    population = population.reset_index()
-    population['simulant_id'] = population['index']
-    return functions.assign_cause_at_beginning_of_simulation(simulants_df=population[['simulant_id', 'age', 'sex']],
-                                                             location_id=location_id,
-                                                             year_start=year_start,
-                                                             states=states)
-
-
 def get_cause_deleted_mortality_rate(list_of_csmrs):
     # This sort is a because we don't want the cache to invalidate when
     # the csmrs come in in different orders but they aren't hashable by
@@ -257,6 +245,7 @@ def get_populations(location_id, year=-1, sex='All'):
                                      year=year,
                                      sex=sex,
                                      gbd_round_id=gbd_round_id)
+
 
 def get_age_specific_fertility_rates():
     location_id = config.simulation_parameters.location_id
@@ -371,10 +360,6 @@ def get_asympt_ihd_proportions():
 
 def get_subregions(location_id):
     return gbd.get_subregions(location_id)
-
-
-def assign_cause_at_beginning_of_simulation(population, location_id, year, states):
-    return functions.assign_cause_at_beginning_of_simulation(population, location_id, year, states=states)
 
 
 def get_severity_splits(parent_meid, child_meid):
