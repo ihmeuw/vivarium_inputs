@@ -1,4 +1,4 @@
-from ceam.config_tree import ConfigTree
+from vivarium.config_tree import ConfigTree
 
 
 class meid(int):

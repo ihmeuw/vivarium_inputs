@@ -4,7 +4,7 @@ from datetime import datetime
 import pandas as pd
 import joblib
 
-from ceam import config
+from vivarium import config
 _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
 config.load(_config_path, layer='base', source=_config_path)
 

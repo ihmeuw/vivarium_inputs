@@ -3,7 +3,7 @@ import re
 
 import pandas as pd
 
-from ceam import config
+from vivarium import config
 
 from ceam_inputs.auxiliary_files import auxiliary_file_path
 from ceam_inputs.gbd_mapping import risk_factors

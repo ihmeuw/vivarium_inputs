@@ -5,7 +5,7 @@ uses which is not stored in a standard location, like the modelable entity datab
 import platform
 from os.path import join
 
-from ceam import config
+from vivarium import config
 
 FILES = {
     'Angina Proportions' : {

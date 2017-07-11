@@ -11,8 +11,8 @@ import inspect
 import numpy as np
 import pandas as pd
 
-from ceam import config
-from ceam.framework.util import rate_to_probability
+from vivarium import config
+from vivarium.framework.util import rate_to_probability
 
 from ceam_inputs import gbd, causes
 from ceam_inputs.gbd_mapping import cid
