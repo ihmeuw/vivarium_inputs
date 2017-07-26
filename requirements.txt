@@ -1,4 +1,4 @@
 pytest
 joblib
--e git+ssh://git@stash.ihme.washington.edu:7999/cste/ceam.git#egg=ceam
+-e git+git://github.com/ihmeuw/vivarium.git#egg=vivarium
 -e git+ssh://git@stash.ihme.washington.edu:7999/cste/ceam-public-health.git#egg=ceam_public_health

@@ -10,7 +10,6 @@ setup(name='ceam_inputs',
             'numpy',
             'scipy',
             'joblib',
-            'flufl.lock',
         ],
         extras_require = {
             'gbd_access': [

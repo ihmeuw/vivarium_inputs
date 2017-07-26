@@ -1,4 +1,4 @@
-from ceam.config_tree import ConfigTree
+from vivarium.config_tree import ConfigTree
 
 
 class meid(int):
@@ -56,6 +56,9 @@ raw_cause_mapping = {
         'mortality': cid(302),
         'excess_mortality': meid(1181),
         'duration': meid(1181)
+    },
+    'unattributed_diarrhea': {
+        'gbd_parent_cause': cid(302),
     },
     'cholera': {
         'gbd_parent_cause': cid(302),
@@ -249,13 +252,19 @@ causes.freeze()
 raw_risk_mapping = {
     'unsafe_water_source': {
         'gbd_risk': rid(83),
-        'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'risk_type': 'categorical',
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC, causes.ETEC,
+                            causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
     'unsafe_sanitation': {
         'gbd_risk': rid(84),
-        'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'risk_type': 'categorical',
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC, causes.ETEC,
+                            causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
     'ambient_particulate_matter_pollution': {
         'gbd_risk': rid(86),
@@ -280,12 +289,18 @@ raw_risk_mapping = {
     'vitamin_a_deficiency': {
         'gbd_risk': rid(96),
         'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC, causes.ETEC,
+                            causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
     'zinc_deficiency': {
         'gbd_risk': rid(97),
         'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC, causes.ETEC,
+                            causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
     'secondhand_smoke': {
         'gbd_risk': rid(100),
@@ -295,7 +310,7 @@ raw_risk_mapping = {
     },
     # 'alcohol_use': {
     #     'gbd_risk': rid(102),
-    #     'risk_type': 'continuous',
+    #     'distribution': 'continuous',
     #     'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke,
     #                         causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
     #                         causes.atrial_fibrillation_and_flutter],
@@ -513,7 +528,6 @@ raw_risk_mapping = {
     },
     # 'low_physical_activity': {
     #     'gbd_risk': rid(125),
-    #     'risk_type': 'continuous',
     #     'distribution': 'weibull',
     #     'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease, causes.ischemic_stroke],
     #     'tmred': {
@@ -528,12 +542,18 @@ raw_risk_mapping = {
     'non_exclusive_breastfeeding': {
         'gbd_risk': rid(136),
         'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC,
+                            causes.ETEC, causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
     'discontinued_breastfeeding': {
         'gbd_risk': rid(137),
         'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC, causes.ETEC,
+                            causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
     'high_fasting_plasma_glucose_continuous': {
         'gbd_risk': rid(141),
@@ -577,17 +597,26 @@ raw_risk_mapping = {
     'no_access_to_handwashing_facility': {
         'gbd_risk': rid(238),
         'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC, causes.ETEC,
+                            causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
     'child_wasting': {
         'gbd_risk': rid(240),
         'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC, causes.ETEC,
+                            causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
     'child_stunting': {
         'gbd_risk': rid(241),
         'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC, causes.ETEC,
+                            causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
     'lead_exposure_in_bone': {
         'gbd_risk': rid(243),
@@ -613,7 +642,10 @@ raw_risk_mapping = {
     'low_measles_vaccine_coverage_1st_dose': {
         'gbd_risk': rid(318),
         'distribution': 'categorical',
-        'effected_causes': [causes.diarrhea],
+        'effected_causes': [causes.cholera, causes.other_salmonella, causes.shigellosis, causes.EPEC,
+                            causes.ETEC, causes.campylobacter, causes.amoebiasis, causes.cryptosporidiosis,
+                            causes.rotaviral_entiritis, causes.aeromonas, causes.clostridium_difficile,
+                            causes.norovirus, causes.adenovirus, causes.unattributed_diarrhea],
     },
 }
 

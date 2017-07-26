@@ -1,4 +1,4 @@
-from ceam import config
+from vivarium import config
 
 # Remove user overrides but keep custom cache locations if any
 config.reset_layer('override', preserve_keys=['input_data.intermediary_data_cache_path', 'input_data.auxiliary_data_folder'])

@@ -1,10 +1,9 @@
 import os
-from datetime import datetime
 
 import pandas as pd
 import joblib
 
-from ceam import config
+from vivarium import config
 _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
 config.load(_config_path, layer='base', source=_config_path)
 
@@ -12,8 +11,6 @@ config.load(_config_path, layer='base', source=_config_path)
 from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid
 from ceam_inputs import gbd, risk_factor_correlation, gbd_ms_functions as functions
 from ceam_inputs.util import gbd_year_range
-
-
 
 
 def _get_modelable_entity_draws(column_name, measure, modelable_entity_id):
@@ -155,18 +152,6 @@ def get_prevalence(modelable_entity_id):
     return _get_modelable_entity_draws(column_name='prevalence', measure=5, modelable_entity_id=modelable_entity_id)
 
 
-def get_disease_states(population, states):
-    location_id = config.simulation_parameters.location_id
-    year_start = config.simulation_parameters.year_start
-
-    population = population.reset_index()
-    population['simulant_id'] = population['index']
-    return functions.assign_cause_at_beginning_of_simulation(simulants_df=population[['simulant_id', 'age', 'sex']],
-                                                             location_id=location_id,
-                                                             year_start=year_start,
-                                                             states=states)
-
-
 def get_cause_deleted_mortality_rate(list_of_csmrs):
     # This sort is a because we don't want the cache to invalidate when
     # the csmrs come in in different orders but they aren't hashable by
@@ -258,6 +243,7 @@ def get_populations(location_id, year=-1, sex='All'):
                                      sex=sex,
                                      gbd_round_id=gbd_round_id)
 
+
 def get_age_specific_fertility_rates():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
@@ -271,14 +257,14 @@ def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
     year_start, year_end = gbd_year_range()
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
-    draws = functions.get_etiology_specific_incidence(location_id=location_id,
-                                                      year_start=year_start,
-                                                      year_end=year_end,
-                                                      eti_risk_id=eti_risk_id,
-                                                      cause_id=cause_id,
-                                                      me_id=me_id,
-                                                      gbd_round_id=gbd_round_id,
-                                                      draw_number=draw_number)
+    draws = functions.get_etiology_specific_prevalence(location_id=location_id,
+                                                       year_start=year_start,
+                                                       year_end=year_end,
+                                                       eti_risk_id=eti_risk_id,
+                                                       cause_id=cause_id,
+                                                       me_id=me_id,
+                                                       gbd_round_id=gbd_round_id,
+                                                       draw_number=draw_number)
     return functions.select_draw_data(draws, draw_number, column_name='prevalence')
 
 
@@ -369,13 +355,8 @@ def get_asympt_ihd_proportions():
                                       src_column='asympt_prop_{draw}')
 
 
-def assign_subregions(population, location_id, year_start):
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    return functions.assign_subregions(population, location_id, year_start, gbd_round_id)
-
-
-def assign_cause_at_beginning_of_simulation(population, location_id, year, states):
-    return functions.assign_cause_at_beginning_of_simulation(population, location_id, year, states=states)
+def get_subregions(location_id):
+    return gbd.get_subregions(location_id)
 
 
 def get_severity_splits(parent_meid, child_meid):
@@ -464,28 +445,14 @@ def get_ors_pafs():
     draw_number = config.run_configuration.draw_number
     draws = functions.get_ors_pafs(location_id=location_id,
                                    year_start=year_start,
-                                   year_end=year_end,
-                                   draw_number=draw_number)
+                                   year_end=year_end)
     return functions.select_draw_data(draws, draw_number,
                                       column_name='paf',
                                       src_column='paf_{draw}')
 
 
 def get_ors_relative_risks():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_ors_relative_risks(location_id=location_id,
-                                             year_start=year_start,
-                                             year_end=year_end,
-                                             draw_number=draw_number)
-    funct_output = functions.select_draw_data(draws, draw_number, column_name='rr')
-
-    output = funct_output.pivot_table(index=['age', 'year', 'sex'],
-                                      columns=[funct_output.parameter.values], values=['rr'])
-    output.columns = output.columns.droplevel()
-    output.reset_index(inplace=True)
-    return output
+    return functions.get_ors_relative_risks(config.run_configuration.draw_number)
 
 
 def get_ors_exposures():
@@ -538,6 +505,7 @@ def get_mediation_factors(risk_id, cause_id):
 
     return functions.get_mediation_factors(risk_id, cause_id, draw_number)
 
+
 def get_dtp3_coverage():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
@@ -545,8 +513,28 @@ def get_dtp3_coverage():
     draws = functions.get_dtp3_coverage(location_id, year_start, year_end, draw_number)
     return functions.select_draw_data(draws, config.run_configuration.draw_number, column_name='coverage')
 
+
 def get_rota_vaccine_protection():
     location_id = config.simulation_parameters.location_id
     draw_number = config.run_configuration.draw_number
 
     return functions.get_rota_vaccine_protection(location_id, draw_number)
+
+def get_rota_vaccine_rrs():
+    location_id = config.simulation_parameters.location_id
+    draw_number = config.run_configuration.draw_number
+
+    return functions.get_rota_vaccine_rrs(location_id, draw_number)
+
+def get_diarrhea_costs():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw_number = config.run_configuration.draw_number
+    return functions.get_diarrhea_costs(location_id, year_start, year_end, draw_number)
+
+
+def get_ors_costs():
+    location_id = config.simulation_parameters.location_id
+    year_start, year_end = gbd_year_range()
+    draw_number = config.run_configuration.draw_number
+    return functions.get_ors_costs(location_id, year_start, year_end, draw_number)
