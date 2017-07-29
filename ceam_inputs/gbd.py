@@ -1,7 +1,6 @@
 from multiprocessing.process import current_process
 
 from joblib import Memory
-import numpy as np
 import pandas as pd
 
 from ceam_inputs.util import get_cache_directory
@@ -15,6 +14,35 @@ COMBINED = [3]
 
 ZERO_TO_EIGHTY = list(range(2, 21))
 EIGHTY_PLUS = [21]
+
+
+class CentralCompError(Exception):
+    """Error for failures in central-comp tooling."""
+    pass
+
+
+class DataNotFoundError(CentralCompError):
+    """Raised when the set of parameters passed to central comp functions fails due to lack of data."""
+    pass
+
+
+def _get_draws_safely(draw_function, draw_options, *args, **kwargs):
+    from transmogrifier.common.exceptions import TransmogrifierException
+    measure_draws = None
+    for location_id, round_id in draw_options:
+        try:
+            measure_draws = draw_function(*args, location_ids=location_id, gbd_round_id=round_id, **kwargs)
+            break
+        except TransmogrifierException:
+            pass
+        except Exception as e:
+            raise e
+    if measure_draws is None:
+        raise DataNotFoundError("Couldn't find draws for your requirements\n"
+                                + "function : {}\ndraw_options :  {}\n".format(draw_function.__name__, draw_options)
+                                + "args : {}\nkwargs : {}.".format(args, kwargs))
+    return measure_draws
+
 
 @memory.cache
 def get_model_versions(publication_ids):
@@ -105,7 +133,6 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id):
 
 @memory.cache
 def get_covariate_estimates(covariate_name_short, location_id):
-    # This import is not at global scope because I only want the dependency if cached data is unavailable
     from db_queries import get_covariate_estimates
 
     covariate_estimates = get_covariate_estimates(covariate_name_short=covariate_name_short,
@@ -118,41 +145,34 @@ def get_covariate_estimates(covariate_name_short, location_id):
 
 
 @memory.cache
-def _get_risk_draws(location_id, risk_id, draw_type, gbd_round_id):
-    from transmogrifier.draw_ops import get_draws
-    try:
-        draws = get_draws(gbd_id_field='rei_id',
-                          gbd_id=risk_id,
-                          source='risk',
-                          location_ids=location_id,
-                          sex_ids=MALE + FEMALE,
-                          age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                          draw_type=draw_type,
-                          gbd_round_id=gbd_round_id)
-    except ValueError as e:
-        draws = get_draws(gbd_id_field='rei_id',
-                          gbd_id=risk_id,
-                          source='risk',
-                          location_ids=location_id,
-                          sex_ids=MALE + FEMALE,
-                          age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                          draw_type=draw_type,
-                          gbd_round_id=gbd_round_id-1)
-    return draws
-
-
 def get_relative_risks(location_id, risk_id, gbd_round_id):
-    return _get_risk_draws(location_id=location_id,
-                           risk_id=risk_id,
-                           draw_type='rr',
-                           gbd_round_id=gbd_round_id)
+    from transmogrifier.draw_ops import get_draws
 
+    # Some RRs are only reported at the global level (1). Also, sometimes draws from a previous gbd round are reused.
+    global_location_id = 1
+    draw_options = [[location_id, gbd_round_id], [global_location_id, gbd_round_id],
+                    [location_id, gbd_round_id-1], [global_location_id, gbd_round_id-1]]
+    return _get_draws_safely(get_draws, draw_options,
+                             gbd_id_field='rei_id',
+                             gbd_id=risk_id,
+                             source='risk',
+                             sex_ids=MALE + FEMALE,
+                             age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                             draw_type='rr')
 
+@memory.cache
 def get_exposures(location_id, risk_id, gbd_round_id):
-    return _get_risk_draws(location_id=location_id,
-                           risk_id=risk_id,
-                           draw_type='exposure',
-                           gbd_round_id=gbd_round_id)
+    from transmogrifier.draw_ops import get_draws
+
+    # Sometimes draws from a previous gbd round are reused.
+    draw_options = [[location_id, gbd_round_id], [location_id, gbd_round_id - 1]]
+    return _get_draws_safely(get_draws, draw_options,
+                             gbd_id_field='rei_id',
+                             gbd_id=risk_id,
+                             source='risk',
+                             sex_ids=MALE + FEMALE,
+                             age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                             draw_type='exposure')
 
 
 @memory.cache
@@ -166,16 +186,16 @@ def get_pafs(location_id, cause_id, gbd_round_id):
     # which I'm going to do right now. -Alec
     worker_count = 0 if current_process().daemon else 6  # One worker per 5-year dalynator file (1990 - 2015)
 
-    return get_draws(gbd_id_field='cause_id',
-                     gbd_id=cause_id,
-                     source='dalynator',
-                     location_ids=location_id,
-                     sex_ids=MALE + FEMALE,
-                     age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                     include_risks=True,
-                     gbd_round_id=gbd_round_id,
-                     num_workers=worker_count)
-
+    # Sometimes draws from a previous gbd round are reused.
+    draw_options = [[location_id, gbd_round_id], [location_id, gbd_round_id - 1]]
+    return _get_draws_safely(get_draws, draw_options,
+                             gbd_id_field='cause_id',
+                             gbd_id=cause_id,
+                             source='dalynator',
+                             sex_ids=MALE + FEMALE,
+                             age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                             include_risks=True,
+                             num_workers=worker_count)
 
 @memory.cache
 def get_populations(location_id, gbd_round_id):
