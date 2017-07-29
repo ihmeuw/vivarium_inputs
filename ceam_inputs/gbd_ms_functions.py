@@ -28,6 +28,16 @@ class UnhandledRiskError(ValueError):
     pass
 
 
+class GBDError(Exception):
+    """Base exception for errors related to GBD data."""
+    pass
+
+
+class UnmodelledDataError(GBDError):
+    """Raised when the requested data is not modeled by the GBD"""
+    pass
+
+
 def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id):
     """Returns draws for a given measure and modelable entity
 
@@ -301,8 +311,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     return output_df
 
 
-def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id,
-                       gbd_round_id, draw_number, rr_type='morbidity'):
+def get_relative_risks(location_id, risk_id, cause_id, gbd_round_id, rr_type='morbidity'):
     """
     Parameters
     ----------
@@ -335,46 +344,30 @@ def get_relative_risks(location_id, year_start, year_end, risk_id, cause_id,
     Questions -- Should we set the RR to 1 for age groups for which we do not have rr estimates?
     """
     rr = gbd.get_relative_risks(location_id=location_id, risk_id=risk_id, gbd_round_id=gbd_round_id)
-    if rr_type == 'morbidity':
-        rr = rr.query("morbidity == 1")
-    elif rr_type == 'mortality':
-        rr = rr.query("mortality == 1")
-    else:
-        raise ValueError('rr_type accepts one of two values, morbidity or mortality. '
-                         'You typed "{}" which is incorrect'.format(rr_type))
 
-    rr = rr.query('cause_id == {}'.format(cause_id))
+    draw_columns = ['rr_{}'.format(i) for i in range(1000)]
+    key_columns = ['year_id', 'sex_id', 'age', 'parameter']
+
+    correct_measurement = (rr[rr_type] == 1) & (rr['cause_id'] == cause_id)
+    rr = rr[correct_measurement]
+
     if rr.empty:
-        raise ValueError("No data for risk_id {} on cause_id {} for type {}".format(risk_id, cause_id, rr_type))
+        err_msg = "No data for risk_id {} on cause_id {} for type {}".format(risk_id, cause_id, rr_type)
+        raise UnmodelledDataError(err_msg)
+
     rr = get_age_group_midpoint_from_age_group_id(rr)
-    rr = expand_ages(rr)
 
-    # Need to calculate relative risks for current implementation of CEAM.
-    # Some risks (e.g Zinc deficiency and high sbp) don't have estimates for all ages
-    # (e.g. no estimates for people over age 5 for zinc).
-    # TODO: Do we want to use an RR of 1 in the exposed groups? That's a pretty big assumption.
-    # It assumes that there is no risk of the risk factor on the exposure for those ages.
-    # If we don't have the data for the younger age groups, another alternative could be to
-    # back cast the relative risk of the youngest age group for which we do have data.
-    rr[['rr_{}'.format(i) for i in range(1000)]] = rr[['rr_{}'.format(i) for i in range(1000)]].fillna(value=1)
+    # We frequently have N/As in the data where the risk wasn't modelled.  We assume there is no
+    # exposure or that the exposure does not increase the relative risk on the cause.
+    rr[draw_columns] = rr[draw_columns].fillna(value=1)
 
-    keep_columns = ['year_id', 'sex_id', 'age', 'parameter']
-    keep_columns.extend(('rr_{i}'.format(i=i) for i in range(0, 1000)))
-    rr = rr[keep_columns]
-
-    validate_data(rr, ['year_id', 'sex_id', 'age', 'parameter'])
-    assert rr['rr_{}'.format(draw_number)].all() >= 1, ("Something went wrong with get_relative_risks. "
-                                                        "RR cannot be LT 1. Check the data that you are pulling "
-                                                        "in and the function. Sometimes the database does "
-                                                        "not have RR estimates for every age so check to see "
-                                                        "that the function is correctly assigning relative risks "
-                                                        "to the other ages.")
+    rr = rr[key_columns + draw_columns]
+    validate_data(rr, key_columns)
 
     return rr
 
 
-def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
-             gbd_round_id, draw_number, paf_type='morbidity'):
+def get_pafs(location_id, risk_id, cause_id, gbd_round_id, paf_type='morbidity'):
     """
     Parameters
     ----------
@@ -407,36 +400,26 @@ def get_pafs(location_id, year_start, year_end, risk_id, cause_id,
     Questions -- Should we set the PAF to 0 for age groups for which we do not have rr estimates?
     Need to submit an epi help ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
     """
-    if paf_type == 'morbidity':
-        measure_id = 3
-    elif paf_type == 'mortality':
-        measure_id = 1
-    else:
-        raise ValueError('paf_type accepts one of two values, morbidity or mortality. '
-                         'You typed "{}" which is incorrect'.format(paf_type))
-
     pafs = gbd.get_pafs(location_id=location_id, cause_id=cause_id, gbd_round_id=gbd_round_id)
-    pafs = pafs[pafs.measure_id == measure_id]
-    pafs = pafs.query(
-        "rei_id == {} and metric_id == 2 and year_id >= {} and year_id <= {}".format(risk_id, year_start, year_end))
+
+    measure_id = {'morbidity': 3, 'mortality': 1}[paf_type]
+    draw_columns = ['draw_{}'.format(i) for i in range(1000)]
+    key_columns = ['year_id', 'sex_id', 'age']
+
+    correct_measurement = (pafs.measure_id == measure_id) & (pafs.rei_id == risk_id) & (pafs.metric_id == 2)
+    pafs = pafs[correct_measurement]
+
     pafs = get_age_group_midpoint_from_age_group_id(pafs)
-    pafs = expand_ages(pafs)
-    pafs[['draw_{}'.format(i) for i in range(1000)]] = pafs[['draw_{}'.format(i) for i in range(1000)]].fillna(value=0)
 
-    keep_columns = ['year_id', 'sex_id', 'age']
-    keep_columns.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
-    pafs = pafs[keep_columns]
+    pafs[draw_columns] = pafs[draw_columns].fillna(value=0)
 
-    validate_data(pafs, ['age', 'year_id', 'sex_id'])
-    assert pafs['draw_{}'.format(draw_number)].all() <= 1, ("Something went wrong with get_pafs. PAFs cannot be GT 1. "
-                                                            "Check the data that you are pulling in and the function. "
-                                                            "Sometimes, a risk does not have paf estimates for every "
-                                                            "age, so check to see that the function is correctly "
-                                                            "assigning relative risks to the other ages")
+    pafs = pafs[key_columns + draw_columns]
+    validate_data(pafs, key_columns)
+
     return pafs
 
 
-def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
+def get_exposures(location_id, risk_id, gbd_round_id):
     """
     Parameters
     ----------
@@ -467,70 +450,47 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
     Need to submit an epi help ticket to determine whether we should use get_draws or transmogrifier.risk.risk_draws.
     """
 
-    # Risks where there is no data for gbd_round_id 3
-    if risk_id in [risk_factors.ambient_particulate_matter_pollution.gbd_risk]:
-        gbd_round_id = 4
-
     exposure = gbd.get_exposures(location_id=location_id, risk_id=risk_id, gbd_round_id=gbd_round_id)
-    exposure = exposure.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
+
+    draw_columns = ['draw_{}'.format(i) for i in range(1000)]
+    key_columns = ['year_id', 'sex_id', 'age', 'parameter']
+
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
 
-    # there are 2 modelable entity ids for secondhand smoking, one for females and
-    # males under age 15, and then one for males over age 15. Because of this, we
-    # need to handle this risk separately from other risks. Apparently this should
-    # be fixed for the next round of GBD, but for now we need to deal with this annoying work around
     if risk_id == 100:
-        male_old_exposure = exposure.query("sex_id == 1 and modelable_entity_id == 2512 and age >= 17.5").copy()
-        male_young_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419 and age < 17.5").copy()
-        male_young_exposure['sex_id'] = 1
-        female_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419").copy()
-        exposure = male_young_exposure.append([male_old_exposure, female_exposure])
+        exposure = _extract_secondhand_smoking_exposures(exposure)
 
-        residual_exposure = exposure.copy()
-        residual_exposure['parameter'] = 'cat2'
-        residual_exposure = residual_exposure.set_index([c for c in residual_exposure.columns if 'draw_' not in c])
-        residual_exposure = 1 - residual_exposure
-        residual_exposure = residual_exposure.reset_index()
-        exposure = exposure.append(residual_exposure)
-
-    # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable entity ids for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
-    elif risk_id in [83, 84, 94, 136, 240, 241]:
-        pass
-    # TODO: Need to set age, year, sex index here again to make sure that we assign
-    # the correct value to points outside of the range
-    # TODO: Confirm that we want to be using cat1 here.
-    # Cat1 seems really high for risk_id=238 (hand washing without soap) for Kenya
-    # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data?
-    # It's an exceptionally strong assumption. We could use the exposure for the youngest age
-    # for which we do have data, or do something else, if we wanted to. --EM 12/12
-    else:
-        list_of_meids = pd.unique(exposure.modelable_entity_id.values)
-        # Some risks have a few nulls in the modelable_entity_id column.
-        # This is ok, think it's just an artifact of how the risk is processed by central comp.
-        list_of_meids = [x for x in list_of_meids if str(x) != 'nan']
-        if len(list_of_meids) > 1:
-            raise UnhandledRiskError("The risk -- rei_id {} --that you are trying to pull has multiple ".format(risk_id)
-                                     + "modelable entity ids. are you sure you know how this risk is modeled? "
-                                     + "If not, go talk to the modeler. After talking to the modeler, "
-                                     + "you'll probably want to write some code to handle the risk, since "
-                                     + "it's modeled differently than most risks. you can override this "
-                                     + "error by adding a multiple_meids_override=True argument to "
-                                     + "your get_exposures query after you determine how to incorporate "
-                                     + "this risk into your simulation")
-
-    exposure = expand_ages(exposure)
     # Hacky fix to an inconsistency in the database schema.  I'll do something nicer when I revise this
     # bit of ceam inputs - J.C. 2017-07-26
     if 'parameter' not in exposure.columns:
         exposure['parameter'] = 'continuous'
 
-    exposure[['draw_{}'.format(i) for i in range(1000)]] = exposure[
-        ['draw_{}'.format(i) for i in range(1000)]].fillna(value=0)
-    keep_columns = ['year_id', 'sex_id', 'age', 'parameter'] + ['draw_{i}'.format(i=i) for i in range(1000)]
-    exposure = exposure[keep_columns]
+    exposure[draw_columns] = exposure[draw_columns].fillna(value=0)
 
-    validate_data(exposure, ['age', 'year_id', 'sex_id', 'parameter'])
+    exposure = exposure[key_columns + draw_columns]
+    validate_data(exposure, key_columns)
+
     return exposure
+
+
+def _extract_secondhand_smoking_exposures(exposure):
+    """
+    there are 2 modelable entity ids for secondhand smoking, one for females and  males under age 15, and then one
+    for males over age 15. Because of this, we  need to handle this risk separately from other risks.
+    Apparently this should be fixed for the next round of GBD, but for now we need to deal with this annoying
+    work around."""
+    male_old_exposure = exposure.query("sex_id == 1 and modelable_entity_id == 2512 and age >= 17.5").copy()
+    male_young_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419 and age < 17.5").copy()
+    male_young_exposure['sex_id'] = 1
+    female_exposure = exposure.query("sex_id == 2 and modelable_entity_id == 9419").copy()
+    exposure = male_young_exposure.append([male_old_exposure, female_exposure])
+
+    residual_exposure = exposure.copy()
+    residual_exposure['parameter'] = 'cat2'
+    residual_exposure = residual_exposure.set_index([c for c in residual_exposure.columns if 'draw_' not in c])
+    residual_exposure = 1 - residual_exposure
+    residual_exposure = residual_exposure.reset_index()
+    return exposure.append(residual_exposure)
 
 
 def select_draw_data(data, draw, column_name, src_column=None):
