@@ -171,12 +171,9 @@ def get_cause_deleted_mortality_rate(list_of_csmrs):
 
 def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
     draws = functions.get_relative_risks(location_id=location_id,
-                                         year_start=year_start,
-                                         year_end=year_end,
                                          risk_id=risk_id,
                                          cause_id=cause_id,
                                          gbd_round_id=gbd_round_id,
@@ -197,23 +194,19 @@ def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
 
 def get_pafs(risk_id, cause_id, paf_type='morbidity'):
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
     draws = functions.get_pafs(location_id=location_id,
-                               year_start=year_start,
-                               year_end=year_end,
                                risk_id=risk_id,
                                cause_id=cause_id,
                                gbd_round_id=gbd_round_id,
-                               draw_number=draw_number,
                                paf_type=paf_type)
     df = functions.select_draw_data(draws, draw_number, column_name='PAF')
     df.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
     return df
 
 
-def get_exposures(risk_id):
+def get_exposure_means(risk_id):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
     gbd_round_id = config.simulation_parameters.gbd_round_id
@@ -234,6 +227,9 @@ def get_exposures(risk_id):
 
     output.metadata = {'risk_id': risk_id}
     return output
+
+def get_exposure_standard_errors(risk_id):
+    pass
 
 
 def get_populations(location_id, year=-1, sex='All'):
