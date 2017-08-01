@@ -1,4 +1,4 @@
-from typing import NewType, NamedTuple, Union, Set
+from typing import NewType, NamedTuple, Union, Tuple
 
 meid = NewType('meid', int)  # Modelable entity id.
 rid = NewType('rid', int)  # Risk id.
@@ -6,19 +6,17 @@ cid = NewType('cid', int)  # Cause id.
 hid = NewType('hid', int)  # Healthstate id.
 
 
-class Cause(NamedTuple):
-    """Container type for cause GBD ids."""
-    name: str
-    id: cid
-    incidence: meid = None
+class SeveritySplit(NamedTuple):
+    split: Union[meid, float]
     prevalence: meid = None
-    csmr: cid = None
-    excess_mortality: Union[meid, float] = None
-    disability_weight: Union[meid, hid, float] = None
-    duration: meid = None
-    sequelae: Set[Sequela] = None
-    etiologies: Set[Etiology] = None
-    severity_splits: SeveritySplits = None
+    disability_weight: hid = None
+
+
+class SeveritySplits(NamedTuple):
+    mild: SeveritySplit
+    moderate: SeveritySplit
+    severe: SeveritySplit
+    asymptomatic: SeveritySplit = None
 
 
 class Sequela(NamedTuple):
@@ -35,17 +33,19 @@ class Etiology(NamedTuple):
     id: rid = None
 
 
-class SeveritySplit(NamedTuple):
-    split: Union[meid, float]
+class Cause(NamedTuple):
+    """Container type for cause GBD ids."""
+    name: str
+    id: cid
+    incidence: meid = None
     prevalence: meid = None
-    disability_weight: hid = None
-
-
-class SeveritySplits(NamedTuple):
-    mild: SeveritySplit
-    moderate: SeveritySplit
-    severe: SeveritySplit
-    asymptomatic: SeveritySplit = None
+    csmr: cid = None
+    excess_mortality: Union[meid, float] = None
+    disability_weight: Union[meid, hid, float] = None
+    duration: meid = None
+    sequelae: Tuple[Sequela] = None
+    etiologies: Tuple[Etiology] = None
+    severity_splits: SeveritySplits = None
 
 
 class Causes(NamedTuple):
@@ -220,11 +220,15 @@ class Risk(NamedTuple):
     name: str
     id: rid
     distribution: str
+    affected_causes: Tuple[Cause]
     levels: Levels = None
-    affected_causes: Set[Cause] = None
     tmred: Tmred = None
     scale: float = None
     max_rr: float = None
+    min_rr: float = None
+    max_val: float = None
+    min_val: float = None
+    max_var: float = None
 
 
 class Risks(NamedTuple):
