@@ -272,6 +272,9 @@ raw_risk_mapping = {
         'effected_causes': [causes.heart_attack, causes.ischemic_heart_disease,
                             causes.ischemic_stroke, causes.hemorrhagic_stroke],
     },
+    'childhood_underweight': {
+        'gbd_risk': rid(94),
+    },
     'vitamin_a_deficiency': {
         'gbd_risk': rid(96),
         'risk_type': 'categorical',
