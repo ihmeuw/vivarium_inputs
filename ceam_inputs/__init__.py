@@ -98,22 +98,6 @@ def get_remission(modelable_entity_id):
     return _get_modelable_entity_draws(column_name='remission', measure=7, modelable_entity_id=modelable_entity_id)
 
 
-def get_continuous(modelable_entity_id):
-    """Get the continuous measure from a modelable entity. This measure is used
-    for things like the distribution of BMI in a population.
-
-    Parameters
-    ----------
-    modelable_entity_id : int
-                          The entity to retrieve
-
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'value' columns
-    """
-    return _get_modelable_entity_draws(column_name='value', measure=19, modelable_entity_id=modelable_entity_id)
-
 
 def get_proportion(modelable_entity_id):
     """Get proportion data for a modelable entity. This is used for entities that represent
