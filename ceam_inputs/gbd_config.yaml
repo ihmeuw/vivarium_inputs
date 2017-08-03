@@ -19,4 +19,5 @@ simulation_parameters:
 
 run_configuration:
     draw_number: 0
+    model_draw_number: 0
 
