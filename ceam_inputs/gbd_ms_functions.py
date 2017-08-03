@@ -488,8 +488,17 @@ def get_exposures(location_id, year_start, year_end, risk_id, gbd_round_id):
         residual_exposure = residual_exposure.reset_index()
         exposure = exposure.append(residual_exposure)
 
+    elif risk_id == 83:
+        # Just fixing some poorly structured data.  cat10 and cat11 are zero, cat12 is the balance of the exposure
+        # (indicating unexposed), but needs to be renamed cat10 so it corresponds to the rr data.  Yuck.
+        good_rows = (exposure.parameter != 'cat10') & (exposure.parameter != 'cat11')
+        exposure = exposure[good_rows]
+        exposure.loc[exposure.parameter == 'cat12', 'parameter'] = 'cat10'
+
+
+
     # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable entity ids for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
-    elif risk_id in [83, 84, 94, 136, 240, 241]:
+    elif risk_id in [84, 94, 136, 240, 241]:
         pass
     # TODO: Need to set age, year, sex index here again to make sure that we assign
     # the correct value to points outside of the range
