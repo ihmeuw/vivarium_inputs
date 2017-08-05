@@ -16,16 +16,9 @@ from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, g
 
 KENYA = 180
 
-
-def test_get_post_mi_heart_failure_proportion_draws():
-    df = get_post_mi_heart_failure_proportion_draws(location_id=KENYA,
-                                                    year_start=1990,
-                                                    year_end=2015,
-                                                    draw_number=0)
-    err_msg = ("get_post_mi_heart_failure proportion draws needs to return the correct "
-               "proportion of simulants that will have heart failure after suffering an mi")
-    assert np.isclose(df.get_value(199, 'draw_0'), rate_to_probability(np.multiply(0.16197485, 0.01165705))), err_msg
-    assert np.isclose(df.get_value(116, 'draw_10'), rate_to_probability(np.multiply(0.00839225, 0.2061004))), err_msg
+# TODO: Several tests here should be rewritten as unit tests on data transformations.  We
+# also need to set up some actual data validation tests (probably to be run by our build system
+# daily or weekly) to capture unexpected changes in the underlying data.
 
 
 def test_get_relative_risks():
@@ -191,7 +184,8 @@ def test_get_disability_weight():
 
 def test_get_asympt_ihd_proportions():
     angina_proportions = get_angina_proportions()
-    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 2000, draw_number=0)
+    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 2000,
+                                                                           draw_number=0, gbd_round_id=3)
     asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000, draw_number=0)
 
     ang_filter = angina_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
@@ -205,16 +199,6 @@ def test_get_asympt_ihd_proportions():
     assert 1 - hf_value - ang_value == asy_value, ("get_asympt_ihd_proportions needs to ensure that the sum of "
                                                    "heart failure, angina, and asympt ihd add up to 1")
 
-
-def test_get_etiology_specific_incidence():
-    df = get_etiology_specific_incidence(180, 1990, 2000, 181, 302, 1181, gbd_round_id=3, draw_number=0)
-
-    df = df.query("year_id == 1995 and sex_id ==1")
-
-    val = df.set_index('age').get_value(82.5, 'draw_10')
-
-    assert np.isclose(val, 0.06306237 * 2.5101927), ("get_etiology_specific_incidence needs to ensure the eti "
-                                                     "pafs and envelope were multiplied together correctly")
 
 
 def test_get_etiology_specific_prevalence():
