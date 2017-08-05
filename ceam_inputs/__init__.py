@@ -19,7 +19,8 @@ def _get_modelable_entity_draws(column_name, measure, modelable_entity_id):
                                                  year_start=year_start,
                                                  year_end=year_end,
                                                  measure=measure,
-                                                 me_id=modelable_entity_id)
+                                                 me_id=modelable_entity_id,
+                                                 gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     df = functions.select_draw_data(draws, config.run_configuration.draw_number, column_name=column_name)
     df.metadata = {'modelable_entity_id': modelable_entity_id}
@@ -311,7 +312,8 @@ def get_post_mi_heart_failure_proportion_draws():
     draws = functions.get_post_mi_heart_failure_proportion_draws(location_id=location_id,
                                                                  year_start=year_start,
                                                                  year_end=year_end,
-                                                                 draw_number=draw)
+                                                                 draw_number=draw,
+                                                                 gbd_round_id=config.simulation_parameters.gbd_round_id)
     return functions.select_draw_data(draws, draw,
                                       column_name='proportion',
                                       src_column='draw_{draw}')

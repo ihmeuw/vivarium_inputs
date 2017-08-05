@@ -28,7 +28,7 @@ class UnhandledRiskError(ValueError):
     pass
 
 
-def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id):
+def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id, gbd_round_id):
     """Returns draws for a given measure and modelable entity
 
     Gives you incidence, prevalence, csmr, excess mortality, and
@@ -68,7 +68,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     Unit test in place? -- No. Don't think it's necessary, since this function merely pulls draws from the database and then filters a dataframe so that only one measure is included in the output and that only the years in b/w the simulation year start and year end are included in the df.
     """
 
-    draws = gbd.get_modelable_entity_draws(location_id, me_id, config.input_data.gbd_publication_ids)
+    draws = gbd.get_modelable_entity_draws(location_id, me_id, config.input_data.gbd_publication_ids, gbd_round_id)
     draws = draws[draws.measure_id == measure]
     draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     draws = get_age_group_midpoint_from_age_group_id(draws)
@@ -245,7 +245,7 @@ def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
         return all_cause_mr
 
 
-def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end, draw_number):
+def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end, draw_number, gbd_round_id):
     """Returns post-mi proportion draws for hf due to ihd
 
     Parameters
@@ -271,8 +271,10 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     getting different results when using A*B instead of np.multiply(A,B).
     """
     # TODO: NEED TO WRITE TESTS TO MAKE SURE THAT POST_MI TRANSITIONS SCALE TO 1
-    hf_envelope = get_modelable_entity_draws(location_id, year_start, year_end, measure=6, me_id=2412)
-    proportion_draws = get_modelable_entity_draws(location_id, year_start, year_end, measure=18, me_id=2414)
+    hf_envelope = get_modelable_entity_draws(location_id, year_start, year_end,
+                                             measure=6, me_id=2412, gbd_round_id=gbd_round_id)
+    proportion_draws = get_modelable_entity_draws(location_id, year_start, year_end,
+                                                  measure=18, me_id=2414, gbd_round_id=gbd_round_id)
 
     cause_of_hf = pd.merge(hf_envelope, proportion_draws,
                            on=['age', 'year_id', 'sex_id'], suffixes=('_env', '_prop'))
@@ -762,7 +764,8 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end, draw_number):
     Unit test in place? -- Yes
     """
 
-    hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end, draw_number)
+    hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end, draw_number,
+                                                            gbd_round_id=config.simulation_parameters.gbd_round_id)
     angina_prop_df = get_angina_proportions()
 
     merged = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
@@ -911,8 +914,8 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
     A dataframe of etiology specific incidence draws.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end,
-                                                             measure=6, me_id=me_id)
+    diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end, measure=6, me_id=me_id,
+                                                             gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     etiology_paf = get_etiology_pafs(location_id, year_start,
                                      year_end, eti_risk_id, cause_id,
@@ -971,8 +974,8 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     A dataframe of etiology specific prevalence draws.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
-                                                              measure=5, me_id=me_id)
+    diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end, measure=5, me_id=me_id,
+                                                              gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     etiology_paf = get_etiology_pafs(location_id, year_start, year_end,
                                      eti_risk_id, cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
