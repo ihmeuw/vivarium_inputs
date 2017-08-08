@@ -5,6 +5,7 @@ import pandas as pd
 
 from ceam_inputs.util import get_cache_directory
 from ceam_inputs.auxiliary_files import auxiliary_file_path
+from ceam_inputs.gbd_mapping import cid
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
@@ -97,8 +98,14 @@ def get_subregions(location_id):
     return [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
 
 
+def get_gbd_draws(location_id, gbd_id, publication_ids=None, gbd_round_id=4):
+    if isinstance(gbd_id, cid):
+        return get_como_draws(location_id, gbd_id, gbd_round_id)
+    else:
+        return get_modelable_entity_draws(location_id, gbd_id, publication_ids, gbd_round_id)
+
 @memory.cache
-def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_round_id=None):
+def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_round_id=4):
     from transmogrifier.draw_ops import get_draws
     model_version = get_model_versions(publication_ids)[me_id] if publication_ids else None
     gbd_round_id = gbd_round_id if gbd_round_id else 4
@@ -122,6 +129,20 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id):
     return get_draws(gbd_id_field='cause_id',
                      gbd_id=cause_id,
                      source="codcorrect",
+                     location_ids=location_id,
+                     sex_ids=MALE + FEMALE,
+                     age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                     gbd_round_id=gbd_round_id)
+
+@memory.cache
+def get_como_draws(location_id, cause_id, gbd_round_id):
+    from transmogrifier.draw_ops import get_draws
+
+    # FIXME: Should submit a ticket to IT to determine if we need to specify an
+    # output_version_id or a model_version_id to ensure we're getting the correct results
+    return get_draws(gbd_id_field='cause_id',
+                     gbd_id=cause_id,
+                     source="como",
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,

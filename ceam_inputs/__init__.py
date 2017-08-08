@@ -8,32 +8,32 @@ _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_con
 config.load(_config_path, layer='base', source=_config_path)
 
 # Make these toplevel imports until external references can be removed.
-from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid
+from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid, cid
 from ceam_inputs import gbd, risk_factor_correlation, gbd_ms_functions as functions
 from ceam_inputs.util import gbd_year_range
 
 
-def _get_modelable_entity_draws(column_name, measure, modelable_entity_id):
+def _get_gbd_draws(column_name, measure, gbd_id):
     year_start, year_end = gbd_year_range()
-    draws = functions.get_modelable_entity_draws(location_id=config.simulation_parameters.location_id,
+    draws = functions.get_gbd_draws(location_id=config.simulation_parameters.location_id,
                                                  year_start=year_start,
                                                  year_end=year_end,
                                                  measure=measure,
-                                                 me_id=modelable_entity_id,
+                                                 gbd_id=gbd_id,
                                                  gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     df = functions.select_draw_data(draws, config.run_configuration.draw_number, column_name=column_name)
-    df.metadata = {'modelable_entity_id': modelable_entity_id}
+    df.metadata = {'gbd_id': gbd_id}
 
     return df
 
 
-def get_excess_mortality(modelable_entity_id):
+def get_excess_mortality(gbd_id):
     """Get excess mortality associated with a modelable entity.
 
     Parameters
     ----------
-    modelable_entity_id : int
+    gbd_id : int
                           The entity to retrieve
 
     Returns
@@ -41,15 +41,23 @@ def get_excess_mortality(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return _get_modelable_entity_draws(column_name='rate', measure=9, modelable_entity_id=modelable_entity_id)
+    if isinstance(gbd_id, cid):
+        csmr = get_cause_specific_mortality(gbd_id).set_index(['age', 'sex', 'year'])
+        prevalence = get_prevalence(gbd_id).set_index(['age', 'sex', 'year'])
+        prevalence.columns = ['rate']
+        df = (csmr/prevalence).dropna()
+        df[prevalence == 0] = 0
+        return df.reset_index()
+    else:
+        return _get_gbd_draws(column_name='rate', measure=9, gbd_id=gbd_id)
 
 
-def get_incidence(modelable_entity_id):
+def get_incidence(gbd_id):
     """Get incidence rates for a modelable entity.
 
     Parameters
     ----------
-    modelable_entity_id : int
+    gbd_id : int
                           The entity to retrieve
 
     Returns
@@ -57,7 +65,7 @@ def get_incidence(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return _get_modelable_entity_draws(column_name='rate', measure=6, modelable_entity_id=modelable_entity_id)
+    return _get_gbd_draws(column_name='rate', measure=6, gbd_id=gbd_id)
 
 
 def get_cause_specific_mortality(cause_id):
@@ -83,12 +91,12 @@ def get_cause_specific_mortality(cause_id):
                                                   draw_number=config.run_configuration.draw_number)
 
 
-def get_remission(modelable_entity_id):
+def get_remission(gbd_id):
     """Get remission rates for a modelable entity.
 
     Parameters
     ----------
-    modelable_entity_id : int
+    gbd_id : int
                           The entity to retrieve
 
     Returns
@@ -96,17 +104,17 @@ def get_remission(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return _get_modelable_entity_draws(column_name='remission', measure=7, modelable_entity_id=modelable_entity_id)
+    return _get_gbd_draws(column_name='remission', measure=7, gbd_id=gbd_id)
 
 
 
-def get_proportion(modelable_entity_id):
+def get_proportion(gbd_id):
     """Get proportion data for a modelable entity. This is used for entities that represent
     outcome splits like severities of heart failure after an infarction.
 
     Parameters
     ----------
-    modelable_entity_id : int
+    gbd_id : int
                           The entity to retrieve
 
     Returns
@@ -114,19 +122,19 @@ def get_proportion(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'proportion' columns
     """
-    return _get_modelable_entity_draws(column_name='proportion', measure=18, modelable_entity_id=modelable_entity_id)
+    return _get_gbd_draws(column_name='proportion', measure=18, gbd_id=gbd_id)
 
 
 def get_age_bins():
     return gbd.get_age_bins()
 
 
-def get_prevalence(modelable_entity_id):
+def get_prevalence(gbd_id):
     """Get prevalence data for a modelable entity.
 
     Parameters
     ----------
-    modelable_entity_id : int
+    gbd_id : int
                           The entity to retrieve
 
     Returns
@@ -134,7 +142,7 @@ def get_prevalence(modelable_entity_id):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'prevalence' columns
     """
-    return _get_modelable_entity_draws(column_name='prevalence', measure=5, modelable_entity_id=modelable_entity_id)
+    return _get_gbd_draws(column_name='prevalence', measure=5, gbd_id=gbd_id)
 
 
 def get_cause_deleted_mortality_rate(list_of_csmrs):
@@ -407,9 +415,9 @@ def make_age_group_1_to_4_rates_constant(df):
     return df
 
 
-def get_disability_weight(dis_weight_modelable_entity_id=None, healthstate_id=None):
+def get_disability_weight(dis_weight_gbd_id=None, healthstate_id=None):
     return functions.get_disability_weight(config.run_configuration.draw_number,
-                                           dis_weight_modelable_entity_id, healthstate_id)
+                                           dis_weight_gbd_id, healthstate_id)
 
 
 def get_rota_vaccine_coverage():

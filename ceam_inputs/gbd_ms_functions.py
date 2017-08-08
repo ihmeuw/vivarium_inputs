@@ -15,7 +15,7 @@ from vivarium import config
 from vivarium.framework.util import rate_to_probability
 
 from ceam_inputs import gbd, causes
-from ceam_inputs.gbd_mapping import cid
+from ceam_inputs.gbd_mapping import cid, meid
 from ceam_inputs.gbd_ms_auxiliary_functions import (normalize_for_simulation,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
                                                     get_age_group_midpoint_from_age_group_id)
@@ -28,7 +28,7 @@ class UnhandledRiskError(ValueError):
     pass
 
 
-def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id, gbd_round_id):
+def get_gbd_draws(location_id, year_start, year_end, measure, gbd_id, gbd_round_id):
     """Returns draws for a given measure and modelable entity
 
     Gives you incidence, prevalence, csmr, excess mortality, and
@@ -50,8 +50,8 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
         comp's get_ids functions to learn about which measures are available
         and what numbers correspond with each measure
 
-    me_id: int, modelable entity id
-        modelable_entity_id takes same me_id values as are used for GBD
+    gbd_id: int, gbd entity id
+        gbd_id takes same id values as are used for GBD
 
     Returns
     -------
@@ -68,7 +68,7 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     Unit test in place? -- No. Don't think it's necessary, since this function merely pulls draws from the database and then filters a dataframe so that only one measure is included in the output and that only the years in b/w the simulation year start and year end are included in the df.
     """
 
-    draws = gbd.get_modelable_entity_draws(location_id, me_id, config.input_data.gbd_publication_ids, gbd_round_id)
+    draws = gbd.get_gbd_draws(location_id, gbd_id, config.input_data.gbd_publication_ids, gbd_round_id)
     draws = draws[draws.measure_id == measure]
     draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     draws = get_age_group_midpoint_from_age_group_id(draws)
@@ -77,11 +77,11 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert draws.isnull().values.any() == False, "there are nulls in the dataframe that get_modelable_entity_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert draws.isnull().values.any() == False, "there are nulls in the dataframe that get_gbd_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
     assert draws.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_modelable_entity_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
+    ) == 0, "there are duplicates in the dataframe that get_gbd_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     return draws[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
@@ -271,10 +271,10 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     getting different results when using A*B instead of np.multiply(A,B).
     """
     # TODO: NEED TO WRITE TESTS TO MAKE SURE THAT POST_MI TRANSITIONS SCALE TO 1
-    hf_envelope = get_modelable_entity_draws(location_id, year_start, year_end,
-                                             measure=6, me_id=2412, gbd_round_id=gbd_round_id)
-    proportion_draws = get_modelable_entity_draws(location_id, year_start, year_end,
-                                                  measure=18, me_id=2414, gbd_round_id=gbd_round_id)
+    hf_envelope = get_gbd_draws(location_id, year_start, year_end,
+                                             measure=6, gbd_id=meid(2412), gbd_round_id=gbd_round_id)
+    proportion_draws = get_gbd_draws(location_id, year_start, year_end,
+                                                  measure=18, gbd_id=meid(2414), gbd_round_id=gbd_round_id)
 
     cause_of_hf = pd.merge(hf_envelope, proportion_draws,
                            on=['age', 'year_id', 'sex_id'], suffixes=('_env', '_prop'))
@@ -914,7 +914,7 @@ def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_
     A dataframe of etiology specific incidence draws.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end, measure=6, me_id=me_id,
+    diarrhea_envelope_incidence = get_gbd_draws(location_id, year_start, year_end, measure=6, gbd_id=me_id,
                                                              gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     etiology_paf = get_etiology_pafs(location_id, year_start,
@@ -974,7 +974,7 @@ def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk
     A dataframe of etiology specific prevalence draws.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end, measure=5, me_id=me_id,
+    diarrhea_envelope_prevalence = get_gbd_draws(location_id, year_start, year_end, measure=5, gbd_id=me_id,
                                                               gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     etiology_paf = get_etiology_pafs(location_id, year_start, year_end,
@@ -1074,7 +1074,7 @@ def get_severity_splits(parent_meid, child_meid, draw_number):
 # TODO: Write a test for get_rota_vaccine_coverage.
 # Make sure values make sense for year/age in test, similar to get_relative_risk tests
 def get_rota_vaccine_coverage(location_id, year_start, year_end, gbd_round_id):
-    draws = gbd.get_modelable_entity_draws(location_id, me_id=10596, gbd_round_id=gbd_round_id)
+    draws = gbd.get_gbd_draws(location_id, gbd_id=meid(10596), gbd_round_id=gbd_round_id)
     draws = draws.query('age_group_id < {}'.format(6))
     draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     draws = get_age_group_midpoint_from_age_group_id(draws)
