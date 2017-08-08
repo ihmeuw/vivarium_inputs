@@ -145,23 +145,6 @@ def get_prevalence(gbd_id):
     return _get_gbd_draws(column_name='prevalence', measure=5, gbd_id=gbd_id)
 
 
-def get_cause_deleted_mortality_rate(list_of_csmrs):
-    # This sort is a because we don't want the cache to invalidate when
-    # the csmrs come in in different orders but they aren't hashable by
-    # standard python so we can't put them in a set.
-    list_of_csmrs = sorted(list_of_csmrs, key=lambda x: joblib.hash(x))
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    draw_number = config.run_configuration.draw_number
-    return functions.get_cause_deleted_mortality_rate(location_id=location_id,
-                                                      year_start=year_start,
-                                                      year_end=year_end,
-                                                      list_of_csmrs=list_of_csmrs,
-                                                      gbd_round_id=gbd_round_id,
-                                                      draw_number=draw_number)
-
-
 def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()

@@ -1,15 +1,11 @@
 import numpy as np
 import pytest
 
-from vivarium import config
-from vivarium.framework.util import rate_to_probability
-
 from ceam_inputs import get_cause_specific_mortality, get_excess_mortality, causes, risk_factors
 from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
                                           get_angina_proportions, get_disability_weight,
                                           get_post_mi_heart_failure_proportion_draws,
-                                          sum_up_csmrs_for_all_causes_in_microsim, get_cause_deleted_mortality_rate,
-                                          get_etiology_specific_incidence,
+                                          sum_up_csmrs_for_all_causes_in_microsim,
                                           get_etiology_specific_prevalence, get_asympt_ihd_proportions,
                                           get_severe_diarrhea_excess_mortality,
                                           get_rota_vaccine_coverage, get_mediation_factors)
@@ -128,39 +124,6 @@ def test_sum_up_csmrs_for_all_causes_in_microsim():
     df_val = df_filter['rate'].values[0]
 
     assert df_val == csmr1_val + csmr2_val, "sum_up_csmrs_for_all_causes_in_microsim did not correctly sum up csmrs"
-
-
-def test_get_cause_deleted_mortality_rate():
-    age = 67.5
-
-    location_id = config.simulation_parameters.location_id
-    year_start = config.simulation_parameters.year_start
-    year_end = config.simulation_parameters.year_end
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    draw_number = config.run_configuration.draw_number
-
-    # FIXME: add all cause mortality to the gbd_mapping suite
-    all_cause_mr = get_cause_specific_mortality(causes.all_causes.gbd_cause)
-    all_cause_mr = all_cause_mr[['age', 'sex', 'year', 'rate']]
-    all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
-
-    all_cause_filter = all_cause_mr.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
-    all_cause_val = all_cause_filter['all_cause_mortality_rate'].values[0]
-
-    csmr493 = get_cause_specific_mortality(causes.ischemic_heart_disease.gbd_cause)
-    csmr_filter = csmr493.query("age == {a} and sex == 'Male' and year == {y}".format(a=age, y=year_start))
-    cause_val = csmr_filter['rate'].values[0]
-
-    cause_deleted = get_cause_deleted_mortality_rate(location_id=location_id,
-                                                     year_start=year_start,
-                                                     year_end=year_end,
-                                                     list_of_csmrs=[csmr493],
-                                                     gbd_round_id=gbd_round_id,
-                                                     draw_number=draw_number)
-    cause_deleted_filter = cause_deleted.query("age == {} and sex == 'Male' and year == {}".format(age, year_start))
-    cause_deleted_val = cause_deleted_filter['cause_deleted_mortality_rate'].values[0]
-
-    assert cause_deleted_val == all_cause_val - cause_val, "cause deleted mortality rate was incorrectly calculated"
 
 
 def test_get_angina_proportions():

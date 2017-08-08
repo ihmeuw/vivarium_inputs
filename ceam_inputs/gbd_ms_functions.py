@@ -191,60 +191,6 @@ def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gb
     return csmr[['age', 'sex', 'year', 'rate']]
 
 
-def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
-                                     list_of_csmrs, gbd_round_id, draw_number):
-    """Returns the cause-deleted mortality rate for a given time period and location
-
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-    list_of_csmrs: iterable
-    gbd_round_id: int
-    draw_number: int
-        GBD draw to get data for
-
-    Returns
-    -------
-    df with columns age, year_id, sex_id, and 1k draws of cause deleted mortality rate
-
-    Notes
-    -----
-    Assumptions -- That we can subtract the csmrs for the causes we care about to get
-    the cause-deleted mortality rate
-    """
-
-    all_cause_mr = get_cause_specific_mortality(location_id=location_id,
-                                                year_start=year_start,
-                                                year_end=year_end,
-                                                cause_id=causes.all_causes.gbd_cause,
-                                                gbd_round_id=gbd_round_id,
-                                                draw_number=draw_number)
-    all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
-
-    if list_of_csmrs:
-        total_csmr = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs)
-        mort_rates = all_cause_mr.merge(total_csmr, on=['age', 'sex', 'year'])
-        # get cause-deleted mortality rate by subtracting out all of the csmrs from all-cause mortality rate
-        mort_rates['cause_deleted_mortality_rate'] = (mort_rates.all_cause_mortality_rate - mort_rates.rate)
-        cause_del_mr = mort_rates[['age', 'sex', 'year', 'cause_deleted_mortality_rate']]
-
-        validate_data(cause_del_mr, ['age', 'year', 'sex'])
-
-        # assert that non of the cause-deleted mortality rate values are less than or equal to 0
-        assert np.all(cause_del_mr.cause_deleted_mortality_rate > 0), ("Something went wrong with the "
-                                                                       "get_cause_deleted_mortality_rate "
-                                                                       "calculation. cause-deleted mortality "
-                                                                       "can't be <= 0")
-        return cause_del_mr
-    else:
-        return all_cause_mr
-
-
 def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end, draw_number, gbd_round_id):
     """Returns post-mi proportion draws for hf due to ihd
 
