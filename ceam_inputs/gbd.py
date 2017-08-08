@@ -43,7 +43,7 @@ def _get_draws_safely(draw_function, draw_options, *args, **kwargs):
     return measure_draws
 
 @memory.cache
-def get_gbd_tool_versions(publication_ids, source):
+def get_gbd_tool_version(publication_ids, source):
     from db_tools import ezfuncs
     #NOTE: this mapping comes from the gbd.metadata_type table but in that
     #      database it isn't in a form that's convenient to query and these
@@ -62,7 +62,7 @@ def get_gbd_tool_versions(publication_ids, source):
     if como_ids.empty:
         warnings.warn('No version id found for {} with publications {}. This likely indicates missing entries in the GBD database.'.format(source, publication_ids))
         return None
-    return como_ids['val'].astype('int').tolist()
+    return como_ids['val'].astype('int')[0]
 
 @memory.cache
 def get_dismod_model_versions(publication_ids):
@@ -138,7 +138,7 @@ def get_modelable_entity_draws(location_id, me_id, gbd_round_id, publication_ids
 @memory.cache
 def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
-    versions = get_gbd_tool_versions(publication_ids, 'codcorrect') if publication_ids else None
+    version = get_gbd_tool_version(publication_ids, 'codcorrect') if publication_ids else None
 
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
@@ -148,13 +148,13 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=No
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                     version_id=versions,
+                     version_id=version,
                      gbd_round_id=gbd_round_id)
 
 @memory.cache
 def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
-    versions = get_gbd_tool_versions(publication_ids, 'como') if publication_ids else None
+    version = get_gbd_tool_version(publication_ids, 'como') if publication_ids else None
 
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
@@ -164,7 +164,7 @@ def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                     version_id=versions,
+                     version_id=version,
                      gbd_round_id=gbd_round_id)
 
 
