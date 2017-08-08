@@ -67,8 +67,10 @@ def get_gbd_draws(location_id, year_start, year_end, measure, gbd_id, gbd_round_
 
     Unit test in place? -- No. Don't think it's necessary, since this function merely pulls draws from the database and then filters a dataframe so that only one measure is included in the output and that only the years in b/w the simulation year start and year end are included in the df.
     """
-
-    draws = gbd.get_gbd_draws(location_id, gbd_id, config.input_data.gbd_publication_ids, gbd_round_id)
+    if isinstance(gbd_id, cid):
+        draws = gbd.get_como_draws(location_id, gbd_id, gbd_round_id, config.input_data.gbd_publication_ids)
+    else:
+        draws = gbd.get_modelable_entity_draws(location_id, gbd_id, gbd_round_id, config.input_data.gbd_publication_ids)
     draws = draws[draws.measure_id == measure]
     draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     draws = get_age_group_midpoint_from_age_group_id(draws)
@@ -169,7 +171,7 @@ def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gb
         GBD draw of interest
     """
     assert isinstance(cause_id, cid)
-    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
+    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id, config.input_data.gbd_publication_ids)
     draws = draws[(draws.year_id >= year_start) & (draws.year_id <= year_end)]
     draws = get_age_group_midpoint_from_age_group_id(draws)
     keep_columns = ['year_id', 'sex_id', 'age'] + ['draw_{}'.format(i) for i in range(1000)]
@@ -1074,7 +1076,7 @@ def get_severity_splits(parent_meid, child_meid, draw_number):
 # TODO: Write a test for get_rota_vaccine_coverage.
 # Make sure values make sense for year/age in test, similar to get_relative_risk tests
 def get_rota_vaccine_coverage(location_id, year_start, year_end, gbd_round_id):
-    draws = gbd.get_gbd_draws(location_id, gbd_id=meid(10596), gbd_round_id=gbd_round_id)
+    draws = gbd.get_modelable_entity_draws(location_id, meid(10596), gbd_round_id)
     draws = draws.query('age_group_id < {}'.format(6))
     draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     draws = get_age_group_midpoint_from_age_group_id(draws)

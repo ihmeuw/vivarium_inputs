@@ -118,6 +118,9 @@ raw_cause_mapping = {
     'ischemic_heart_disease': {
         'gbd_cause': cid(493),
         'mortality': cid(493),
+        'excess_mortality': cid(493),
+        'prevalence': cid(493),
+        'incidence': cid(493),
     },
     'heart_attack': {
         'gbd_cause': cid(493),
@@ -177,13 +180,6 @@ raw_cause_mapping = {
         'excess_mortality': meid(1817),
         'prevalence': meid(1820),
         'mortality': cid(493),
-    },
-    'ihd': {
-        'gbd_cause': cid(493),
-        'excess_mortality': cid(493),
-        'prevalence': cid(493),
-        'mortality': cid(493),
-        'incidence': cid(493),
     },
     'asymptomatic_ihd': {
         'gbd_cause': cid(493),
