@@ -138,7 +138,6 @@ def get_modelable_entity_draws(location_id, me_id, gbd_round_id, publication_ids
 @memory.cache
 def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
-    version = get_gbd_tool_version(publication_ids, 'codcorrect') if publication_ids else None
 
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
@@ -148,13 +147,11 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=No
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                     version_id=version,
                      gbd_round_id=gbd_round_id)
 
 @memory.cache
 def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
-    version = get_gbd_tool_version(publication_ids, 'como') if publication_ids else None
 
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
@@ -164,7 +161,6 @@ def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                     version_id=version,
                      gbd_round_id=gbd_round_id)
 
 
