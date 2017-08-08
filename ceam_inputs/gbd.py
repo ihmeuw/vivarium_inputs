@@ -119,15 +119,8 @@ def get_subregions(location_id):
     from hierarchies import dbtrees
     return [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
 
-
-def get_gbd_draws(location_id, gbd_id, publication_ids=None, gbd_round_id=4):
-    if isinstance(gbd_id, cid):
-        return get_como_draws(location_id, gbd_id, publication_ids, gbd_round_id)
-    else:
-        return get_modelable_entity_draws(location_id, gbd_id, publication_ids, gbd_round_id)
-
 @memory.cache
-def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_round_id=4):
+def get_modelable_entity_draws(location_id, me_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
     model_version = get_dismod_model_versions(publication_ids)[me_id] if publication_ids else None
     gbd_round_id = gbd_round_id if gbd_round_id else 4
@@ -143,7 +136,7 @@ def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_rou
 
 
 @memory.cache
-def get_codcorrect_draws(location_id, cause_id, publication_ids=None, gbd_round_id=4):
+def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
     versions = get_gbd_tool_versions(publication_ids, 'codcorrect') if publication_ids else None
 
@@ -159,7 +152,7 @@ def get_codcorrect_draws(location_id, cause_id, publication_ids=None, gbd_round_
                      gbd_round_id=gbd_round_id)
 
 @memory.cache
-def get_como_draws(location_id, cause_id, publication_ids=None, gbd_round_id=4):
+def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
     versions = get_gbd_tool_versions(publication_ids, 'como') if publication_ids else None
 
