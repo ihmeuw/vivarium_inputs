@@ -1,4 +1,5 @@
 from multiprocessing.process import current_process
+import warnings
 
 from joblib import Memory
 import pandas as pd
@@ -41,9 +42,30 @@ def _get_draws_safely(draw_function, draw_options, *args, **kwargs):
                                 + "args : {}\nkwargs : {}.".format(args, kwargs))
     return measure_draws
 
+@memory.cache
+def get_gbd_tool_versions(publication_ids, source):
+    from db_tools import ezfuncs
+    #NOTE: this mapping comes from the gbd.metadata_type table but in that
+    #      database it isn't in a form that's convenient to query and these
+    #      ids should be stable so I'm sticking it here -Alec
+    metadata_type_id = {
+            'codcorrect': 1,
+            'como': 4
+    }[source]
+
+    como_ids = ezfuncs.query("""
+        SELECT distinct val
+        FROM gbd.gbd_process_version_metadata
+        JOIN gbd.gbd_process_version_publication USING (gbd_process_version_id)
+        WHERE metadata_type_id = {} and publication_id in ({})
+        """.format(metadata_type_id, ','.join([str(pid) for pid in publication_ids])), conn_def='gbd')
+    if como_ids.empty:
+        warnings.warn('No version id found for {} with publications {}. This likely indicates missing entries in the GBD database.'.format(source, publication_ids))
+        return None
+    return como_ids['val'].astype('int').tolist()
 
 @memory.cache
-def get_model_versions(publication_ids):
+def get_dismod_model_versions(publication_ids):
     from db_tools import ezfuncs
 
     mapping = ezfuncs.query("""
@@ -100,14 +122,14 @@ def get_subregions(location_id):
 
 def get_gbd_draws(location_id, gbd_id, publication_ids=None, gbd_round_id=4):
     if isinstance(gbd_id, cid):
-        return get_como_draws(location_id, gbd_id, gbd_round_id)
+        return get_como_draws(location_id, gbd_id, publication_ids, gbd_round_id)
     else:
         return get_modelable_entity_draws(location_id, gbd_id, publication_ids, gbd_round_id)
 
 @memory.cache
 def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_round_id=4):
     from transmogrifier.draw_ops import get_draws
-    model_version = get_model_versions(publication_ids)[me_id] if publication_ids else None
+    model_version = get_dismod_model_versions(publication_ids)[me_id] if publication_ids else None
     gbd_round_id = gbd_round_id if gbd_round_id else 4
 
     return get_draws(gbd_id_field='modelable_entity_id',
@@ -116,13 +138,14 @@ def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_rou
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                     model_version_id=model_version,
+                     version_id=model_version,
                      gbd_round_id=gbd_round_id)
 
 
 @memory.cache
-def get_codcorrect_draws(location_id, cause_id, gbd_round_id):
+def get_codcorrect_draws(location_id, cause_id, publication_ids=None, gbd_round_id=4):
     from transmogrifier.draw_ops import get_draws
+    versions = get_gbd_tool_versions(publication_ids, 'codcorrect') if publication_ids else None
 
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
@@ -132,11 +155,13 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id):
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                     version_id=versions,
                      gbd_round_id=gbd_round_id)
 
 @memory.cache
-def get_como_draws(location_id, cause_id, gbd_round_id):
+def get_como_draws(location_id, cause_id, publication_ids=None, gbd_round_id=4):
     from transmogrifier.draw_ops import get_draws
+    versions = get_gbd_tool_versions(publication_ids, 'como') if publication_ids else None
 
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
@@ -146,6 +171,7 @@ def get_como_draws(location_id, cause_id, gbd_round_id):
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                     version_id=versions,
                      gbd_round_id=gbd_round_id)
 
 

@@ -169,7 +169,7 @@ def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gb
         GBD draw of interest
     """
     assert isinstance(cause_id, cid)
-    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
+    draws = gbd.get_codcorrect_draws(location_id, cause_id, config.input_data.gbd_publication_ids, gbd_round_id)
     draws = draws[(draws.year_id >= year_start) & (draws.year_id <= year_end)]
     draws = get_age_group_midpoint_from_age_group_id(draws)
     keep_columns = ['year_id', 'sex_id', 'age'] + ['draw_{}'.format(i) for i in range(1000)]
