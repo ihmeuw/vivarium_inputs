@@ -27,6 +27,7 @@ class hid(int):
 raw_cause_mapping = {
     'all_causes': {
         'gbd_cause': cid(294),
+        'mortality': cid(294),
     },
     'diarrhea': {
         'gbd_cause': cid(302),
