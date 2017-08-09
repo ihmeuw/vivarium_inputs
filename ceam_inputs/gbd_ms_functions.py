@@ -127,32 +127,6 @@ def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
     return normalize_for_simulation(pop)
 
 
-def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
-    """Returns dataframe with columns for age, sex, year, and 1k draws
-    the draws contain the sum of all the csmrs all of the causes in
-    the current simulation.
-
-    Parameters
-    ----------
-    list_of_csmrs: list
-        list of all of the CSMRs in current simulation
-
-    Returns
-    ----------
-    df with columns year_id, sex_id, age, and draw_0 - draw_999
-
-    Notes
-    -----
-    Assumptions -- That we can add together the csmrs for every cause in the microsim and
-    then subtract from the all-cause mortality rate to get the cause-deleted mortality rate.
-    """
-    df = pd.DataFrame()
-    for csmr_draws in list_of_csmrs:
-        df = df.append(csmr_draws)
-
-    return df.groupby(['age', 'sex', 'year'], as_index=False).sum()
-
-
 def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
     """
     location_id : int

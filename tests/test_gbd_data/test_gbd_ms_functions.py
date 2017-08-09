@@ -1,11 +1,10 @@
 import numpy as np
 import pytest
 
-from ceam_inputs import get_cause_specific_mortality, get_excess_mortality, causes, risk_factors
+from ceam_inputs import get_excess_mortality, causes, risk_factors
 from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
                                           get_angina_proportions, get_disability_weight,
                                           get_post_mi_heart_failure_proportion_draws,
-                                          sum_up_csmrs_for_all_causes_in_microsim,
                                           get_etiology_specific_prevalence, get_asympt_ihd_proportions,
                                           get_severe_diarrhea_excess_mortality,
                                           get_rota_vaccine_coverage, get_mediation_factors)
@@ -105,25 +104,6 @@ def test_get_sbp_mean_sd_kenya_2000():
     err_msg = ('should match data loaded by @aflaxman on 8/4/2016. test changed by '
                '@emumford on 9/23 to account for change in gbd_ms_functions')
     assert np.allclose(df.loc[(2000, 1, 27.5), 'log_mean_0'], np.log(118.948299)), err_msg
-
-
-def test_sum_up_csmrs_for_all_causes_in_microsim():
-    csmr1 = get_cause_specific_mortality(causes.heart_attack.gbd_cause)
-    csmr2 = get_cause_specific_mortality(causes.ischemic_stroke.gbd_cause)
-
-    sex = 'Female'
-    age = 72.5
-
-    csmr1_filter = csmr1.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
-    csmr2_filter = csmr2.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
-    csmr1_val = csmr1_filter['rate'].values[0]
-    csmr2_val = csmr2_filter['rate'].values[0]
-
-    df = sum_up_csmrs_for_all_causes_in_microsim([csmr1_filter, csmr2_filter])
-    df_filter = df.query("age == {a} and sex == '{s}'".format(a=age, s=sex))
-    df_val = df_filter['rate'].values[0]
-
-    assert df_val == csmr1_val + csmr2_val, "sum_up_csmrs_for_all_causes_in_microsim did not correctly sum up csmrs"
 
 
 def test_get_angina_proportions():
