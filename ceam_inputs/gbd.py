@@ -1,10 +1,12 @@
 from multiprocessing.process import current_process
+import warnings
 
 from joblib import Memory
 import pandas as pd
 
 from ceam_inputs.util import get_cache_directory
 from ceam_inputs.auxiliary_files import auxiliary_file_path
+from ceam_inputs.gbd_mapping import cid
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
@@ -27,16 +29,13 @@ class DataNotFoundError(CentralCompError):
 
 
 def _get_draws_safely(draw_function, draw_options, *args, **kwargs):
-    from transmogrifier.common.exceptions import TransmogrifierException
     measure_draws = None
     for location_id, round_id in draw_options:
         try:
             measure_draws = draw_function(*args, location_ids=location_id, gbd_round_id=round_id, **kwargs)
             break
-        except TransmogrifierException:
+        except:
             pass
-        except Exception as e:
-            raise e
     if measure_draws is None:
         raise DataNotFoundError("Couldn't find draws for your requirements\n"
                                 + "function : {}\ndraw_options :  {}\n".format(draw_function.__name__, draw_options)
@@ -45,7 +44,29 @@ def _get_draws_safely(draw_function, draw_options, *args, **kwargs):
 
 
 @memory.cache
-def get_model_versions(publication_ids):
+def get_gbd_tool_version(publication_ids, source):
+    from db_tools import ezfuncs
+    # NOTE: this mapping comes from the gbd.metadata_type table but in that
+    #       database it isn't in a form that's convenient to query and these
+    #       ids should be stable so I'm sticking it here -Alec
+    metadata_type_id = {
+            'codcorrect': 1,
+            'como': 4
+    }[source]
+
+    como_ids = ezfuncs.query("""
+        SELECT distinct val
+        FROM gbd.gbd_process_version_metadata
+        JOIN gbd.gbd_process_version_publication USING (gbd_process_version_id)
+        WHERE metadata_type_id = {} and publication_id in ({})
+        """.format(metadata_type_id, ','.join([str(pid) for pid in publication_ids])), conn_def='gbd')
+    if como_ids.empty:
+        warnings.warn('No version id found for {} with publications {}. This likely indicates missing entries in the GBD database.'.format(source, publication_ids))
+        return None
+    return como_ids['val'].astype('int')[0]
+
+@memory.cache
+def get_dismod_model_versions(publication_ids):
     from db_tools import ezfuncs
 
     mapping = ezfuncs.query("""
@@ -101,9 +122,9 @@ def get_subregions(location_id):
 
 
 @memory.cache
-def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_round_id=None):
+def get_modelable_entity_draws(location_id, me_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
-    model_version = get_model_versions(publication_ids)[me_id] if publication_ids else None
+    model_version = get_dismod_model_versions(publication_ids)[me_id] if publication_ids else None
     gbd_round_id = gbd_round_id if gbd_round_id else 4
 
     return get_draws(gbd_id_field='modelable_entity_id',
@@ -112,12 +133,12 @@ def get_modelable_entity_draws(location_id, me_id, publication_ids=None, gbd_rou
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                     model_version_id=model_version,
+                     version_id=model_version,
                      gbd_round_id=gbd_round_id)
 
 
 @memory.cache
-def get_codcorrect_draws(location_id, cause_id, gbd_round_id):
+def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
 
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
@@ -125,6 +146,21 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id):
     return get_draws(gbd_id_field='cause_id',
                      gbd_id=cause_id,
                      source="codcorrect",
+                     location_ids=location_id,
+                     sex_ids=MALE + FEMALE,
+                     age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+                     gbd_round_id=gbd_round_id)
+
+
+@memory.cache
+def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
+    from transmogrifier.draw_ops import get_draws
+
+    # FIXME: Should submit a ticket to IT to determine if we need to specify an
+    # output_version_id or a model_version_id to ensure we're getting the correct results
+    return get_draws(gbd_id_field='cause_id',
+                     gbd_id=cause_id,
+                     source="como",
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
@@ -159,6 +195,7 @@ def get_relative_risks(location_id, risk_id, gbd_round_id):
                              sex_ids=MALE + FEMALE,
                              age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
                              draw_type='rr')
+
 
 @memory.cache
 def get_exposures(location_id, risk_id, gbd_round_id):
@@ -196,6 +233,7 @@ def get_pafs(location_id, cause_id, gbd_round_id):
                              age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
                              include_risks=True,
                              num_workers=worker_count)
+
 
 @memory.cache
 def get_populations(location_id, gbd_round_id):

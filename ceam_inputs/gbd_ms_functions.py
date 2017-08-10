@@ -14,8 +14,8 @@ import pandas as pd
 from vivarium import config
 from vivarium.framework.util import rate_to_probability
 
-from ceam_inputs import gbd, causes, risk_factors
-from ceam_inputs.gbd_mapping import cid
+from ceam_inputs import gbd
+from ceam_inputs.gbd_mapping import cid, meid
 from ceam_inputs.gbd_ms_auxiliary_functions import (normalize_for_simulation,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
                                                     get_age_group_midpoint_from_age_group_id)
@@ -38,7 +38,7 @@ class UnmodelledDataError(GBDError):
     pass
 
 
-def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id):
+def get_gbd_draws(location_id, year_start, year_end, measure, gbd_id, gbd_round_id):
     """Returns draws for a given measure and modelable entity
 
     Gives you incidence, prevalence, csmr, excess mortality, and
@@ -60,8 +60,8 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
         comp's get_ids functions to learn about which measures are available
         and what numbers correspond with each measure
 
-    me_id: int, modelable entity id
-        modelable_entity_id takes same me_id values as are used for GBD
+    gbd_id: int, gbd entity id
+        gbd_id takes same id values as are used for GBD
 
     Returns
     -------
@@ -77,8 +77,10 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
 
     Unit test in place? -- No. Don't think it's necessary, since this function merely pulls draws from the database and then filters a dataframe so that only one measure is included in the output and that only the years in b/w the simulation year start and year end are included in the df.
     """
-
-    draws = gbd.get_modelable_entity_draws(location_id, me_id, config.input_data.gbd_publication_ids)
+    if isinstance(gbd_id, cid):
+        draws = gbd.get_como_draws(location_id, gbd_id, gbd_round_id, config.input_data.gbd_publication_ids)
+    else:
+        draws = gbd.get_modelable_entity_draws(location_id, gbd_id, gbd_round_id, config.input_data.gbd_publication_ids)
     draws = draws[draws.measure_id == measure]
     draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     draws = get_age_group_midpoint_from_age_group_id(draws)
@@ -87,11 +89,11 @@ def get_modelable_entity_draws(location_id, year_start, year_end, measure, me_id
     keepcol.extend(('draw_{i}'.format(i=i) for i in range(0, 1000)))
 
     # assert an error to make sure data is dense (i.e. no missing data)
-    assert draws.isnull().values.any() == False, "there are nulls in the dataframe that get_modelable_entity_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
+    assert draws.isnull().values.any() == False, "there are nulls in the dataframe that get_gbd_draws just tried to output. check that the cache to make sure the data you're pulling is correct"
 
     # assert an error if there are duplicate rows
     assert draws.duplicated(['age', 'year_id', 'sex_id']).sum(
-    ) == 0, "there are duplicates in the dataframe that get_modelable_entity_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
+    ) == 0, "there are duplicates in the dataframe that get_gbd_draws just tried to output. check the cache to make sure that the data you're pulling is correct"
 
     return draws[keepcol].sort_values(by=['year_id', 'age', 'sex_id'])
 
@@ -137,32 +139,6 @@ def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
     return normalize_for_simulation(pop)
 
 
-def sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs):
-    """Returns dataframe with columns for age, sex, year, and 1k draws
-    the draws contain the sum of all the csmrs all of the causes in
-    the current simulation.
-
-    Parameters
-    ----------
-    list_of_csmrs: list
-        list of all of the CSMRs in current simulation
-
-    Returns
-    ----------
-    df with columns year_id, sex_id, age, and draw_0 - draw_999
-
-    Notes
-    -----
-    Assumptions -- That we can add together the csmrs for every cause in the microsim and
-    then subtract from the all-cause mortality rate to get the cause-deleted mortality rate.
-    """
-    df = pd.DataFrame()
-    for csmr_draws in list_of_csmrs:
-        df = df.append(csmr_draws)
-
-    return df.groupby(['age', 'sex', 'year'], as_index=False).sum()
-
-
 def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gbd_round_id, draw_number):
     """
     location_id : int
@@ -179,7 +155,7 @@ def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gb
         GBD draw of interest
     """
     assert isinstance(cause_id, cid)
-    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
+    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id, config.input_data.gbd_publication_ids)
     draws = draws[(draws.year_id >= year_start) & (draws.year_id <= year_end)]
     draws = get_age_group_midpoint_from_age_group_id(draws)
     keep_columns = ['year_id', 'sex_id', 'age'] + ['draw_{}'.format(i) for i in range(1000)]
@@ -201,61 +177,7 @@ def get_cause_specific_mortality(location_id, year_start, year_end, cause_id, gb
     return csmr[['age', 'sex', 'year', 'rate']]
 
 
-def get_cause_deleted_mortality_rate(location_id, year_start, year_end,
-                                     list_of_csmrs, gbd_round_id, draw_number):
-    """Returns the cause-deleted mortality rate for a given time period and location
-
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-    list_of_csmrs: iterable
-    gbd_round_id: int
-    draw_number: int
-        GBD draw to get data for
-
-    Returns
-    -------
-    df with columns age, year_id, sex_id, and 1k draws of cause deleted mortality rate
-
-    Notes
-    -----
-    Assumptions -- That we can subtract the csmrs for the causes we care about to get
-    the cause-deleted mortality rate
-    """
-
-    all_cause_mr = get_cause_specific_mortality(location_id=location_id,
-                                                year_start=year_start,
-                                                year_end=year_end,
-                                                cause_id=causes.all_causes.gbd_cause,
-                                                gbd_round_id=gbd_round_id,
-                                                draw_number=draw_number)
-    all_cause_mr.columns = ['age', 'sex', 'year', 'all_cause_mortality_rate']
-
-    if list_of_csmrs:
-        total_csmr = sum_up_csmrs_for_all_causes_in_microsim(list_of_csmrs)
-        mort_rates = all_cause_mr.merge(total_csmr, on=['age', 'sex', 'year'])
-        # get cause-deleted mortality rate by subtracting out all of the csmrs from all-cause mortality rate
-        mort_rates['cause_deleted_mortality_rate'] = (mort_rates.all_cause_mortality_rate - mort_rates.rate)
-        cause_del_mr = mort_rates[['age', 'sex', 'year', 'cause_deleted_mortality_rate']]
-
-        validate_data(cause_del_mr, ['age', 'year', 'sex'])
-
-        # assert that non of the cause-deleted mortality rate values are less than or equal to 0
-        assert np.all(cause_del_mr.cause_deleted_mortality_rate > 0), ("Something went wrong with the "
-                                                                       "get_cause_deleted_mortality_rate "
-                                                                       "calculation. cause-deleted mortality "
-                                                                       "can't be <= 0")
-        return cause_del_mr
-    else:
-        return all_cause_mr
-
-
-def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end, draw_number):
+def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end, draw_number, gbd_round_id):
     """Returns post-mi proportion draws for hf due to ihd
 
     Parameters
@@ -281,8 +203,10 @@ def get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end
     getting different results when using A*B instead of np.multiply(A,B).
     """
     # TODO: NEED TO WRITE TESTS TO MAKE SURE THAT POST_MI TRANSITIONS SCALE TO 1
-    hf_envelope = get_modelable_entity_draws(location_id, year_start, year_end, measure=6, me_id=2412)
-    proportion_draws = get_modelable_entity_draws(location_id, year_start, year_end, measure=18, me_id=2414)
+    hf_envelope = get_gbd_draws(location_id, year_start, year_end,
+                                             measure=6, gbd_id=meid(2412), gbd_round_id=gbd_round_id)
+    proportion_draws = get_gbd_draws(location_id, year_start, year_end,
+                                                  measure=18, gbd_id=meid(2414), gbd_round_id=gbd_round_id)
 
     cause_of_hf = pd.merge(hf_envelope, proportion_draws,
                            on=['age', 'year_id', 'sex_id'], suffixes=('_env', '_prop'))
@@ -459,6 +383,37 @@ def get_exposures(location_id, risk_id, gbd_round_id):
 
     if risk_id == 100:
         exposure = _extract_secondhand_smoking_exposures(exposure)
+    elif risk_id == 83:
+        # Just fixing some poorly structured data.  cat10 and cat11 are zero, cat12 is the balance of the exposure
+        # (indicating unexposed), but needs to be renamed cat10 so it corresponds to the rr data.  Yuck.
+        good_rows = (exposure.parameter != 'cat10') & (exposure.parameter != 'cat11')
+        exposure = exposure[good_rows]
+        exposure.loc[exposure.parameter == 'cat12', 'parameter'] = 'cat10'
+    # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable entity ids
+    # for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
+    elif risk_id in [84, 94, 136, 240, 241]:
+        pass
+    # TODO: Need to set age, year, sex index here again to make sure that we assign
+    # the correct value to points outside of the range
+    # TODO: Confirm that we want to be using cat1 here.
+    # Cat1 seems really high for risk_id=238 (hand washing without soap) for Kenya
+    # TODO: Do we want to set the exposure to 0 for the younger ages for which we don't have data?
+    # It's an exceptionally strong assumption. We could use the exposure for the youngest age
+    # for which we do have data, or do something else, if we wanted to. --EM 12/12
+    else:
+        list_of_meids = pd.unique(exposure.modelable_entity_id.values)
+        # Some risks have a few nulls in the modelable_entity_id column.
+        # This is ok, think it's just an artifact of how the risk is processed by central comp.
+        list_of_meids = [x for x in list_of_meids if str(x) != 'nan']
+        if len(list_of_meids) > 1:
+            raise UnhandledRiskError("The risk -- rei_id {} --that you are trying to pull has multiple ".format(risk_id)
+                                     + "modelable entity ids. are you sure you know how this risk is modeled? "
+                                     + "If not, go talk to the modeler. After talking to the modeler, "
+                                     + "you'll probably want to write some code to handle the risk, since "
+                                     + "it's modeled differently than most risks. you can override this "
+                                     + "error by adding a multiple_meids_override=True argument to "
+                                     + "your get_exposures query after you determine how to incorporate "
+                                     + "this risk into your simulation")
 
     # Hacky fix to an inconsistency in the database schema.  I'll do something nicer when I revise this
     # bit of ceam inputs - J.C. 2017-07-26
@@ -466,7 +421,6 @@ def get_exposures(location_id, risk_id, gbd_round_id):
         exposure['parameter'] = 'continuous'
 
     exposure[draw_columns] = exposure[draw_columns].fillna(value=0)
-
     exposure = exposure[key_columns + draw_columns]
     validate_data(exposure, key_columns)
 
@@ -723,7 +677,8 @@ def get_asympt_ihd_proportions(location_id, year_start, year_end, draw_number):
     Unit test in place? -- Yes
     """
 
-    hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end, draw_number)
+    hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, year_start, year_end, draw_number,
+                                                            gbd_round_id=config.simulation_parameters.gbd_round_id)
     angina_prop_df = get_angina_proportions()
 
     merged = pd.merge(hf_prop_df, angina_prop_df, on=['age', 'year_id', 'sex_id'])
@@ -756,215 +711,6 @@ def get_age_specific_fertility_rates(location_id, year_start, year_end):
     keep_columns = ['age', 'sex', 'year', 'rate']
 
     return asfr.reset_index(level=0)[keep_columns]
-
-
-# TODO: Need to add a test to make sure that unattributed burden is accurately captured
-def get_etiology_pafs(location_id, year_start, year_end, risk_id, cause_id, gbd_round_id, draw_number):
-    """
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-
-    risk_id: int or str, risk id
-        risk_id takes same risk_id values as are used for GBD or "unattributed"
-
-    cause_id: int, cause id
-        cause_id takes same cause_id values as are used for GBD
-
-    gbd_round_id: int
-        GBD round to pull data for
-
-    draw_number: int
-        GBD draw to pull data for
-
-    Returns
-    -------
-    df with columns year_id, sex_id, age, val, upper, and lower
-    """
-    # For some of the diarrhea etiologies, PAFs are negative.
-    # Wouldn't make sense for the simulation to use negative pafs (i.e.
-    # incidence * PAF returns a negative incidence if PAF is negative),
-    # so we'll clip to 0. Guessing that any other diseases that deal with
-    # etiologies in the future won't need to be treated this way. --EM 12/13
-    # uses get pafs, but then scales the negative pafs to 0. the
-    # diarrhea team has some pafs that are negative because they wanted to
-    # include full uncertainty. this seems implausible in the real world,
-    # unless one is arguing that some pathogens have a protective effect
-    if risk_id != 'unattributed_diarrhea':
-        eti_pafs = get_pafs(location_id, year_start, year_end,
-                            risk_id, cause_id, gbd_round_id, draw_number, 'morbidity')
-
-    elif risk_id == 'unattributed_diarrhea':
-        dict_of_etiologies_and_eti_risks = {'cholera': 173,
-                                            'other_salmonella': 174,
-                                            'shigellosis': 175,
-                                            'EPEC': 176,
-                                            'ETEC': 177,
-                                            'campylobacter': 178,
-                                            'amoebiasis': 179,
-                                            'cryptosporidiosis': 180,
-                                            'rotaviral_entiritis': 181,
-                                            'aeromonas': 182,
-                                            'clostridium_difficile': 183,
-                                            'norovirus': 184,
-                                            'adenovirus': 185}
-
-        all_dfs = pd.DataFrame()
-        for value in dict_of_etiologies_and_eti_risks.values():
-            df = get_etiology_pafs(location_id, year_start, year_end, value, cause_id, gbd_round_id, draw_number)
-            all_dfs = all_dfs.append(df)
-
-        grouped = all_dfs.groupby(['age', 'sex_id', 'year_id']).sum()
-
-        pafs = grouped[['draw_{}'.format(i) for i in range(1000)]].values
-        eti_pafs = pd.DataFrame(1-pafs, columns=['draw_{}'.format(i) for i in range(1000)], index=grouped.index)
-        eti_pafs.reset_index(inplace=True)
-    else:
-        raise ValueError("Get_etiology_pafs can take either a valid etiology_risk_id or 'unattributed'. "
-                         + "The risk id that you supplied -- {} -- is invalid".format(risk_id))
-
-    # now make the negative etiology paf draws 0
-    draws = eti_pafs._get_numeric_data()
-    draws[draws < 0] = 0
-
-    return eti_pafs
-
-
-def get_etiology_specific_incidence(location_id, year_start, year_end, eti_risk_id,
-                                    cause_id, me_id, gbd_round_id, draw_number):
-    """
-    Gets the paf of diarrhea cases that are associated with a specific etiology
-
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-
-    eti_risk_id: int, risk id
-        eti_risk_id takes same rei id values as are used for GBD
-
-    cause_id: int, cause id
-        cause_id takes same cause_id values as are used for GBD
-
-    me_id: int, modelable_entity_id
-        me_id takes modelable entity id of a cause
-
-    gbd_round_id: int
-        GBD round to pull data for
-    draw_number: int
-        GBD draw to pull data for
-
-    Returns
-    -------
-    A dataframe of etiology specific incidence draws.
-        Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
-    """
-    diarrhea_envelope_incidence = get_modelable_entity_draws(location_id, year_start, year_end,
-                                                             measure=6, me_id=me_id)
-
-    etiology_paf = get_etiology_pafs(location_id, year_start,
-                                     year_end, eti_risk_id, cause_id,
-                                     gbd_round_id, draw_number)
-
-    # TODO: Figure out if the interpolation should happen before the merge or in the simulation
-    etiology_specific_incidence = pd.merge(diarrhea_envelope_incidence, etiology_paf,
-                                           on=['age', 'year_id', 'sex_id'],
-                                           suffixes=('_envelope', '_pafs'))
-
-    etiology_specific_incidence.set_index(['year_id', 'sex_id', 'age'], inplace=True)
-
-    pafs = etiology_specific_incidence[['draw_{}_pafs'.format(i) for i in range(1000)]].values
-    envelope_incidence_draws = etiology_specific_incidence[
-        ['draw_{}_envelope'.format(i) for i in range(1000)]].values
-    output_df = pd.DataFrame(np.multiply(pafs, envelope_incidence_draws),
-                             columns=['draw_{}'.format(i) for i in range(1000)],
-                             index=etiology_specific_incidence.index)
-
-    return output_df.reset_index()
-
-
-def get_etiology_specific_prevalence(location_id, year_start, year_end, eti_risk_id,
-                                     cause_id, me_id, gbd_round_id, draw_number):
-    """
-    Gets draws of prevalence of diarrhea due to a specific specific etiology
-
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-
-    eti_risk_id: int, risk id
-        risk_id takes same risk_id values as are used for GBD
-
-    cause_id: int, cause id
-        cause_id takes same cause_id values as are used for GBD
-
-    me_id: int, modelable_entity_id
-        me_id takes modelable entity id of a cause
-
-    gbd_round_id: int
-        GBD round to pull data for
-
-    draw_number: int
-        GBD draw to pull data for
-
-    Returns
-    -------
-    A dataframe of etiology specific prevalence draws.
-        Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
-    """
-    diarrhea_envelope_prevalence = get_modelable_entity_draws(location_id, year_start, year_end,
-                                                              measure=5, me_id=me_id)
-
-    etiology_paf = get_etiology_pafs(location_id, year_start, year_end,
-                                     eti_risk_id, cause_id, gbd_round_id=gbd_round_id, draw_number=draw_number)
-    etiology_specific_prevalence = pd.merge(diarrhea_envelope_prevalence, etiology_paf,
-                                            on=['age', 'year_id', 'sex_id'],
-                                            suffixes=('_envelope', '_pafs'))
-    etiology_specific_prevalence.set_index(['year_id', 'sex_id', 'age'], inplace=True)
-
-    pafs = etiology_specific_prevalence[['draw_{}_pafs'.format(i) for i in range(1000)]].values
-    envelope_prevalence_draws = etiology_specific_prevalence[
-        ['draw_{}_envelope'.format(i) for i in range(1000)]].values
-    output_df = pd.DataFrame(np.multiply(pafs, envelope_prevalence_draws),
-                             columns=['draw_{}'.format(i) for i in range(1000)],
-                             index=etiology_specific_prevalence.index)
-
-    return output_df.reset_index()
-
-
-# TODO: Write a test for this function
-def get_severe_diarrhea_excess_mortality(excess_mortality_dataframe, severe_diarrhea_proportion):
-    """
-    Returns an excess mortality rate for severe diarrhea
-
-    Parameters
-    ----------
-    excess_mortality_dataframe: pd.DataFrame
-        excess mortality estimates for diarrhea from GBD
-    severe_diarrhea_proportion: float
-    """
-    excess_mortality_dataframe['rate'] = excess_mortality_dataframe['rate'] / severe_diarrhea_proportion
-    return excess_mortality_dataframe
 
 
 # TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of
@@ -1032,7 +778,7 @@ def get_severity_splits(parent_meid, child_meid, draw_number):
 # TODO: Write a test for get_rota_vaccine_coverage.
 # Make sure values make sense for year/age in test, similar to get_relative_risk tests
 def get_rota_vaccine_coverage(location_id, year_start, year_end, gbd_round_id):
-    draws = gbd.get_modelable_entity_draws(location_id, me_id=10596, gbd_round_id=gbd_round_id)
+    draws = gbd.get_modelable_entity_draws(location_id, meid(10596), gbd_round_id)
     draws = draws.query('age_group_id < {}'.format(6))
     draws = draws.query('year_id>={ys} and year_id<={ye}'.format(ys=year_start, ye=year_end))
     draws = get_age_group_midpoint_from_age_group_id(draws)
@@ -1149,6 +895,7 @@ def get_diarrhea_visit_costs(location_id, year_start, year_end, draw_number):
     costs = costs.query("year_id >= {} and year_id <= {}".format(year_start, year_end))
 
     return costs
+
 
 def get_mediation_factors(risk_id, cause_id, draw_number):
     mediation_factors = gbd.get_data_from_auxiliary_file('Mediation Factors')
@@ -1275,6 +1022,7 @@ def get_rota_vaccine_protection(location_id, draw_number):
                                                             + "requested location id -- {}. ".format(location_id)
                                                             + "you may need to generate them")
     return protection.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
+
 
 def get_rota_vaccine_rrs(location_id, draw_number):
 
