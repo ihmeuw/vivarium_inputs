@@ -145,23 +145,6 @@ def get_prevalence(gbd_id):
     return _get_gbd_draws(column_name='prevalence', measure=5, gbd_id=gbd_id)
 
 
-def get_cause_deleted_mortality_rate(list_of_csmrs):
-    # This sort is a because we don't want the cache to invalidate when
-    # the csmrs come in in different orders but they aren't hashable by
-    # standard python so we can't put them in a set.
-    list_of_csmrs = sorted(list_of_csmrs, key=lambda x: joblib.hash(x))
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    draw_number = config.run_configuration.draw_number
-    return functions.get_cause_deleted_mortality_rate(location_id=location_id,
-                                                      year_start=year_start,
-                                                      year_end=year_end,
-                                                      list_of_csmrs=list_of_csmrs,
-                                                      gbd_round_id=gbd_round_id,
-                                                      draw_number=draw_number)
-
-
 def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
@@ -245,38 +228,6 @@ def get_age_specific_fertility_rates():
                                                       year_end=year_end)
 
 
-def get_etiology_specific_prevalence(eti_risk_id, cause_id, me_id):
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_etiology_specific_prevalence(location_id=location_id,
-                                                       year_start=year_start,
-                                                       year_end=year_end,
-                                                       eti_risk_id=eti_risk_id,
-                                                       cause_id=cause_id,
-                                                       me_id=me_id,
-                                                       gbd_round_id=gbd_round_id,
-                                                       draw_number=draw_number)
-    return functions.select_draw_data(draws, draw_number, column_name='prevalence')
-
-
-def get_etiology_specific_incidence(eti_risk_id, cause_id, me_id):
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_etiology_specific_incidence(location_id=location_id,
-                                                      year_start=year_start,
-                                                      year_end=year_end,
-                                                      eti_risk_id=eti_risk_id,
-                                                      cause_id=cause_id,
-                                                      me_id=me_id,
-                                                      gbd_round_id=gbd_round_id,
-                                                      draw_number=draw_number)
-    return functions.select_draw_data(draws, draw_number, column_name='eti_inc')
-
-
 def get_bmi_distribution_parameters():
     location_id = config.simulation_parameters.location_id
     year_start, year_end = gbd_year_range()
@@ -357,62 +308,6 @@ def get_severity_splits(parent_meid, child_meid):
     draw_number = config.run_configuration.draw_number
 
     return functions.get_severity_splits(parent_meid=parent_meid, child_meid=child_meid, draw_number=draw_number)
-
-
-def get_severe_diarrhea_excess_mortality():
-    severe_diarrhea_proportion = get_severity_splits(1181, 2610)
-    return functions.get_severe_diarrhea_excess_mortality(excess_mortality_dataframe=get_excess_mortality(1181),
-                                                          severe_diarrhea_proportion=severe_diarrhea_proportion)
-
-
-def make_age_group_1_to_4_rates_constant(df):
-    """
-    Takes a dataframe where incidence or excess mortality rates are
-        being set at age group midpoints and reassigns the values
-        that are set at the age group 1 - 4 midpoint (3) and assigns
-        those values to the age group end and age group start. That
-        way our interpolation spline will yield constant values in
-        between the age group start and age group end for the 1 to
-        4 age group
-
-    Parameters
-    ----------
-    df: pd.DataFrame()
-        df with excess mortality or incidence rates for each age,
-        sex, year, and location
-    """
-    age_bins = gbd.get_age_bins()
-    new_rows = pd.DataFrame()
-
-    assert 3 in df.age.values, "The input dataframe needs to simulants that are at the age group midpoint."
-
-    assert [1, 2, 4, 5] not in df.age.values, ("The input df should only have simulants that are "
-                                               "at the age group midpoint for the 1 to 4 age group")
-
-    # get estimates for the age 1-4 age group (select at the age group midpoint)
-    for index, row in df.loc[df.age == 3].iterrows():
-        year = (row['year'])
-        if 'rate' in df.columns:
-            value_col = 'rate'
-            value = (row['rate'])
-        elif 'eti_inc' in df.columns:
-            value_col = 'eti_inc'
-            value = (row['eti_inc'])
-        sex = (row['sex'])
-        # create a new line in the dataframe
-        line = pd.DataFrame({"year": year,
-                            "age": 5,
-                             value_col: value,
-                             "sex": sex},
-                            index=[index+1])
-        new_rows = new_rows.append(line)
-
-    df = pd.concat([df, new_rows]).sort_values(by=['year', 'sex', 'age']).reset_index(drop=True)
-    # the age group min for the 1-4 age group
-    age_group_min = age_bins.set_index('age_group_name').get_value('1 to 4', 'age_group_years_start')
-    df.loc[df.age == 3, 'age'] = age_group_min
-
-    return df
 
 
 def get_disability_weight(dis_weight_gbd_id=None, healthstate_id=None):
