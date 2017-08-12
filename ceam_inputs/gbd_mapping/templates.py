@@ -1,15 +1,45 @@
-from typing import NewType, NamedTuple, Union, Tuple
+from typing import NamedTuple, Union, Tuple, TypeVar
 
-meid = NewType('meid', int)  # Modelable entity id.
-rid = NewType('rid', int)  # Risk id.
-cid = NewType('cid', int)  # Cause id.
-hid = NewType('hid', int)  # Healthstate id.
+import pandas as pd
+
+
+class meid(int):
+    """Modelable Entity ID"""
+    def __repr__(self):
+        return 'meid({:d})'.format(self)
+
+
+class rid(int):
+    """Risk Factor ID"""
+    def __repr__(self):
+        return 'rid({:d})'.format(self)
+
+
+class cid(int):
+    """Cause ID"""
+    def __repr__(self):
+        return 'cid({:d})'.format(self)
+
+
+class hid(int):
+    """Healthstate ID"""
+    def __repr__(self):
+        return 'hid({:d})'.format(self)
+
+
+UNKNOWN = object()
+
+class UnknownEntityError(Exception):
+    """Exception raised when a quantity is requested from ceam_inputs with an `UNKNOWN` id."""
+    pass
 
 
 class SeveritySplit(NamedTuple):
+    name: str
     split: Union[meid, float]
-    prevalence: meid = None
-    disability_weight: hid = None
+    prevalence: Union[meid, None] = UNKNOWN
+    disability_weight: Union[hid, None] = UNKNOWN
+    excess_mortality: Union[meid, None] = UNKNOWN
 
 
 class SeveritySplits(NamedTuple):
@@ -21,31 +51,102 @@ class SeveritySplits(NamedTuple):
 
 class Sequela(NamedTuple):
     name: str
+    id: Union[meid, None]
     incidence: meid = None
     prevalence: meid = None
-    excess_mortality: Union[meid, float] = None
+    excess_mortality: Union[meid, float, None] = UNKNOWN
     disability_weight: meid = None
+    duration: pd.Timedelta = None
     severity_splits: SeveritySplits = None
 
 
 class Etiology(NamedTuple):
     name: str
-    id: rid = None
+    id: Union[rid, None]
+    prevalence: Union[meid, None] = UNKNOWN
+    disability_weight: Union[meid, hid, float] = UNKNOWN
+
 
 
 class Cause(NamedTuple):
     """Container type for cause GBD ids."""
     name: str
     id: cid
-    incidence: meid = None
-    prevalence: meid = None
-    csmr: cid = None
-    excess_mortality: Union[meid, float] = None
-    disability_weight: Union[meid, hid, float] = None
-    duration: meid = None
+    incidence: meid = UNKNOWN
+    prevalence: meid = UNKNOWN
+    csmr: Union[meid, cid] = UNKNOWN
+    excess_mortality: Union[meid, float, None] = UNKNOWN
+    disability_weight: Union[meid, hid, float] = UNKNOWN
+    remission: meid = UNKNOWN
     sequelae: Tuple[Sequela] = None
     etiologies: Tuple[Etiology] = None
     severity_splits: SeveritySplits = None
+
+
+CauseLike = TypeVar('CauseLike', Sequela, Etiology, Cause)
+
+
+class Etioloties(NamedTuple):
+    """Holder of Etiologies"""
+    unattributed_diarrhea: Etiology
+    cholera: Etiology
+    other_salmonella: Etiology
+    shigellosis: Etiology
+    EPEC: Etiology
+    ETEC: Etiology
+    campylobacter: Etiology
+    amoebiasis: Etiology
+    cryptosporidiosis: Etiology
+    rotaviral_entiritis: Etiology
+    aeromonas: Etiology
+    clostridium_difficile: Etiology
+    norovirus: Etiology
+    adenovirus: Etiology
+
+
+class Sequelae(NamedTuple):
+    """Holder of Sequelae"""
+    heart_attack: Sequela
+    heart_failure: Sequela
+    angina: Sequela
+    asymptomatic_ihd: Sequela
+
+
+class Tmred(NamedTuple):
+    """Container for theoretical minimum risk exposure distribution data."""
+    distribution: str
+    min: float
+    max: float
+    inverted: bool
+
+
+class Levels(NamedTuple):
+    """Container for categorical risk exposure levels."""
+    cat1: str
+    cat2: str
+    cat3: str = None
+    cat4: str = None
+    cat5: str = None
+    cat6: str = None
+    cat7: str = None
+    cat8: str = None
+    cat9: str = None
+
+
+class Risk(NamedTuple):
+    """Container type for risk factor GBD ids."""
+    name: str
+    id: rid
+    affected_causes: Tuple[Cause]
+    distribution: str = UNKNOWN
+    levels: Levels = None
+    tmred: Tmred = None
+    scale: float = None
+    max_rr: float = None
+    min_rr: float = None
+    max_val: float = None
+    min_val: float = None
+    max_var: float = None
 
 
 class Causes(NamedTuple):
@@ -168,67 +269,6 @@ class Causes(NamedTuple):
     assault_by_sharp_object: Cause
     assault_by_other_means: Cause
     exposure_to_forces_of_nature: Cause
-
-
-class Etioloties(NamedTuple):
-    """Holder of Etiologies"""
-    unattributed_diarrhea: Etiology
-    cholera: Etiology
-    other_salmonella: Etiology
-    shigellosis: Etiology
-    EPEC: Etiology
-    ETEC: Etiology
-    campylobacter: Etiology
-    amoebiasis: Etiology
-    cryptosporidiosis: Etiology
-    rotaviral_entiritis: Etiology
-    aeromonas: Etiology
-    clostridium_difficile: Etiology
-    norovirus: Etiology
-    adenovirus: Etiology
-
-
-class Sequelae(NamedTuple):
-    """Holder of Sequelae"""
-    heart_attack: Sequela
-    heart_failure: Sequela
-    angina: Sequela
-    asymptomatic_ihd: Sequela
-
-
-class Tmred(NamedTuple):
-    distribution: str
-    min: float
-    max: float
-    inverted: bool
-
-
-class Levels(NamedTuple):
-    cat1: str
-    cat2: str
-    cat3: str = None
-    cat4: str = None
-    cat5: str = None
-    cat6: str = None
-    cat7: str = None
-    cat8: str = None
-    cat9: str = None
-
-
-class Risk(NamedTuple):
-    """Container type for risk factor GBD ids."""
-    name: str
-    id: rid
-    distribution: str
-    affected_causes: Tuple[Cause]
-    levels: Levels = None
-    tmred: Tmred = None
-    scale: float = None
-    max_rr: float = None
-    min_rr: float = None
-    max_val: float = None
-    min_val: float = None
-    max_var: float = None
 
 
 class Risks(NamedTuple):
