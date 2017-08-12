@@ -113,6 +113,9 @@ raw_cause_mapping = {
         'gbd_parent_cause': cid(302),
         'gbd_cause': rid(185),
     },
+    'tetanus': {
+        'gbd_cause': cid(340),
+    },
     'rheumatic_heart_disease': {
         'gbd_cause': cid(492),
     },
