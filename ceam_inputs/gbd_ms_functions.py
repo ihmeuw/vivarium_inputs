@@ -15,7 +15,7 @@ from vivarium import config
 from vivarium.framework.util import rate_to_probability
 
 from ceam_inputs import gbd
-from ceam_inputs.gbd_mapping import cid, meid
+from ceam_inputs.gbd_mapping import cid, meid, hid
 from ceam_inputs.gbd_ms_auxiliary_functions import (normalize_for_simulation,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
                                                     get_age_group_midpoint_from_age_group_id)
@@ -598,7 +598,7 @@ def get_angina_proportions():
     return total_ang
 
 
-def get_disability_weight(draw_number, dis_weight_modelable_entity_id=None, healthstate_id=None):
+def get_disability_weight(cause, draw_number):
     """Returns a dataframe with disability weight draws for a given healthstate id
 
     Parameters
@@ -625,30 +625,37 @@ def get_disability_weight(draw_number, dis_weight_modelable_entity_id=None, heal
 
     Unit test in place? -- Yes
     """
-    if healthstate_id is None:
-        healthstate_id = gbd.get_healthstate_id(dis_weight_modelable_entity_id)
-    dws_look_here_first = gbd.get_data_from_auxiliary_file('Disability Weights')
-    dws_look_here_second = gbd.get_data_from_auxiliary_file('Combined Disability Weights')
+    if isinstance(cause.id, meid):
+        healthstate_id = gbd.get_healthstate_id(cause.id)
+        modelable_entity_id = cause.id
+    elif isinstance(cause.id, hid):
+        healthstate_id = cause.id
+        modelable_entity_id = None
+    else:
+        raise ValueError('Unknown id type: {}'.format(type(cause.id)))
 
-    if healthstate_id in dws_look_here_first.healthstate_id.tolist():
-        df = dws_look_here_first.query("healthstate_id == @healthstate_id").copy()
-        df['modelable_entity_id'] = dis_weight_modelable_entity_id
-    elif healthstate_id in dws_look_here_second.healthstate_id.tolist():
-        df = dws_look_here_second.query("healthstate_id == @healthstate_id").copy()
-        df['modelable_entity_id'] = dis_weight_modelable_entity_id
+    df = None
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequela get this healthstate_id
-    elif healthstate_id == 799:
+    if healthstate_id == 799:
         df = pd.DataFrame({'healthstate_id': [799],
                            'healthstate': ['asymptomatic'],
-                           'modelable_entity_id': [dis_weight_modelable_entity_id],
                            'draw{}'.format(draw_number): [0]})
     else:
-        raise ValueError("the modelable entity id {} ".format(dis_weight_modelable_entity_id)
+        for file_name in ['Disability Weights', 'Combined Disability Weights']:
+            weights = gbd.get_data_from_auxiliary_file(file_name)
+            if healthstate_id in weights.healthstate_id.tolist():
+                df = weights[weights.healthstate_id == healthstate_id]
+                break
+
+    if df is None:
+        raise ValueError("the modelable entity id {} ".format(modelable_entity_id)
                          + "has a healthstate_id of {}. There are no draws for".format(healthstate_id)
                          + "this healthstate_id in the csvs that get_healthstate_id_draws checked. "
                          + "Look in this folder for the draws for healthstate_id {}: ".format(healthstate_id)
                          + "/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom. "
                          + "if you can't find draws there, talk w/ central comp")
+
+    df['modelable_entity_id'] = modelable_entity_id
 
     return df['draw{}'.format(draw_number)].iloc[0]
 

@@ -1,80 +1,93 @@
 import os
 
-import pandas as pd
-import joblib
-
 from vivarium import config
 _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
 config.load(_config_path, layer='base', source=_config_path)
 
 # Make these toplevel imports until external references can be removed.
-from ceam_inputs.gbd_mapping import causes, risk_factors, meid, hid, cid
+from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies,
+                                     meid, hid, cid, rid, UNKNOWN,
+                                     UnknownEntityError)
 from ceam_inputs import gbd, risk_factor_correlation, gbd_ms_functions as functions
 from ceam_inputs.util import gbd_year_range
 
 
-def _get_gbd_draws(column_name, measure, gbd_id):
+_name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'proportion': 18}
+
+
+def _get_gbd_draws(column_name, measure, cause_name, gbd_id):
+    """
+    Parameters
+    ----------
+    column_name : str
+    measure : str
+    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    if gbd_id is UNKNOWN:
+        raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(cause_name, measure))
+
     year_start, year_end = gbd_year_range()
     draws = functions.get_gbd_draws(location_id=config.simulation_parameters.location_id,
-                                                 year_start=year_start,
-                                                 year_end=year_end,
-                                                 measure=measure,
-                                                 gbd_id=gbd_id,
-                                                 gbd_round_id=config.simulation_parameters.gbd_round_id)
+                                    year_start=year_start,
+                                    year_end=year_end,
+                                    measure=_name_measure_map[measure],
+                                    gbd_id=gbd_id,
+                                    gbd_round_id=config.simulation_parameters.gbd_round_id)
 
     df = functions.select_draw_data(draws, config.run_configuration.draw_number, column_name=column_name)
     df.metadata = {'gbd_id': gbd_id}
-
     return df
 
 
-def get_excess_mortality(gbd_id):
+def get_excess_mortality(cause):
     """Get excess mortality associated with a modelable entity.
 
     Parameters
     ----------
-    gbd_id : int
-                          The entity to retrieve
+    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
 
     Returns
     -------
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    if isinstance(gbd_id, cid):
-        csmr = get_cause_specific_mortality(gbd_id).set_index(['age', 'sex', 'year'])
-        prevalence = get_prevalence(gbd_id).set_index(['age', 'sex', 'year'])
+    if isinstance(cause.id, cid):
+        csmr = get_cause_specific_mortality(cause).set_index(['age', 'sex', 'year'])
+        prevalence = get_prevalence(cause).set_index(['age', 'sex', 'year'])
         prevalence.columns = ['rate']
         df = (csmr/prevalence).dropna()
         df[prevalence == 0] = 0
         return df.reset_index()
     else:
-        return _get_gbd_draws(column_name='rate', measure=9, gbd_id=gbd_id)
+        return _get_gbd_draws(column_name='rate', measure='excess_mortality',
+                              cause_name=cause.name, gbd_id=cause.excess_mortality)
 
 
-def get_incidence(gbd_id):
+def get_incidence(cause):
     """Get incidence rates for a modelable entity.
 
     Parameters
     ----------
-    gbd_id : int
-                          The entity to retrieve
+    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
 
     Returns
     -------
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return _get_gbd_draws(column_name='rate', measure=6, gbd_id=gbd_id)
+    return _get_gbd_draws(column_name='rate', measure='incidence', cause_name=cause.name, gbd_id=cause.incidence)
 
 
-def get_cause_specific_mortality(cause_id):
+def get_cause_specific_mortality(cause):
     """Get excess mortality associated with a modelable entity.
 
     Parameters
     ----------
-    cause_id : int
-        The entity to retrieve
+    cause : ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
 
     Returns
     -------
@@ -83,7 +96,7 @@ def get_cause_specific_mortality(cause_id):
     """
     year_start, year_end = gbd_year_range()
 
-    return functions.get_cause_specific_mortality(cause_id=cause_id,
+    return functions.get_cause_specific_mortality(cause_id=cause.id,
                                                   location_id=config.simulation_parameters.location_id,
                                                   year_start=year_start,
                                                   year_end=year_end,
@@ -91,58 +104,56 @@ def get_cause_specific_mortality(cause_id):
                                                   draw_number=config.run_configuration.draw_number)
 
 
-def get_remission(gbd_id):
+def get_remission(cause):
     """Get remission rates for a modelable entity.
 
     Parameters
     ----------
-    gbd_id : int
-                          The entity to retrieve
+    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
 
     Returns
     -------
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return _get_gbd_draws(column_name='remission', measure=7, gbd_id=gbd_id)
+    return _get_gbd_draws(column_name='remission', measure='remission', cause_name=cause.name, gbd_id=cause.remission)
 
 
-
-def get_proportion(gbd_id):
+def get_proportion(name, me_id):
     """Get proportion data for a modelable entity. This is used for entities that represent
     outcome splits like severities of heart failure after an infarction.
 
     Parameters
     ----------
-    gbd_id : int
-                          The entity to retrieve
+    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
 
     Returns
     -------
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'proportion' columns
     """
-    return _get_gbd_draws(column_name='proportion', measure=18, gbd_id=gbd_id)
+    return _get_gbd_draws(column_name='proportion', measure='proportion', cause_name=name, gbd_id=me_id)
 
 
 def get_age_bins():
+    """Retrieves the age bin structure the GBD uses for demographic classification."""
     return gbd.get_age_bins()
 
 
-def get_prevalence(gbd_id):
+def get_prevalence(cause):
     """Get prevalence data for a modelable entity.
 
     Parameters
     ----------
-    gbd_id : int
-                          The entity to retrieve
+    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
 
     Returns
     -------
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'prevalence' columns
     """
-    return _get_gbd_draws(column_name='prevalence', measure=5, gbd_id=gbd_id)
+
+    return _get_gbd_draws(column_name='prevalence', measure='prevalence', cause=cause)
 
 
 def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
@@ -153,7 +164,6 @@ def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
                                          risk_id=risk_id,
                                          cause_id=cause_id,
                                          gbd_round_id=gbd_round_id,
-                                         draw_number=draw_number,
                                          rr_type=rr_type)
     funct_output = functions.select_draw_data(draws, draw_number, column_name='rr', src_column='rr_{draw}')
 
@@ -203,6 +213,7 @@ def get_exposure_means(risk_id):
 
     output.metadata = {'risk_id': risk_id}
     return output
+
 
 def get_exposure_standard_errors(risk_id):
     pass
@@ -306,9 +317,10 @@ def get_severity_splits(parent_meid, child_meid):
     return functions.get_severity_splits(parent_meid=parent_meid, child_meid=child_meid, draw_number=draw_number)
 
 
-def get_disability_weight(dis_weight_gbd_id=None, healthstate_id=None):
-    return functions.get_disability_weight(config.run_configuration.draw_number,
-                                           dis_weight_gbd_id, healthstate_id)
+def get_disability_weight(cause):
+    if cause.disability_weight is UNKNOWN:
+        raise UnknownEntityError('No mapping exists between cause {} and measure disability weight'.format(cause.name))
+    return functions.get_disability_weight(cause, config.run_configuration.draw_number)
 
 
 def get_rota_vaccine_coverage():
