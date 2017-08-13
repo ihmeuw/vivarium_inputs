@@ -199,8 +199,6 @@ def get_exposure_means(risk_id):
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
     draws = functions.get_exposures(location_id=location_id,
-                                    year_start=year_start,
-                                    year_end=year_end,
                                     risk_id=risk_id,
                                     gbd_round_id=gbd_round_id)
     funct_output = functions.select_draw_data(draws, draw_number, column_name='exposure')

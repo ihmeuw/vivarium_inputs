@@ -1,4 +1,4 @@
-from typing import NamedTuple, Union, Tuple, TypeVar
+from typing import Union, Tuple, TypeVar
 
 import pandas as pd
 
@@ -35,10 +35,33 @@ class UnknownEntityError(Exception):
     pass
 
 
-class ModelableEntity(NamedTuple):
+class GbdRecord:
+    __slots__ = ()
+
+    def __contains__(self, item):
+        return item in self.__slots__
+
+    def __getitem__(self, item):
+        if item in self.__slots__:
+            return getattr(self, item)
+        else:
+            raise KeyError
+
+    def __repr__(self):
+        return "{}({})".format(self.__class__.__name__,
+                               ', '.join(['{}={}'.format(name, self[name]) for name in self.__slots__]))
+
+
+class ModelableEntity(GbdRecord):
     """Container for general GBD ids."""
-    name: str
-    id: meid
+    __slots__ = ('name', 'id')
+
+    def __init__(self, name: str, gbd_id: Union[meid, rid, cid, hid]):
+        self.name = name
+        self.id = gbd_id
+
+
+def 
 
 
 class SeveritySplit(NamedTuple):
@@ -87,9 +110,6 @@ class Cause(NamedTuple):
     sequelae: Tuple[Sequela] = None
     etiologies: Tuple[Etiology] = None
     severity_splits: SeveritySplits = None
-
-
-CauseLike = TypeVar('CauseLike', Sequela, Etiology, Cause)
 
 
 class Etioloties(NamedTuple):

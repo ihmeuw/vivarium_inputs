@@ -179,7 +179,8 @@ sequelae = Sequelae(
 causes = Causes(
     all_causes=Cause(
         name='all_causes',
-        id=cid(294)
+        id=cid(294),
+        csmr=cid(294),
     ),
     tuberculosis=Cause(
         name='tuberculosis',
