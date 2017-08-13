@@ -1,5 +1,3 @@
-import pytest
-
 from ceam_inputs.util import round_to_gbd_year
 
 def test_round_to_gbd_year():

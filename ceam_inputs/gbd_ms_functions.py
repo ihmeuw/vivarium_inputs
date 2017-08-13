@@ -241,18 +241,12 @@ def get_relative_risks(location_id, risk_id, cause_id, gbd_round_id, rr_type='mo
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
-    year_start : int, year
-        year_start is the year in which you want to start the simulation
-    year_end : int, end year
-        year_end is the year in which you want to end the simulation
-    risk_id: int, risk id
+    risk_id: rid
         risk_id takes same risk_id values as are used for GBD
-    cause_id: int, cause id
+    cause_id: cid
         cause_id takes same cause_id values as are used for GBD
     gbd_round_id: int
        GBD round to pull data for
-    draw_number: int
-       GBD draw to pull data for
     rr_type: str
         can specify morbidity if you want RRs for incidence or mortality if you want RRs for mortality
 
@@ -280,7 +274,7 @@ def get_relative_risks(location_id, risk_id, cause_id, gbd_round_id, rr_type='mo
         raise UnmodelledDataError(err_msg)
 
     rr = get_age_group_midpoint_from_age_group_id(rr)
-
+    rr = expand_ages(rr)
     # We frequently have N/As in the data where the risk wasn't modelled.  We assume there is no
     # exposure or that the exposure does not increase the relative risk on the cause.
     rr[draw_columns] = rr[draw_columns].fillna(value=1)
@@ -334,6 +328,7 @@ def get_pafs(location_id, risk_id, cause_id, gbd_round_id, paf_type='morbidity')
     pafs = pafs[correct_measurement]
 
     pafs = get_age_group_midpoint_from_age_group_id(pafs)
+    pafs = expand_ages(pafs)
 
     pafs[draw_columns] = pafs[draw_columns].fillna(value=0)
 
@@ -380,6 +375,7 @@ def get_exposures(location_id, risk_id, gbd_round_id):
     key_columns = ['year_id', 'sex_id', 'age', 'parameter']
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
+    exposure = expand_ages(exposure)
 
     if risk_id == 100:
         exposure = _extract_secondhand_smoking_exposures(exposure)
@@ -606,8 +602,8 @@ def get_disability_weight(cause, draw_number):
     draw_number: int
         GBD draw to pull data for
 
-    dis_weight_modelable_entity_id : int
-    healthstate_id: int
+    cause: ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Sequela
+           or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.SeveritySplit
 
     Returns
     -------
@@ -625,14 +621,14 @@ def get_disability_weight(cause, draw_number):
 
     Unit test in place? -- Yes
     """
-    if isinstance(cause.id, meid):
+    if isinstance(cause.disability_weight, meid):
         healthstate_id = gbd.get_healthstate_id(cause.id)
-        modelable_entity_id = cause.id
-    elif isinstance(cause.id, hid):
-        healthstate_id = cause.id
+        modelable_entity_id = cause.disability_weight
+    elif isinstance(cause.disability_weight, hid):
+        healthstate_id = cause.disability_weight
         modelable_entity_id = None
     else:
-        raise ValueError('Unknown id type: {}'.format(type(cause.id)))
+        raise ValueError('Unknown id type: {}'.format(type(cause.disability_weight)))
 
     df = None
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequela get this healthstate_id

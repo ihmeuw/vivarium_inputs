@@ -94,7 +94,7 @@ etiologies = Etioloties(
 sequelae = Sequelae(
     heart_attack=Sequela(
         name='heart_attack',
-        id=None,
+        id=meid(1814),
         incidence=meid(1814),
         prevalence=meid(1814),
         excess_mortality=meid(1814),
@@ -102,7 +102,7 @@ sequelae = Sequelae(
     ),
     heart_failure=Sequela(
         name='heart_failure',
-        id=None,
+        id=meid(2412),
         excess_mortality=None,
         severity_splits=SeveritySplits(
             # Split data obtained from Catherine Johnson (johnsoco@uw.edu)
@@ -131,7 +131,7 @@ sequelae = Sequelae(
     ),
     angina=Sequela(
         name='angina',
-        id=None,
+        id=meid(1817),
         incidence=meid(1817),
         excess_mortality=None,
         severity_splits=SeveritySplits(

@@ -29,9 +29,16 @@ class hid(int):
 
 UNKNOWN = object()
 
+
 class UnknownEntityError(Exception):
     """Exception raised when a quantity is requested from ceam_inputs with an `UNKNOWN` id."""
     pass
+
+
+class ModelableEntity(NamedTuple):
+    """Container for general GBD ids."""
+    name: str
+    id: meid
 
 
 class SeveritySplit(NamedTuple):
@@ -65,7 +72,6 @@ class Etiology(NamedTuple):
     id: Union[rid, None]
     prevalence: Union[meid, None] = UNKNOWN
     disability_weight: Union[meid, hid, float] = UNKNOWN
-
 
 
 class Cause(NamedTuple):
@@ -147,6 +153,12 @@ class Risk(NamedTuple):
     max_val: float = None
     min_val: float = None
     max_var: float = None
+
+
+class ModelableEntity(NamedTuple):
+    """Container for general GBD ids."""
+    name: str
+    id: meid
 
 
 class Causes(NamedTuple):
@@ -272,6 +284,7 @@ class Causes(NamedTuple):
 
 
 class Risks(NamedTuple):
+    """Holder of risks"""
     unsafe_water_source: Risk
     unsafe_sanitation: Risk
     ambient_particulate_matter_pollution: Risk
@@ -340,3 +353,8 @@ class Risks(NamedTuple):
     lead_exposure_in_bone: Risk
     childhood_sexual_abuse_against_females: Risk
     childhood_sexual_abuse_against_males: Risk
+
+
+class ModelableEntities(NamedTuple):
+    """Holder of modelable entities"""
+    outpatient_visits: ModelableEntity

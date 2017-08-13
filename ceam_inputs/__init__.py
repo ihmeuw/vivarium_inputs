@@ -15,7 +15,7 @@ from ceam_inputs.util import gbd_year_range
 _name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'proportion': 18}
 
 
-def _get_gbd_draws(column_name, measure, cause_name, gbd_id):
+def _get_gbd_draws(modelable_entity, measure, column_name):
     """
     Parameters
     ----------
@@ -27,8 +27,9 @@ def _get_gbd_draws(column_name, measure, cause_name, gbd_id):
     -------
     pandas.DataFrame
     """
+    gbd_id = getattr(modelable_entity, measure)
     if gbd_id is UNKNOWN:
-        raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(cause_name, measure))
+        raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(modelable_entity.name, measure))
 
     year_start, year_end = gbd_year_range()
     draws = functions.get_gbd_draws(location_id=config.simulation_parameters.location_id,
@@ -63,8 +64,7 @@ def get_excess_mortality(cause):
         df[prevalence == 0] = 0
         return df.reset_index()
     else:
-        return _get_gbd_draws(column_name='rate', measure='excess_mortality',
-                              cause_name=cause.name, gbd_id=cause.excess_mortality)
+        return _get_gbd_draws(modelable_entity=cause, measure='excess_mortality', column_name='rate')
 
 
 def get_incidence(cause):
@@ -79,7 +79,7 @@ def get_incidence(cause):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return _get_gbd_draws(column_name='rate', measure='incidence', cause_name=cause.name, gbd_id=cause.incidence)
+    return _get_gbd_draws(modelable_entity=cause, measure='incidence', column_name='rate')
 
 
 def get_cause_specific_mortality(cause):
@@ -116,16 +116,17 @@ def get_remission(cause):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    return _get_gbd_draws(column_name='remission', measure='remission', cause_name=cause.name, gbd_id=cause.remission)
+    return _get_gbd_draws(modelable_entity=cause, measure='remission', column_name='remission')
 
 
-def get_proportion(name, me_id):
+def get_proportion(modelable_entity):
     """Get proportion data for a modelable entity. This is used for entities that represent
     outcome splits like severities of heart failure after an infarction.
 
     Parameters
     ----------
-    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
+    modelable_entity :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology
+                        or ceam_inputs.gbd_mapping.Sequela or ceam_inputs.gbd_mapping.ModelableEntity
 
     Returns
     -------
