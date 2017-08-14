@@ -104,7 +104,8 @@ sequelae = Sequelae(
         name='heart_failure',
         gbd_id=meid(2412),
         incidence=meid(2412),
-        proportion=meid(2414),  # Post MI
+        # Post MI proportion, I think?  Based on Everett's discussion with modelers. Use with caution.
+        proportion=meid(2414),
         excess_mortality=None,
         severity_splits=SeveritySplits(
             # Split data obtained from Catherine Johnson (johnsoco@uw.edu)
