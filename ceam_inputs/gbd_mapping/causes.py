@@ -7,85 +7,85 @@ from .templates import (Etiology, Etioloties, Sequela, Sequelae, Cause, Causes,
 etiologies = Etioloties(
     unattributed_diarrhea=Etiology(
         name='unattributed_diarrhea',
-        id=None,
+        gbd_id=None,
         prevalence=None,
         disability_weight=None,
     ),
     cholera=Etiology(
         name='cholera',
-        id=rid(173),
+        gbd_id=rid(173),
         prevalence=None,
         disability_weight=None,
     ),
     other_salmonella=Etiology(
         name='other_salmonella',
-        id=rid(174),
+        gbd_id=rid(174),
         prevalence=None,
         disability_weight=None,
     ),
     shigellosis=Etiology(
         name='shigellosis',
-        id=rid(175),
+        gbd_id=rid(175),
         prevalence=None,
         disability_weight=None,
     ),
     EPEC=Etiology(
         name='EPEC',
-        id=rid(176),
+        gbd_id=rid(176),
         prevalence=None,
         disability_weight=None,
     ),
     ETEC=Etiology(
         name='ETEC',
-        id=rid(177),
+        gbd_id=rid(177),
         prevalence=None,
         disability_weight=None,
     ),
     campylobacter=Etiology(
         name='campylobacter',
-        id=rid(178),
+        gbd_id=rid(178),
         prevalence=None,
         disability_weight=None,
     ),
     amoebiasis=Etiology(
         name='amoebiasis',
-        id=rid(179),
+        gbd_id=rid(179),
         prevalence=None,
         disability_weight=None,
     ),
     cryptosporidiosis=Etiology(
         name='cryptosporidiosis',
-        id=rid(180),
+        gbd_id=rid(180),
         prevalence=None,
         disability_weight=None,
     ),
     rotaviral_entiritis=Etiology(
         name='rotaviral_entiritis',
-        id=rid(181),
+        gbd_id=rid(181),
         prevalence=None,
         disability_weight=None,
     ),
     aeromonas=Etiology(
         name='aeromonas',
-        id=rid(182),
+        gbd_id=rid(182),
         prevalence=None,
         disability_weight=None,
     ),
     clostridium_difficile=Etiology(
         name='clostridium_difficile',
-        id=rid(183),
+        gbd_id=rid(183),
         prevalence=None,
         disability_weight=None,
     ),
     norovirus=Etiology(
         name='norovirus',
-        id=rid(184),
+        gbd_id=rid(184),
         prevalence=None,
         disability_weight=None,
     ),
     adenovirus=Etiology(
         name='adenovirus',
-        id=rid(185),
+        gbd_id=rid(185),
         prevalence=None,
         disability_weight=None,
     ),
@@ -94,7 +94,7 @@ etiologies = Etioloties(
 sequelae = Sequelae(
     heart_attack=Sequela(
         name='heart_attack',
-        id=meid(1814),
+        gbd_id=meid(1814),
         incidence=meid(1814),
         prevalence=meid(1814),
         excess_mortality=meid(1814),
@@ -102,27 +102,32 @@ sequelae = Sequelae(
     ),
     heart_failure=Sequela(
         name='heart_failure',
-        id=meid(2412),
+        gbd_id=meid(2412),
+        incidence=meid(2412),
+        proportion=meid(2414),  # Post MI
         excess_mortality=None,
         severity_splits=SeveritySplits(
             # Split data obtained from Catherine Johnson (johnsoco@uw.edu)
             mild=SeveritySplit(
                 name='mild_heart_failure',
-                split=0.182074,
+                gbd_id=meid(1821),
+                proportion=0.182074,
                 prevalence=meid(1821),
                 disability_weight=meid(1821),
                 excess_mortality=meid(2412),
             ),
             moderate=SeveritySplit(
                 name='moderate_heart_failure',
-                split=0.149771,
+                gbd_id=meid(1822),
+                proportion=0.149771,
                 prevalence=meid(1822),
                 disability_weight=meid(1822),
                 excess_mortality=meid(2412),
             ),
             severe=SeveritySplit(
                 name='severe_heart_failure',
-                split=0.402838,
+                gbd_id=meid(1823),
+                proportion=0.402838,
                 prevalence=meid(1823),
                 disability_weight=meid(1823),
                 excess_mortality=meid(2412),
@@ -131,35 +136,39 @@ sequelae = Sequelae(
     ),
     angina=Sequela(
         name='angina',
-        id=meid(1817),
+        gbd_id=meid(1817),
         incidence=meid(1817),
         excess_mortality=None,
         severity_splits=SeveritySplits(
             # Split data obtained from Catherine Johnson (johnsoco@uw.edu)
             asymptomatic=SeveritySplit(
                 name='asymptomatic_angina',
-                split=0.304553,
+                gbd_id=meid(3102),
+                proportion=0.304553,
                 prevalence=meid(3102),
-                disability_weight=meid(1823),
+                disability_weight=meid(3102),
                 excess_mortality=meid(1817),
             ),
             mild=SeveritySplit(
                 name='mild_angina',
-                split=0.239594,
+                gbd_id=meid(1818),
+                proportion=0.239594,
                 prevalence=meid(1818),
                 disability_weight=meid(1818),
                 excess_mortality=meid(1817),
             ),
             moderate=SeveritySplit(
                 name='moderate_angina',
-                split=0.126273,
+                gbd_id=meid(1819),
+                proportion=0.126273,
                 prevalence=meid(1819),
                 disability_weight=meid(1819),
                 excess_mortality=meid(1817),
             ),
             severe=SeveritySplit(
                 name='severe_angina',
-                split=0.32958,
+                gbd_id=meid(1820),
+                proportion=0.32958,
                 prevalence=meid(1820),
                 disability_weight=meid(1820),
                 excess_mortality=meid(1817),
@@ -168,7 +177,7 @@ sequelae = Sequelae(
     ),
     asymptomatic_ihd=Sequela(
         name='asymptomatic_ihd',
-        id=None,
+        gbd_id=meid(3233),
         prevalence=meid(3233),
         excess_mortality=0.0,
         disability_weight=meid(3233)
@@ -179,24 +188,24 @@ sequelae = Sequelae(
 causes = Causes(
     all_causes=Cause(
         name='all_causes',
-        id=cid(294),
+        gbd_id=cid(294),
         csmr=cid(294),
     ),
     tuberculosis=Cause(
         name='tuberculosis',
-        id=cid(297),
+        gbd_id=cid(297),
     ),
     hiv_aids_tuberculosis=Cause(
         name='hiv_aids_tuberculosis',
-        id=cid(299),
+        gbd_id=cid(299),
     ),
     hiv_aids_other_diseases=Cause(
         name='hiv_aids_other_diseases',
-        id=cid(300),
+        gbd_id=cid(300),
     ),
     diarrhea=Cause(
         name='diarrhea',
-        id=cid(302),
+        gbd_id=cid(302),
         incidence=meid(1181),
         prevalence=meid(1181),
         csmr=cid(302),
@@ -206,17 +215,20 @@ causes = Causes(
         severity_splits=SeveritySplits(
             mild=SeveritySplit(
                 name='mild_diarrhea',
-                split=meid(2608),
+                gbd_id=meid(2608),
+                proportion=meid(2608),
                 disability_weight=hid(355),
             ),
             moderate=SeveritySplit(
                 name='moderate_diarrhea',
-                split=meid(2609),
+                gbd_id=meid(2609),
+                proportion=meid(2609),
                 disability_weight=hid(356)
             ),
             severe=SeveritySplit(
                 name='severe_diarrhea',
-                split=meid(2610),
+                gbd_id=meid(2610),
+                proportion=meid(2610),
                 disability_weight=hid(357),
             ),
         ),
@@ -227,175 +239,175 @@ causes = Causes(
     ),
     typhoid_fever=Cause(
         name='typhoid_fever',
-        id=cid(319),
+        gbd_id=cid(319),
     ),
     paratyphoid_fever=Cause(
         name='paratyphoid_fever',
-        id=cid(320),
+        gbd_id=cid(320),
     ),
     lower_respiratory_infections=Cause(
         name='lower_respiratory_infections',
-        id=cid(322),
+        gbd_id=cid(322),
     ),
     otitis_media=Cause(
         name='otitis_media',
-        id=cid(329),
+        gbd_id=cid(329),
     ),
     measles=Cause(
         name='measles',
-        id=cid(341),
+        gbd_id=cid(341),
     ),
     maternal_hemorrhage=Cause(
         name='maternal_hemorrhage',
-        id=cid(367),
+        gbd_id=cid(367),
     ),
     maternal_sepsis_and_other_infections=Cause(
         name='maternal_sepsis_and_other_infections',
-        id=cid(368),
+        gbd_id=cid(368),
     ),
     maternal_abortion_miscarriage_and_ectopic_pregnancy=Cause(
         name='maternal_abortion_miscarriage_and_ectopic_pregnancy',
-        id=cid(371),
+        gbd_id=cid(371),
     ),
     protein_energy_malnutrition=Cause(
         name='protein_energy_malnutrition',
-        id=cid(387),
+        gbd_id=cid(387),
     ),
     vitamin_a_deficiency=Cause(
         name='vitamin_a_deficiency',
-        id=cid(389),
+        gbd_id=cid(389),
     ),
     iron_deficiency_anemia=Cause(
         name='iron_deficiency_anemia',
-        id=cid(390),
+        gbd_id=cid(390),
     ),
     syphilis=Cause(
         name='syphilis',
-        id=cid(394),
+        gbd_id=cid(394),
     ),
     chlamydia=Cause(
         name='chlamydia',
-        id=cid(395),
+        gbd_id=cid(395),
     ),
     gonorrhea=Cause(
         name='gonorrhea',
-        id=cid(396),
+        gbd_id=cid(396),
     ),
     trichomoniasis=Cause(
         name='trichomoniasis',
-        id=cid(397),
+        gbd_id=cid(397),
     ),
     genital_herpes=Cause(
         name='genital_herpes',
-        id=cid(398),
+        gbd_id=cid(398),
     ),
     other_sexually_transmitted_disease=Cause(
         name='other_sexually_transmitted_disease',
-        id=cid(399),
+        gbd_id=cid(399),
     ),
     hepatitis_b=Cause(
         name='hepatitis_b',
-        id=cid(402),
+        gbd_id=cid(402),
     ),
     hepatitis_c=Cause(
         name='hepatitis_c',
-        id=cid(403),
+        gbd_id=cid(403),
     ),
     esophageal_cancer=Cause(
         name='esophageal_cancer',
-        id=cid(411),
+        gbd_id=cid(411),
     ),
     stomach_cancer=Cause(
         name='stomach_cancer',
-        id=cid(414),
+        gbd_id=cid(414),
     ),
     liver_cancer_due_to_hepatitis_b=Cause(
         name='liver_cancer_due_to_hepatitis_b',
-        id=cid(418),
+        gbd_id=cid(418),
     ),
     liver_cancer_due_to_hepatitis_c=Cause(
         name='liver_cancer_due_to_hepatitis_c',
-        id=cid(419),
+        gbd_id=cid(419),
     ),
     liver_cancer_due_to_alcohol_use=Cause(
         name='liver_cancer_due_to_alcohol_use',
-        id=cid(420),
+        gbd_id=cid(420),
     ),
     liver_cancer_due_to_other_causes=Cause(
         name='liver_cancer_due_to_other_causes',
-        id=cid(421)
+        gbd_id=cid(421)
     ),
     larynx_cancer=Cause(
         name='larynx_cancer',
-        id=cid(423)
+        gbd_id=cid(423)
     ),
     tracheal_bronchus_and_lung_cancer=Cause(
         name='tracheal_bronchus_and_lung_cancer',
-        id=cid(426),
+        gbd_id=cid(426),
     ),
     breast_cancer=Cause(
         name='breast_cancer',
-        id=cid(429),
+        gbd_id=cid(429),
     ),
     cervical_cancer=Cause(
         name='cervical_cancer',
-        id=cid(432),
+        gbd_id=cid(432),
     ),
     uterine_cancer=Cause(
         name='uterine_cancer',
-        id=cid(435),
+        gbd_id=cid(435),
     ),
     colon_and_rectum_cancer=Cause(
         name='colon_and_rectum_cancer',
-        id=cid(441),
+        gbd_id=cid(441),
     ),
     lip_and_oral_cavity_cancer=Cause(
         name='lip_and_oral_cavity_cancer',
-        id=cid(444),
+        gbd_id=cid(444),
     ),
     nasopharynx_cancer=Cause(
         name='nasopharynx_cancer',
-        id=cid(447),
+        gbd_id=cid(447),
     ),
     other_pharynx_cancer=Cause(
         name='other_pharynx_cancer',
-        id=cid(450),
+        gbd_id=cid(450),
     ),
     gallbladder_and_biliary_tract_cancer=Cause(
         name='gallbladder_and_biliary_tract_cancer',
-        id=cid(453),
+        gbd_id=cid(453),
     ),
     pancreatic_cancer=Cause(
         name='pancreatic_cancer',
-        id=cid(456),
+        gbd_id=cid(456),
     ),
     ovarian_cancer=Cause(
         name='ovarian_cancer',
-        id=cid(465)
+        gbd_id=cid(465)
     ),
     kidney_cancer=Cause(
         name='kidney_cancer',
-        id=cid(471)
+        gbd_id=cid(471)
     ),
     bladder_cancer=Cause(
         name='bladder_cancer',
-        id=cid(474),
+        gbd_id=cid(474),
     ),
     thyroid_cancer=Cause(
         name='thyroid_cancer',
-        id=cid(480),
+        gbd_id=cid(480),
     ),
     mesothelioma=Cause(
         name='mesothelioma',
-        id=cid(483),
+        gbd_id=cid(483),
     ),
     rheumatic_heart_disease=Cause(
         name='rheumatic_heart_disease',
-        id=cid(492),
+        gbd_id=cid(492),
     ),
     ischemic_heart_disease=Cause(
         name='ischemic_heart_disease',
-        id=cid(493),
+        gbd_id=cid(493),
         csmr=cid(493),
         excess_mortality=cid(493),
         prevalence=cid(493),
@@ -404,7 +416,7 @@ causes = Causes(
     ),
     chronic_stroke=Cause(
         name='chronic_stroke',
-        id=cid(494),
+        gbd_id=cid(494),
         prevalence=cid(494),
         csmr=cid(494),
         excess_mortality=meid(9312),
@@ -412,7 +424,7 @@ causes = Causes(
     ),
     ischemic_stroke=Cause(
         name='ischemic_stroke',
-        id=cid(495),
+        gbd_id=cid(495),
         incidence=meid(9310),
         prevalence=meid(9310),
         csmr=cid(495),
@@ -421,7 +433,7 @@ causes = Causes(
     ),
     hemorrhagic_stroke=Cause(
         name='hemorrhagic_stroke',
-        id=cid(496),
+        gbd_id=cid(496),
         incidence=meid(9311),
         prevalence=meid(9311),
         csmr=cid(496),
@@ -430,270 +442,270 @@ causes = Causes(
     ),
     hypertensive_heart_disease=Cause(
         name='hypertensive_heart_disease',
-        id=cid(498),
+        gbd_id=cid(498),
     ),
     cardiomyopathy_and_myocarditis=Cause(
         name='cardiomyopathy_and_myocarditis',
-        id=cid(499),
+        gbd_id=cid(499),
     ),
     atrial_fibrillation_and_flutter=Cause(
         name='atrial_fibrillation_and_flutter',
-        id=cid(500),
+        gbd_id=cid(500),
     ),
     aortic_aneurysm=Cause(
         name='aortic_aneurysm',
-        id=cid(501),
+        gbd_id=cid(501),
     ),
     peripheral_vascular_disease=Cause(
         name='peripheral_vascular_disease',
-        id=cid(502),
+        gbd_id=cid(502),
     ),
     endocarditis=Cause(
         name='endocarditis',
-        id=cid(503),
+        gbd_id=cid(503),
     ),
     other_cardiovascular_and_circulatory_diseases=Cause(
         name='other_cardiovascular_and_circulatory_diseases',
-        id=cid(507),
+        gbd_id=cid(507),
     ),
     chronic_obstructive_pulmonary_disease=Cause(
         name='chronic_obstructive_pulmonary_disease',
-        id=cid(509),
+        gbd_id=cid(509),
     ),
     silicosis=Cause(
         name='silicosis',
-        id=cid(511),
+        gbd_id=cid(511),
     ),
     asbestosis=Cause(
         name='asbestosis',
-        id=cid(512),
+        gbd_id=cid(512),
     ),
     coal_workers_pneumoconiosis=Cause(
         name='coal_workers_pneumoconiosis',
-        id=cid(513),
+        gbd_id=cid(513),
     ),
     other_pneumoconiosis=Cause(
         name='other_pneumoconiosis',
-        id=cid(514)
+        gbd_id=cid(514)
     ),
     asthma=Cause(
         name='asthma',
-        id=cid(515),
+        gbd_id=cid(515),
     ),
     interstitial_lung_disease_and_pulmonary_sarcoidosis=Cause(
         name='interstitial_lung_disease_and_pulmonary_sarcoidosis',
-        id=cid(516),
+        gbd_id=cid(516),
     ),
     other_chronic_respiratory_diseases=Cause(
         name='other_chronic_respiratory_diseases',
-        id=cid(520),
+        gbd_id=cid(520),
     ),
     cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_b=Cause(
         name='cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_b',
-        id=cid(522),
+        gbd_id=cid(522),
     ),
     cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_c=Cause(
         name='cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_c',
-        id=cid(523),
+        gbd_id=cid(523),
     ),
     cirrhosis_and_other_chronic_liver_diseases_due_to_alcohol_use=Cause(
         name='cirrhosis_and_other_chronic_liver_diseases_due_to_alcohol_use',
-        id=cid(524),
+        gbd_id=cid(524),
     ),
     cirrhosis_and_other_chronic_liver_diseases_due_to_other_causes=Cause(
         name='cirrhosis_and_other_chronic_liver_diseases_due_to_other_causes',
-        id=cid(525),
+        gbd_id=cid(525),
     ),
     peptic_ulcer_disease=Cause(
         name='peptic_ulcer_disease',
-        id=cid(527),
+        gbd_id=cid(527),
     ),
     pancreatitis=Cause(
         name='pancreatitis',
-        id=cid(535),
+        gbd_id=cid(535),
     ),
     epilepsy=Cause(
         name='epilepsy',
-        id=cid(545),
+        gbd_id=cid(545),
     ),
     alcohol_use_disorders=Cause(
         name='alcohol_use_disorders',
-        id=cid(560),
+        gbd_id=cid(560),
     ),
     opioid_use_disorders=Cause(
         name='opioid_use_disorders',
-        id=cid(562),
+        gbd_id=cid(562),
     ),
     cocaine_use_disorders=Cause(
         name='cocaine_use_disorders',
-        id=cid(563),
+        gbd_id=cid(563),
     ),
     amphetamine_use_disorders=Cause(
         name='amphetamine_use_disorders',
-        id=cid(564),
+        gbd_id=cid(564),
     ),
     cannabis_use_disorders=Cause(
         name='cannabis_use_disorders',
-        id=cid(565),
+        gbd_id=cid(565),
     ),
     other_drug_use_disorders=Cause(
         name='other_drug_use_disorders',
-        id=cid(566),
+        gbd_id=cid(566),
     ),
     major_depressive_disorder=Cause(
         name='major_depressive_disorder',
-        id=cid(568),
+        gbd_id=cid(568),
     ),
     dysthymia=Cause(
         name='dysthymia',
-        id=cid(569),
+        gbd_id=cid(569),
     ),
     idiopathic_developmental_intellectual_disability=Cause(
         name='idiopathic_developmental_intellectual_disability',
-        id=cid(582),
+        gbd_id=cid(582),
     ),
     diabetes_mellitus=Cause(
         name='diabetes_mellitus',
-        id=cid(587),
+        gbd_id=cid(587),
     ),
     chronic_kidney_disease_due_to_diabetes_mellitus=Cause(
         name='chronic_kidney_disease_due_to_diabetes_mellitus',
-        id=cid(590),
+        gbd_id=cid(590),
     ),
     chronic_kidney_disease_due_to_hypertension=Cause(
         name='chronic_kidney_disease_due_to_hypertension',
-        id=cid(591),
+        gbd_id=cid(591),
     ),
     chronic_kidney_disease_due_to_glomerulonephritis=Cause(
         name='chronic_kidney_disease_due_to_glomerulonephritis',
-        id=cid(592),
+        gbd_id=cid(592),
     ),
     chronic_kidney_disease_due_to_other_causes=Cause(
         name='chronic_kidney_disease_due_to_other_causes',
-        id=cid(593),
+        gbd_id=cid(593),
     ),
     rheumatoid_arthritis=Cause(
         name='rheumatoid_arthritis',
-        id=cid(627),
+        gbd_id=cid(627),
     ),
     osteoarthritis=Cause(
         name='osteoarthritis',
-        id=cid(628),
+        gbd_id=cid(628),
     ),
     low_back_pain=Cause(
         name='low_back_pain',
-        id=cid(630),
+        gbd_id=cid(630),
     ),
     gout=Cause(
         name='gout',
-        id=cid(632),
+        gbd_id=cid(632),
     ),
     cataract=Cause(
         name='cataract',
-        id=cid(671),
+        gbd_id=cid(671),
     ),
     macular_degeneration=Cause(
         name='macular_degeneration',
-        id=cid(672),
+        gbd_id=cid(672),
     ),
     age_related_and_other_hearing_loss=Cause(
         name='age_related_and_other_hearing_loss',
-        id=cid(674),
+        gbd_id=cid(674),
     ),
     pedestrian_road_injuries=Cause(
         name='pedestrian_road_injuries',
-        id=cid(690),
+        gbd_id=cid(690),
     ),
     cyclist_road_injuries=Cause(
         name='cyclist_road_injuries',
-        id=cid(691),
+        gbd_id=cid(691),
     ),
     motorcyclist_road_injuries=Cause(
         name='motorcyclist_road_injuries',
-        id=cid(692),
+        gbd_id=cid(692),
     ),
     motor_vehicle_road_injuries=Cause(
         name='motor_vehicle_road_injuries',
-        id=cid(693),
+        gbd_id=cid(693),
     ),
     other_road_injuries=Cause(
         name='other_road_injuries',
-        id=cid(694),
+        gbd_id=cid(694),
     ),
     other_transport_injuries=Cause(
         name='other_transport_injuries',
-        id=cid(695),
+        gbd_id=cid(695),
     ),
     falls=Cause(
         name='falls',
-        id=cid(697),
+        gbd_id=cid(697),
     ),
     drowning=Cause(
         name='drowning',
-        id=cid(698),
+        gbd_id=cid(698),
     ),
     fire_heat_and_hot_substances=Cause(
         name='fire_heat_and_hot_substances',
-        id=cid(699),
+        gbd_id=cid(699),
     ),
     poisonings=Cause(
         name='poisonings',
-        id=cid(700),
+        gbd_id=cid(700),
     ),
     unintentional_firearm_injuries=Cause(
         name='unintentional_firearm_injuries',
-        id=cid(705),
+        gbd_id=cid(705),
     ),
     unintentional_suffocation=Cause(
         name='unintentional_suffocation',
-        id=cid(706),
+        gbd_id=cid(706),
     ),
     other_exposure_to_mechanical_forces=Cause(
         name='other_exposure_to_mechanical_forces',
-        id=cid(707),
+        gbd_id=cid(707),
     ),
     venomous_animal_contact=Cause(
         name='venomous_animal_contact',
-        id=cid(710),
+        gbd_id=cid(710),
     ),
     non_venomous_animal_contact=Cause(
         name='non_venomous_animal_contact',
-        id=cid(711),
+        gbd_id=cid(711),
     ),
     pulmonary_aspiration_and_foreign_body_in_airway=Cause(
         name='pulmonary_aspiration_and_foreign_body_in_airway',
-        id=cid(713),
+        gbd_id=cid(713),
     ),
     foreign_body_in_eyes=Cause(
         name='foreign_body_in_eyes',
-        id=cid(714),
+        gbd_id=cid(714),
     ),
     foreign_body_in_other_body_part=Cause(
         name='foreign_body_in_other_body_part',
-        id=cid(715),
+        gbd_id=cid(715),
     ),
     other_unintentional_injuries=Cause(
         name='other_unintentional_injuries',
-        id=cid(716),
+        gbd_id=cid(716),
     ),
     self_harm=Cause(
         name='self_harm',
-        id=cid(718),
+        gbd_id=cid(718),
     ),
     assault_by_firearm=Cause(
         name='assault_by_firearm',
-        id=cid(725),
+        gbd_id=cid(725),
     ),
     assault_by_sharp_object=Cause(
         name='assault_by_sharp_object',
-        id=cid(726),
+        gbd_id=cid(726),
     ),
     assault_by_other_means=Cause(
         name='assault_by_other_means',
-        id=cid(727),
+        gbd_id=cid(727),
     ),
     exposure_to_forces_of_nature=Cause(
         name='exposure_to_forces_of_nature',
-        id=cid(729),
+        gbd_id=cid(729),
     ),
 )

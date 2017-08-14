@@ -7,7 +7,7 @@ from .causes import causes
 risk_factors = Risks(
     unsafe_water_source=Risk(
         name='unsafe_water_source',
-        id=rid(83),
+        gbd_id=rid(83),
         distribution='categorical',
         levels=Levels(
             cat1='unimproved and untreated',
@@ -24,7 +24,7 @@ risk_factors = Risks(
     ),
     unsafe_sanitation=Risk(
         name='unsafe_sanitation',
-        id=rid(84),
+        gbd_id=rid(84),
         distribution='categorical',
         levels=Levels(
             cat1='unimproved and untreated',
@@ -35,7 +35,7 @@ risk_factors = Risks(
     ),
     ambient_particulate_matter_pollution=Risk(
         name='ambient_particulate_matter_pollution',
-        id=rid(86),
+        gbd_id=rid(86),
         distribution='unknown',
         affected_causes=(causes.lower_respiratory_infections, causes.tracheal_bronchus_and_lung_cancer,
                          causes.ischemic_heart_disease, causes.ischemic_stroke, causes.hemorrhagic_stroke,
@@ -49,7 +49,7 @@ risk_factors = Risks(
     ),
     household_air_pollution_from_solid_fuels=Risk(
         name='household_air_pollution_from_solid_fuels',
-        id=rid(87),
+        gbd_id=rid(87),
         distribution='categorical',
         levels=Levels(
             cat1='exposed',
@@ -61,7 +61,7 @@ risk_factors = Risks(
     ),
     ambient_ozone_pollution=Risk(
         name='ambient_ozone_pollution',
-        id=rid(88),
+        gbd_id=rid(88),
         distribution='unknown',
         affected_causes=(causes.chronic_obstructive_pulmonary_disease,),
         tmred=Tmred(
@@ -79,7 +79,7 @@ risk_factors = Risks(
     ),
     residential_radon=Risk(
         name='residential_radon',
-        id=rid(90),
+        gbd_id=rid(90),
         distribution='lognormal',
         affected_causes=(causes.tracheal_bronchus_and_lung_cancer,),
         tmred=Tmred(
@@ -97,7 +97,7 @@ risk_factors = Risks(
     ),
     childhood_underweight=Risk(
         name='childhood_underweight',
-        id=rid(94),
+        gbd_id=rid(94),
         distribution='categorical',
         levels=Levels(
             cat1='more than 3 std. dev. below target',
@@ -110,7 +110,7 @@ risk_factors = Risks(
     ),
     iron_deficiency=Risk(
         name='iron_deficiency',
-        id=rid(95),
+        gbd_id=rid(95),
         distribution='normal',
         affected_causes=(causes.maternal_hemorrhage, causes.maternal_sepsis_and_other_infections,
                          causes.iron_deficiency_anemia),
@@ -129,7 +129,7 @@ risk_factors = Risks(
     ),
     vitamin_a_deficiency=Risk(
         name='vitamin_a_deficiency',
-        id=rid(96),
+        gbd_id=rid(96),
         distribution='categorical',
         levels=Levels(
             cat1='deficient',
@@ -139,7 +139,7 @@ risk_factors = Risks(
     ),
     zinc_deficiency=Risk(
         name='zinc_deficiency',
-        id=rid(97),
+        gbd_id=rid(97),
         distribution='categorical',
         levels=Levels(
             cat1='deficient',
@@ -149,7 +149,7 @@ risk_factors = Risks(
     ),
     secondhand_smoke=Risk(
         name='secondhand_smoke',
-        id=rid(100),
+        gbd_id=rid(100),
         distribution='categorical',
         levels=Levels(
             cat1='exposed',
@@ -162,7 +162,7 @@ risk_factors = Risks(
     ),
     alcohol_use=Risk(
         name='alcohol_use',
-        id=rid(102),
+        gbd_id=rid(102),
         distribution='unknown',
         affected_causes=(causes.tuberculosis, causes.lower_respiratory_infections, causes.lip_and_oral_cavity_cancer,
                          causes.nasopharynx_cancer, causes.other_pharynx_cancer, causes.esophageal_cancer,
@@ -191,7 +191,7 @@ risk_factors = Risks(
     ),
     high_total_cholesterol=Risk(
         name='high_total_cholesterol',
-        id=rid(106),
+        gbd_id=rid(106),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease, causes.ischemic_stroke),
         tmred=Tmred(
@@ -209,7 +209,7 @@ risk_factors = Risks(
     ),
     high_systolic_blood_pressure=Risk(
         name='high_systolic_blood_pressure',
-        id=rid(107),
+        gbd_id=rid(107),
         distribution='lognormal',
         affected_causes=(causes.rheumatic_heart_disease, causes.ischemic_heart_disease, causes.ischemic_stroke,
                          causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
@@ -235,7 +235,7 @@ risk_factors = Risks(
     ),
     high_body_mass_index=Risk(
         name='high_body_mass_index',
-        id=rid(108),
+        gbd_id=rid(108),
         distribution='beta',
         affected_causes=(causes.esophageal_cancer, causes.colon_and_rectum_cancer,
                          causes.liver_cancer_due_to_hepatitis_b, causes.liver_cancer_due_to_hepatitis_c,
@@ -264,7 +264,7 @@ risk_factors = Risks(
     ),
     low_bone_mineral_density=Risk(
         name='low_bone_mineral_density',
-        id=rid(109),
+        gbd_id=rid(109),
         distribution='normal',
         affected_causes=(causes.pedestrian_road_injuries, causes.cyclist_road_injuries,
                          causes.motorcyclist_road_injuries, causes.motor_vehicle_road_injuries,
@@ -286,7 +286,7 @@ risk_factors = Risks(
     ),
     diet_low_in_fruits=Risk(
         name='diet_low_in_fruits',
-        id=rid(111),
+        gbd_id=rid(111),
         distribution='lognormal',
         affected_causes=(causes.lip_and_oral_cavity_cancer, causes.nasopharynx_cancer, causes.other_pharynx_cancer,
                          causes.esophageal_cancer, causes.larynx_cancer, causes.tracheal_bronchus_and_lung_cancer,
@@ -307,7 +307,7 @@ risk_factors = Risks(
     ),
     diet_low_in_vegetables=Risk(
         name='diet_low_in_vegetables',
-        id=rid(112),
+        gbd_id=rid(112),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease, causes.ischemic_stroke, causes.hemorrhagic_stroke),
         tmred=Tmred(
@@ -325,7 +325,7 @@ risk_factors = Risks(
     ),
     diet_low_in_whole_grains=Risk(
         name='diet_low_in_whole_grains',
-        id=rid(113),
+        gbd_id=rid(113),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease, causes.ischemic_stroke, causes.hemorrhagic_stroke,
                          causes.diabetes_mellitus),
@@ -344,7 +344,7 @@ risk_factors = Risks(
     ),
     diet_low_in_nuts_and_seeds=Risk(
         name='diet_low_in_nuts_and_seeds',
-        id=rid(114),
+        gbd_id=rid(114),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease, causes.diabetes_mellitus),
         tmred=Tmred(
@@ -362,7 +362,7 @@ risk_factors = Risks(
     ),
     diet_low_in_milk=Risk(
         name='diet_low_in_milk',
-        id=rid(115),
+        gbd_id=rid(115),
         distribution='lognormal',
         affected_causes=(causes.colon_and_rectum_cancer,),
         tmred=Tmred(
@@ -380,7 +380,7 @@ risk_factors = Risks(
     ),
     diet_high_in_red_meat=Risk(
         name='diet_high_in_red_meat',
-        id=rid(116),
+        gbd_id=rid(116),
         distribution='lognormal',
         affected_causes=(causes.colon_and_rectum_cancer, causes.diabetes_mellitus),
         tmred=Tmred(
@@ -398,7 +398,7 @@ risk_factors = Risks(
     ),
     diet_high_in_processed_meat=Risk(
         name='diet_high_in_processed_meat',
-        id=rid(117),
+        gbd_id=rid(117),
         distribution='lognormal',
         affected_causes=(causes.colon_and_rectum_cancer, causes.ischemic_heart_disease, causes.diabetes_mellitus),
         tmred=Tmred(
@@ -416,7 +416,7 @@ risk_factors = Risks(
     ),
     diet_high_in_sugar_sweetened_beverages=Risk(
         name='diet_high_in_sugar_sweetened_beverages',
-        id=rid(118),
+        gbd_id=rid(118),
         distribution='lognormal',
         affected_causes=(causes.esophageal_cancer, causes.colon_and_rectum_cancer,
                          causes.liver_cancer_due_to_hepatitis_b, causes.liver_cancer_due_to_hepatitis_c,
@@ -445,7 +445,7 @@ risk_factors = Risks(
     ),
     diet_low_in_fiber=Risk(
         name='diet_low_in_fiber',
-        id=rid(119),
+        gbd_id=rid(119),
         distribution='lognormal',
         affected_causes=(causes.colon_and_rectum_cancer, causes.ischemic_heart_disease),
         tmred=Tmred(
@@ -463,7 +463,7 @@ risk_factors = Risks(
     ),
     diet_low_in_seafood_omega_3_fatty_acids=Risk(
         name='diet_low_in_seafood_omega_3_fatty_acids',
-        id=rid(121),
+        gbd_id=rid(121),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease,),
         tmred=Tmred(
@@ -481,7 +481,7 @@ risk_factors = Risks(
     ),
     diet_low_in_polyunsaturated_fatty_acids=Risk(
         name='diet_low_in_polyunsaturated_fatty_acids',
-        id=rid(122),
+        gbd_id=rid(122),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease,),
         tmred=Tmred(
@@ -499,7 +499,7 @@ risk_factors = Risks(
     ),
     diet_high_in_trans_fatty_acids=Risk(
         name='diet_high_in_trans_fatty_acids',
-        id=rid(123),
+        gbd_id=rid(123),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease,),
         tmred=Tmred(
@@ -517,7 +517,7 @@ risk_factors = Risks(
     ),
     diet_high_in_sodium=Risk(
         name='diet_high_in_sodium',
-        id=rid(124),
+        gbd_id=rid(124),
         distribution='lognormal',
         affected_causes=(causes.stomach_cancer, causes.rheumatic_heart_disease, causes.ischemic_heart_disease,
                          causes.ischemic_stroke, causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
@@ -543,7 +543,7 @@ risk_factors = Risks(
     ),
     low_physical_activity=Risk(
         name='low_physical_activity',
-        id=rid(125),
+        gbd_id=rid(125),
         distribution='categorical',
         levels=Levels(
             cat1='<600 METs',
@@ -556,7 +556,7 @@ risk_factors = Risks(
     ),
     occupational_asthmagens=Risk(
         name='occupational_asthmagens',
-        id=rid(128),
+        gbd_id=rid(128),
         distribution='categorical',
         levels=Levels(
             cat1='admin',
@@ -573,7 +573,7 @@ risk_factors = Risks(
     ),
     occupational_particulate_matter_gases_and_fumes=Risk(
         name='occupational_particulate_matter_gases_and_fumes',
-        id=rid(129),
+        gbd_id=rid(129),
         distribution='categorical',
         levels=Levels(
             cat1='high',
@@ -584,7 +584,7 @@ risk_factors = Risks(
     ),
     occupational_noise=Risk(
         name='occupational_noise',
-        id=rid(130),
+        gbd_id=rid(130),
         distribution='categorical',
         levels=Levels(
             cat1='high (>90dB)',
@@ -595,7 +595,7 @@ risk_factors = Risks(
     ),
     occupational_injuries=Risk(
         name='occupational_injuries',
-        id=rid(131),
+        gbd_id=rid(131),
         distribution='unknown',
         affected_causes=(causes.pedestrian_road_injuries, causes.cyclist_road_injuries,
                          causes.motorcyclist_road_injuries, causes.motor_vehicle_road_injuries,
@@ -608,7 +608,7 @@ risk_factors = Risks(
     ),
     occupational_ergonomic_factors=Risk(
         name='occupational_ergonomic_factors',
-        id=rid(132),
+        gbd_id=rid(132),
         distribution='categorical',
         levels=Levels(
             cat1='professional, technical, and related',
@@ -624,7 +624,7 @@ risk_factors = Risks(
     ),
     non_exclusive_breastfeeding=Risk(
         name='non_exclusive_breastfeeding',
-        id=rid(136),
+        gbd_id=rid(136),
         distribution='categorical',
         levels=Levels(
             cat1='none',
@@ -636,7 +636,7 @@ risk_factors = Risks(
     ),
     discontinued_breastfeeding=Risk(
         name='discontinued_breastfeeding',
-        id=rid(137),
+        gbd_id=rid(137),
         distribution='categorical',
         levels=Levels(
             cat1='discontinued',
@@ -646,7 +646,7 @@ risk_factors = Risks(
     ),
     drug_use_dependence_and_blood_borne_viruses=Risk(
         name='drug_use_dependence_and_blood_borne_viruses',
-        id=rid(138),
+        gbd_id=rid(138),
         distribution='unknown',
         affected_causes=(causes.hiv_aids_tuberculosis, causes.hiv_aids_other_diseases, causes.hepatitis_b,
                          causes.hepatitis_c, causes.liver_cancer_due_to_hepatitis_b,
@@ -658,13 +658,13 @@ risk_factors = Risks(
     ),
     suicide_due_to_drug_use_disorders=Risk(
         name='suicide_due_to_drug_use_disorders',
-        id=rid(140),
+        gbd_id=rid(140),
         distribution='unknown',
         affected_causes=(causes.self_harm,),
     ),
     high_fasting_plasma_glucose_continuous=Risk(
         name='high_fasting_plasma_glucose_continuous',
-        id=rid(141),
+        gbd_id=rid(141),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease, causes.ischemic_stroke, causes.hemorrhagic_stroke,
                          causes.diabetes_mellitus, causes.chronic_kidney_disease_due_to_diabetes_mellitus,
@@ -686,7 +686,7 @@ risk_factors = Risks(
     ),
     high_fasting_plasma_glucose_categorical=Risk(
         name='high_fasting_plasma_glucose_categorical',
-        id=rid(142),
+        gbd_id=rid(142),
         distribution='categorical',
         levels=Levels(
             cat1='diabetic',
@@ -696,7 +696,7 @@ risk_factors = Risks(
     ),
     low_glomerular_filtration_rate=Risk(
         name='low_glomerular_filtration_rate',
-        id=rid(143),
+        gbd_id=rid(143),
         distribution='categorical',
         levels=Levels(
             cat1='stage 5 ckd',
@@ -711,7 +711,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_asbestos=Risk(
         name='occupational_exposure_to_asbestos',
-        id=rid(150),
+        gbd_id=rid(150),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -723,7 +723,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_arsenic=Risk(
         name='occupational_exposure_to_arsenic',
-        id=rid(151),
+        gbd_id=rid(151),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -734,7 +734,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_beryllium=Risk(
         name='occupational_exposure_to_beryllium',
-        id=rid(153),
+        gbd_id=rid(153),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -745,7 +745,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_cadmium=Risk(
         name='occupational_exposure_to_cadmium',
-        id=rid(154),
+        gbd_id=rid(154),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -756,7 +756,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_chromium=Risk(
         name='occupational_exposure_to_chromium',
-        id=rid(155),
+        gbd_id=rid(155),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -767,7 +767,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_diesel_engine_exhaust=Risk(
         name='occupational_exposure_to_diesel_engine_exhaust',
-        id=rid(156),
+        gbd_id=rid(156),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -778,7 +778,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_secondhand_smoke=Risk(
         name='occupational_exposure_to_secondhand_smoke',
-        id=rid(157),
+        gbd_id=rid(157),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -789,7 +789,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_formaldehyde=Risk(
         name='occupational_exposure_to_formaldehyde',
-        id=rid(158),
+        gbd_id=rid(158),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -800,7 +800,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_nickel=Risk(
         name='occupational_exposure_to_nickel',
-        id=rid(159),
+        gbd_id=rid(159),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -811,7 +811,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_polycyclic_aromatic_hydrocarbons=Risk(
         name='occupational_exposure_to_polycyclic_aromatic_hydrocarbons',
-        id=rid(160),
+        gbd_id=rid(160),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -822,7 +822,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_silica=Risk(
         name='occupational_exposure_to_silica',
-        id=rid(161),
+        gbd_id=rid(161),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -833,7 +833,7 @@ risk_factors = Risks(
     ),
     occupational_exposure_to_sulfuric_acid=Risk(
         name='occupational_exposure_to_sulfuric_acid',
-        id=rid(162),
+        gbd_id=rid(162),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -844,7 +844,7 @@ risk_factors = Risks(
     ),
     smoking_sir_approach=Risk(
         name='smoking_sir_approach',
-        id=rid(165),
+        gbd_id=rid(165),
         distribution='categorical',
         levels=Levels(
             cat1='SIR',
@@ -858,11 +858,11 @@ risk_factors = Risks(
                          causes.bladder_cancer, causes.chronic_obstructive_pulmonary_disease, causes.silicosis,
                          causes.asbestosis, causes.coal_workers_pneumoconiosis, causes.other_pneumoconiosis,
                          causes.interstitial_lung_disease_and_pulmonary_sarcoidosis,
-                         causes.other_chronic_respiratory_diseases),
+                         causes.other_chronic_respiratory_diseases, ),
     ),
     smoking_prevalence_approach=Risk(
         name='smoking_prevalence_approach',
-        id=rid(166),
+        gbd_id=rid(166),
         distribution='categorical',
         levels=Levels(
             cat1='Smoker (5 year lag)',
@@ -882,7 +882,7 @@ risk_factors = Risks(
     ),
     intimate_partner_violence_exposure_approach=Risk(
         name='intimate_partner_violence_exposure_approach',
-        id=rid(167),
+        gbd_id=rid(167),
         distribution='categorical',
         levels=Levels(
             cat1='exposed',
@@ -894,13 +894,13 @@ risk_factors = Risks(
     ),
     intimate_partner_violence_direct_paf_approach=Risk(
         name='intimate_partner_violence_direct_paf_approach',
-        id=rid(168),
+        gbd_id=rid(168),
         distribution='unknown',
         affected_causes=(causes.assault_by_firearm, causes.assault_by_sharp_object, causes.assault_by_other_means),
     ),
     unsafe_sex=Risk(
         name='unsafe_sex',
-        id=rid(170),
+        gbd_id=rid(170),
         distribution='unknown',
         affected_causes=(causes.hiv_aids_tuberculosis, causes.hiv_aids_other_diseases, causes.syphilis,
                          causes.chlamydia, causes.gonorrhea, causes.trichomoniasis, causes.genital_herpes,
@@ -908,13 +908,13 @@ risk_factors = Risks(
     ),
     intimate_partner_violence_hiv_paf_approach=Risk(
         name='intimate_partner_violence_hiv_paf_approach',
-        id=rid(201),
+        gbd_id=rid(201),
         distribution='unknown',
         affected_causes=(causes.hiv_aids_tuberculosis, causes.hiv_aids_other_diseases),
     ),
     occupational_exposure_to_trichloroethylene=Risk(
         name='occupational_exposure_to_trichloroethylene',
-        id=rid(237),
+        gbd_id=rid(237),
         distribution='categorical',
         levels=Levels(
             cat1='high exposure',
@@ -925,7 +925,7 @@ risk_factors = Risks(
     ),
     no_handwashing_with_soap=Risk(
         name='no_handwashing_with_soap',
-        id=rid(238),
+        gbd_id=rid(238),
         distribution='categorical',
         levels=Levels(
             cat1='no handwashing with soap',
@@ -936,7 +936,7 @@ risk_factors = Risks(
     ),
     childhood_wasting=Risk(
         name='childhood_wasting',
-        id=rid(240),
+        gbd_id=rid(240),
         distribution='categorical',
         levels=Levels(
             cat1='more than 3 std. dev. below target',
@@ -949,7 +949,7 @@ risk_factors = Risks(
     ),
     childhood_stunting=Risk(
         name='childhood_stunting',
-        id=rid(241),
+        gbd_id=rid(241),
         distribution='categorical',
         levels=Levels(
             cat1='more than 3 std. dev. below target',
@@ -961,13 +961,13 @@ risk_factors = Risks(
     ),
     lead_exposure_in_blood=Risk(
         name='lead_exposure_in_blood',
-        id=rid(242),
+        gbd_id=rid(242),
         distribution='unknown',
         affected_causes=(causes.idiopathic_developmental_intellectual_disability,),
     ),
     lead_exposure_in_bone=Risk(
         name='lead_exposure_in_bone',
-        id=rid(243),
+        gbd_id=rid(243),
         distribution='lognormal',
         affected_causes=(causes.rheumatic_heart_disease, causes.ischemic_heart_disease, causes.ischemic_stroke,
                          causes.hemorrhagic_stroke, causes.hypertensive_heart_disease,
@@ -993,7 +993,7 @@ risk_factors = Risks(
     ),
     childhood_sexual_abuse_against_females=Risk(
         name='childhood_sexual_abuse_against_females',
-        id=rid(244),
+        gbd_id=rid(244),
         distribution='categorical',
         levels=Levels(
             cat1='exposed',
@@ -1004,7 +1004,7 @@ risk_factors = Risks(
     ),
     childhood_sexual_abuse_against_males=Risk(
         name='childhood_sexual_abuse_against_males',
-        id=rid(245),
+        gbd_id=rid(245),
         distribution='categorical',
         levels=Levels(
             cat1='exposed',

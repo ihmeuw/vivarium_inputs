@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ceam_inputs import causes, risk_factors, sequelae
+from ceam_inputs import causes, risk_factors
 from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
                                           get_angina_proportions, get_disability_weight,
                                           get_post_mi_heart_failure_proportion_draws,
@@ -17,8 +17,8 @@ KENYA = 180
 
 def test_get_relative_risks():
     df = get_relative_risks(location_id=KENYA,
-                            risk_id=risk_factors.high_systolic_blood_pressure.id,
-                            cause_id=causes.ischemic_heart_disease.id,
+                            risk_id=risk_factors.high_systolic_blood_pressure.gbd_id,
+                            cause_id=causes.ischemic_heart_disease.gbd_id,
                             gbd_round_id=3,
                             rr_type='morbidity')
     draw_number = 19  # Arbitrary selection
@@ -37,8 +37,8 @@ def test_get_relative_risks():
 
 def test_get_pafs():
     df = get_pafs(location_id=KENYA,
-                  risk_id=risk_factors.high_systolic_blood_pressure.id,
-                  cause_id=causes.ischemic_heart_disease.id,
+                  risk_id=risk_factors.high_systolic_blood_pressure.gbd_id,
+                  cause_id=causes.ischemic_heart_disease.gbd_id,
                   gbd_round_id=3,
                   paf_type='morbidity')
     draw_number = 19
@@ -57,7 +57,7 @@ def test_get_pafs():
 
 def test_get_exposures():
     df = get_exposures(location_id=KENYA,
-                       risk_id=risk_factors.smoking_prevalence_approach.id,
+                       risk_id=risk_factors.smoking_prevalence_approach.gbd_id,
                        gbd_round_id=3)
     df = df[df.year_id == 1990]
     # assert that exposures are 0 for people under age 25 for high sbp
