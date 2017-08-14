@@ -27,7 +27,7 @@ def _get_gbd_draws(modelable_entity, measure, column_name):
     -------
     pandas.DataFrame
     """
-    gbd_id = getattr(modelable_entity, measure)
+    gbd_id = modelable_entity[measure]
     if gbd_id is UNKNOWN:
         raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(modelable_entity.name, measure))
 
@@ -56,7 +56,7 @@ def get_excess_mortality(cause):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    if isinstance(cause.id, cid):
+    if isinstance(cause.gbd_id, cid):
         csmr = get_cause_specific_mortality(cause).set_index(['age', 'sex', 'year'])
         prevalence = get_prevalence(cause).set_index(['age', 'sex', 'year'])
         prevalence.columns = ['rate']
@@ -96,7 +96,7 @@ def get_cause_specific_mortality(cause):
     """
     year_start, year_end = gbd_year_range()
 
-    return functions.get_cause_specific_mortality(cause_id=cause.id,
+    return functions.get_cause_specific_mortality(cause_id=cause.gbd_id,
                                                   location_id=config.simulation_parameters.location_id,
                                                   year_start=year_start,
                                                   year_end=year_end,
@@ -133,7 +133,7 @@ def get_proportion(modelable_entity):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'proportion' columns
     """
-    return _get_gbd_draws(column_name='proportion', measure='proportion', cause_name=name, gbd_id=me_id)
+    return _get_gbd_draws(modelable_entity=modelable_entity,  measure='proportion', column_name='proportion')
 
 
 def get_age_bins():
@@ -154,7 +154,7 @@ def get_prevalence(cause):
         Table with 'age', 'sex', 'year' and 'prevalence' columns
     """
 
-    return _get_gbd_draws(column_name='prevalence', measure='prevalence', cause=cause)
+    return _get_gbd_draws(modelable_entity=cause,  measure='prevalence', column_name='prevalence')
 
 
 def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
