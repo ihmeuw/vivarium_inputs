@@ -135,7 +135,10 @@ risk_factors = Risks(
             cat1='deficient',
             cat2='not deficient',
         ),
-        affected_causes=(causes.diarrhea, causes.measles, causes.vitamin_a_deficiency),
+        affected_causes=(causes.diarrhea, causes.measles,
+                         # FIXME: these causes fail to pull RR data (at the least).
+                         # causes.vitamin_a_deficiency
+                         ),
     ),
     zinc_deficiency=Risk(
         name='zinc_deficiency',
@@ -238,8 +241,11 @@ risk_factors = Risks(
         gbd_id=rid(108),
         distribution='beta',
         affected_causes=(causes.esophageal_cancer, causes.colon_and_rectum_cancer,
-                         causes.liver_cancer_due_to_hepatitis_b, causes.liver_cancer_due_to_hepatitis_c,
-                         causes.liver_cancer_due_to_alcohol_use, causes.liver_cancer_due_to_other_causes,
+                         # FIXME: these causes fail to pull RR data (at the least).
+                         # causes.liver_cancer_due_to_hepatitis_b
+                         # causes.liver_cancer_due_to_hepatitis_c,
+                         # causes.liver_cancer_due_to_alcohol_use,
+                         # causes.liver_cancer_due_to_other_causes,
                          causes.gallbladder_and_biliary_tract_cancer, causes.pancreatic_cancer, causes.breast_cancer,
                          causes.uterine_cancer, causes.ovarian_cancer, causes.kidney_cancer, causes.thyroid_cancer,
                          causes.ischemic_heart_disease, causes.ischemic_stroke, causes.hemorrhagic_stroke,
@@ -667,7 +673,8 @@ risk_factors = Risks(
         gbd_id=rid(141),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease, causes.ischemic_stroke, causes.hemorrhagic_stroke,
-                         causes.diabetes_mellitus, causes.chronic_kidney_disease_due_to_diabetes_mellitus,
+                         # FIXME causes.diabetes_mellitus,  This cause fails to pull data.
+                         causes.chronic_kidney_disease_due_to_diabetes_mellitus,
                          causes.chronic_kidney_disease_due_to_hypertension,
                          causes.chronic_kidney_disease_due_to_glomerulonephritis,
                          causes.chronic_kidney_disease_due_to_other_causes),
@@ -945,7 +952,9 @@ risk_factors = Risks(
             cat4='less than 1 std. dev. below target',
         ),
         affected_causes=(causes.diarrhea, causes.lower_respiratory_infections, causes.measles,
-                         causes.protein_energy_malnutrition),
+                         # FIXME: The following cause fails to pull RR data
+                         # causes.protein_energy_malnutrition
+                         ),
     ),
     childhood_stunting=Risk(
         name='childhood_stunting',

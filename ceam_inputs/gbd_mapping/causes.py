@@ -1,8 +1,6 @@
 """Mapping of GBD ids onto vivarium conventions."""
-import pandas as pd
-
 from .templates import (Etiology, Etioloties, Sequela, Sequelae, Cause, Causes,
-                        SeveritySplit, SeveritySplits, cid, meid, rid, hid)
+                        SeveritySplit, SeveritySplits, cid, meid, rid, hid, scalar)
 
 etiologies = Etioloties(
     unattributed_diarrhea=Etiology(
@@ -98,7 +96,7 @@ sequelae = Sequelae(
         incidence=meid(1814),
         prevalence=meid(1814),
         excess_mortality=meid(1814),
-        duration=pd.Timedelta(days=28),
+        duration=scalar(28),
     ),
     heart_failure=Sequela(
         name='heart_failure',
@@ -112,7 +110,7 @@ sequelae = Sequelae(
             mild=SeveritySplit(
                 name='mild_heart_failure',
                 gbd_id=meid(1821),
-                proportion=0.182074,
+                proportion=scalar(0.182074),
                 prevalence=meid(1821),
                 disability_weight=meid(1821),
                 excess_mortality=meid(2412),
@@ -120,7 +118,7 @@ sequelae = Sequelae(
             moderate=SeveritySplit(
                 name='moderate_heart_failure',
                 gbd_id=meid(1822),
-                proportion=0.149771,
+                proportion=scalar(0.149771),
                 prevalence=meid(1822),
                 disability_weight=meid(1822),
                 excess_mortality=meid(2412),
@@ -128,7 +126,7 @@ sequelae = Sequelae(
             severe=SeveritySplit(
                 name='severe_heart_failure',
                 gbd_id=meid(1823),
-                proportion=0.402838,
+                proportion=scalar(0.402838),
                 prevalence=meid(1823),
                 disability_weight=meid(1823),
                 excess_mortality=meid(2412),
@@ -145,7 +143,7 @@ sequelae = Sequelae(
             asymptomatic=SeveritySplit(
                 name='asymptomatic_angina',
                 gbd_id=meid(3102),
-                proportion=0.304553,
+                proportion=scalar(0.304553),
                 prevalence=meid(3102),
                 disability_weight=meid(3102),
                 excess_mortality=meid(1817),
@@ -153,7 +151,7 @@ sequelae = Sequelae(
             mild=SeveritySplit(
                 name='mild_angina',
                 gbd_id=meid(1818),
-                proportion=0.239594,
+                proportion=scalar(0.239594),
                 prevalence=meid(1818),
                 disability_weight=meid(1818),
                 excess_mortality=meid(1817),
@@ -161,7 +159,7 @@ sequelae = Sequelae(
             moderate=SeveritySplit(
                 name='moderate_angina',
                 gbd_id=meid(1819),
-                proportion=0.126273,
+                proportion=scalar(0.126273),
                 prevalence=meid(1819),
                 disability_weight=meid(1819),
                 excess_mortality=meid(1817),
@@ -169,7 +167,7 @@ sequelae = Sequelae(
             severe=SeveritySplit(
                 name='severe_angina',
                 gbd_id=meid(1820),
-                proportion=0.32958,
+                proportion=scalar(0.32958),
                 prevalence=meid(1820),
                 disability_weight=meid(1820),
                 excess_mortality=meid(1817),
@@ -180,8 +178,8 @@ sequelae = Sequelae(
         name='asymptomatic_ihd',
         gbd_id=meid(3233),
         prevalence=meid(3233),
-        excess_mortality=0.0,
-        disability_weight=meid(3233)
+        excess_mortality=scalar(0),
+        disability_weight=meid(3233),
     ),
 )
 
@@ -211,7 +209,7 @@ causes = Causes(
         prevalence=meid(1181),
         csmr=cid(302),
         excess_mortality=meid(1181),
-        disability_weight=0.23,
+        disability_weight=scalar(0.23),
         remission=meid(1181),
         severity_splits=SeveritySplits(
             mild=SeveritySplit(
@@ -416,6 +414,7 @@ causes = Causes(
         excess_mortality=cid(493),
         prevalence=cid(493),
         incidence=cid(493),
+        disability_weight=scalar(0),
         sequelae=(sequelae.heart_attack, sequelae.angina, sequelae.asymptomatic_ihd, sequelae.heart_failure),
     ),
     chronic_stroke=Cause(
@@ -424,7 +423,7 @@ causes = Causes(
         prevalence=cid(494),
         csmr=cid(494),
         excess_mortality=meid(9312),
-        disability_weight=0.32,
+        disability_weight=scalar(0.32),
     ),
     ischemic_stroke=Cause(
         name='ischemic_stroke',
@@ -433,7 +432,8 @@ causes = Causes(
         prevalence=meid(9310),
         csmr=cid(495),
         excess_mortality=meid(9310),
-        disability_weight=0.32,
+        disability_weight=scalar(0.32),
+        duration=scalar(28),
     ),
     hemorrhagic_stroke=Cause(
         name='hemorrhagic_stroke',
@@ -442,7 +442,8 @@ causes = Causes(
         prevalence=meid(9311),
         csmr=cid(496),
         excess_mortality=meid(9311),
-        disability_weight=0.32,
+        disability_weight=scalar(0.32),
+        duration=scalar(28),
     ),
     hypertensive_heart_disease=Cause(
         name='hypertensive_heart_disease',

@@ -651,7 +651,7 @@ def get_disability_weight(cause, draw_number):
                          + "/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom. "
                          + "if you can't find draws there, talk w/ central comp")
 
-    df['modelable_entity_id'] = modelable_entity_id
+    df.loc[:, 'modelable_entity_id'] = modelable_entity_id
 
     return df['draw{}'.format(draw_number)].iloc[0]
 
