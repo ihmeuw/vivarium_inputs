@@ -1,7 +1,5 @@
 from typing import Union, Tuple
 
-import pandas as pd
-
 
 class meid(int):
     """Modelable Entity ID"""
@@ -25,6 +23,12 @@ class hid(int):
     """Healthstate ID"""
     def __repr__(self):
         return 'hid({:d})'.format(self)
+
+
+class scalar(float):
+    """Raw measure value"""
+    def __repr__(self):
+        return 'scalar({:d})'.format(self)
 
 
 class _Unknown:
@@ -54,8 +58,9 @@ class GbdRecord:
             raise KeyError
 
     def __repr__(self):
+
         return "{}({})".format(self.__class__.__name__,
-                               ', '.join(['{}={}'.format(name, self[name])
+                               ',\n'.join(['{}={}'.format(name, self[name])
                                           for name in self.__slots__]))
 
 
@@ -73,7 +78,7 @@ class ModelableEntity(GbdRecord):
 class CauseLike(ModelableEntity):
     """Container for cause-like entity GBD ids."""
     __slots__ = ('name', 'gbd_id', 'prevalence', 'disability_weight',
-                 'excess_mortality', 'remission', 'duration',)
+                 'excess_mortality', 'remission', 'duration', 'proportion')
 
     def __init__(self,
                  name: str,
@@ -82,7 +87,8 @@ class CauseLike(ModelableEntity):
                  disability_weight: Union[hid, meid, None] = UNKNOWN,
                  excess_mortality: Union[cid, meid, None] = UNKNOWN,
                  remission: Union[meid, None] = UNKNOWN,
-                 duration: Union[meid, None] = UNKNOWN):
+                 proportion: Union[meid, scalar] = UNKNOWN,
+                 duration: scalar = scalar(0),):
 
         super().__init__(name=name,
                          gbd_id=gbd_id)
@@ -91,6 +97,7 @@ class CauseLike(ModelableEntity):
         self.excess_mortality = excess_mortality
         self.remission = remission
         self.duration = duration
+        self.proportion = proportion
 
 
 class SeveritySplit(CauseLike):
@@ -101,12 +108,12 @@ class SeveritySplit(CauseLike):
     def __init__(self,
                  name: str,
                  gbd_id: meid,
-                 proportion: Union[meid, float],
+                 proportion: Union[meid, scalar],
                  prevalence: Union[meid, None] = UNKNOWN,
                  disability_weight: Union[hid, meid, None] = UNKNOWN,
                  excess_mortality: Union[meid, None] = UNKNOWN,
                  remission: Union[meid, None] = UNKNOWN,
-                 duration: Union[meid, None] = UNKNOWN):
+                 duration: scalar = scalar(0),):
 
         super().__init__(name=name,
                          gbd_id=gbd_id,
@@ -114,8 +121,8 @@ class SeveritySplit(CauseLike):
                          disability_weight=disability_weight,
                          excess_mortality=excess_mortality,
                          remission=remission,
-                         duration=duration)
-        self.proportion = proportion
+                         duration=duration,
+                         proportion=proportion)
 
 
 class SeveritySplits(GbdRecord):
@@ -147,7 +154,7 @@ class Sequela(CauseLike):
                  disability_weight: Union[hid, meid, None] = UNKNOWN,
                  excess_mortality: Union[meid, float, None] = UNKNOWN,
                  remission: Union[meid, None] = UNKNOWN,
-                 duration: Union[meid, pd.Timedelta] = UNKNOWN,
+                 duration: scalar = scalar(0),
                  severity_splits: SeveritySplits = None,):
 
         super().__init__(name=name,
@@ -173,7 +180,7 @@ class Etiology(CauseLike):
                  disability_weight: Union[hid, meid, None] = UNKNOWN,
                  excess_mortality: Union[meid, None] = UNKNOWN,
                  remission: Union[meid, None] = UNKNOWN,
-                 duration: Union[meid, None] = UNKNOWN):
+                 duration: scalar = scalar(0),):
         super().__init__(name=name,
                          gbd_id=gbd_id,
                          prevalence=prevalence,
@@ -197,7 +204,7 @@ class Cause(CauseLike):
                  csmr: Union[cid, meid] = UNKNOWN,
                  excess_mortality: Union[cid, meid, None] = UNKNOWN,
                  remission: Union[meid, None] = UNKNOWN,
-                 duration: Union[meid, None] = UNKNOWN,
+                 duration: scalar = scalar(0),
                  sequelae: Tuple[Sequela, ...] = None,
                  etiologies: Tuple[Etiology, ...] = None,
                  severity_splits: SeveritySplits = None,):
@@ -575,10 +582,14 @@ class Causes(GbdRecord):
         self.asthma = asthma
         self.interstitial_lung_disease_and_pulmonary_sarcoidosis = interstitial_lung_disease_and_pulmonary_sarcoidosis
         self.other_chronic_respiratory_diseases = other_chronic_respiratory_diseases
-        self.cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_b = cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_b
-        self.cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_c = cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_c
-        self.cirrhosis_and_other_chronic_liver_diseases_due_to_alcohol_use = cirrhosis_and_other_chronic_liver_diseases_due_to_alcohol_use
-        self.cirrhosis_and_other_chronic_liver_diseases_due_to_other_causes = cirrhosis_and_other_chronic_liver_diseases_due_to_other_causes
+        self.cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_b = \
+            cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_b
+        self.cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_c = \
+            cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_c
+        self.cirrhosis_and_other_chronic_liver_diseases_due_to_alcohol_use = \
+            cirrhosis_and_other_chronic_liver_diseases_due_to_alcohol_use
+        self.cirrhosis_and_other_chronic_liver_diseases_due_to_other_causes = \
+            cirrhosis_and_other_chronic_liver_diseases_due_to_other_causes
         self.peptic_ulcer_disease = peptic_ulcer_disease
         self.pancreatitis = pancreatitis
         self.epilepsy = epilepsy
@@ -780,7 +791,8 @@ class Risks(GbdRecord):
         self.occupational_exposure_to_secondhand_smoke = occupational_exposure_to_secondhand_smoke
         self.occupational_exposure_to_formaldehyde = occupational_exposure_to_formaldehyde
         self.occupational_exposure_to_nickel = occupational_exposure_to_nickel
-        self.occupational_exposure_to_polycyclic_aromatic_hydrocarbons = occupational_exposure_to_polycyclic_aromatic_hydrocarbons
+        self.occupational_exposure_to_polycyclic_aromatic_hydrocarbons = \
+            occupational_exposure_to_polycyclic_aromatic_hydrocarbons
         self.occupational_exposure_to_silica = occupational_exposure_to_silica
         self.occupational_exposure_to_sulfuric_acid = occupational_exposure_to_sulfuric_acid
         self.smoking_sir_approach = smoking_sir_approach
@@ -800,7 +812,7 @@ class Risks(GbdRecord):
 
 
 class HealthcareEntity(ModelableEntity):
-    """Container for healthcare system GBD ids."""
+    """Container for healthcare system GBD ids and data."""
     __slots__ = ('name', 'gbd_id', 'proportion')
 
     def __init__(self,
@@ -820,3 +832,26 @@ class HealthcareEntities(GbdRecord):
 
         super().__init__()
         self.outpatient_visits = outpatient_visits
+
+
+class TreatmentTechnology(ModelableEntity):
+    """Container for treatment technology GBD ids and data."""
+    __slots__ = ('name', 'unit_cost', 'coverage')
+
+    def __init__(self,
+                 name: str,
+                 gbd_id: meid,
+                 unit_cost: float,
+                 coverage: float,):
+        super().__init__(name=name, gbd_id=gbd_id)
+        self.unit_cost = unit_cost
+        self.coverage = coverage
+
+
+class TreatmentTechnologies(GbdRecord):
+    """Holder for treatment technology records."""
+    __slots__ = ('ors')
+
+    def __init__(self,
+                 ors: TreatmentTechnology,):
+        self.ors = ors
