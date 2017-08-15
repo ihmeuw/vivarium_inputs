@@ -219,18 +219,21 @@ causes = Causes(
                 gbd_id=meid(2608),
                 proportion=meid(2608),
                 disability_weight=hid(355),
+                remission=meid(1181),
             ),
             moderate=SeveritySplit(
                 name='moderate_diarrhea',
                 gbd_id=meid(2609),
                 proportion=meid(2609),
-                disability_weight=hid(356)
+                disability_weight=hid(356),
+                remission=meid(1181),
             ),
             severe=SeveritySplit(
                 name='severe_diarrhea',
                 gbd_id=meid(2610),
                 proportion=meid(2610),
                 disability_weight=hid(357),
+                remission=meid(1181),
             ),
         ),
         etiologies=(etiologies.adenovirus, etiologies.aeromonas, etiologies.amoebiasis, etiologies.campylobacter,
