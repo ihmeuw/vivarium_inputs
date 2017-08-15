@@ -26,8 +26,9 @@ class hid(int):
     def __repr__(self):
         return 'hid({:d})'.format(self)
 
+
 class _Unknown:
-    """Tombstone for unknown values."""
+    """Marker for unknown values."""
     def __repr__(self):
         return 'UNKNOWN'
 
@@ -60,11 +61,11 @@ class GbdRecord:
 
 class ModelableEntity(GbdRecord):
     """Container for general GBD ids."""
-    __slots__ = ('name', 'gbd_id')
+    __slots__ = ('name', 'gbd_id',)
 
     def __init__(self,
                  name: str,
-                 gbd_id: Union[meid, rid, cid]):
+                 gbd_id: Union[meid, rid, cid],):
         self.name = name
         self.gbd_id = gbd_id
 
@@ -121,8 +122,11 @@ class SeveritySplits(GbdRecord):
     """Holder of severity splits."""
     __slots__ = ('mild', 'moderate', 'severe', 'asymptomatic')
 
-    def __init__(self, mild: SeveritySplit, moderate: SeveritySplit,
-                 severe: SeveritySplit, asymptomatic: SeveritySplit = None):
+    def __init__(self,
+                 mild: SeveritySplit,
+                 moderate: SeveritySplit,
+                 severe: SeveritySplit,
+                 asymptomatic: SeveritySplit = None):
         self.mild = mild
         self.moderate = moderate
         self.severe = severe
@@ -795,8 +799,20 @@ class Risks(GbdRecord):
         self.childhood_sexual_abuse_against_males = childhood_sexual_abuse_against_males
 
 
-class ModelableEntities(GbdRecord):
-    """Holder of modelable entities"""
+class HealthcareEntity(ModelableEntity):
+    """Container for healthcare system GBD ids."""
+    __slots__ = ('name', 'gbd_id', 'proportion')
+
+    def __init__(self,
+                 name: str,
+                 gbd_id: meid,
+                 proportion: meid = None):
+        super().__init__(name=name, gbd_id=gbd_id)
+        self.proportion = proportion
+
+
+class HealthcareEntities(GbdRecord):
+    """Holder of healthcare modelable entities"""
     __slots__ = ('outpatient_visits', )
 
     def __init__(self,
