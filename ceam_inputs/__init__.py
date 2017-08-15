@@ -5,7 +5,7 @@ _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_con
 config.load(_config_path, layer='base', source=_config_path)
 
 # Make these toplevel imports until external references can be removed.
-from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies,
+from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies, modelable_entities,
                                      meid, hid, cid, rid, UNKNOWN,
                                      UnknownEntityError)
 from ceam_inputs import gbd, risk_factor_correlation, gbd_ms_functions as functions
@@ -310,10 +310,10 @@ def get_subregions(location_id):
     return gbd.get_subregions(location_id)
 
 
-def get_severity_splits(parent_meid, child_meid):
+def get_severity_splits(parent, child):
     draw_number = config.run_configuration.draw_number
 
-    return functions.get_severity_splits(parent_meid=parent_meid, child_meid=child_meid, draw_number=draw_number)
+    return functions.get_severity_splits(parent_meid=parent.incidence, child_meid=child.proportion, draw_number=draw_number)
 
 
 def get_disability_weight(cause):
