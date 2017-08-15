@@ -157,13 +157,13 @@ def get_prevalence(cause):
     return _get_gbd_draws(modelable_entity=cause,  measure='prevalence', column_name='prevalence')
 
 
-def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
+def get_relative_risks(risk, cause, rr_type='morbidity'):
     location_id = config.simulation_parameters.location_id
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
     draws = functions.get_relative_risks(location_id=location_id,
-                                         risk_id=risk_id,
-                                         cause_id=cause_id,
+                                         risk_id=risk.gbd_id,
+                                         cause_id=cause.gbd_id,
                                          gbd_round_id=gbd_round_id,
                                          rr_type=rr_type)
     funct_output = functions.select_draw_data(draws, draw_number, column_name='rr', src_column='rr_{draw}')
@@ -175,31 +175,30 @@ def get_relative_risks(risk_id, cause_id, rr_type='morbidity'):
     output.columns = output.columns.droplevel()
     output.reset_index(inplace=True)
 
-    output.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
+    output.metadata = {'risk_id': risk.gbd_id, 'cause_id': cause.gbd_id}
     return output
 
 
-def get_pafs(risk_id, cause_id, paf_type='morbidity'):
+def get_pafs(risk, cause, paf_type='morbidity'):
     location_id = config.simulation_parameters.location_id
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
     draws = functions.get_pafs(location_id=location_id,
-                               risk_id=risk_id,
-                               cause_id=cause_id,
+                               risk_id=risk.gbd_id,
+                               cause_id=cause.gbd_id,
                                gbd_round_id=gbd_round_id,
                                paf_type=paf_type)
     df = functions.select_draw_data(draws, draw_number, column_name='PAF')
-    df.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
+    df.metadata = {'risk_id': risk.gbd_id, 'cause_id': cause.gbd_id}
     return df
 
 
-def get_exposure_means(risk_id):
+def get_exposure_means(risk):
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
     draws = functions.get_exposures(location_id=location_id,
-                                    risk_id=risk_id,
+                                    risk_id=risk.gbd_id,
                                     gbd_round_id=gbd_round_id)
     funct_output = functions.select_draw_data(draws, draw_number, column_name='exposure')
 
@@ -210,11 +209,11 @@ def get_exposure_means(risk_id):
     output.columns = output.columns.droplevel()
     output.reset_index(inplace=True)
 
-    output.metadata = {'risk_id': risk_id}
+    output.metadata = {'risk_id': risk.gbd_id}
     return output
 
 
-def get_exposure_standard_errors(risk_id):
+def get_exposure_standard_errors(risk):
     pass
 
 
@@ -396,10 +395,10 @@ def load_risk_correlation_matrices():
     return risk_factor_correlation.load_matrices()
 
 
-def get_mediation_factors(risk_id, cause_id):
+def get_mediation_factors(risk, cause):
     draw_number = config.run_configuration.draw_number
 
-    return functions.get_mediation_factors(risk_id, cause_id, draw_number)
+    return functions.get_mediation_factors(risk.gbd_id, cause.gbd_id, draw_number)
 
 
 def get_dtp3_coverage():
