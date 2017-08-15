@@ -5,7 +5,7 @@ _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_con
 config.load(_config_path, layer='base', source=_config_path)
 
 # Make these toplevel imports until external references can be removed.
-from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies, modelable_entities,
+from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies, healthcare_entities,
                                      meid, hid, cid, rid, UNKNOWN,
                                      UnknownEntityError)
 from ceam_inputs import gbd, risk_factor_correlation, gbd_ms_functions as functions
