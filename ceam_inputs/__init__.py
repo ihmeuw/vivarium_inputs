@@ -373,7 +373,10 @@ def get_life_table():
 
 
 def get_outpatient_visit_costs():
-    return gbd.get_data_from_auxiliary_file('Outpatient Visit Costs')
+    df = gbd.get_data_from_auxiliary_file('Outpatient Visit Costs')
+    df = pd.pivot_table(df[['location_id', 'year_id', 'cost', 'variable']], columns='variable', index=['location_id', 'year_id'], values='cost')
+    df.columns.name = None
+    return df.reset_index()
 
 
 def get_inpatient_visit_costs():
