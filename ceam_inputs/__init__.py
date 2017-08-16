@@ -405,7 +405,8 @@ def get_hypertension_drug_costs():
 
 
 def load_risk_correlation_matrices():
-    return risk_factor_correlation.load_matrices()
+    location_id = config.simulation_parameters.location_id
+    return risk_factor_correlation.load_matrices(location_id)
 
 
 def get_mediation_factors(risk, cause):
