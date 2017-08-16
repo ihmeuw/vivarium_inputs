@@ -3,8 +3,6 @@ import re
 
 import pandas as pd
 
-from vivarium import config
-
 from ceam_inputs.auxiliary_files import auxiliary_file_path
 from ceam_inputs.gbd_mapping import risk_factors
 
@@ -16,9 +14,9 @@ COLUMN_NORMALIZATION = {
         'fpg2': risk_factors.high_fasting_plasma_glucose_continuous.name,
         'watcat': risk_factors.unsafe_water_source.name,
         'sancat': risk_factors.unsafe_sanitation.name,
-        'handcat': risk_factors.no_access_to_handwashing_facility.name,
-        'stunted': risk_factors.child_stunting.name,
-        'wasted': risk_factors.child_wasting.name,
+        'handcat': risk_factors.no_handwashing_with_soap.name,
+        'stunted': risk_factors.childhood_stunting.name,
+        'wasted': risk_factors.childhood_wasting.name,
         'no_bfeeding': risk_factors.non_exclusive_breastfeeding.name,
 }
 
