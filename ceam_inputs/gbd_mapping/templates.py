@@ -57,6 +57,10 @@ class GbdRecord:
         else:
             raise KeyError
 
+    def __iter__(self):
+        for item in self.__slots__:
+            yield getattr(self, item)
+
     def __repr__(self):
 
         return "{}({})".format(self.__class__.__name__,
