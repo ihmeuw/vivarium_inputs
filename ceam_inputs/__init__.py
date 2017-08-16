@@ -372,8 +372,8 @@ def get_life_table():
     return gbd.get_data_from_auxiliary_file('Life Table')
 
 
-def get_doctor_visit_costs():
-    return gbd.get_data_from_auxiliary_file('Doctor Visit Costs')
+def get_outpatient_visit_costs():
+    return gbd.get_data_from_auxiliary_file('Outpatient Visit Costs')
 
 
 def get_inpatient_visit_costs():
