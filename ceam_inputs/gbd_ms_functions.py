@@ -375,7 +375,6 @@ def get_exposures(location_id, risk_id, gbd_round_id):
     key_columns = ['year_id', 'sex_id', 'age', 'parameter']
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure)
-    exposure = expand_ages(exposure)
 
     if risk_id == 100:
         exposure = _extract_secondhand_smoking_exposures(exposure)
@@ -415,6 +414,8 @@ def get_exposures(location_id, risk_id, gbd_round_id):
     # bit of ceam inputs - J.C. 2017-07-26
     if 'parameter' not in exposure.columns:
         exposure['parameter'] = 'continuous'
+
+    exposure = expand_ages(exposure)
 
     exposure[draw_columns] = exposure[draw_columns].fillna(value=0)
     exposure = exposure[key_columns + draw_columns]
@@ -622,7 +623,7 @@ def get_disability_weight(cause, draw_number):
     Unit test in place? -- Yes
     """
     if isinstance(cause.disability_weight, meid):
-        healthstate_id = gbd.get_healthstate_id(cause.id)
+        healthstate_id = gbd.get_healthstate_id(cause.disability_weight)
         modelable_entity_id = cause.disability_weight
     elif isinstance(cause.disability_weight, hid):
         healthstate_id = cause.disability_weight
