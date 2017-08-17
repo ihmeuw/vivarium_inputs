@@ -7,6 +7,7 @@ central computation functions
 https://hub.ihme.washington.edu/display/GBD2016/Shared+functions
 """
 import inspect
+from itertools import product
 
 import numpy as np
 import pandas as pd
@@ -924,31 +925,58 @@ def validate_data(draws, duplicate_columns=None):
 
 
 def get_fpg_distribution_parameters(location_id, year_start, year_end, draw):
-    parameters = pd.DataFrame()
     columns = ['age_group_id', 'sex_id', 'year_id', 'sll_loc_{}'.format(draw),
                'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]
+
     sub_location_ids = gbd.get_subregions(location_id)
     if not sub_location_ids:
         sub_location_ids = [location_id]
+    sex_ids = [1, 2]
+    year_ids = range(year_start, year_end + 1, 5)
 
-    for sub_location_id in sub_location_ids:
-        for sex_id in [1, 2]:
-            for year_id in np.arange(year_start, year_end + 1, 5):
-                df = gbd.get_data_from_auxiliary_file('Fasting Plasma Glucose Distributions',
-                                                      location_id=sub_location_id,
-                                                      year_id=year_id,
-                                                      sex_id=sex_id)
-                df = df[columns]
-                df['location'] = sub_location_id
-                parameters = pd.concat([parameters, df])
-    parameters = parameters.drop_duplicates()
-    parameters.loc[parameters.sex_id == 1, 'sex'] = 'Male'
-    parameters.loc[parameters.sex_id == 2, 'sex'] = 'Female'
-    parameters = get_age_group_midpoint_from_age_group_id(parameters)
-    parameters = parameters[['age', 'sex', 'year_id', 'location', 'sll_loc_{}'.format(draw),
-                             'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]]
-    parameters.columns = ['age', 'sex', 'year', 'location', 'loc', 'scale', 'error']
-    return parameters[['age', 'year', 'sex', 'error', 'scale', 'loc', 'location']]
+    dfs = [gbd.get_data_from_auxiliary_file('Fasting Plasma Glucose Distributions', location_id=sub_location_id,
+                                            year_id=year_id, sex_id=sex_id)[columns].assign(location=sub_location_id)
+           for sub_location_id, year_id, sex_id in product(sub_location_ids, year_ids, sex_ids)]
+
+    parameters = pd.concat(dfs).drop_duplicates()
+    parameters = get_age_group_midpoint_from_age_group_id(parameters).drop(['age_group_start', 'age_group_end'], axis=1)
+    parameters = (parameters
+                  .replace({'sex_id': 1}, 'Male').replace({'sex_id': 2}, 'Female')
+                  .rename(columns={'sex_id': 'sex',
+                                   'year_id': 'year',
+                                   'sll_loc_{}'.format(draw): 'loc',
+                                   'sll_scale_{}'.format(draw): 'scale',
+                                   'sll_error_{}'.format(draw): 'error'}))
+    if not config.simulation_parameters.use_subregions:
+        return aggregate_location_data(parameters, location_id)
+    return parameters
+
+
+def aggregate_location_data(df, location_id):
+    weights = get_subregion_weights(location_id)
+    merge_cols = ['age', 'sex', 'year', 'location']
+    param_cols = list(set(df.columns).difference(merge_cols))
+    df = df.merge(weights, on=['age', 'sex', 'year', 'location'], how='inner')
+    for c in param_cols:
+        df[c] = df[c].mul[df.location_weight]
+
+    df = df.drop(['location_weight', 'location'], axis=1)
+    return df.groupby(['age', 'year', 'sex'], as_index=False).sum().assign(location=location_id)
+
+
+def get_subregion_weights(location_id):
+    sub_pops = pd.concat([get_populations(location_id=location) for location in gbd.get_subregions(location_id)],
+                         ignore_index=True)
+    sub_pops = sub_pops[['age', 'sex', 'year', 'location_id', 'pop_scaled']].rename(columns={'location_id': 'location'})
+    sub_pops = sub_pops[sub_pops.sex != 'Both']
+    sub_pops['location_weight'] = (
+        sub_pops
+            .groupby(['age', 'sex', 'year'], as_index=False)
+            .apply(lambda sub_pop: sub_pop.pop_scaled / sub_pop.pop_scaled.sum())
+            .reset_index(level=0).pop_scaled
+    )
+    return sub_pops.drop('pop_scaled', axis=1)
+
 
 
 def get_bmi_distribution_parameters(location_id, year_start, year_end, draw):
