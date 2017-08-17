@@ -123,6 +123,7 @@ raw_cause_mapping = {
         'gbd_cause': cid(493),
         'mortality': cid(493),
         'excess_mortality': cid(493),
+        'disability_weight': 0.08,
         'prevalence': cid(493),
         'incidence': cid(493),
     },
