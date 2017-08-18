@@ -22,13 +22,17 @@ def _get_gbd_draws(modelable_entity, measure, column_name):
     """
     Parameters
     ----------
-    column_name : str
+    modelable_entity : ceam_inputs.gbd_mapping.CauseLike
+        A mapping of the GBD ids for a modelable entity onto its various measures.
     measure : str
-    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
+        The name of the requested measure.
+    column_name: str
+        The name of the column with the measure data in the output data table.
 
     Returns
     -------
-    pandas.DataFrame
+    pandas.DataFrame :
+        Table with columns 'age', 'sex', 'year' and `column_name`
     """
     gbd_id = modelable_entity[measure]
     if gbd_id is UNKNOWN:
@@ -54,7 +58,8 @@ def get_excess_mortality(cause):
 
     Parameters
     ----------
-    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
+    cause :  ceam_inputs.gbd_mapping.CauseLike
+        A mapping of the GBD ids for a modelable entity onto its various measures.
 
     Returns
     -------
@@ -77,7 +82,8 @@ def get_incidence(cause):
 
     Parameters
     ----------
-    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
+    cause :  ceam_inputs.gbd_mapping.CauseLike
+        A mapping of the GBD ids for a modelable entity onto its various measures.
 
     Returns
     -------
@@ -92,7 +98,8 @@ def get_cause_specific_mortality(cause):
 
     Parameters
     ----------
-    cause : ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
+    cause : ceam_inputs.gbd_mapping.CauseLike
+        A mapping of the GBD ids for a modelable entity onto its various measures.
 
     Returns
     -------
@@ -114,7 +121,8 @@ def get_remission(cause):
 
     Parameters
     ----------
-    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
+    cause :  ceam_inputs.gbd_mapping.CauseLike
+        A mapping of the GBD ids for a modelable entity onto its various measures.
 
     Returns
     -------
@@ -125,6 +133,18 @@ def get_remission(cause):
 
 
 def get_duration(cause):
+    """Get duration times for a modelable entity.
+
+    Parameters
+    ----------
+    cause :  ceam_inputs.gbd_mapping.CauseLike
+        A mapping of the GBD ids for a modelable entity onto its various measures.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Table with 'age', 'sex', 'year' and 'duration' columns
+    """
     if cause.duration is UNKNOWN:
         raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(cause.name, 'duration'))
     else:
@@ -137,7 +157,8 @@ def get_proportion(modelable_entity):
 
     Parameters
     ----------
-    modelable_entity :  ceam_inputs.gbd_mapping.CauseLike
+    modelable_entity : ceam_inputs.gbd_mapping.CauseLike
+        A mapping of the GBD ids for a modelable entity onto its various measures.
 
     Returns
     -------
@@ -157,7 +178,8 @@ def get_prevalence(cause):
 
     Parameters
     ----------
-    cause :  ceam_inputs.gbd_mapping.Cause or ceam_inputs.gbd_mapping.Etiology or ceam_inputs.gbd_mapping.Sequela
+    cause : ceam_inputs.gbd_mapping.CauseLike
+        A mapping of the GBD ids for a modelable entity onto its various measures.
 
     Returns
     -------
@@ -224,6 +246,7 @@ def get_exposure_means(risk):
 
 
 def get_exposure_standard_errors(risk):
+    # TODO : I still need to generate the standard deviations for the continuous risks.  So stub here for now. J.C.
     pass
 
 
