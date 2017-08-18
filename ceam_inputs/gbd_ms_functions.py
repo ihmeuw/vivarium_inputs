@@ -953,9 +953,9 @@ def aggregate_location_data(df, location_id):
     weights = get_subregion_weights(location_id)
     merge_cols = ['age', 'sex', 'year', 'location']
     param_cols = list(set(df.columns).difference(merge_cols))
-    df = df.merge(weights, on=['age', 'sex', 'year', 'location'], how='inner')
+    df = df.merge(weights, on=merge_cols, how='inner')
     for c in param_cols:
-        df[c] = df[c].mul[df.location_weight]
+        df[c] = df[c].mul(df.location_weight)
 
     df = df.drop(['location_weight', 'location'], axis=1)
     return df.groupby(['age', 'year', 'sex'], as_index=False).sum().assign(location=location_id)
