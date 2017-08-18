@@ -90,8 +90,7 @@ def get_age_bins():
                age_group_years_end, 
                age_group_name 
         FROM age_group
-        WHERE age_group_id IN ({})
-        """.format(','.join([str(a) for a in ZERO_TO_EIGHTY + EIGHTY_PLUS])), conn_def='shared')
+        """, conn_def='shared')
 
 
 @memory.cache

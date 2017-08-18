@@ -493,14 +493,11 @@ def get_sbp_mean_sd(location_id, year_start, year_end):
 
     draws = pd.DataFrame()
     for sex_id in [1, 2]:
-        for year_id in np.arange(year_start, year_end + 1, 5):
-            one_year_file = gbd.get_data_from_auxiliary_file('Systolic Blood Pressure Distributions',
+            data = gbd.get_data_from_auxiliary_file('Systolic Blood Pressure Distributions',
                                                              location_id=location_id,
-                                                             year_id=year_id,
                                                              sex_id=sex_id)
-            one_year_file['year_id'] = year_id
-            one_year_file['sex_id'] = sex_id
-            draws = draws.append(one_year_file)
+            data['sex_id'] = sex_id
+            draws = draws.append(data)
 
     # TODO: Need to rethink setting ages for this function. Since sbp estimates start for the
     # age 25-29 group, it should start at age 25, not 27.5.

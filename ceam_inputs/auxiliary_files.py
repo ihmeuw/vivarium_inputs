@@ -28,8 +28,8 @@ FILES = {
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv',
         },
     'Systolic Blood Pressure Distributions': {
-        'path': 'systolic_blood_pressure/exp_{location_id}_{year_id}_{sex_id}.dta',
-        'source': '/share/epi/risk/paf/metab_sbp_interm',
+        'path': 'systolic_blood_pressure/exp_{location_id}_{sex_id}.dta',
+        'source': '/share/epi/risk/paf/metab_sbp/exposures',
         'encoding': 'latin1',
         'owner': 'Stan Biryukov <stan0625@uw.edu>',
         },
@@ -51,10 +51,6 @@ FILES = {
         'path': 'risk_factor_propensity_correlation_matricies/location_{location_id}',
         'owner': 'Reed Sorenson <rsoren@uw.edu>',
         },
-    'Doctor Visit Costs': {
-        'path': 'doctor_visit_cost_KEN_20160804.csv',
-        'owner': 'Mark Moses <mwm6@uw.edu>',
-    },
     'Inpatient Visit Costs': {
         'path': 'inpatient_visit_cost_KEN_20170125.csv',
         'owner': 'Mark Moses <mwm6@uw.edu>',
@@ -65,7 +61,7 @@ FILES = {
     },
     'Outpatient Visit Costs': {
         'path': 'op_cost.csv',
-        'source': "/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_cost.csv",
+        'source': "/snfs1/Project/Cost_Effectiveness/Access_to_care/02_analysis/01_data/op_unit_cost.csv",
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
     'Diarrhea Visit Costs': {
