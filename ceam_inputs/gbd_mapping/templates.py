@@ -74,7 +74,7 @@ class ModelableEntity(GbdRecord):
 
     def __init__(self,
                  name: str,
-                 gbd_id: Union[meid, rid, cid],):
+                 gbd_id: Union[meid, rid, cid, None],):
         self.name = name
         self.gbd_id = gbd_id
 
@@ -844,7 +844,7 @@ class TreatmentTechnology(ModelableEntity):
 
     def __init__(self,
                  name: str,
-                 gbd_id: meid,
+                 gbd_id: Union[meid, None],
                  unit_cost: float,
                  coverage: float,):
         super().__init__(name=name, gbd_id=gbd_id)
