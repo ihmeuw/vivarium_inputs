@@ -1,4 +1,5 @@
 numpy
+pandas
 pytest
 joblib
 -e git+git://github.com/ihmeuw/vivarium.git#egg=vivarium

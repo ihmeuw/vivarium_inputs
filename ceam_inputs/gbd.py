@@ -42,12 +42,13 @@ def _get_draws_safely(draw_function, draw_options, *args, **kwargs):
                                 + "args : {}\nkwargs : {}.".format(args, kwargs))
     return measure_draws
 
+
 @memory.cache
 def get_gbd_tool_version(publication_ids, source):
     from db_tools import ezfuncs
-    #NOTE: this mapping comes from the gbd.metadata_type table but in that
-    #      database it isn't in a form that's convenient to query and these
-    #      ids should be stable so I'm sticking it here -Alec
+    # NOTE: this mapping comes from the gbd.metadata_type table but in that
+    #       database it isn't in a form that's convenient to query and these
+    #       ids should be stable so I'm sticking it here -Alec
     metadata_type_id = {
             'codcorrect': 1,
             'como': 4
@@ -118,6 +119,7 @@ def get_subregions(location_id):
     from hierarchies import dbtrees
     return [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
 
+
 @memory.cache
 def get_modelable_entity_draws(location_id, me_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
@@ -147,6 +149,7 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=No
                      sex_ids=MALE + FEMALE,
                      age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
                      gbd_round_id=gbd_round_id)
+
 
 @memory.cache
 def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
@@ -192,6 +195,7 @@ def get_relative_risks(location_id, risk_id, gbd_round_id):
                              age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
                              draw_type='rr')
 
+
 @memory.cache
 def get_exposures(location_id, risk_id, gbd_round_id):
     from transmogrifier.draw_ops import get_draws
@@ -228,6 +232,7 @@ def get_pafs(location_id, cause_id, gbd_round_id):
                              age_group_ids=ZERO_TO_EIGHTY + EIGHTY_PLUS,
                              include_risks=True,
                              num_workers=worker_count)
+
 
 @memory.cache
 def get_populations(location_id, gbd_round_id):

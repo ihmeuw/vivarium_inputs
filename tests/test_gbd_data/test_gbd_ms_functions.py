@@ -17,12 +17,9 @@ KENYA = 180
 
 def test_get_relative_risks():
     df = get_relative_risks(location_id=KENYA,
-                            year_start=1990,
-                            year_end=1990,
-                            risk_id=risk_factors.high_systolic_blood_pressure.gbd_risk,
-                            cause_id=causes.heart_attack.gbd_cause,
+                            risk_id=risk_factors.high_systolic_blood_pressure.gbd_id,
+                            cause_id=causes.ischemic_heart_disease.gbd_id,
                             gbd_round_id=3,
-                            draw_number=0,
                             rr_type='morbidity')
     draw_number = 19  # Arbitrary selection
 
@@ -40,14 +37,12 @@ def test_get_relative_risks():
 
 def test_get_pafs():
     df = get_pafs(location_id=KENYA,
-                  year_start=1990,
-                  year_end=1990,
-                  risk_id=risk_factors.high_systolic_blood_pressure.gbd_risk,
-                  cause_id=causes.heart_attack.gbd_cause,
+                  risk_id=risk_factors.high_systolic_blood_pressure.gbd_id,
+                  cause_id=causes.ischemic_heart_disease.gbd_id,
                   gbd_round_id=3,
-                  draw_number=0,
                   paf_type='morbidity')
     draw_number = 19
+    df = df[df.year_id == 1990]
     # assert that pafs are 0 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2")
     df_filter1.set_index('age', inplace=True)
@@ -62,11 +57,9 @@ def test_get_pafs():
 
 def test_get_exposures():
     df = get_exposures(location_id=KENYA,
-                       year_start=1990,
-                       year_end=1990,
-                       risk_id=risk_factors.smoking_prevalence_approach.gbd_risk,
+                       risk_id=risk_factors.smoking_prevalence_approach.gbd_id,
                        gbd_round_id=3)
-
+    df = df[df.year_id == 1990]
     # assert that exposures are 0 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2 and parameter == 'cat1'")
     df_filter1.set_index('age', inplace=True)
@@ -121,7 +114,7 @@ def test_get_disability_weight():
     # me_id 2608 = mild diarrhea
     err_msg = ("Get_disability_weight should return the correct "
                "disability weight from the flat files prepared by central comp")
-    assert np.allclose(get_disability_weight(dis_weight_modelable_entity_id=2608, draw_number=0), 0.0983228), err_msg
+    assert np.allclose(get_disability_weight(causes.diarrhea.severity_splits.mild, draw_number=0), 0.0983228), err_msg
 
 
 def test_get_asympt_ihd_proportions():
