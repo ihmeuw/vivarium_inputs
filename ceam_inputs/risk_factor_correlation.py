@@ -21,9 +21,10 @@ COLUMN_NORMALIZATION = {
 }
 
 
-def load_matrices(location_id):
+def load_matrices(location_id, gbd_round):
     matrices_root, encoding = auxiliary_file_path('Risk Factor Propensity Correlation Matrices',
-                                            location_id=location_id)
+                                                  location_id=location_id,
+                                                  gbd_round=gbd_round)
 
     try:
         knot_ages, sexes = zip(*[re.match('corr_([0-9]+)_([A-Za-z]+).csv', path).groups()
