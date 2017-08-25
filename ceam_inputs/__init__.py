@@ -6,16 +6,13 @@ from vivarium import config
 _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
 config.load(_config_path, layer='base', source=_config_path)
 
-# Make these toplevel imports until external references can be removed.
+# Make these top level imports until external references can be removed.
 from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies,
                                      healthcare_entities, treatment_technologies,
                                      meid, hid, cid, rid, scalar, UNKNOWN,
                                      UnknownEntityError)
-from ceam_inputs import gbd, risk_factor_correlation, gbd_ms_functions as functions
+from ceam_inputs import gbd, gbd_ms_functions as functions
 from ceam_inputs.util import gbd_year_range
-
-
-_name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'proportion': 18}
 
 
 def _get_gbd_draws(modelable_entity, measure, column_name):
@@ -40,13 +37,11 @@ def _get_gbd_draws(modelable_entity, measure, column_name):
     elif isinstance(gbd_id, scalar):  # We have a scalar value rather than an actual id.
         return gbd_id
 
-    year_start, year_end = gbd_year_range()
     draws = functions.get_gbd_draws(location_id=config.simulation_parameters.location_id,
-                                    year_start=year_start,
-                                    year_end=year_end,
-                                    measure=_name_measure_map[measure],
+                                    measure=measure,
                                     gbd_id=gbd_id,
-                                    gbd_round_id=config.simulation_parameters.gbd_round_id)
+                                    gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                    publication_ids=config.input_data.gbd_publication_ids)
 
     df = functions.select_draw_data(draws, config.run_configuration.draw_number, column_name=column_name)
     df.metadata = {'gbd_id': gbd_id}
@@ -106,14 +101,11 @@ def get_cause_specific_mortality(cause):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    year_start, year_end = gbd_year_range()
-
     return functions.get_cause_specific_mortality(cause_id=cause.gbd_id,
                                                   location_id=config.simulation_parameters.location_id,
-                                                  year_start=year_start,
-                                                  year_end=year_end,
                                                   gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                                  draw_number=config.run_configuration.draw_number)
+                                                  draw_number=config.run_configuration.draw_number,
+                                                  publication_ids=config.input_data.gbd_publication_ids)
 
 
 def get_remission(cause):
@@ -170,7 +162,8 @@ def get_proportion(modelable_entity):
 
 def get_age_bins():
     """Retrieves the age bin structure the GBD uses for demographic classification."""
-    return gbd.get_age_bins()
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return gbd.get_age_bins(gbd_round_id=gbd_round_id)
 
 
 def get_prevalence(cause):
@@ -260,26 +253,35 @@ def get_populations(location_id, year=-1, sex='All'):
 
 def get_age_specific_fertility_rates():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+
     return functions.get_age_specific_fertility_rates(location_id=location_id,
-                                                      year_start=year_start,
-                                                      year_end=year_end)
+                                                      gbd_round_id=gbd_round_id)
 
 
 def get_bmi_distribution_parameters():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw = config.run_configuration.draw_number
-
-    return functions.get_bmi_distribution_parameters(location_id, year_start, year_end, draw)
+    year_start, year_end = gbd_year_range()
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_bmi_distribution_parameters(location_id=location_id,
+                                                     year_start=year_start,
+                                                     year_end=year_end,
+                                                     draw=draw,
+                                                     gbd_round_id=gbd_round_id)
 
 
 def get_fpg_distribution_parameters():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw = config.run_configuration.draw_number
-
-    return functions.get_fpg_distribution_parameters(location_id, year_start, year_end, draw)
+    year_start, year_end = gbd_year_range()
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_fpg_distribution_parameters(location_id=location_id,
+                                                     year_start=year_start,
+                                                     year_end=year_end,
+                                                     draw=draw,
+                                                     gbd_round_id=gbd_round_id,
+                                                     use_subregions=config.simulation_parameters.use_subregions)
 
 
 def get_annual_live_births(location_id, year, sex_id=3):
@@ -292,11 +294,11 @@ def get_annual_live_births(location_id, year, sex_id=3):
 
 def get_sbp_distribution():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+
     draws = functions.get_sbp_mean_sd(location_id=location_id,
-                                      year_start=year_start,
-                                      year_end=year_end)
+                                      gbd_round_id=gbd_round_id)
     return functions.select_draw_data(draws, draw_number,
                                       column_name=['log_mean', 'log_sd'],
                                       src_column=['log_mean_{draw}', 'log_sd_{draw}'])
@@ -304,21 +306,20 @@ def get_sbp_distribution():
 
 def get_post_mi_heart_failure_proportion_draws():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw = config.run_configuration.draw_number
+    gbd_round_id = config.simulation_parameters.gbd_round_id
     draws = functions.get_post_mi_heart_failure_proportion_draws(location_id=location_id,
-                                                                 year_start=year_start,
-                                                                 year_end=year_end,
-                                                                 draw_number=draw,
-                                                                 gbd_round_id=config.simulation_parameters.gbd_round_id)
+                                                                 gbd_round_id=gbd_round_id,
+                                                                 publication_ids=config.input_data.gbd_publication_ids)
     return functions.select_draw_data(draws, draw,
                                       column_name='proportion',
                                       src_column='draw_{draw}')
 
 
 def get_angina_proportions():
-    draw_number = config.run_
-    draws = functions.get_angina_proportions()
+    draw_number = config.run_configuration.draw_number
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    draws = functions.get_angina_proportions(gbd_round_id=gbd_round_id)
 
     return functions.select_draw_data(draws, draw_number,
                                       column_name='proportion',
@@ -326,13 +327,10 @@ def get_angina_proportions():
 
 
 def get_asympt_ihd_proportions():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
-    draws = functions.get_asympt_ihd_proportions(location_id=location_id,
-                                                 year_start=year_start,
-                                                 year_end=year_end,
-                                                 draw_number=draw_number)
+    draws = functions.get_asympt_ihd_proportions(location_id=config.simulation_parameters.location_id,
+                                                 gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                                 publication_ids=config.input_data.gbd_publication_ids)
     return functions.select_draw_data(draws, draw_number,
                                       column_name='proportion',
                                       src_column='asympt_prop_{draw}')
@@ -344,132 +342,132 @@ def get_subregions(location_id):
 
 def get_severity_splits(parent, child):
     draw_number = config.run_configuration.draw_number
-
-    return functions.get_severity_splits(parent_meid=parent.incidence, child_meid=child.proportion, draw_number=draw_number)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_severity_splits(parent_meid=parent.incidence,
+                                         child_meid=child.proportion,
+                                         draw_number=draw_number,
+                                         gbd_round_id=gbd_round_id)
 
 
 def get_disability_weight(cause):
+    gbd_round_id = config.simulation_parameters.gbd_round_id
     if cause.disability_weight is UNKNOWN:
         raise UnknownEntityError('No mapping exists between cause {} and measure disability weight'.format(cause.name))
     elif isinstance(cause.disability_weight, scalar):
         return cause.disability_weight
     else:
-        return functions.get_disability_weight(cause, config.run_configuration.draw_number)
+        return functions.get_disability_weight(cause, config.run_configuration.draw_number, gbd_round_id)
 
 
 def get_rota_vaccine_coverage():
-    year_start, year_end = gbd_year_range()
-    # NOTE: There are no rota_vaccine_coverage estimates for GBD 2015, so we're pulling GBD 2016 estimates
     gbd_round_id = config.simulation_parameters.gbd_round_id
-    if gbd_round_id == 3:
-        gbd_round_id = 4
     draws = functions.get_rota_vaccine_coverage(location_id=config.simulation_parameters.location_id,
-                                                year_start=year_start,
-                                                year_end=year_end,
                                                 gbd_round_id=gbd_round_id)
     return functions.select_draw_data(draws, config.run_configuration.draw_number, column_name='coverage')
 
 
 def get_ors_pafs():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
-    draws = functions.get_ors_pafs(location_id=location_id,
-                                   year_start=year_start,
-                                   year_end=year_end)
-    return functions.select_draw_data(draws, draw_number,
-                                      column_name='paf',
-                                      src_column='paf_{draw}')
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_ors_pafs(location_id=location_id, draw_number=draw_number, gbd_round_id=gbd_round_id)
 
 
 def get_ors_relative_risks():
-    return functions.get_ors_relative_risks(config.run_configuration.draw_number)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_ors_relative_risks(config.run_configuration.draw_number, gbd_round_id)
 
 
 def get_ors_exposures():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
+    gbd_round_id = config.simulation_parameters.gbd_round_id
     draw_number = config.run_configuration.draw_number
-    draws = functions.get_ors_exposures(location_id=location_id,
-                                        year_start=year_start,
-                                        year_end=year_end,
-                                        draw_number=draw_number)
-    funct_output = functions.select_draw_data(draws, draw_number, column_name='exp')
-
-    output = funct_output.pivot_table(index=['age', 'year', 'sex'],
-                                      columns=[funct_output.parameter.values], values=['exp'])
-    output.columns = output.columns.droplevel()
-    output.reset_index(inplace=True)
-    return output
+    return functions.get_ors_exposures(location_id=location_id, draw_number=draw_number, gbd_round_id=gbd_round_id)
 
 
 def get_diarrhea_visit_costs():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
-    return functions.get_diarrhea_visit_costs(location_id, year_start, year_end, draw_number)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_diarrhea_visit_costs(location_id=location_id,
+                                              draw_number=draw_number,
+                                              gbd_round_id=gbd_round_id)
 
 
 def get_life_table():
-    return gbd.get_data_from_auxiliary_file('Life Table')
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_life_table(gbd_round_id=gbd_round_id)
 
 
 def get_outpatient_visit_costs():
-    df = gbd.get_data_from_auxiliary_file('Outpatient Visit Costs')
-    df = pd.pivot_table(df[['location_id', 'year_id', 'cost', 'variable']], columns='variable', index=['location_id', 'year_id'], values='cost')
-    df.columns.name = None
-    return df.reset_index()
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_outpatient_visit_costs(gbd_round_id=gbd_round_id)
 
 
 def get_inpatient_visit_costs():
-    return gbd.get_data_from_auxiliary_file('Inpatient Visit Costs')
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_inpatient_visit_costs(gbd_round_id=gbd_round_id)
 
 
 def get_hypertension_drug_costs():
-    data = gbd.get_data_from_auxiliary_file('Hypertension Drug Costs')
-    return data.set_index(['name'])
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_hypertension_drug_costs(gbd_round_id=gbd_round_id)
 
 
 def load_risk_correlation_matrices():
     location_id = config.simulation_parameters.location_id
-    return risk_factor_correlation.load_matrices(location_id)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.load_risk_correlation_matrices(location_id=location_id, gbd_round_id=gbd_round_id)
 
 
 def get_mediation_factors(risk, cause):
     draw_number = config.run_configuration.draw_number
-
-    return functions.get_mediation_factors(risk.gbd_id, cause.gbd_id, draw_number)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_mediation_factors(risk_id=risk.gbd_id,
+                                           cause_id=cause.gbd_id,
+                                           draw_number=draw_number,
+                                           gbd_round_id=gbd_round_id)
 
 
 def get_dtp3_coverage():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
-    draws = functions.get_dtp3_coverage(location_id, year_start, year_end, draw_number)
-    return functions.select_draw_data(draws, config.run_configuration.draw_number, column_name='coverage')
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_dtp3_coverage(location_id=location_id,
+                                       draw_number=draw_number,
+                                       gbd_round_id=gbd_round_id)
+
 
 
 def get_rota_vaccine_protection():
     location_id = config.simulation_parameters.location_id
     draw_number = config.run_configuration.draw_number
-
-    return functions.get_rota_vaccine_protection(location_id, draw_number)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_rota_vaccine_protection(location_id=location_id,
+                                                 draw_number=draw_number,
+                                                 gbd_round_id=gbd_round_id)
 
 def get_rota_vaccine_rrs():
     location_id = config.simulation_parameters.location_id
     draw_number = config.run_configuration.draw_number
-
-    return functions.get_rota_vaccine_rrs(location_id, draw_number)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_rota_vaccine_rrs(location_id=location_id,
+                                          draw_number=draw_number,
+                                          gbd_round_id=gbd_round_id)
 
 def get_diarrhea_costs():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
-    return functions.get_diarrhea_costs(location_id, year_start, year_end, draw_number)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_diarrhea_costs(location_id=location_id,
+                                        draw_number=draw_number,
+                                        gbd_round_id=gbd_round_id)
 
 
 def get_ors_costs():
     location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
     draw_number = config.run_configuration.draw_number
-    return functions.get_ors_costs(location_id, year_start, year_end, draw_number)
+    gbd_round_id = config.simulation_parameters.gbd_round_id
+    return functions.get_ors_costs(location_id=location_id,
+                                   draw_number=draw_number,
+                                   gbd_round_id=gbd_round_id)
