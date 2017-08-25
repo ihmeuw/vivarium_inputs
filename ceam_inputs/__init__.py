@@ -458,7 +458,7 @@ def get_ors_relative_risks():
 
     Returns
     -------
-    pandas.DataFrame
+    float
     """
     return functions.get_ors_relative_risks(gbd_round_id=config.simulation_parameters.gbd_round_id,
                                             draw_number=config.run_configuration.draw_number)

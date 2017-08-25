@@ -79,7 +79,7 @@ def get_gbd_draws(location_id, measure, gbd_id, gbd_round_id, publication_ids, d
     out = select_draw_data(draws, draw_number, column_name) if draw_number is not None else draws
     out.metadata = {'gbd_id': gbd_id}
 
-    return draws
+    return out
 
 
 def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
@@ -272,7 +272,8 @@ def get_relative_risks(location_id, risk_id, cause_id, gbd_round_id, rr_type='mo
         out = out.pivot_table(index=['age', 'year', 'sex'],
                               columns=[out.parameter.values],
                               values=['rr'])
-        out.columns = out.columns.droplevel().reset_index()
+        out.columns = out.columns.droplevel()
+        out = out.reset_index()
     else:
         out = rr
 
@@ -408,7 +409,8 @@ def get_exposures(location_id, risk_id, gbd_round_id, draw_number=None):
         out = out.pivot_table(index=['age', 'year', 'sex'],
                               columns=[out.parameter.values],
                               values=['exposure'])
-        out.columns = out.columns.droplevel().reset_index()
+        out.columns = out.columns.droplevel()
+        out = out.reset_index()
     else:
         out = exposure
 
