@@ -33,12 +33,13 @@ def normalize_for_simulation(df):
     return df
 
 
-def get_age_group_midpoint_from_age_group_id(df):
+def get_age_group_midpoint_from_age_group_id(df, gbd_round_id):
     """Creates an "age" column from the "age_group_id" column
 
     Parameters
     ----------
     df: df for which you want an age column that has an age_group_id column
+    gbd_round_id: int
 
     Returns
     -------
@@ -58,7 +59,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     df = df.copy()
     idx = df.index
-    mapping = gbd.get_age_bins()
+    mapping = gbd.get_age_bins(gbd_round_id)
     mapping = mapping.set_index('age_group_id')
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
 
@@ -97,12 +98,13 @@ def expand_grid(a, y):
     return df[['year_id', 'age']].sort_values(by=['year_id', 'age'])
 
 
-def get_all_age_groups_for_years_in_df(df):
+def get_all_age_groups_for_years_in_df(df, gbd_round_id):
     """Returns a dataframe with all ages for all years in df
 
     columns are age and year_id
     """
-    mapping = gbd.get_age_bins()
+
+    mapping = gbd.get_age_bins(gbd_round_id)
     mapping_filter = mapping.query('age_group_id >=2 and age_group_id <=21').copy()
     mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5
@@ -112,8 +114,18 @@ def get_all_age_groups_for_years_in_df(df):
     return expanded_data
 
 
-def expand_ages(df):
-    expanded_cols = get_all_age_groups_for_years_in_df(df)
+def expand_ages(df, gbd_round_id):
+    """
+    Parameters
+    ----------
+    df: pandas.DataFrame
+    gbd_round_id: int
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    expanded_cols = get_all_age_groups_for_years_in_df(df, gbd_round_id)
     expanded_indexed = expanded_cols.set_index(['year_id', 'age'])
     indexed_df = df.set_index(['year_id', 'age']).sort_index(level=0)
     total_df = pd.DataFrame()
@@ -137,13 +149,13 @@ def expand_ages(df):
     return total_df.reset_index()
 
 
-def expand_ages_for_dfs_w_all_age_estimates(df):
+def expand_ages_for_dfs_w_all_age_estimates(df, gbd_round_id):
     """Some tables only have estimates for the "all ages" age group instead of
     broken out for the different age group ids. We need estimates for each age
     group separately, so this function expands tables with estimates for only
     the "all ages" to include estimates for each age group id
     """
-    expanded_cols = get_all_age_groups_for_years_in_df(df)
+    expanded_cols = get_all_age_groups_for_years_in_df(df, gbd_round_id)
     male_data = pd.merge(df, expanded_cols)
     male_data['sex_id'] = 1
     female_data = pd.merge(df, expanded_cols)

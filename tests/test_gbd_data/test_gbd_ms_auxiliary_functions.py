@@ -18,7 +18,7 @@ def test_normalize_for_simulation():
 
 def test_get_age_group_midpoint_from_age_group_id():
     df = pd.DataFrame({'age_group_id': list(np.arange(2, 22))})
-    df = get_age_group_midpoint_from_age_group_id(df)
+    df = get_age_group_midpoint_from_age_group_id(df, 3)
     assert 'age' in df.columns, "get_age_group_midpoint_from_age_group_id should create an age column"
     test_ages= ([(.01917808 / 2), ((0.01917808 + 0.07671233) / 2), ((0.07671233 + 1) / 2), 3]
                 + [x for x in np.arange(7.5, 78, 5)] + [82.5])
