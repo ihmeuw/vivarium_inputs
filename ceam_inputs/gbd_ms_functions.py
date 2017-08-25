@@ -41,7 +41,7 @@ class UnmodelledDataError(GBDError):
     pass
 
 
-def get_gbd_draws(location_id, measure, gbd_id, gbd_round_id, publication_ids):
+def get_gbd_draws(location_id, measure, gbd_id, gbd_round_id, publication_ids, draw_number=None, column_name='rate'):
     """Returns draws for a given measure and modelable entity
 
     Gives you incidence, prevalence, csmr, excess mortality, and
@@ -74,8 +74,12 @@ def get_gbd_draws(location_id, measure, gbd_id, gbd_round_id, publication_ids):
     key_columns = ['year_id', 'sex_id', 'age']
     draw_columns = ['draw_{}'.format(i) for i in range(0, 1000)]
     validate_data(draws, key_columns)
+    draws = draws[key_columns + draw_columns].sort_values(by=key_columns)
 
-    return draws[key_columns + draw_columns].sort_values(by=key_columns)
+    out = select_draw_data(draws, draw_number, column_name) if draw_number is not None else draws
+    out.metadata = {'gbd_id': gbd_id}
+
+    return draws
 
 
 def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
@@ -159,7 +163,7 @@ def get_cause_specific_mortality(location_id, cause_id, gbd_round_id, publicatio
     return csmr[['age', 'sex', 'year', 'rate']]
 
 
-def get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id, publication_ids):
+def get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id, publication_ids, draw_number=None):
     """Returns post-mi proportion draws for hf due to ihd
 
     Parameters
@@ -168,6 +172,7 @@ def get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id, public
         location_id takes same location_id values as are used for GBD
     gbd_round_id: int
     publication_ids : [int]
+    draw_number: int, optional
 
     Returns
     -------
@@ -207,10 +212,15 @@ def get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id, public
 
     output_df = output_df[key_columns + draw_columns]
     validate_data(output_df, key_columns)
-    return output_df
+
+    if draw_number is not None:
+        out = select_draw_data(output_df, draw_number, column_name='proportion', src_column='draw_{draw}')
+    else:
+        out = output_df
+    return out
 
 
-def get_relative_risks(location_id, risk_id, cause_id, gbd_round_id, rr_type='morbidity'):
+def get_relative_risks(location_id, risk_id, cause_id, gbd_round_id, rr_type='morbidity', draw_number=None):
     """
     Parameters
     ----------
@@ -256,11 +266,21 @@ def get_relative_risks(location_id, risk_id, cause_id, gbd_round_id, rr_type='mo
 
     rr = rr[key_columns + draw_columns]
     validate_data(rr, key_columns)
+    if draw_number is not None:
+        out = select_draw_data(rr, draw_number, column_name='rr', src_column='rr_{draw}')
+        # need to reshape the funct output since there can be multiple categories
+        out = out.pivot_table(index=['age', 'year', 'sex'],
+                              columns=[out.parameter.values],
+                              values=['rr'])
+        out.columns = out.columns.droplevel().reset_index()
+    else:
+        out = rr
 
-    return rr
+    out.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
+    return out
 
 
-def get_pafs(location_id, risk_id, cause_id, gbd_round_id, paf_type='morbidity'):
+def get_pafs(location_id, risk_id, cause_id, gbd_round_id, paf_type='morbidity', draw_number=None):
     """
     Parameters
     ----------
@@ -304,10 +324,12 @@ def get_pafs(location_id, risk_id, cause_id, gbd_round_id, paf_type='morbidity')
     pafs = pafs[key_columns + draw_columns]
     validate_data(pafs, key_columns)
 
-    return pafs
+    out = select_draw_data(pafs, draw_number, column_name='PAF') if draw_number is not None else pafs
+    out.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
+    return out
 
 
-def get_exposures(location_id, risk_id, gbd_round_id):
+def get_exposures(location_id, risk_id, gbd_round_id, draw_number=None):
     """
     Parameters
     ----------
@@ -381,7 +403,17 @@ def get_exposures(location_id, risk_id, gbd_round_id):
     exposure = exposure[key_columns + draw_columns]
     validate_data(exposure, key_columns)
 
-    return exposure
+    if draw_number is not None:
+        out = select_draw_data(exposure, draw_number, column_name='exposure')
+        out = out.pivot_table(index=['age', 'year', 'sex'],
+                              columns=[out.parameter.values],
+                              values=['exposure'])
+        out.columns = out.columns.droplevel().reset_index()
+    else:
+        out = exposure
+
+    out.metadata = {'risk_id': risk_id}
+    return out
 
 
 def _extract_secondhand_smoking_exposures(exposure):
@@ -428,7 +460,7 @@ def select_draw_data(data, draw, column_name, src_column=None):
     return data
 
 
-def get_sbp_mean_sd(location_id, gbd_round_id):
+def get_sbp_mean_sd(location_id, gbd_round_id, draw_number=None):
     """ Returns a dataframe of mean and sd of sbp in LOG SPACE
 
     Parameters
@@ -495,10 +527,18 @@ def get_sbp_mean_sd(location_id, gbd_round_id):
     output_df.loc[young_idx, log_sd_columns] = 0.001
 
     validate_data(output_df, key_columns)
-    return output_df[key_columns + log_mean_columns + log_sd_columns].sort_values(by=key_columns)
+    output_df = output_df[key_columns + log_mean_columns + log_sd_columns].sort_values(by=key_columns)
+
+    if draw_number is not None:
+        out = select_draw_data(output_df, draw_number,
+                               column_name=['log_mean', 'log_sd'],
+                               src_column=['log_mean_{draw}', 'log_sd_{draw}'])
+    else:
+        out = output_df
+    return out
 
 
-def get_angina_proportions(gbd_round_id):
+def get_angina_proportions(gbd_round_id, draw_number=None):
     """Format the angina proportions so that we can use them in CEAM.
     This is messy. The proportions were produced by Catherine Johnson.
     The proportion differs by age, but not by sex, location, or time.
@@ -546,10 +586,15 @@ def get_angina_proportions(gbd_round_id):
     total_ang = total_ang[['year_id', 'sex_id', 'age', 'angina_prop']]
     total_ang = total_ang.apply(lambda x: x.fillna(value_at_youngest_age_for_which_we_have_data), axis=0)
 
-    return total_ang
+    if draw_number is not None:
+        out = select_draw_data(total_ang, draw_number, column_name='proportion', src_column='angina_prop')
+    else:
+        out = total_ang
+
+    return out
 
 
-def get_disability_weight(cause, draw_number, gbd_round_id):
+def get_disability_weight(cause, gbd_round_id, draw_number):
     """Returns a dataframe with disability weight draws for a given healthstate id
 
     Parameters
@@ -598,7 +643,7 @@ def get_disability_weight(cause, draw_number, gbd_round_id):
     return df['draw{}'.format(draw_number)].iloc[0]
 
 
-def get_asympt_ihd_proportions(location_id, gbd_round_id, publication_ids):
+def get_asympt_ihd_proportions(location_id, gbd_round_id, publication_ids, draw_number=None):
     """
     Gets the proportion of post-mi simulants that will get asymptomatic ihd.
     Proportion that will get asymptomatic ihd is equal to 1 - proportion of
@@ -633,7 +678,15 @@ def get_asympt_ihd_proportions(location_id, gbd_round_id, publication_ids):
     angina_values = merged[['angina_prop']].values
 
     asympt_prop_df = pd.DataFrame(1 - hf_values - angina_values, columns=prop_columns, index=merged.index).reset_index()
-    return asympt_prop_df[key_columns + prop_columns]
+    asympt_prop_df = asympt_prop_df[key_columns + prop_columns]
+
+    if draw_number is not None:
+        out = select_draw_data(asympt_prop_df, draw_number, column_name='proportion', src_column='asympt_prop_{draw}')
+    else:
+        out = asympt_prop_df
+
+    return out
+
 
 
 def get_age_specific_fertility_rates(location_id, gbd_round_id):
@@ -685,7 +738,7 @@ def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex
     return covariate_estimates
 
 
-def get_severity_splits(parent_meid, child_meid, draw_number, gbd_round_id):
+def get_severity_splits(parent_meid, child_meid, gbd_round_id, draw_number):
     """
     Returns a severity split proportion for a given cause
 
@@ -718,7 +771,7 @@ def get_severity_splits(parent_meid, child_meid, draw_number, gbd_round_id):
 
 
 # Make sure values make sense for year/age in test, similar to get_relative_risk tests
-def get_rota_vaccine_coverage(location_id, gbd_round_id):
+def get_rota_vaccine_coverage(location_id, gbd_round_id, draw_number=None):
     # NOTE: There are no rota_vaccine_coverage estimates for GBD 2015, so we're pulling GBD 2016 estimates
     if gbd_round_id == 3:
         gbd_round_id = 4
@@ -734,11 +787,12 @@ def get_rota_vaccine_coverage(location_id, gbd_round_id):
     draws[draw_columns] = draws[draw_columns].fillna(value=0)
     draws = draws[key_columns + draw_columns]
     validate_data(draws, key_columns)
+    draws = draws.sort_values(by=key_columns)
+    out = select_draw_data(draws, draw_number, column_name='coverage') if draw_number is not None else draws
+    return out
 
-    return draws.sort_values(by=key_columns)
 
-
-def get_ors_pafs(location_id, draw_number, gbd_round_id):
+def get_ors_pafs(location_id, gbd_round_id, draw_number=None):
     """
     Parameters
     ----------
@@ -751,22 +805,26 @@ def get_ors_pafs(location_id, draw_number, gbd_round_id):
                                             location_id=location_id,
                                             gbd_round=_gbd_round_id_map[gbd_round_id])
     pafs = get_age_group_midpoint_from_age_group_id(pafs, gbd_round_id)
-    return select_draw_data(pafs, draw_number, column_name='paf', src_column='paf_{draw}')
+    if draw_number is not None:
+        out = select_draw_data(pafs, draw_number, column_name='paf', src_column='paf_{draw}')
+    else:
+        out = pafs
+    return out
 
 
-def get_ors_relative_risks(draw_number, gbd_round):
+def get_ors_relative_risks(gbd_round_id, draw_number):
     """
     Parameters
     ----------
     draw_number: int
         current draw number (as specified in config.run_configuration.draw_number)
-    gbd_round : str, GBD_2015 or GBD_2016
+    gbd_round_id : int
     """
-    rr = gbd.get_data_from_auxiliary_file(treatment_technologies.ors.rrs, gbd_round=gbd_round)
+    rr = gbd.get_data_from_auxiliary_file(treatment_technologies.ors.rrs, gbd_round=_gbd_round_id_map[gbd_round_id])
     return float(rr[rr.parameter == 'cat1']['draw_{}'.format(draw_number)][0])
 
 
-def get_ors_exposures(location_id, draw_number, gbd_round_id):
+def get_ors_exposures(location_id, gbd_round_id, draw_number=None):
     """
     Parameters
     ----------
@@ -792,14 +850,19 @@ def get_ors_exposures(location_id, draw_number, gbd_round_id):
     keep_columns = ['year_id', 'sex_id', 'age', 'parameter', 'draw_{}'.format(draw_number)]
 
     draws = exp[keep_columns]
-    output = select_draw_data(draws, draw_number, column_name='exp')
-    output = output.pivot_table(index=['age', 'year', 'sex'],
-                                columns=[output.parameter.values], values=['exp'])
-    output.columns = output.columns.droplevel()
-    return output.reset_index()
+
+    if draw_number is not None:
+        output = select_draw_data(draws, draw_number, column_name='exp')
+        output = output.pivot_table(index=['age', 'year', 'sex'],
+                                    columns=[output.parameter.values], values=['exp'])
+        output.columns = output.columns.droplevel()
+        out = output.reset_index()
+    else:
+        out = draws
+    return out
 
 
-def get_diarrhea_visit_costs(location_id, draw_number, gbd_round_id):
+def get_diarrhea_visit_costs(location_id, gbd_round_id, draw_number):
     """
     Parameters
     ----------
@@ -848,7 +911,7 @@ def load_risk_correlation_matrices(location_id, gbd_round_id):
                                                  gbd_round=_gbd_round_id_map[gbd_round_id])
 
 
-def get_mediation_factors(risk_id, cause_id, draw_number, gbd_round_id):
+def get_mediation_factors(risk_id, cause_id, gbd_round_id, draw_number):
     mediation_factors = gbd.get_data_from_auxiliary_file('Mediation Factors',
                                                          gbd_round=_gbd_round_id_map[gbd_round_id])
     mediation_factors = mediation_factors.query("rei_id == {} and cause_id == {}".format(risk_id, cause_id))
@@ -871,16 +934,15 @@ def validate_data(draws, duplicate_columns=None):
                                                                + "you're pulling is correct.")
 
 
-def get_fpg_distribution_parameters(location_id, year_start, year_end, draw, gbd_round_id, use_subregions):
-    columns = ['age_group_id', 'sex_id', 'year_id', 'sll_loc_{}'.format(draw),
-               'sll_scale_{}'.format(draw), 'sll_error_{}'.format(draw)]
+def get_fpg_distribution_parameters(location_id, gbd_round_id, draw_number=None, use_subregions=False):
+    columns = ['age_group_id', 'sex_id', 'year_id', 'sll_loc_{}'.format(draw_number),
+               'sll_scale_{}'.format(draw_number), 'sll_error_{}'.format(draw_number)]
 
     sub_location_ids = gbd.get_subregions(location_id)
     if not sub_location_ids:
         sub_location_ids = [location_id]
     sex_ids = [1, 2]
-    year_ids = range(year_start, year_end + 1, 5)
-
+    year_ids = [1990, 1995, 2000, 2005, 2010, 2015]
     dfs = [gbd.get_data_from_auxiliary_file('Fasting Plasma Glucose Distributions',
                                             location_id=loc_id,
                                             year_id=year_id,
@@ -897,9 +959,9 @@ def get_fpg_distribution_parameters(location_id, year_start, year_end, draw, gbd
                   .replace({'sex_id': 1}, 'Male').replace({'sex_id': 2}, 'Female')
                   .rename(columns={'sex_id': 'sex',
                                    'year_id': 'year',
-                                   'sll_loc_{}'.format(draw): 'loc',
-                                   'sll_scale_{}'.format(draw): 'scale',
-                                   'sll_error_{}'.format(draw): 'error'}))
+                                   'sll_loc_{}'.format(draw_number): 'loc',
+                                   'sll_scale_{}'.format(draw_number): 'scale',
+                                   'sll_error_{}'.format(draw_number): 'error'}))
     if not use_subregions:
         return aggregate_location_data(parameters, location_id)
     return parameters
@@ -932,10 +994,12 @@ def get_subregion_weights(location_id):
     return sub_pops.drop('pop_scaled', axis=1)
 
 
-def get_bmi_distribution_parameters(location_id, year_start, year_end, draw, gbd_round_id):
+def get_bmi_distribution_parameters(location_id, gbd_round_id, draw_number=None):
     param_map = {'bshape1': 'a', 'bshape2': 'b', 'mm': 'loc', 'scale': 'scale'}
     param_frames = {p: pd.DataFrame() for p in param_map.keys()}
-    for sex_id, year_id, param in product([1, 2], range(year_start, year_end + 1, 5), param_map.keys()):
+    sex_ids = [1, 2]
+    year_ids = [1990, 1995, 2000, 2005, 2010, 2015]
+    for sex_id, year_id, param in product(sex_ids, year_ids, param_map.keys()):
         param_frames[param] = param_frames[param].append(
             gbd.get_data_from_auxiliary_file('Body Mass Index Distributions',
                                              parameter=param,
@@ -947,7 +1011,7 @@ def get_bmi_distribution_parameters(location_id, year_start, year_end, draw, gbd
 
     parameters = pd.DataFrame()
     for p, df in param_frames.items():
-        parameters[param_map[p]] = df.set_index(['age_group_id', 'sex_id', 'year_id'])['draw_{}'.format(draw)]
+        parameters[param_map[p]] = df.set_index(['age_group_id', 'sex_id', 'year_id'])['draw_{}'.format(draw_number)]
 
     parameters = parameters.reset_index()
     parameters = get_age_group_midpoint_from_age_group_id(parameters, gbd_round_id)
@@ -958,7 +1022,7 @@ def get_bmi_distribution_parameters(location_id, year_start, year_end, draw, gbd
     return parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']]
 
 
-def get_dtp3_coverage(location_id, draw_number, gbd_round_id):
+def get_dtp3_coverage(location_id, gbd_round_id, draw_number=None):
     if gbd.get_subregions(location_id):
         raise ValueError('DTP 3 coverage only available at the finest geographic level.  '
                          'Use the subregion ids {}'.format(gbd.get_subregions(location_id)))
@@ -977,12 +1041,13 @@ def get_dtp3_coverage(location_id, draw_number, gbd_round_id):
     dtp3 = dtp3.query("age < 5")
     dtp3 = expand_ages(dtp3, gbd_round_id)
     dtp3[draw_columns] = dtp3[draw_columns].fillna(value=0)
-    return select_draw_data(dtp3[key_columns + draw_columns],
-                            draw=draw_number,
-                            column_name='coverage')
+    dtp3 = dtp3[key_columns + draw_columns]
+
+    out = select_draw_data(dtp3, draw=draw_number, column_name='coverage') if draw_number is not None else dtp3
+    return out
 
 
-def get_rota_vaccine_protection(location_id, draw_number, gbd_round_id):
+def get_rota_vaccine_protection(location_id, gbd_round_id, draw_number):
     protection = gbd.get_data_from_auxiliary_file(treatment_technologies.rota_vaccine.protection,
                                                   gbd_round=_gbd_round_id_map[gbd_round_id])
     assert location_id in protection.location_id.unique(), ("protection draws do not exist for the "
@@ -991,7 +1056,7 @@ def get_rota_vaccine_protection(location_id, draw_number, gbd_round_id):
     return protection.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
 
 
-def get_rota_vaccine_rrs(location_id, draw_number, gbd_round_id):
+def get_rota_vaccine_rrs(location_id, gbd_round_id, draw_number):
 
     rrs = gbd.get_data_from_auxiliary_file(treatment_technologies.rota_vaccine.rrs,
                                            gbd_round=_gbd_round_id_map[gbd_round_id])
@@ -1001,7 +1066,7 @@ def get_rota_vaccine_rrs(location_id, draw_number, gbd_round_id):
     return rrs.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
 
 
-def get_diarrhea_costs(location_id, draw_number, gbd_round_id):
+def get_diarrhea_costs(location_id, gbd_round_id, draw_number):
     costs = gbd.get_data_from_auxiliary_file('Diarrhea Costs',
                                              location_id=location_id,
                                              gbd_round=_gbd_round_id_map[gbd_round_id])
@@ -1009,7 +1074,7 @@ def get_diarrhea_costs(location_id, draw_number, gbd_round_id):
     return costs.rename(columns={'year_id': 'year', 'draw_{}'.format(draw_number): 'cost'})
 
 
-def get_ors_costs(location_id, draw_number, gbd_round_id):
+def get_ors_costs(location_id, gbd_round_id, draw_number):
     costs = gbd.get_data_from_auxiliary_file(treatment_technologies.ors.daily_cost,
                                              location_id=location_id,
                                              gbd_round=_gbd_round_id_map[gbd_round_id])
