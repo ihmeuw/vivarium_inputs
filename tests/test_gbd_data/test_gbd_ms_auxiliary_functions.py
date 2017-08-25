@@ -18,11 +18,12 @@ def test_normalize_for_simulation():
 
 def test_get_age_group_midpoint_from_age_group_id():
     df = pd.DataFrame({'age_group_id': list(np.arange(2, 22))})
-    df = get_age_group_midpoint_from_age_group_id(df, 3)
+    df = get_age_group_midpoint_from_age_group_id(df, gbd_round_id=3)
     assert 'age' in df.columns, "get_age_group_midpoint_from_age_group_id should create an age column"
     test_ages= ([(.01917808 / 2), ((0.01917808 + 0.07671233) / 2), ((0.07671233 + 1) / 2), 3]
                 + [x for x in np.arange(7.5, 78, 5)] + [82.5])
-    assert df.age.tolist() == test_ages, "get_age_group_midpoint_from_age_group_id should return age group midpoints for the gbd age groups"
+    err_msg = "get_age_group_midpoint_from_age_group_id should return age group midpoints for the gbd age groups"
+    assert df.age.tolist() == test_ages, err_msg
 
 
 def test_expand_grid():
@@ -30,6 +31,6 @@ def test_expand_grid():
     years = pd.Series([1990, 1991, 1992])
 
     df = expand_grid(ages, years)
-
-    assert df.year_id.tolist() == np.repeat([1990, 1991, 1992], 6).tolist(), "expand_grid should expand a df to get row for each age/year combo"
-    assert df.age.tolist() == [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5], "expand_grid should expand a df to get row for each age/year combo"
+    err_msg = "expand_grid should expand a df to get row for each age/year combo"
+    assert df.year_id.tolist() == np.repeat([1990, 1991, 1992], 6).tolist(), err_msg
+    assert df.age.tolist() == [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5], err_msg

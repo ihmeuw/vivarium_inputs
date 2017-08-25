@@ -147,7 +147,7 @@ def test_get_asympt_ihd_proportions():
 
 # get_rota_vaccine_coverage
 def test_get_rota_vaccine_coverage():
-    cov = get_rota_vaccine_coverage(180, 4)
+    cov = get_rota_vaccine_coverage(location_id=180, gbd_round_id=4)
 
     cov_filter1 = cov.query("year_id < 2014")
     cov1 = cov_filter1.draw_0.values
@@ -163,6 +163,6 @@ def test_get_rota_vaccine_coverage():
 
 
 def test_get_mediation_factors():
-    assert np.isclose(get_mediation_factors(108, 493, 0, 3), 0.53957565)
-    assert np.isclose(get_mediation_factors(108, 499, 2, 3), 0.48045271)
-    assert np.isclose(get_mediation_factors(108, 500, 1, 3), 0.54893082)
+    assert np.isclose(get_mediation_factors(risk_id=108, cause_id=493, gbd_round_id=3, draw_number=0), 0.53957565)
+    assert np.isclose(get_mediation_factors(risk_id=108, cause_id=499, gbd_round_id=3, draw_number=2), 0.48045271)
+    assert np.isclose(get_mediation_factors(risk_id=108, cause_id=500, gbd_round_id=3, draw_number=1), 0.54893082)
