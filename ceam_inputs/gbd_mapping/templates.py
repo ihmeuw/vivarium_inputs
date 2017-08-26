@@ -817,45 +817,79 @@ class Risks(GbdRecord):
 
 class HealthcareEntity(ModelableEntity):
     """Container for healthcare system GBD ids and data."""
-    __slots__ = ('name', 'gbd_id', 'proportion')
-
-    def __init__(self,
-                 name: str,
-                 gbd_id: meid,
-                 proportion: meid = None):
-        super().__init__(name=name, gbd_id=gbd_id)
-        self.proportion = proportion
-
-
-class HealthcareEntities(GbdRecord):
-    """Holder of healthcare modelable entities"""
-    __slots__ = ('outpatient_visits', )
-
-    def __init__(self,
-                 outpatient_visits: ModelableEntity,):
-
-        super().__init__()
-        self.outpatient_visits = outpatient_visits
-
-
-class TreatmentTechnology(ModelableEntity):
-    """Container for treatment technology GBD ids and data."""
-    __slots__ = ('name', 'unit_cost', 'coverage')
+    __slots__ = ('name', 'gbd_id', 'proportion', 'cost')
 
     def __init__(self,
                  name: str,
                  gbd_id: Union[meid, None],
-                 unit_cost: float,
-                 coverage: float,):
+                 proportion: meid = None,
+                 cost: str = None,):
+        super().__init__(name=name, gbd_id=gbd_id)
+        self.proportion = proportion
+        self.cost = cost
+
+
+class HealthcareEntities(GbdRecord):
+    """Holder of healthcare modelable entities"""
+    __slots__ = ('outpatient_visits', 'inpatient_visits')
+
+    def __init__(self,
+                 outpatient_visits: HealthcareEntity,
+                 inpatient_visits: HealthcareEntity):
+
+        super().__init__()
+        self.outpatient_visits = outpatient_visits
+        self.inpatient_visits = inpatient_visits
+
+
+class TreatmentTechnology(ModelableEntity):
+    """Container for treatment technology GBD ids and data."""
+    __slots__ = ('name', 'unit_cost', 'daily_cost', 'coverage', 'protection',
+                 'efficacy_mean', 'efficacy_sd', 'pafs', 'rrs', 'exposures', )
+
+    def __init__(self,
+                 name: str,
+                 gbd_id: Union[meid, None],
+                 unit_cost: float = None,
+                 daily_cost: Union[float, str] = None,
+                 coverage: Union[float, str, meid] = None,
+                 protection: str = None,
+                 efficacy_mean: float = None,
+                 efficacy_sd: float = None,
+                 pafs: str = None,
+                 rrs: str = None,
+                 exposures: str = None,):
         super().__init__(name=name, gbd_id=gbd_id)
         self.unit_cost = unit_cost
+        self.daily_cost = daily_cost
         self.coverage = coverage
+        self.protection = protection
+        self.efficacy_mean = efficacy_mean
+        self.efficacy_sd = efficacy_sd
+        self.pafs = pafs
+        self.rrs = rrs
+        self.exposures = exposures
 
 
 class TreatmentTechnologies(GbdRecord):
     """Holder for treatment technology records."""
-    __slots__ = ('ors')
+    __slots__ = ('ors', 'rota_vaccine', 'dtp3_vaccine', 'thiazide_type_diuretics', 'beta_blockers', 'ace_inhibitors',
+                 'calcium_channel_blockers', 'hypertension_drugs', )
 
     def __init__(self,
-                 ors: TreatmentTechnology,):
+                 ors: TreatmentTechnology,
+                 rota_vaccine: TreatmentTechnology,
+                 dtp3_vaccine: TreatmentTechnology,
+                 thiazide_type_diuretics: TreatmentTechnology,
+                 beta_blockers: TreatmentTechnology,
+                 ace_inhibitors: TreatmentTechnology,
+                 calcium_channel_blockers: TreatmentTechnology,
+                 hypertension_drugs: TreatmentTechnology, ):
         self.ors = ors
+        self.rota_vaccine = rota_vaccine
+        self.dtp3_vaccine = dtp3_vaccine
+        self.thiazide_type_diuretics = thiazide_type_diuretics
+        self.beta_blockers = beta_blockers
+        self.ace_inhibitors = ace_inhibitors
+        self.calcium_channel_blockers = calcium_channel_blockers
+        self.hypertension_drugs = hypertension_drugs

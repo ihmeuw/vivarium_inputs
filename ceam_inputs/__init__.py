@@ -6,16 +6,12 @@ from vivarium import config
 _config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
 config.load(_config_path, layer='base', source=_config_path)
 
-# Make these toplevel imports until external references can be removed.
+# Make these top level imports until external references can be removed.
 from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies,
                                      healthcare_entities, treatment_technologies,
                                      meid, hid, cid, rid, scalar, UNKNOWN,
                                      UnknownEntityError)
-from ceam_inputs import gbd, risk_factor_correlation, gbd_ms_functions as functions
-from ceam_inputs.util import gbd_year_range
-
-
-_name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'proportion': 18}
+from ceam_inputs import gbd, gbd_ms_functions as functions
 
 
 def _get_gbd_draws(modelable_entity, measure, column_name):
@@ -40,17 +36,13 @@ def _get_gbd_draws(modelable_entity, measure, column_name):
     elif isinstance(gbd_id, scalar):  # We have a scalar value rather than an actual id.
         return gbd_id
 
-    year_start, year_end = gbd_year_range()
-    draws = functions.get_gbd_draws(location_id=config.simulation_parameters.location_id,
-                                    year_start=year_start,
-                                    year_end=year_end,
-                                    measure=_name_measure_map[measure],
-                                    gbd_id=gbd_id,
-                                    gbd_round_id=config.simulation_parameters.gbd_round_id)
-
-    df = functions.select_draw_data(draws, config.run_configuration.draw_number, column_name=column_name)
-    df.metadata = {'gbd_id': gbd_id}
-    return df
+    return functions.get_gbd_draws(location_id=config.simulation_parameters.location_id,
+                                   measure=measure,
+                                   gbd_id=gbd_id,
+                                   gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                   publication_ids=config.input_data.gbd_publication_ids,
+                                   draw_number=config.run_configuration.draw_number,
+                                   column_name=column_name)
 
 
 def get_excess_mortality(cause):
@@ -106,14 +98,11 @@ def get_cause_specific_mortality(cause):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    year_start, year_end = gbd_year_range()
-
     return functions.get_cause_specific_mortality(cause_id=cause.gbd_id,
                                                   location_id=config.simulation_parameters.location_id,
-                                                  year_start=year_start,
-                                                  year_end=year_end,
                                                   gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                                  draw_number=config.run_configuration.draw_number)
+                                                  draw_number=config.run_configuration.draw_number,
+                                                  publication_ids=config.input_data.gbd_publication_ids)
 
 
 def get_remission(cause):
@@ -170,7 +159,7 @@ def get_proportion(modelable_entity):
 
 def get_age_bins():
     """Retrieves the age bin structure the GBD uses for demographic classification."""
-    return gbd.get_age_bins()
+    return gbd.get_age_bins(gbd_round_id=config.simulation_parameters.gbd_round_id)
 
 
 def get_prevalence(cause):
@@ -190,286 +179,434 @@ def get_prevalence(cause):
 
 
 def get_relative_risks(risk, cause, rr_type='morbidity'):
-    location_id = config.simulation_parameters.location_id
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_relative_risks(location_id=location_id,
-                                         risk_id=risk.gbd_id,
-                                         cause_id=cause.gbd_id,
-                                         gbd_round_id=gbd_round_id,
-                                         rr_type=rr_type)
-    funct_output = functions.select_draw_data(draws, draw_number, column_name='rr', src_column='rr_{draw}')
+    """Get the relative risk for a cause risk pair
 
-    # need to reshape the funct output since there can be multiple categories
-    output = funct_output.pivot_table(index=['age', 'year', 'sex'],
-                                      columns=[funct_output.parameter.values],
-                                      values=['rr'])
-    output.columns = output.columns.droplevel()
-    output.reset_index(inplace=True)
+    Parameters
+    ----------
+    risk: ceam_inputs.gbd_mapping.Risk
+    cause: ceam_inputs.gbd_mapping.Cause
+    rr_type: {'morbidity', 'mortality'}
 
-    output.metadata = {'risk_id': risk.gbd_id, 'cause_id': cause.gbd_id}
-    return output
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_relative_risks(location_id=config.simulation_parameters.location_id,
+                                        risk_id=risk.gbd_id,
+                                        cause_id=cause.gbd_id,
+                                        gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                        rr_type=rr_type,
+                                        draw_number=config.run_configuration.draw_number)
 
 
 def get_pafs(risk, cause, paf_type='morbidity'):
-    location_id = config.simulation_parameters.location_id
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_pafs(location_id=location_id,
-                               risk_id=risk.gbd_id,
-                               cause_id=cause.gbd_id,
-                               gbd_round_id=gbd_round_id,
-                               paf_type=paf_type)
-    df = functions.select_draw_data(draws, draw_number, column_name='PAF')
-    df.metadata = {'risk_id': risk.gbd_id, 'cause_id': cause.gbd_id}
-    return df
+    """Get the population attributable fraction for a cause risk pair.
+
+    Parameters
+    ----------
+    risk: ceam_inputs.gbd_mapping.Risk
+    cause: ceam_inputs.gbd_mapping.Cause
+    paf_type: {'morbidity', 'mortality'}
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_pafs(location_id=config.simulation_parameters.location_id,
+                              risk_id=risk.gbd_id,
+                              cause_id=cause.gbd_id,
+                              gbd_round_id=config.simulation_parameters.gbd_round_id,
+                              paf_type=paf_type,
+                              draw_number=config.run_configuration.draw_number)
 
 
 def get_exposure_means(risk):
-    location_id = config.simulation_parameters.location_id
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_exposures(location_id=location_id,
-                                    risk_id=risk.gbd_id,
-                                    gbd_round_id=gbd_round_id)
-    funct_output = functions.select_draw_data(draws, draw_number, column_name='exposure')
+    """Gets the exposure distribution mean for a given risk.
 
-    # need to reshape the funct output since there can be multiple categories
-    output = funct_output.pivot_table(index=['age', 'year', 'sex'],
-                                      columns=[funct_output.parameter.values],
-                                      values=['exposure'])
-    output.columns = output.columns.droplevel()
-    output.reset_index(inplace=True)
+    Parameters
+    ----------
+    risk: ceam_inputs.gbd_mapping.Risk
 
-    output.metadata = {'risk_id': risk.gbd_id}
-    return output
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_exposures(location_id=config.simulation_parameters.location_id,
+                                   risk_id=risk.gbd_id,
+                                   gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                   draw_number=config.run_configuration.draw_number)
 
 
-def get_exposure_standard_errors(risk):
+def get_exposure_standard_errors(_):
+    """Gets the exposure distribution standard error for a given risk.
+
+    Parameters
+    ----------
+    risk: ceam_inputs.gbd_mapping.Risk
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
     # TODO : I still need to generate the standard deviations for the continuous risks.  So stub here for now. J.C.
     pass
 
 
 def get_populations(location_id, year=-1, sex='All'):
-    gbd_round_id = config.simulation_parameters.gbd_round_id
+    """Gets the demographic structure for a population.
+
+    Parameters
+    ----------
+    location_id: int
+    year: int
+    sex: {'All', 'Male', 'Female', 'Both'}
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
     return functions.get_populations(location_id=location_id,
                                      year=year,
                                      sex=sex,
-                                     gbd_round_id=gbd_round_id)
+                                     gbd_round_id=config.simulation_parameters.gbd_round_id)
 
 
 def get_age_specific_fertility_rates():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    return functions.get_age_specific_fertility_rates(location_id=location_id,
-                                                      year_start=year_start,
-                                                      year_end=year_end)
+    """Gets fertility rates broken down by age.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_age_specific_fertility_rates(location_id=config.simulation_parameters.location_id,
+                                                      gbd_round_id=config.simulation_parameters.gbd_round_id)
 
 
 def get_bmi_distribution_parameters():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw = config.run_configuration.draw_number
+    """Gets the parameters for the body mass index exposure distribution (a 4-parameter beta distribution).
 
-    return functions.get_bmi_distribution_parameters(location_id, year_start, year_end, draw)
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_bmi_distribution_parameters(location_id=config.simulation_parameters.location_id,
+                                                     gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                                     draw_number=config.run_configuration.draw_number)
 
 
 def get_fpg_distribution_parameters():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw = config.run_configuration.draw_number
+    """Gets the parameters for the fasting plasma glucose exposure distribution.
 
-    return functions.get_fpg_distribution_parameters(location_id, year_start, year_end, draw)
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_fpg_distribution_parameters(location_id=config.simulation_parameters.location_id,
+                                                     gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                                     draw_number=config.run_configuration.draw_number,
+                                                     use_subregions=config.simulation_parameters.use_subregions)
 
 
 def get_annual_live_births(location_id, year, sex_id=3):
-    data = functions.get_covariate_estimates(covariate_name_short='live_births_by_sex',
+    """Gets the live births in a given location and year.
+
+    Parameters
+    ----------
+    location_id: int
+    year: int
+    sex_id: {1, 2, 3}
+
+    Returns
+    -------
+    float
+        Average live births.
+    """
+    return functions.get_covariate_estimates(covariate_name_short='live_births_by_sex',
                                              location_id=location_id,
                                              year_id=year,
-                                             sex_id=sex_id)
-    return data['mean_value']
+                                             sex_id=sex_id)['mean_value']
 
 
 def get_sbp_distribution():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_sbp_mean_sd(location_id=location_id,
-                                      year_start=year_start,
-                                      year_end=year_end)
-    return functions.select_draw_data(draws, draw_number,
-                                      column_name=['log_mean', 'log_sd'],
-                                      src_column=['log_mean_{draw}', 'log_sd_{draw}'])
+    """Gets the parameters for the high systolic blood pressure exposure distribution.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_sbp_mean_sd(location_id=config.simulation_parameters.location_id,
+                                     gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                     draw_number=config.run_configuration.draw_number)
 
 
 def get_post_mi_heart_failure_proportion_draws():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw = config.run_configuration.draw_number
-    draws = functions.get_post_mi_heart_failure_proportion_draws(location_id=location_id,
-                                                                 year_start=year_start,
-                                                                 year_end=year_end,
-                                                                 draw_number=draw,
-                                                                 gbd_round_id=config.simulation_parameters.gbd_round_id)
-    return functions.select_draw_data(draws, draw,
-                                      column_name='proportion',
-                                      src_column='draw_{draw}')
+    """Gets the proportion of heart failure following myocardial infarction.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_post_mi_heart_failure_proportion_draws(location_id=config.simulation_parameters.location_id,
+                                                                gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                                                publication_ids=config.input_data.gbd_publication_ids,
+                                                                draw_number=config.run_configuration.draw_number)
 
 
 def get_angina_proportions():
-    draw_number = config.run_
-    draws = functions.get_angina_proportions()
+    """Gets the proportion of angina following myocardial infarction.
 
-    return functions.select_draw_data(draws, draw_number,
-                                      column_name='proportion',
-                                      src_column='angina_prop')
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_angina_proportions(gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                            draw_number=config.run_configuration.draw_number)
 
 
 def get_asympt_ihd_proportions():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_asympt_ihd_proportions(location_id=location_id,
-                                                 year_start=year_start,
-                                                 year_end=year_end,
-                                                 draw_number=draw_number)
-    return functions.select_draw_data(draws, draw_number,
-                                      column_name='proportion',
-                                      src_column='asympt_prop_{draw}')
+    """Gets the proportion of asymptomatic ischemic heart disease following myocardial infarction.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_asympt_ihd_proportions(location_id=config.simulation_parameters.location_id,
+                                                gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                                publication_ids=config.input_data.gbd_publication_ids,
+                                                draw_number=config.run_configuration.draw_number)
 
 
 def get_subregions(location_id):
+    """Gets a list of subregions associated with the given location.
+
+    Parameters
+    ----------
+    location_id: int
+
+    Returns
+    -------
+    [int]
+        Subregions of the given location.
+    """
     return gbd.get_subregions(location_id)
 
 
 def get_severity_splits(parent, child):
-    draw_number = config.run_configuration.draw_number
+    """Gets the proportion of the parent cause cases represented by the child cause.
 
-    return functions.get_severity_splits(parent_meid=parent.incidence, child_meid=child.proportion, draw_number=draw_number)
+    Parameters
+    ----------
+    parent: ceam_inputs.gbd_mapping.Cause
+    child: ceam_inputs.gbd_mapping.CauseLike
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_severity_splits(parent_meid=parent.incidence,
+                                         child_meid=child.proportion,
+                                         gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                         draw_number=config.run_configuration.draw_number)
 
 
 def get_disability_weight(cause):
+    """Gets the disability weight associated with the given cause-like entity.
+
+    Parameters
+    ----------
+    cause: ceam_inputs.gbd_mapping.CauseLike
+
+    Returns
+    -------
+    float or pandas.DataFrame
+    """
     if cause.disability_weight is UNKNOWN:
         raise UnknownEntityError('No mapping exists between cause {} and measure disability weight'.format(cause.name))
     elif isinstance(cause.disability_weight, scalar):
         return cause.disability_weight
     else:
-        return functions.get_disability_weight(cause, config.run_configuration.draw_number)
+        return functions.get_disability_weight(cause,
+                                               gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                               draw_number=config.run_configuration.draw_number)
 
 
 def get_rota_vaccine_coverage():
-    year_start, year_end = gbd_year_range()
-    # NOTE: There are no rota_vaccine_coverage estimates for GBD 2015, so we're pulling GBD 2016 estimates
-    gbd_round_id = config.simulation_parameters.gbd_round_id
-    if gbd_round_id == 3:
-        gbd_round_id = 4
-    draws = functions.get_rota_vaccine_coverage(location_id=config.simulation_parameters.location_id,
-                                                year_start=year_start,
-                                                year_end=year_end,
-                                                gbd_round_id=gbd_round_id)
-    return functions.select_draw_data(draws, config.run_configuration.draw_number, column_name='coverage')
+    """Gets the background amount of rota vaccine coverage.
+
+    Returns
+    -------
+    pandas.DataFrame"""
+    return functions.get_rota_vaccine_coverage(location_id=config.simulation_parameters.location_id,
+                                               gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                               draw_number=config.run_configuration.draw_number)
 
 
 def get_ors_pafs():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_ors_pafs(location_id=location_id,
-                                   year_start=year_start,
-                                   year_end=year_end)
-    return functions.select_draw_data(draws, draw_number,
-                                      column_name='paf',
-                                      src_column='paf_{draw}')
+    """Gets the population attributable fraction of diarrhea deaths due to lack of oral rehydration salts solution.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_ors_pafs(location_id=config.simulation_parameters.location_id,
+                                  gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                  draw_number=config.run_configuration.draw_number)
 
 
 def get_ors_relative_risks():
-    return functions.get_ors_relative_risks(config.run_configuration.draw_number)
+    """Gets the relative risk of lack of oral rehydration salts solution on diarrhea excess mortality.
+
+    Returns
+    -------
+    float
+    """
+    return functions.get_ors_relative_risks(gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                            draw_number=config.run_configuration.draw_number)
 
 
 def get_ors_exposures():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_ors_exposures(location_id=location_id,
-                                        year_start=year_start,
-                                        year_end=year_end,
-                                        draw_number=draw_number)
-    funct_output = functions.select_draw_data(draws, draw_number, column_name='exp')
+    """Get the exposure to lack of oral rehydration salts solution (1 - ORS coverage).
 
-    output = funct_output.pivot_table(index=['age', 'year', 'sex'],
-                                      columns=[funct_output.parameter.values], values=['exp'])
-    output.columns = output.columns.droplevel()
-    output.reset_index(inplace=True)
-    return output
-
-
-def get_diarrhea_visit_costs():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    return functions.get_diarrhea_visit_costs(location_id, year_start, year_end, draw_number)
+    Returns
+    pandas.DataFrame
+    """
+    return functions.get_ors_exposures(location_id=config.simulation_parameters.location_id,
+                                       gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                       draw_number=config.run_configuration.draw_number)
 
 
 def get_life_table():
-    return gbd.get_data_from_auxiliary_file('Life Table')
+    """Gets the life expectancy table.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_life_table(gbd_round_id=config.simulation_parameters.gbd_round_id)
 
 
 def get_outpatient_visit_costs():
-    df = gbd.get_data_from_auxiliary_file('Outpatient Visit Costs')
-    df = pd.pivot_table(df[['location_id', 'year_id', 'cost', 'variable']], columns='variable', index=['location_id', 'year_id'], values='cost')
-    df.columns.name = None
-    return df.reset_index()
+    """Gets the cost table for outpatient visits.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_outpatient_visit_costs(gbd_round_id=config.simulation_parameters.gbd_round_id)
 
 
 def get_inpatient_visit_costs():
-    return gbd.get_data_from_auxiliary_file('Inpatient Visit Costs')
+    """Gets the cost table for outpatient visits.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_inpatient_visit_costs(gbd_round_id=config.simulation_parameters.gbd_round_id)
 
 
 def get_hypertension_drug_costs():
-    data = gbd.get_data_from_auxiliary_file('Hypertension Drug Costs')
-    return data.set_index(['name'])
+    """Gets a table of the daily costs for several common hypertension drugs.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_hypertension_drug_costs(gbd_round_id=config.simulation_parameters.gbd_round_id)
 
 
 def load_risk_correlation_matrices():
-    location_id = config.simulation_parameters.location_id
-    return risk_factor_correlation.load_matrices(location_id)
+    """Gets the matrix of correlation coefficients for risk factors.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.load_risk_correlation_matrices(location_id=config.simulation_parameters.location_id,
+                                                    gbd_round_id=config.simulation_parameters.gbd_round_id)
 
 
 def get_mediation_factors(risk, cause):
-    draw_number = config.run_configuration.draw_number
+    """Gets the total mediation factor for the given risk cause pair.
 
-    return functions.get_mediation_factors(risk.gbd_id, cause.gbd_id, draw_number)
+    Returns
+    -------
+    float or pandas.DataFrame
+    """
+    return functions.get_mediation_factors(risk_id=risk.gbd_id,
+                                           cause_id=cause.gbd_id,
+                                           gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                           draw_number=config.run_configuration.draw_number)
 
 
 def get_dtp3_coverage():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    draws = functions.get_dtp3_coverage(location_id, year_start, year_end, draw_number)
-    return functions.select_draw_data(draws, config.run_configuration.draw_number, column_name='coverage')
+    """Gets the Diphtheria-tetanus-pertussis immunization coverage.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_dtp3_coverage(location_id=config.simulation_parameters.location_id,
+                                       gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                       draw_number=config.run_configuration.draw_number)
 
 
 def get_rota_vaccine_protection():
-    location_id = config.simulation_parameters.location_id
-    draw_number = config.run_configuration.draw_number
+    """Gets rota vaccine protection estimates.
 
-    return functions.get_rota_vaccine_protection(location_id, draw_number)
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_rota_vaccine_protection(location_id=config.simulation_parameters.location_id,
+                                                 gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                                 draw_number=config.run_configuration.draw_number)
+
 
 def get_rota_vaccine_rrs():
-    location_id = config.simulation_parameters.location_id
-    draw_number = config.run_configuration.draw_number
+    """Gets the relative risk of lack of rota vaccine on rotaviral entiritis incidence.
 
-    return functions.get_rota_vaccine_rrs(location_id, draw_number)
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_rota_vaccine_rrs(location_id=config.simulation_parameters.location_id,
+                                          gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                          draw_number=config.run_configuration.draw_number)
+
+
+# FIXME: Why are there two of these?
+def get_diarrhea_visit_costs():
+    """Gets the cost of a healthcare visit due to diarrhea.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_diarrhea_visit_costs(location_id=config.simulation_parameters.location_id,
+                                              gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                              draw_number=config.run_configuration.draw_number)
+
 
 def get_diarrhea_costs():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    return functions.get_diarrhea_costs(location_id, year_start, year_end, draw_number)
+    """Gets the cost of a healthcare visit due to diarrhea.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_diarrhea_costs(location_id=config.simulation_parameters.location_id,
+                                        gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                        draw_number=config.run_configuration.draw_number)
 
 
 def get_ors_costs():
-    location_id = config.simulation_parameters.location_id
-    year_start, year_end = gbd_year_range()
-    draw_number = config.run_configuration.draw_number
-    return functions.get_ors_costs(location_id, year_start, year_end, draw_number)
+    """Gets the daily cost associated with oral rehydration salt solution treatment.
+
+    Returns
+    -------
+    pandas.DataFrame
+    """
+    return functions.get_ors_costs(location_id=config.simulation_parameters.location_id,
+                                   gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                   draw_number=config.run_configuration.draw_number)

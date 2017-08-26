@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from vivarium import config
+
 from ceam_inputs import causes, risk_factors
 from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
                                           get_angina_proportions, get_disability_weight,
@@ -74,7 +76,8 @@ def test_get_exposures():
 
 
 def test_get_sbp_mean_sd():
-    df = get_sbp_mean_sd(location_id=KENYA, year_start=1990, year_end=1990)
+    df = get_sbp_mean_sd(location_id=KENYA, gbd_round_id=3)
+    df = df[df.year_id == 1990]
     draw_number = 114
     sex = 1
     age = 7.5
@@ -89,7 +92,8 @@ def test_get_sbp_mean_sd():
 
 @pytest.mark.xfail(strict=True)
 def test_get_sbp_mean_sd_kenya_2000():
-    df = get_sbp_mean_sd(location_id=KENYA, year_start=2000, year_end=2000)
+    df = get_sbp_mean_sd(location_id=KENYA, gbd_round_id=3)
+    df = df[df.year_id == 2000]
     df = df[['year_id', 'sex_id', 'age', 'log_mean_0']]
     df = df.groupby(['year_id', 'sex_id', 'age']).first()
 
@@ -99,7 +103,7 @@ def test_get_sbp_mean_sd_kenya_2000():
 
 
 def test_get_angina_proportions():
-    props = get_angina_proportions()
+    props = get_angina_proportions(gbd_round_id=3)
     props.set_index('age', inplace=True)
     props = props.query('sex_id == 1')
 
@@ -114,14 +118,20 @@ def test_get_disability_weight():
     # me_id 2608 = mild diarrhea
     err_msg = ("Get_disability_weight should return the correct "
                "disability weight from the flat files prepared by central comp")
-    assert np.allclose(get_disability_weight(causes.diarrhea.severity_splits.mild, draw_number=0), 0.0983228), err_msg
+    assert np.allclose(get_disability_weight(causes.diarrhea.severity_splits.mild,
+                                             draw_number=0,
+                                             gbd_round_id=3), 0.0983228), err_msg
 
 
 def test_get_asympt_ihd_proportions():
-    angina_proportions = get_angina_proportions()
-    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(180, 1990, 2000,
-                                                                           draw_number=0, gbd_round_id=3)
-    asympt_ihd_proportions = get_asympt_ihd_proportions(180, 1990, 2000, draw_number=0)
+    angina_proportions = get_angina_proportions(gbd_round_id=3)
+    pub_ids = config.input_data.gbd_publication_ids
+    heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(KENYA,
+                                                                           gbd_round_id=3,
+                                                                           publication_ids=pub_ids)
+    asympt_ihd_proportions = get_asympt_ihd_proportions(KENYA,
+                                                        gbd_round_id=3,
+                                                        publication_ids=pub_ids)
 
     ang_filter = angina_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
     hf_filter = heart_failure_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
@@ -137,7 +147,7 @@ def test_get_asympt_ihd_proportions():
 
 # get_rota_vaccine_coverage
 def test_get_rota_vaccine_coverage():
-    cov = get_rota_vaccine_coverage(180, 2000, 2015, 4)
+    cov = get_rota_vaccine_coverage(location_id=180, gbd_round_id=4)
 
     cov_filter1 = cov.query("year_id < 2014")
     cov1 = cov_filter1.draw_0.values
@@ -153,6 +163,6 @@ def test_get_rota_vaccine_coverage():
 
 
 def test_get_mediation_factors():
-    assert np.isclose(get_mediation_factors(108, 493, 0), 0.53957565)
-    assert np.isclose(get_mediation_factors(108, 499, 2), 0.48045271)
-    assert np.isclose(get_mediation_factors(108, 500, 1), 0.54893082)
+    assert np.isclose(get_mediation_factors(risk_id=108, cause_id=493, gbd_round_id=3, draw_number=0), 0.53957565)
+    assert np.isclose(get_mediation_factors(risk_id=108, cause_id=499, gbd_round_id=3, draw_number=2), 0.48045271)
+    assert np.isclose(get_mediation_factors(risk_id=108, cause_id=500, gbd_round_id=3, draw_number=1), 0.54893082)

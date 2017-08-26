@@ -1,6 +1,6 @@
 input_data:
     intermediary_data_cache_path: /share/scratch/users/{username}/cache
-    auxiliary_data_folder: "{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015"
+    auxiliary_data_folder: "{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/{gbd_round}"
     gbd_publication_ids: [12,13,14,15,16,17] # GBD2015 capstone papers
     j_drive: /home/j
     risk_factor_correlation_matrix_variation: location_180
