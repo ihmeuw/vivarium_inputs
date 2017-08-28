@@ -19,6 +19,12 @@ class cid(int):
         return 'cid({:d})'.format(self)
 
 
+class sid(int):
+    """Sequela ID"""
+    def __repr__(self):
+        return 'sid({:d})'.format(self)
+
+
 class hid(int):
     """Healthstate ID"""
     def __repr__(self):
@@ -111,8 +117,8 @@ class SeveritySplit(CauseLike):
 
     def __init__(self,
                  name: str,
-                 gbd_id: meid,
-                 proportion: Union[meid, scalar],
+                 gbd_id: Union[meid, sid],
+                 proportion: Union[meid, scalar] = UNKNOWN,
                  prevalence: Union[meid, None] = UNKNOWN,
                  disability_weight: Union[hid, meid, None] = UNKNOWN,
                  excess_mortality: Union[meid, None] = UNKNOWN,
@@ -131,17 +137,28 @@ class SeveritySplit(CauseLike):
 
 class SeveritySplits(GbdRecord):
     """Holder of severity splits."""
-    __slots__ = ('mild', 'moderate', 'severe', 'asymptomatic')
+    __slots__ = ('mild', 'moderate', 'severe', 'asymptomatic',
+                 'level_1', 'level_2', 'level_3', 'level_4', 'level_5',)
 
     def __init__(self,
-                 mild: SeveritySplit,
-                 moderate: SeveritySplit,
-                 severe: SeveritySplit,
-                 asymptomatic: SeveritySplit = None):
+                 mild: SeveritySplit = None,
+                 moderate: SeveritySplit = None,
+                 severe: SeveritySplit = None,
+                 asymptomatic: SeveritySplit = None,
+                 level_1: SeveritySplit = None,
+                 level_2: SeveritySplit = None,
+                 level_3: SeveritySplit = None,
+                 level_4: SeveritySplit = None,
+                 level_5: SeveritySplit = None,):
         self.mild = mild
         self.moderate = moderate
         self.severe = severe
         self.asymptomatic = asymptomatic
+        self.level_1 = level_1
+        self.level_2 = level_2
+        self.level_3 = level_3
+        self.level_4 = level_4
+        self.level_5 = level_5
 
 
 class Sequela(CauseLike):
@@ -151,7 +168,7 @@ class Sequela(CauseLike):
 
     def __init__(self,
                  name: str,
-                 gbd_id: meid,
+                 gbd_id: Union[meid, sid, None],
                  incidence: Union[meid, None] = UNKNOWN,
                  proportion: Union[meid, str, None] = UNKNOWN,
                  prevalence: Union[meid, None] = UNKNOWN,
@@ -267,19 +284,29 @@ class Etioloties(GbdRecord):
 
 class Sequelae(GbdRecord):
     """Holder of Sequelae"""
-    __slots__ = ('heart_attack', 'heart_failure', 'angina', 'asymptomatic_ihd')
+    __slots__ = ('heart_attack', 'heart_failure', 'angina', 'asymptomatic_ihd',
+                 'chronic_ischemic_stroke', 'acute_ischemic_stroke',
+                 'chronic_hemorrhagic_stroke', 'acute_hemorrhagic_stroke',)
 
     def __init__(self,
                  heart_attack: Sequela,
                  heart_failure: Sequela,
                  angina: Sequela,
-                 asymptomatic_ihd: Sequela,):
+                 asymptomatic_ihd: Sequela,
+                 chronic_ischemic_stroke: Sequela,
+                 acute_ischemic_stroke: Sequela,
+                 chronic_hemorrhagic_stroke: Sequela,
+                 acute_hemorrhagic_stroke: Sequela,):
 
         super().__init__()
         self.heart_attack = heart_attack
         self.heart_failure = heart_failure
         self.angina = angina
         self.asymptomatic_ihd = asymptomatic_ihd
+        self.chronic_ischemic_stroke = chronic_ischemic_stroke
+        self.acute_ischemic_stroke = acute_ischemic_stroke
+        self.chronic_hemorrhagic_stroke = chronic_hemorrhagic_stroke
+        self.acute_hemorrhagic_stroke = acute_hemorrhagic_stroke
 
 
 class Tmred(GbdRecord):

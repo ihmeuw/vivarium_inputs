@@ -1,6 +1,6 @@
 """Mapping of GBD ids onto vivarium conventions."""
 from .templates import (Etiology, Etioloties, Sequela, Sequelae, Cause, Causes,
-                        SeveritySplit, SeveritySplits, cid, meid, rid, hid, scalar)
+                        SeveritySplit, SeveritySplits, cid, sid, meid, rid, hid, scalar)
 
 etiologies = Etioloties(
     unattributed_diarrhea=Etiology(
@@ -180,6 +180,140 @@ sequelae = Sequelae(
         prevalence=meid(3233),
         excess_mortality=scalar(0),
         disability_weight=meid(3233),
+    ),
+    chronic_ischemic_stroke=Sequela(
+        name='chronic_ischemic_stroke',
+        gbd_id=None,
+        severity_splits=SeveritySplits(
+            asymptomatic=SeveritySplit(
+                name='asymptomatic_chronic_ischemic_stroke',
+                gbd_id=sid(946),
+                prevalence=meid(3095),
+            ),
+            level_1=SeveritySplit(
+                name='chronic_ischemic_stroke_level_1',
+                gbd_id=sid(391),
+                prevalence=meid(1833),
+            ),
+            level_2=SeveritySplit(
+                name='chronic_ischemic_stroke_level_2',
+                gbd_id=sid(392),
+                prevalence=meid(1834),
+            ),
+            level_3=SeveritySplit(
+                name='chronic_ischemic_stroke_level_3',
+                gbd_id=sid(393),
+                prevalence=meid(1835),
+            ),
+            level_4=SeveritySplit(
+                name='chronic_ischemic_stroke_level_4',
+                gbd_id=sid(394),
+                prevalence=meid(1836),
+            ),
+            level_5=SeveritySplit(
+                name='chronic_ischemic_stroke_level_5',
+                gbd_id=sid(395),
+                prevalence=meid(1837),
+            ),
+        ),
+    ),
+    acute_ischemic_stroke=Sequela(
+        name='acute_ischemic_stroke',
+        gbd_id=None,
+        severity_splits=SeveritySplits(
+            level_1=SeveritySplit(
+                name='acute_ischemic_stroke_level_1',
+                gbd_id=sid(386),
+                prevalence=meid(1827),
+            ),
+            level_2=SeveritySplit(
+                name='acute_ischemic_stroke_level_2',
+                gbd_id=sid(387),
+                prevalence=meid(1828),
+            ),
+            level_3=SeveritySplit(
+                name='acute_ischemic_stroke_level_3',
+                gbd_id=sid(388),
+                prevalence=meid(1829),
+            ),
+            level_4=SeveritySplit(
+                name='acute_ischemic_stroke_level_4',
+                gbd_id=sid(389),
+                prevalence=meid(1830),
+            ),
+            level_5=SeveritySplit(
+                name='acute_ischemic_stroke_level_5',
+                gbd_id=sid(390),
+                prevalence=meid(1831),
+            ),
+        ),
+    ),
+    chronic_hemorrhagic_stroke=Sequela(
+        name='chronic_hemorrhagic_stroke',
+        gbd_id=None,
+        severity_splits=SeveritySplits(
+            asymptomatic=SeveritySplit(
+                name='asymptomatic_chronic_hemorrhagic_stroke',
+                gbd_id=sid(947),
+                prevalence=meid(3096),
+            ),
+            level_1=SeveritySplit(
+                name='chronic_hemorrhagic_stroke_level_1',
+                gbd_id=sid(401),
+                prevalence=meid(1845),
+            ),
+            level_2=SeveritySplit(
+                name='chronic_hemorrhagic_stroke_level_2',
+                gbd_id=sid(402),
+                prevalence=meid(1846),
+            ),
+            level_3=SeveritySplit(
+                name='chronic_hemorrhagic_stroke_level_3',
+                gbd_id=sid(403),
+                prevalence=meid(1847),
+            ),
+            level_4=SeveritySplit(
+                name='chronic_hemorrhagic_stroke_level_4',
+                gbd_id=sid(404),
+                prevalence=meid(1848),
+            ),
+            level_5=SeveritySplit(
+                name='chronic_hemorrhagic_stroke_level_5',
+                gbd_id=sid(405),
+                prevalence=meid(1849),
+            ),
+        ),
+    ),
+    acute_hemorrhagic_stroke=Sequela(
+        name='acute_hemorrhagic_stroke',
+        gbd_id=None,
+        severity_splits=SeveritySplits(
+            level_1=SeveritySplit(
+                name='acute_hemorrhagic_stroke_level_1',
+                gbd_id=sid(396),
+                prevalence=meid(1839),
+            ),
+            level_2=SeveritySplit(
+                name='acute_hemorrhagic_stroke_level_2',
+                gbd_id=sid(397),
+                prevalence=meid(1840),
+            ),
+            level_3=SeveritySplit(
+                name='acute_hemorrhagic_stroke_level_3',
+                gbd_id=sid(398),
+                prevalence=meid(1841),
+            ),
+            level_4=SeveritySplit(
+                name='acute_hemorrhagic_stroke_level_4',
+                gbd_id=sid(399),
+                prevalence=meid(1842),
+            ),
+            level_5=SeveritySplit(
+                name='acute_hemorrhagic_stroke_level_5',
+                gbd_id=sid(400),
+                prevalence=meid(1843),
+            ),
+        ),
     ),
 )
 
@@ -434,6 +568,7 @@ causes = Causes(
         excess_mortality=meid(9310),
         disability_weight=scalar(0.32),
         duration=scalar(28),
+        sequelae=(sequelae.acute_ischemic_stroke, sequelae.chronic_ischemic_stroke),
     ),
     hemorrhagic_stroke=Cause(
         name='hemorrhagic_stroke',
@@ -444,6 +579,7 @@ causes = Causes(
         excess_mortality=meid(9311),
         disability_weight=scalar(0.32),
         duration=scalar(28),
+        sequelae=(sequelae.acute_hemorrhagic_stroke, sequelae.chronic_hemorrhagic_stroke)
     ),
     hypertensive_heart_disease=Cause(
         name='hypertensive_heart_disease',
