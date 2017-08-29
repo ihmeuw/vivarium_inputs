@@ -284,12 +284,16 @@ class Etioloties(GbdRecord):
 
 class Sequelae(GbdRecord):
     """Holder of Sequelae"""
-    __slots__ = ('heart_attack', 'heart_failure', 'angina', 'asymptomatic_ihd',
+    __slots__ = ('heart_attack', 'acute_myocardial_infarction_first_2_days',
+                 'acute_myocardial_infarction_3_to_28_days',
+                 'heart_failure', 'angina', 'asymptomatic_ihd',
                  'chronic_ischemic_stroke', 'acute_ischemic_stroke',
                  'chronic_hemorrhagic_stroke', 'acute_hemorrhagic_stroke',)
 
     def __init__(self,
                  heart_attack: Sequela,
+                 acute_myocardial_infarction_first_2_days: Sequela,
+                 acute_myocardial_infarction_3_to_28_days: Sequela,
                  heart_failure: Sequela,
                  angina: Sequela,
                  asymptomatic_ihd: Sequela,
@@ -300,6 +304,8 @@ class Sequelae(GbdRecord):
 
         super().__init__()
         self.heart_attack = heart_attack
+        self.acute_myocardial_infarction_first_2_days = acute_myocardial_infarction_first_2_days
+        self.acute_myocardial_infarction_3_to_28_days = acute_myocardial_infarction_3_to_28_days
         self.heart_failure = heart_failure
         self.angina = angina
         self.asymptomatic_ihd = asymptomatic_ihd

@@ -98,6 +98,16 @@ sequelae = Sequelae(
         excess_mortality=meid(1814),
         duration=scalar(28),
     ),
+    acute_myocardial_infarction_first_2_days=Sequela(
+        name='acute_myocardial_infarction_first_2_days',
+        gbd_id=sid(378),
+        prevalence=meid(1815),
+    ),
+    acute_myocardial_infarction_3_to_28_days=Sequela(
+        name='acute_myocardial_infarction_3_to_28_days',
+        gbd_id=sid(379),
+        prevalence=meid(1816),
+    ),
     heart_failure=Sequela(
         name='heart_failure',
         gbd_id=meid(2412),
