@@ -6,86 +6,71 @@ etiologies = Etioloties(
     unattributed_diarrhea=Etiology(
         name='unattributed_diarrhea',
         gbd_id=None,
-        prevalence=None,
-        disability_weight=None,
     ),
     cholera=Etiology(
         name='cholera',
         gbd_id=rid(173),
         prevalence=None,
-        disability_weight=None,
     ),
     other_salmonella=Etiology(
         name='other_salmonella',
         gbd_id=rid(174),
         prevalence=None,
-        disability_weight=None,
     ),
     shigellosis=Etiology(
         name='shigellosis',
         gbd_id=rid(175),
         prevalence=None,
-        disability_weight=None,
     ),
     EPEC=Etiology(
         name='EPEC',
         gbd_id=rid(176),
         prevalence=None,
-        disability_weight=None,
     ),
     ETEC=Etiology(
         name='ETEC',
         gbd_id=rid(177),
         prevalence=None,
-        disability_weight=None,
     ),
     campylobacter=Etiology(
         name='campylobacter',
         gbd_id=rid(178),
         prevalence=None,
-        disability_weight=None,
     ),
     amoebiasis=Etiology(
         name='amoebiasis',
         gbd_id=rid(179),
         prevalence=None,
-        disability_weight=None,
     ),
     cryptosporidiosis=Etiology(
         name='cryptosporidiosis',
         gbd_id=rid(180),
         prevalence=None,
-        disability_weight=None,
     ),
     rotaviral_entiritis=Etiology(
         name='rotaviral_entiritis',
         gbd_id=rid(181),
         prevalence=None,
-        disability_weight=None,
     ),
     aeromonas=Etiology(
         name='aeromonas',
         gbd_id=rid(182),
         prevalence=None,
-        disability_weight=None,
     ),
     clostridium_difficile=Etiology(
         name='clostridium_difficile',
         gbd_id=rid(183),
         prevalence=None,
-        disability_weight=None,
     ),
     norovirus=Etiology(
         name='norovirus',
         gbd_id=rid(184),
         prevalence=None,
-        disability_weight=None,
     ),
     adenovirus=Etiology(
         name='adenovirus',
         gbd_id=rid(185),
         prevalence=None,
-        disability_weight=None,
     ),
 )
 
@@ -229,7 +214,12 @@ sequelae = Sequelae(
     ),
     acute_ischemic_stroke=Sequela(
         name='acute_ischemic_stroke',
-        gbd_id=None,
+        gbd_id=meid(9310),
+        incidence=meid(9310),
+        prevalence=meid(9310),
+        excess_mortality=meid(9310),
+        disability_weight=scalar(0.32),
+        duration=scalar(28),
         severity_splits=SeveritySplits(
             level_1=SeveritySplit(
                 name='acute_ischemic_stroke_level_1',
@@ -297,6 +287,11 @@ sequelae = Sequelae(
     acute_hemorrhagic_stroke=Sequela(
         name='acute_hemorrhagic_stroke',
         gbd_id=None,
+        incidence=meid(9311),
+        prevalence=meid(9311),
+        excess_mortality=meid(9311),
+        disability_weight=scalar(0.32),
+        duration=scalar(28),
         severity_splits=SeveritySplits(
             level_1=SeveritySplit(
                 name='acute_hemorrhagic_stroke_level_1',
@@ -353,7 +348,6 @@ causes = Causes(
         prevalence=meid(1181),
         csmr=cid(302),
         excess_mortality=meid(1181),
-        disability_weight=scalar(0.23),
         remission=meid(1181),
         severity_splits=SeveritySplits(
             mild=SeveritySplit(
@@ -558,7 +552,6 @@ causes = Causes(
         excess_mortality=cid(493),
         prevalence=cid(493),
         incidence=cid(493),
-        disability_weight=scalar(0),
         sequelae=(sequelae.heart_attack, sequelae.angina, sequelae.asymptomatic_ihd, sequelae.heart_failure),
     ),
     chronic_stroke=Cause(
@@ -572,23 +565,19 @@ causes = Causes(
     ischemic_stroke=Cause(
         name='ischemic_stroke',
         gbd_id=cid(495),
-        incidence=meid(9310),
-        prevalence=meid(9310),
+        incidence=cid(495),
+        prevalence=cid(495),
         csmr=cid(495),
-        excess_mortality=meid(9310),
-        disability_weight=scalar(0.32),
-        duration=scalar(28),
+        excess_mortality=cid(495),
         sequelae=(sequelae.acute_ischemic_stroke, sequelae.chronic_ischemic_stroke),
     ),
     hemorrhagic_stroke=Cause(
         name='hemorrhagic_stroke',
         gbd_id=cid(496),
-        incidence=meid(9311),
-        prevalence=meid(9311),
+        incidence=cid(496),
+        prevalence=cid(496),
         csmr=cid(496),
-        excess_mortality=meid(9311),
-        disability_weight=scalar(0.32),
-        duration=scalar(28),
+        excess_mortality=cid(495),
         sequelae=(sequelae.acute_hemorrhagic_stroke, sequelae.chronic_hemorrhagic_stroke)
     ),
     hypertensive_heart_disease=Cause(

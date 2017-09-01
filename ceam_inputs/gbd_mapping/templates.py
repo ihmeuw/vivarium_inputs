@@ -80,22 +80,19 @@ class ModelableEntity(GbdRecord):
 
     def __init__(self,
                  name: str,
-                 gbd_id: Union[meid, rid, cid, None],):
+                 gbd_id: Union[meid, rid, cid, sid, None],):
         self.name = name
         self.gbd_id = gbd_id
 
 
 class CauseLike(ModelableEntity):
     """Container for cause-like entity GBD ids."""
-    __slots__ = ('name', 'gbd_id', 'prevalence', 'disability_weight',
-                 'excess_mortality', 'remission', 'duration', 'proportion')
+    __slots__ = ('name', 'gbd_id', 'prevalence', 'remission', 'duration', 'proportion')
 
     def __init__(self,
                  name: str,
-                 gbd_id: Union[cid, rid, meid],
+                 gbd_id: Union[cid, rid, sid, meid],
                  prevalence: Union[cid, meid, None] = UNKNOWN,
-                 disability_weight: Union[hid, meid, None] = UNKNOWN,
-                 excess_mortality: Union[cid, meid, None] = UNKNOWN,
                  remission: Union[meid, None] = UNKNOWN,
                  proportion: Union[meid, scalar] = UNKNOWN,
                  duration: scalar = scalar(0),):
@@ -103,11 +100,38 @@ class CauseLike(ModelableEntity):
         super().__init__(name=name,
                          gbd_id=gbd_id)
         self.prevalence = prevalence
-        self.disability_weight = disability_weight
-        self.excess_mortality = excess_mortality
         self.remission = remission
         self.duration = duration
         self.proportion = proportion
+
+
+class Sequela(CauseLike):
+    """Container for sequela GBD ids."""
+    __slots__ = ('name', 'gbd_id', 'incidence', 'proportion', 'prevalence', 'disability_weight',
+                 'excess_mortality', 'remission', 'duration', 'severity_splits')
+
+    def __init__(self,
+                 name: str,
+                 gbd_id: Union[meid, sid, None],
+                 incidence: Union[meid, None] = UNKNOWN,
+                 proportion: Union[meid, str, None] = UNKNOWN,
+                 prevalence: Union[meid, None] = UNKNOWN,
+                 disability_weight: Union[hid, meid, scalar, None] = UNKNOWN,
+                 excess_mortality: Union[meid, scalar, None] = UNKNOWN,
+                 remission: Union[meid, None] = UNKNOWN,
+                 duration: scalar = scalar(0),
+                 severity_splits: SeveritySplits = None,):
+
+        super().__init__(name=name,
+                         gbd_id=gbd_id,
+                         prevalence=prevalence,
+                         remission=remission,
+                         duration=duration)
+        self.disability_weight = disability_weight
+        self.excess_mortality = excess_mortality
+        self.incidence = incidence
+        self.proportion = proportion
+        self.severity_splits = severity_splits
 
 
 class SeveritySplit(CauseLike):
@@ -128,11 +152,11 @@ class SeveritySplit(CauseLike):
         super().__init__(name=name,
                          gbd_id=gbd_id,
                          prevalence=prevalence,
-                         disability_weight=disability_weight,
-                         excess_mortality=excess_mortality,
                          remission=remission,
                          duration=duration,
                          proportion=proportion)
+        self.disability_weight = disability_weight
+        self.excess_mortality = excess_mortality
 
 
 class SeveritySplits(GbdRecord):
@@ -161,52 +185,18 @@ class SeveritySplits(GbdRecord):
         self.level_5 = level_5
 
 
-class Sequela(CauseLike):
-    """Container for sequela GBD ids."""
-    __slots__ = ('name', 'gbd_id', 'incidence', 'proportion', 'prevalence', 'disability_weight',
-                 'excess_mortality', 'remission', 'duration', 'severity_splits')
-
-    def __init__(self,
-                 name: str,
-                 gbd_id: Union[meid, sid, None],
-                 incidence: Union[meid, None] = UNKNOWN,
-                 proportion: Union[meid, str, None] = UNKNOWN,
-                 prevalence: Union[meid, None] = UNKNOWN,
-                 disability_weight: Union[hid, meid, None] = UNKNOWN,
-                 excess_mortality: Union[meid, float, None] = UNKNOWN,
-                 remission: Union[meid, None] = UNKNOWN,
-                 duration: scalar = scalar(0),
-                 severity_splits: SeveritySplits = None,):
-
-        super().__init__(name=name,
-                         gbd_id=gbd_id,
-                         prevalence=prevalence,
-                         disability_weight=disability_weight,
-                         excess_mortality=excess_mortality,
-                         remission=remission,
-                         duration=duration)
-        self.incidence = incidence
-        self.proportion = proportion
-        self.severity_splits = severity_splits
-
-
 class Etiology(CauseLike):
     """Container for etiology GBD ids."""
-    __slots__ = ('name', 'gbd_id', 'prevalence', 'disability_weight',
-                 'excess_mortality', 'remission', 'duration',)
+    __slots__ = ('name', 'gbd_id', 'prevalence', 'remission', 'duration',)
 
     def __init__(self, name: str,
                  gbd_id: Union[rid, None],
                  prevalence: Union[meid, None] = UNKNOWN,
-                 disability_weight: Union[hid, meid, None] = UNKNOWN,
-                 excess_mortality: Union[meid, None] = UNKNOWN,
                  remission: Union[meid, None] = UNKNOWN,
                  duration: scalar = scalar(0),):
         super().__init__(name=name,
                          gbd_id=gbd_id,
                          prevalence=prevalence,
-                         disability_weight=disability_weight,
-                         excess_mortality=excess_mortality,
                          remission=remission,
                          duration=duration)
 
@@ -221,7 +211,7 @@ class Cause(CauseLike):
                  gbd_id: cid,
                  incidence: Union[cid, meid] = UNKNOWN,
                  prevalence: Union[cid, meid] = UNKNOWN,
-                 disability_weight: Union[hid, meid, float, None] = UNKNOWN,
+                 disability_weight: scalar = UNKNOWN,
                  csmr: Union[cid, meid] = UNKNOWN,
                  excess_mortality: Union[cid, meid, None] = UNKNOWN,
                  remission: Union[meid, None] = UNKNOWN,
@@ -232,12 +222,11 @@ class Cause(CauseLike):
         super().__init__(name=name,
                          gbd_id=gbd_id,
                          prevalence=prevalence,
-                         disability_weight=disability_weight,
-                         excess_mortality=excess_mortality,
                          remission=remission,
                          duration=duration)
         self.incidence = incidence
         self.csmr = csmr
+        self.excess_mortality = excess_mortality
         self.sequelae = sequelae
         self.etiologies = etiologies
         self.severity_splits = severity_splits
