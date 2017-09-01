@@ -187,18 +187,20 @@ class SeveritySplits(GbdRecord):
 
 class Etiology(CauseLike):
     """Container for etiology GBD ids."""
-    __slots__ = ('name', 'gbd_id', 'prevalence', 'remission', 'duration',)
+    __slots__ = ('name', 'gbd_id', 'prevalence', 'disability_weight', 'remission', 'duration',)
 
     def __init__(self, name: str,
                  gbd_id: Union[rid, None],
                  prevalence: Union[meid, None] = UNKNOWN,
                  remission: Union[meid, None] = UNKNOWN,
+                 disability_weight: Union[hid, meid, None] = UNKNOWN,
                  duration: scalar = scalar(0),):
         super().__init__(name=name,
                          gbd_id=gbd_id,
                          prevalence=prevalence,
                          remission=remission,
                          duration=duration)
+        self.disability_weight = disability_weight
 
 
 class Cause(CauseLike):
@@ -226,6 +228,7 @@ class Cause(CauseLike):
                          duration=duration)
         self.incidence = incidence
         self.csmr = csmr
+        self.disability_weight = disability_weight
         self.excess_mortality = excess_mortality
         self.sequelae = sequelae
         self.etiologies = etiologies

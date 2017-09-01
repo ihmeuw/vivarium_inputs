@@ -6,71 +6,86 @@ etiologies = Etioloties(
     unattributed_diarrhea=Etiology(
         name='unattributed_diarrhea',
         gbd_id=None,
+        prevalence=None,
+        disability_weight=None,
     ),
     cholera=Etiology(
         name='cholera',
         gbd_id=rid(173),
         prevalence=None,
+        disability_weight=None,
     ),
     other_salmonella=Etiology(
         name='other_salmonella',
         gbd_id=rid(174),
         prevalence=None,
+        disability_weight=None,
     ),
     shigellosis=Etiology(
         name='shigellosis',
         gbd_id=rid(175),
         prevalence=None,
+        disability_weight=None,
     ),
     EPEC=Etiology(
         name='EPEC',
         gbd_id=rid(176),
         prevalence=None,
+        disability_weight=None,
     ),
     ETEC=Etiology(
         name='ETEC',
         gbd_id=rid(177),
         prevalence=None,
+        disability_weight=None,
     ),
     campylobacter=Etiology(
         name='campylobacter',
         gbd_id=rid(178),
         prevalence=None,
+        disability_weight=None,
     ),
     amoebiasis=Etiology(
         name='amoebiasis',
         gbd_id=rid(179),
         prevalence=None,
+        disability_weight=None,
     ),
     cryptosporidiosis=Etiology(
         name='cryptosporidiosis',
         gbd_id=rid(180),
         prevalence=None,
+        disability_weight=None,
     ),
     rotaviral_entiritis=Etiology(
         name='rotaviral_entiritis',
         gbd_id=rid(181),
         prevalence=None,
+        disability_weight=None,
     ),
     aeromonas=Etiology(
         name='aeromonas',
         gbd_id=rid(182),
         prevalence=None,
+        disability_weight=None,
     ),
     clostridium_difficile=Etiology(
         name='clostridium_difficile',
         gbd_id=rid(183),
         prevalence=None,
+        disability_weight=None,
     ),
     norovirus=Etiology(
         name='norovirus',
         gbd_id=rid(184),
         prevalence=None,
+        disability_weight=None,
     ),
     adenovirus=Etiology(
         name='adenovirus',
         gbd_id=rid(185),
         prevalence=None,
+        disability_weight=None,
     ),
 )
 
