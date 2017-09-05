@@ -10,7 +10,7 @@ config.load(_config_path, layer='base', source=_config_path)
 from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies,
                                      healthcare_entities, treatment_technologies,
                                      meid, hid, cid, rid, scalar, UNKNOWN,
-                                     UnknownEntityError)
+                                     UnknownEntityError, Cause)
 from ceam_inputs import gbd, gbd_ms_functions as functions
 
 
@@ -414,13 +414,19 @@ def get_disability_weight(cause):
 
     Parameters
     ----------
-    cause: ceam_inputs.gbd_mapping.CauseLike
+    cause: ceam_inputs.gbd_mapping.Sequela or ceam_inputs.gbd_mapping.SeveritySplit
 
     Returns
     -------
     float or pandas.DataFrame
     """
     if cause.disability_weight is UNKNOWN:
+        if isinstance(cause, Cause):
+            import warnings
+            warnings.warn('Cause-level disability weights are not implemented. '
+                          'Disability is specified at the sequela level. You can specify a '
+                          'scalar value to use in ceam_inputs.gbd_mapping.causes.  Returning 0.')
+            return 0
         raise UnknownEntityError('No mapping exists between cause {} and measure disability weight'.format(cause.name))
     elif isinstance(cause.disability_weight, scalar):
         return cause.disability_weight
