@@ -32,7 +32,14 @@ def _get_gbd_draws(modelable_entity, measure, column_name):
     """
     gbd_id = modelable_entity[measure]
     if gbd_id is UNKNOWN:
-        raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(modelable_entity.name, measure))
+        if modelable_entity.gbd_id is not None:
+            import warnings
+            warnings.warn('The mapping between {} and {} '.format(modelable_entity.name, measure)
+                          + 'has not been verified.  We are using {} '.format(repr(modelable_entity.gbd_id))
+                          + 'but you should verify that this is the correct id and update the gbd mapping.')
+            gbd_id = modelable_entity.gbd_id
+        else:
+            raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(modelable_entity.name, measure))
     elif isinstance(gbd_id, scalar):  # We have a scalar value rather than an actual id.
         return gbd_id
 

@@ -107,12 +107,13 @@ class CauseLike(ModelableEntity):
 
 class SeveritySplit(CauseLike):
     """Container for severity split GBD ids."""
-    __slots__ = ('name', 'gbd_id', 'proportion', 'prevalence', 'disability_weight',
+    __slots__ = ('name', 'gbd_id', 'sequela_id', 'proportion', 'prevalence', 'disability_weight',
                  'excess_mortality', 'remission', 'duration',)
 
     def __init__(self,
                  name: str,
-                 gbd_id: Union[meid, sid],
+                 gbd_id: meid,
+                 sequela_id: Union[sid, None] = UNKNOWN,
                  proportion: Union[meid, scalar] = UNKNOWN,
                  prevalence: Union[meid, None] = UNKNOWN,
                  disability_weight: Union[hid, meid, None] = UNKNOWN,
@@ -126,6 +127,7 @@ class SeveritySplit(CauseLike):
                          remission=remission,
                          duration=duration,
                          proportion=proportion)
+        self.sequela_id = sequela_id
         self.disability_weight = disability_weight
         self.excess_mortality = excess_mortality
 
@@ -158,12 +160,13 @@ class SeveritySplits(GbdRecord):
 
 class Sequela(CauseLike):
     """Container for sequela GBD ids."""
-    __slots__ = ('name', 'gbd_id', 'incidence', 'proportion', 'prevalence', 'disability_weight',
+    __slots__ = ('name', 'gbd_id', 'sequela_id', 'incidence', 'proportion', 'prevalence', 'disability_weight',
                  'excess_mortality', 'remission', 'duration', 'severity_splits')
 
     def __init__(self,
                  name: str,
-                 gbd_id: Union[meid, sid, None],
+                 gbd_id: Union[meid, None],
+                 sequela_id: Union[sid, None] = UNKNOWN,
                  incidence: Union[meid, None] = UNKNOWN,
                  proportion: Union[meid, str, None] = UNKNOWN,
                  prevalence: Union[meid, None] = UNKNOWN,
@@ -178,6 +181,7 @@ class Sequela(CauseLike):
                          prevalence=prevalence,
                          remission=remission,
                          duration=duration)
+        self.sequela_id = sequela_id
         self.disability_weight = disability_weight
         self.excess_mortality = excess_mortality
         self.incidence = incidence
