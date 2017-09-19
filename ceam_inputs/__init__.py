@@ -2,9 +2,10 @@ import os
 
 import pandas as pd
 
-from vivarium import config
-_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
-config.load(_config_path, layer='base', source=_config_path)
+from vivarium.framework.engine import build_simulation_configuration
+config = build_simulation_configuration({})
+_inputs_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
+config.update(_inputs_config_path, layer='base', source=_inputs_config_path)
 
 # Make these top level imports until external references can be removed.
 from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies,

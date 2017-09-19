@@ -1,9 +1,7 @@
 import numpy as np
 import pytest
 
-from vivarium import config
-
-from ceam_inputs import causes, risk_factors
+from ceam_inputs import causes, risk_factors, config
 from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
                                           get_angina_proportions, get_disability_weight,
                                           get_post_mi_heart_failure_proportion_draws,

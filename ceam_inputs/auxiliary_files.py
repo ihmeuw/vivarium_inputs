@@ -5,7 +5,7 @@ uses which is not stored in a standard location, like the modelable entity datab
 import platform
 from os.path import join
 
-from vivarium import config
+AUXILIARY_DATA_FOLDER = "{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/{gbd_round}"
 
 FILES = {
     'Angina Proportions' : {
@@ -105,13 +105,13 @@ FILES = {
         # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
         'source': '',
         'owner': 'Everett Mumford <emumford@uw.edu>',
-    }, 
+    },
     'Rota Vaccine RRs': {
         'path': 'rota_vaccine_rrs.csv',
         # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
         'source': '',
         'owner': 'Everett Mumford <emumford@uw.edu>',
-    }, 
+    },
     'Diarrhea Costs': {
         'path': 'healthcare_access/diarrhea_cost/{location_id}.csv',
         'source':  '/home/j/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_diarrhea_cost_all_country_years.csv',
@@ -132,8 +132,7 @@ def auxiliary_file_path(name, **kwargs):
     else:
         template_parameters['j_drive'] = '/home/j'
     raw_path = FILES[name]['path']
-    auxiliary_data_folder = config.input_data.auxiliary_data_folder
-    return join(auxiliary_data_folder, raw_path).format(**template_parameters), FILES[name].get('encoding')
+    return join(AUXILIARY_DATA_FOLDER, raw_path).format(**template_parameters), FILES[name].get('encoding')
 
 
 def open_auxiliary_file(name, **kwargs):
