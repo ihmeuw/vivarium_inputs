@@ -44,12 +44,12 @@ def _get_gbd_draws(modelable_entity, measure, column_name):
     elif isinstance(gbd_id, scalar):  # We have a scalar value rather than an actual id.
         return gbd_id
 
-    return functions.get_gbd_draws(location_id=config.simulation_parameters.location_id,
+    return functions.get_gbd_draws(location_id=config.input_data.location_id,
                                    measure=measure,
                                    gbd_id=gbd_id,
-                                   gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                   gbd_round_id=config.input_data.gbd_round_id,
                                    publication_ids=config.input_data.gbd_publication_ids,
-                                   draw_number=config.run_configuration.draw_number,
+                                   draw_number=config.run_configuration.input_draw_number,
                                    column_name=column_name)
 
 
@@ -107,9 +107,9 @@ def get_cause_specific_mortality(cause):
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
     return functions.get_cause_specific_mortality(cause_id=cause.gbd_id,
-                                                  location_id=config.simulation_parameters.location_id,
-                                                  gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                                  draw_number=config.run_configuration.draw_number,
+                                                  location_id=config.input_data.location_id,
+                                                  gbd_round_id=config.input_data.gbd_round_id,
+                                                  draw_number=config.run_configuration.input_draw_number,
                                                   publication_ids=config.input_data.gbd_publication_ids)
 
 
@@ -167,7 +167,7 @@ def get_proportion(modelable_entity):
 
 def get_age_bins():
     """Retrieves the age bin structure the GBD uses for demographic classification."""
-    return gbd.get_age_bins(gbd_round_id=config.simulation_parameters.gbd_round_id)
+    return gbd.get_age_bins(gbd_round_id=config.input_data.gbd_round_id)
 
 
 def get_prevalence(cause):
@@ -199,12 +199,12 @@ def get_relative_risks(risk, cause, rr_type='morbidity'):
     -------
     pandas.DataFrame
     """
-    return functions.get_relative_risks(location_id=config.simulation_parameters.location_id,
+    return functions.get_relative_risks(location_id=config.input_data.location_id,
                                         risk_id=risk.gbd_id,
                                         cause_id=cause.gbd_id,
-                                        gbd_round_id=config.simulation_parameters.gbd_round_id,
+                                        gbd_round_id=config.input_data.gbd_round_id,
                                         rr_type=rr_type,
-                                        draw_number=config.run_configuration.draw_number)
+                                        draw_number=config.run_configuration.input_draw_number)
 
 
 def get_pafs(risk, cause, paf_type='morbidity'):
@@ -220,12 +220,12 @@ def get_pafs(risk, cause, paf_type='morbidity'):
     -------
     pandas.DataFrame
     """
-    return functions.get_pafs(location_id=config.simulation_parameters.location_id,
+    return functions.get_pafs(location_id=config.input_data.location_id,
                               risk_id=risk.gbd_id,
                               cause_id=cause.gbd_id,
-                              gbd_round_id=config.simulation_parameters.gbd_round_id,
+                              gbd_round_id=config.input_data.gbd_round_id,
                               paf_type=paf_type,
-                              draw_number=config.run_configuration.draw_number)
+                              draw_number=config.run_configuration.input_draw_number)
 
 
 def get_exposure_means(risk):
@@ -239,10 +239,10 @@ def get_exposure_means(risk):
     -------
     pandas.DataFrame
     """
-    return functions.get_exposures(location_id=config.simulation_parameters.location_id,
+    return functions.get_exposures(location_id=config.input_data.location_id,
                                    risk_id=risk.gbd_id,
-                                   gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                   draw_number=config.run_configuration.draw_number)
+                                   gbd_round_id=config.input_data.gbd_round_id,
+                                   draw_number=config.run_configuration.input_draw_number)
 
 
 def get_exposure_standard_errors(_):
@@ -276,7 +276,7 @@ def get_populations(location_id, year=-1, sex='All'):
     return functions.get_populations(location_id=location_id,
                                      year=year,
                                      sex=sex,
-                                     gbd_round_id=config.simulation_parameters.gbd_round_id)
+                                     gbd_round_id=config.input_data.gbd_round_id)
 
 
 def get_age_specific_fertility_rates():
@@ -286,8 +286,8 @@ def get_age_specific_fertility_rates():
     -------
     pandas.DataFrame
     """
-    return functions.get_age_specific_fertility_rates(location_id=config.simulation_parameters.location_id,
-                                                      gbd_round_id=config.simulation_parameters.gbd_round_id)
+    return functions.get_age_specific_fertility_rates(location_id=config.input_data.location_id,
+                                                      gbd_round_id=config.input_data.gbd_round_id)
 
 
 def get_bmi_distribution_parameters():
@@ -297,9 +297,9 @@ def get_bmi_distribution_parameters():
     -------
     pandas.DataFrame
     """
-    return functions.get_bmi_distribution_parameters(location_id=config.simulation_parameters.location_id,
-                                                     gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                                     draw_number=config.run_configuration.draw_number)
+    return functions.get_bmi_distribution_parameters(location_id=config.input_data.location_id,
+                                                     gbd_round_id=config.input_data.gbd_round_id,
+                                                     draw_number=config.run_configuration.input_draw_number)
 
 
 def get_fpg_distribution_parameters():
@@ -309,10 +309,10 @@ def get_fpg_distribution_parameters():
     -------
     pandas.DataFrame
     """
-    return functions.get_fpg_distribution_parameters(location_id=config.simulation_parameters.location_id,
-                                                     gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                                     draw_number=config.run_configuration.draw_number,
-                                                     use_subregions=config.simulation_parameters.use_subregions)
+    return functions.get_fpg_distribution_parameters(location_id=config.input_data.location_id,
+                                                     gbd_round_id=config.input_data.gbd_round_id,
+                                                     draw_number=config.run_configuration.input_draw_number,
+                                                     use_subregions=config.input_data.use_subregions)
 
 
 def get_annual_live_births(location_id, year, sex_id=3):
@@ -342,9 +342,9 @@ def get_sbp_distribution():
     -------
     pandas.DataFrame
     """
-    return functions.get_sbp_mean_sd(location_id=config.simulation_parameters.location_id,
-                                     gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                     draw_number=config.run_configuration.draw_number)
+    return functions.get_sbp_mean_sd(location_id=config.input_data.location_id,
+                                     gbd_round_id=config.input_data.gbd_round_id,
+                                     draw_number=config.run_configuration.input_draw_number)
 
 
 def get_post_mi_heart_failure_proportion_draws():
@@ -354,10 +354,10 @@ def get_post_mi_heart_failure_proportion_draws():
     -------
     pandas.DataFrame
     """
-    return functions.get_post_mi_heart_failure_proportion_draws(location_id=config.simulation_parameters.location_id,
-                                                                gbd_round_id=config.simulation_parameters.gbd_round_id,
+    return functions.get_post_mi_heart_failure_proportion_draws(location_id=config.input_data.location_id,
+                                                                gbd_round_id=config.input_data.gbd_round_id,
                                                                 publication_ids=config.input_data.gbd_publication_ids,
-                                                                draw_number=config.run_configuration.draw_number)
+                                                                draw_number=config.run_configuration.input_draw_number)
 
 
 def get_angina_proportions():
@@ -367,8 +367,8 @@ def get_angina_proportions():
     -------
     pandas.DataFrame
     """
-    return functions.get_angina_proportions(gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                            draw_number=config.run_configuration.draw_number)
+    return functions.get_angina_proportions(gbd_round_id=config.input_data.gbd_round_id,
+                                            draw_number=config.run_configuration.input_draw_number)
 
 
 def get_asympt_ihd_proportions():
@@ -378,10 +378,10 @@ def get_asympt_ihd_proportions():
     -------
     pandas.DataFrame
     """
-    return functions.get_asympt_ihd_proportions(location_id=config.simulation_parameters.location_id,
-                                                gbd_round_id=config.simulation_parameters.gbd_round_id,
+    return functions.get_asympt_ihd_proportions(location_id=config.input_data.location_id,
+                                                gbd_round_id=config.input_data.gbd_round_id,
                                                 publication_ids=config.input_data.gbd_publication_ids,
-                                                draw_number=config.run_configuration.draw_number)
+                                                draw_number=config.run_configuration.input_draw_number)
 
 
 def get_subregions(location_id):
@@ -413,8 +413,8 @@ def get_severity_splits(parent, child):
     """
     return functions.get_severity_splits(parent_meid=parent.incidence,
                                          child_meid=child.proportion,
-                                         gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                         draw_number=config.run_configuration.draw_number)
+                                         gbd_round_id=config.input_data.gbd_round_id,
+                                         draw_number=config.run_configuration.input_draw_number)
 
 
 def get_disability_weight(cause):
@@ -440,8 +440,8 @@ def get_disability_weight(cause):
         return cause.disability_weight
     else:
         return functions.get_disability_weight(cause,
-                                               gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                               draw_number=config.run_configuration.draw_number)
+                                               gbd_round_id=config.input_data.gbd_round_id,
+                                               draw_number=config.run_configuration.input_draw_number)
 
 
 def get_rota_vaccine_coverage():
@@ -450,9 +450,9 @@ def get_rota_vaccine_coverage():
     Returns
     -------
     pandas.DataFrame"""
-    return functions.get_rota_vaccine_coverage(location_id=config.simulation_parameters.location_id,
-                                               gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                               draw_number=config.run_configuration.draw_number)
+    return functions.get_rota_vaccine_coverage(location_id=config.input_data.location_id,
+                                               gbd_round_id=config.input_data.gbd_round_id,
+                                               draw_number=config.run_configuration.input_draw_number)
 
 
 def get_ors_pafs():
@@ -462,9 +462,9 @@ def get_ors_pafs():
     -------
     pandas.DataFrame
     """
-    return functions.get_ors_pafs(location_id=config.simulation_parameters.location_id,
-                                  gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                  draw_number=config.run_configuration.draw_number)
+    return functions.get_ors_pafs(location_id=config.input_data.location_id,
+                                  gbd_round_id=config.input_data.gbd_round_id,
+                                  draw_number=config.run_configuration.input_draw_number)
 
 
 def get_ors_relative_risks():
@@ -474,8 +474,8 @@ def get_ors_relative_risks():
     -------
     float
     """
-    return functions.get_ors_relative_risks(gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                            draw_number=config.run_configuration.draw_number)
+    return functions.get_ors_relative_risks(gbd_round_id=config.input_data.gbd_round_id,
+                                            draw_number=config.run_configuration.input_draw_number)
 
 
 def get_ors_exposures():
@@ -484,9 +484,9 @@ def get_ors_exposures():
     Returns
     pandas.DataFrame
     """
-    return functions.get_ors_exposures(location_id=config.simulation_parameters.location_id,
-                                       gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                       draw_number=config.run_configuration.draw_number)
+    return functions.get_ors_exposures(location_id=config.input_data.location_id,
+                                       gbd_round_id=config.input_data.gbd_round_id,
+                                       draw_number=config.run_configuration.input_draw_number)
 
 
 def get_life_table():
@@ -496,7 +496,7 @@ def get_life_table():
     -------
     pandas.DataFrame
     """
-    return functions.get_life_table(gbd_round_id=config.simulation_parameters.gbd_round_id)
+    return functions.get_life_table(gbd_round_id=config.input_data.gbd_round_id)
 
 
 def get_outpatient_visit_costs():
@@ -506,7 +506,7 @@ def get_outpatient_visit_costs():
     -------
     pandas.DataFrame
     """
-    return functions.get_outpatient_visit_costs(gbd_round_id=config.simulation_parameters.gbd_round_id)
+    return functions.get_outpatient_visit_costs(gbd_round_id=config.input_data.gbd_round_id)
 
 
 def get_inpatient_visit_costs():
@@ -516,7 +516,7 @@ def get_inpatient_visit_costs():
     -------
     pandas.DataFrame
     """
-    return functions.get_inpatient_visit_costs(gbd_round_id=config.simulation_parameters.gbd_round_id)
+    return functions.get_inpatient_visit_costs(gbd_round_id=config.input_data.gbd_round_id)
 
 
 def get_hypertension_drug_costs():
@@ -526,7 +526,7 @@ def get_hypertension_drug_costs():
     -------
     pandas.DataFrame
     """
-    return functions.get_hypertension_drug_costs(gbd_round_id=config.simulation_parameters.gbd_round_id)
+    return functions.get_hypertension_drug_costs(gbd_round_id=config.input_data.gbd_round_id)
 
 
 def load_risk_correlation_matrices():
@@ -536,8 +536,8 @@ def load_risk_correlation_matrices():
     -------
     pandas.DataFrame
     """
-    return functions.load_risk_correlation_matrices(location_id=config.simulation_parameters.location_id,
-                                                    gbd_round_id=config.simulation_parameters.gbd_round_id)
+    return functions.load_risk_correlation_matrices(location_id=config.input_data.location_id,
+                                                    gbd_round_id=config.input_data.gbd_round_id)
 
 
 def get_mediation_factors(risk, cause):
@@ -549,8 +549,8 @@ def get_mediation_factors(risk, cause):
     """
     return functions.get_mediation_factors(risk_id=risk.gbd_id,
                                            cause_id=cause.gbd_id,
-                                           gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                           draw_number=config.run_configuration.draw_number)
+                                           gbd_round_id=config.input_data.gbd_round_id,
+                                           draw_number=config.run_configuration.input_draw_number)
 
 
 def get_dtp3_coverage():
@@ -560,9 +560,9 @@ def get_dtp3_coverage():
     -------
     pandas.DataFrame
     """
-    return functions.get_dtp3_coverage(location_id=config.simulation_parameters.location_id,
-                                       gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                       draw_number=config.run_configuration.draw_number)
+    return functions.get_dtp3_coverage(location_id=config.input_data.location_id,
+                                       gbd_round_id=config.input_data.gbd_round_id,
+                                       draw_number=config.run_configuration.input_draw_number)
 
 
 def get_rota_vaccine_protection():
@@ -572,9 +572,9 @@ def get_rota_vaccine_protection():
     -------
     pandas.DataFrame
     """
-    return functions.get_rota_vaccine_protection(location_id=config.simulation_parameters.location_id,
-                                                 gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                                 draw_number=config.run_configuration.draw_number)
+    return functions.get_rota_vaccine_protection(location_id=config.input_data.location_id,
+                                                 gbd_round_id=config.input_data.gbd_round_id,
+                                                 draw_number=config.run_configuration.input_draw_number)
 
 
 def get_rota_vaccine_rrs():
@@ -584,9 +584,9 @@ def get_rota_vaccine_rrs():
     -------
     pandas.DataFrame
     """
-    return functions.get_rota_vaccine_rrs(location_id=config.simulation_parameters.location_id,
-                                          gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                          draw_number=config.run_configuration.draw_number)
+    return functions.get_rota_vaccine_rrs(location_id=config.input_data.location_id,
+                                          gbd_round_id=config.input_data.gbd_round_id,
+                                          draw_number=config.run_configuration.input_draw_number)
 
 
 # FIXME: Why are there two of these?
@@ -597,9 +597,9 @@ def get_diarrhea_visit_costs():
     -------
     pandas.DataFrame
     """
-    return functions.get_diarrhea_visit_costs(location_id=config.simulation_parameters.location_id,
-                                              gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                              draw_number=config.run_configuration.draw_number)
+    return functions.get_diarrhea_visit_costs(location_id=config.input_data.location_id,
+                                              gbd_round_id=config.input_data.gbd_round_id,
+                                              draw_number=config.run_configuration.input_draw_number)
 
 
 def get_diarrhea_costs():
@@ -609,9 +609,9 @@ def get_diarrhea_costs():
     -------
     pandas.DataFrame
     """
-    return functions.get_diarrhea_costs(location_id=config.simulation_parameters.location_id,
-                                        gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                        draw_number=config.run_configuration.draw_number)
+    return functions.get_diarrhea_costs(location_id=config.input_data.location_id,
+                                        gbd_round_id=config.input_data.gbd_round_id,
+                                        draw_number=config.run_configuration.input_draw_number)
 
 
 def get_ors_costs():
@@ -621,6 +621,6 @@ def get_ors_costs():
     -------
     pandas.DataFrame
     """
-    return functions.get_ors_costs(location_id=config.simulation_parameters.location_id,
-                                   gbd_round_id=config.simulation_parameters.gbd_round_id,
-                                   draw_number=config.run_configuration.draw_number)
+    return functions.get_ors_costs(location_id=config.input_data.location_id,
+                                   gbd_round_id=config.input_data.gbd_round_id,
+                                   draw_number=config.run_configuration.input_draw_number)
