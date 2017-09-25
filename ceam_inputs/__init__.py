@@ -12,7 +12,7 @@ from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies,
                                      UnknownEntityError, Cause)
 from ceam_inputs import gbd, gbd_ms_functions as functions
 
-
+# This will grab the config in this users home directory as well as setting some defaults.
 base_config = build_simulation_configuration({})
 _inputs_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
 base_config.update(_inputs_config_path, layer='base', source=_inputs_config_path)
@@ -394,7 +394,7 @@ def get_fpg_distribution_parameters(override_config=None):
 
 # FIXME: The access pattern is incorrect here.  No one should be explicitly passing in location ids/sex_ids/years.
 # It's a bit bigger to fix than I want to deal with right now.  -J.C. 09/20/17
-def get_annual_live_births(location_id, year, sex_id=3, override_config=None):
+def get_annual_live_births(location_id, year=None, sex_id=3, override_config=None):
     """Gets the live births in a given location and year.
 
     Parameters
@@ -407,7 +407,7 @@ def get_annual_live_births(location_id, year, sex_id=3, override_config=None):
 
     Returns
     -------
-    float
+    pandas.DataFrame
         Average live births.
     """
     config = _get_input_config(override_config)
