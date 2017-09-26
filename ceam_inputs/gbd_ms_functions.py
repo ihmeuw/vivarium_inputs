@@ -891,8 +891,8 @@ def get_life_table(gbd_round_id):
 def get_outpatient_visit_costs(gbd_round_id):
     df = gbd.get_data_from_auxiliary_file(healthcare_entities.outpatient_visits.cost,
                                           gbd_round=_gbd_round_id_map[gbd_round_id])
-    df = pd.pivot_table(df[['location_id', 'year_id', 'cost', 'variable']], columns='variable',
-                        index=['location_id', 'year_id'], values='cost')
+    df = pd.pivot_table(df[['location_id', 'year_id', 'op_cost', 'variable']], columns='variable',
+                        index=['location_id', 'year_id'], values='op_cost')
     df.columns.name = None
     return df.reset_index()
 
