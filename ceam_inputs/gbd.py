@@ -6,22 +6,13 @@ import pandas as pd
 
 from ceam_inputs.util import get_cache_directory
 from ceam_inputs.auxiliary_files import auxiliary_file_path
+from ceam_inputs.gbd_mapping import cid
 
 memory = Memory(cachedir=get_cache_directory(), verbose=1)
 
 MALE = [1]
 FEMALE = [2]
 COMBINED = [3]
-
-ZERO_TO_EIGHTY = list(range(2, 21))
-EIGHTY_PLUS = [21]
-EIGHTY_TO_NINETY_FIVE = list(range(30, 33))
-NINETY_FIVE_PLUS = [235]
-
-round_id_age_map = {2: ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                    3: ZERO_TO_EIGHTY + EIGHTY_PLUS,
-                    4: ZERO_TO_EIGHTY + EIGHTY_TO_NINETY_FIVE + NINETY_FIVE_PLUS}
-
 
 class CentralCompError(Exception):
     """Error for failures in central-comp tooling."""
@@ -37,11 +28,7 @@ def _get_draws_safely(draw_function, draw_options, *args, **kwargs):
     measure_draws = None
     for location_id, round_id in draw_options:
         try:
-            measure_draws = draw_function(*args,
-                                          location_ids=location_id,
-                                          gbd_round_id=round_id,
-                                          age_group_ids=round_id_age_map[round_id],
-                                          **kwargs)
+            measure_draws = draw_function(*args, location_ids=location_id, gbd_round_id=round_id, **kwargs)
             break
         except:
             pass
@@ -94,14 +81,24 @@ def get_dismod_model_versions(publication_ids):
 def get_age_bins(gbd_round_id):
     from db_tools import ezfuncs
     return ezfuncs.query("""
-            SELECT age_group_id, 
-                   age_group_years_start, 
-                   age_group_years_end, 
-                   age_group_name 
+            SELECT age_group_id,
+                   age_group_years_start,
+                   age_group_years_end,
+                   age_group_name
             FROM age_group
             WHERE age_group_id IN ({})
-            """.format(','.join([str(a) for a in round_id_age_map[gbd_round_id]])), conn_def='shared')
+            """.format(','.join([str(a) for a in get_age_group_ids(gbd_round_id)])), conn_def='shared')
 
+
+@memory.cache
+def get_age_group_ids(gbd_round_id, mortality=False):
+    from db_queries.get_demographics import get_demographics
+    if mortality:
+        team = 'mort'
+    else:
+        team = 'epi'
+
+    return get_demographics(team, gbd_round_id)['age_group_ids']
 
 @memory.cache
 def get_healthstate_id(me_id):
@@ -133,7 +130,15 @@ def get_subregions(location_id):
 @memory.cache
 def get_modelable_entity_draws(location_id, me_id, gbd_round_id, publication_ids=None):
     from transmogrifier.draw_ops import get_draws
-    model_version = get_dismod_model_versions(publication_ids)[me_id] if publication_ids else None
+    model_version = None
+    if publication_ids:
+        versions = get_dismod_model_versions(publication_ids)
+        if me_id in versions:
+            model_version = versions[me_id]
+        else:
+            warnings.warn('publication_ids supplied to get_modelable_entity_draws but me_id {} does map to any version ' \
+                    'associated with those publications. That likely means there is a mapping missing in the database' \
+                    .format(me_id))
     gbd_round_id = gbd_round_id if gbd_round_id else 4
 
     return get_draws(gbd_id_field='modelable_entity_id',
@@ -141,7 +146,7 @@ def get_modelable_entity_draws(location_id, me_id, gbd_round_id, publication_ids
                      source="dismod",
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
-                     age_group_ids=round_id_age_map[gbd_round_id],
+                     age_group_ids=get_age_group_ids(gbd_round_id),
                      version_id=model_version,
                      gbd_round_id=gbd_round_id)
 
@@ -157,7 +162,7 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=No
                      source="codcorrect",
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
-                     age_group_ids=round_id_age_map[gbd_round_id],
+                     age_group_ids=get_age_group_ids(gbd_round_id),
                      gbd_round_id=gbd_round_id)
 
 
@@ -172,7 +177,7 @@ def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
                      source="como",
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
-                     age_group_ids=round_id_age_map[gbd_round_id],
+                     age_group_ids=get_age_group_ids(gbd_round_id),
                      gbd_round_id=gbd_round_id)
 
 
@@ -202,6 +207,7 @@ def get_relative_risks(location_id, risk_id, gbd_round_id):
                              gbd_id=risk_id,
                              source='risk',
                              sex_ids=MALE + FEMALE,
+                             age_group_ids=get_age_group_ids(gbd_round_id),
                              draw_type='rr')
 
 
@@ -216,6 +222,7 @@ def get_exposures(location_id, risk_id, gbd_round_id):
                              gbd_id=risk_id,
                              source='risk',
                              sex_ids=MALE + FEMALE,
+                             age_group_ids=get_age_group_ids(gbd_round_id),
                              draw_type='exposure')
 
 
@@ -230,6 +237,17 @@ def get_pafs(location_id, cause_id, gbd_round_id):
     # which I'm going to do right now. -Alec
     worker_count = 0 if current_process().daemon else 6  # One worker per 5-year dalynator file (1990 - 2015)
 
+    if gbd_round_id >= 4:
+        # The risk-cause data moved from dalynator to burdenator as of round 4 so must be retrieved from there.
+        draw_options = [[location_id, gbd_round_id]]
+        return _get_draws_safely(get_draws, draw_options,
+                                 gbd_id_field='cause_id',
+                                 gbd_id=cause_id,
+                                 source='burdenator',
+                                 sex_ids=MALE + FEMALE,
+                                 age_group_ids=get_age_group_ids(gbd_round_id),
+                                 num_workers=worker_count)
+
     # Sometimes draws from a previous gbd round are reused.
     draw_options = [[location_id, gbd_round_id], [location_id, gbd_round_id - 1]]
     return _get_draws_safely(get_draws, draw_options,
@@ -237,6 +255,7 @@ def get_pafs(location_id, cause_id, gbd_round_id):
                              gbd_id=cause_id,
                              source='dalynator',
                              sex_ids=MALE + FEMALE,
+                             age_group_ids=get_age_group_ids(gbd_round_id),
                              include_risks=True,
                              num_workers=worker_count)
 
@@ -245,7 +264,7 @@ def get_pafs(location_id, cause_id, gbd_round_id):
 def get_populations(location_id, gbd_round_id):
     from db_queries import get_population
 
-    return get_population(age_group_id=ZERO_TO_EIGHTY + EIGHTY_PLUS,
+    return get_population(age_group_id=get_age_group_ids(gbd_round_id, mortality=True),
                           location_id=location_id,
                           year_id=[-1],
                           sex_id=MALE + FEMALE + COMBINED,
@@ -266,7 +285,7 @@ def get_deaths(location_id, gbd_round_id):
     return get_draws(gbd_id_field="cause_id",
                      gbd_id=294,
                      source="dalynator",
-                     age_group_ids=round_id_age_map[gbd_round_id],
+                     age_group_ids=get_age_group_ids(gbd_raund_id, mortality=True),
                      location_ids=location_id,
                      measure_ids=1,
                      gbd_round_id=gbd_round_id,
