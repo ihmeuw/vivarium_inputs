@@ -698,7 +698,7 @@ def get_age_specific_fertility_rates(location_id, gbd_round_id):
     # and we should switch to it asap. -Alec 11/01/2016
     asfr = gbd.get_data_from_auxiliary_file('Age-Specific Fertility Rates', gbd_round=_gbd_round_id_map[gbd_round_id])
 
-    asfr = asfr.query('age_group_id in {}'.format(gbd.round_id_age_map[gbd_round_id]))
+    asfr = asfr.query('age_group_id in {}'.format(gbd.get_age_group_ids(gbd_round_id)))
     asfr = asfr.query('location_id == {}'.format(location_id)).copy()
     asfr['sex'] = 'Female'
     asfr = asfr.rename(columns={'year_id': 'year', 'mean_value': 'rate'})

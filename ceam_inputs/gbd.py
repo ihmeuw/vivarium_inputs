@@ -264,7 +264,7 @@ def get_pafs(location_id, cause_id, gbd_round_id):
 def get_populations(location_id, gbd_round_id):
     from db_queries import get_population
 
-    return get_population(age_group_id=get_age_group_ids(gbd_round_id, mortality=True),
+    return get_population(age_group_id=get_age_group_ids(gbd_round_id),
                           location_id=location_id,
                           year_id=[-1],
                           sex_id=MALE + FEMALE + COMBINED,
