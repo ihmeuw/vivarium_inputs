@@ -3,19 +3,16 @@ import os
 import pandas as pd
 
 from vivarium.config_tree import ConfigTree
-from vivarium.framework.engine import build_simulation_configuration
-
-# Make these top level imports until external references can be removed.
-from ceam_inputs.gbd_mapping import (causes, risk_factors, sequelae, etiologies,
-                                     healthcare_entities, treatment_technologies,
-                                     meid, hid, cid, rid, scalar, UNKNOWN,
-                                     UnknownEntityError, Cause)
-from ceam_inputs import gbd, gbd_ms_functions as functions
-
 # This will grab the config in this users home directory as well as setting some defaults.
+from vivarium.framework.engine import build_simulation_configuration
 base_config = build_simulation_configuration({})
 _inputs_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
 base_config.update(_inputs_config_path, layer='base', source=_inputs_config_path)
+
+
+# Make these top level imports until external references can be removed.
+from ceam_inputs.gbd_mapping import *
+from ceam_inputs import gbd, gbd_ms_functions as functions
 
 
 def _get_input_config(override_config):
