@@ -254,7 +254,7 @@ def get_pafs(risk, cause, paf_type='morbidity', override_config=None):
 
     Parameters
     ----------
-    risk: ceam_inputs.gbd_mapping.Risk
+    risk: ceam_inputs.gbd_mapping.Risk or ceam_inputs.gbd_mapping.Etiology
     cause: ceam_inputs.gbd_mapping.Cause
     paf_type: {'morbidity', 'mortality'}
     override_config :
