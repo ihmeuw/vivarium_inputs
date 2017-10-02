@@ -740,6 +740,12 @@ def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex
     return covariate_estimates
 
 
+def get_annual_live_births(location_id):
+    data = get_covariate_estimates('live_births_by_sex', location_id, sex_id=3)
+    data = data[['year_id', 'mean_value']].rename(columns={'year_id': 'year', 'mean_value': 'births'})
+    return data
+
+
 def get_severity_splits(parent_meid, child_meid, gbd_round_id, draw_number):
     """
     Returns a severity split proportion for a given cause

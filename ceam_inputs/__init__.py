@@ -389,9 +389,7 @@ def get_fpg_distribution_parameters(override_config=None):
                                                      use_subregions=config.input_data.use_subregions)
 
 
-# FIXME: The access pattern is incorrect here.  No one should be explicitly passing in location ids/sex_ids/years.
-# It's a bit bigger to fix than I want to deal with right now.  -J.C. 09/20/17
-def get_annual_live_births(location_id, year=None, sex_id=3, override_config=None):
+def get_annual_live_births(override_config=None):
     """Gets the live births in a given location and year.
 
     Parameters
@@ -408,10 +406,7 @@ def get_annual_live_births(location_id, year=None, sex_id=3, override_config=Non
         Average live births.
     """
     config = _get_input_config(override_config)
-    return functions.get_covariate_estimates(covariate_name_short='live_births_by_sex',
-                                             location_id=location_id,
-                                             year_id=year,
-                                             sex_id=sex_id)['mean_value']
+    return functions.get_annual_live_births(location_id=config.input_data.location_id)
 
 
 def get_sbp_distribution(override_config=None):
