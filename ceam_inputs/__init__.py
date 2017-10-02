@@ -225,7 +225,7 @@ def get_prevalence(cause, override_config=None):
     return _get_gbd_draws(modelable_entity=cause,  measure='prevalence', column_name='prevalence', config=config)
 
 
-def get_relative_risks(risk, cause, rr_type='morbidity', override_config=None):
+def get_relative_risks(risk, cause, override_config=None, rr_type='morbidity'):
     """Get the relative risk for a cause risk pair
 
     Parameters
@@ -249,7 +249,7 @@ def get_relative_risks(risk, cause, rr_type='morbidity', override_config=None):
                                         draw_number=config.run_configuration.input_draw_number)
 
 
-def get_pafs(risk, cause, paf_type='morbidity', override_config=None):
+def get_pafs(risk, cause, override_config=None, paf_type='morbidity'):
     """Get the population attributable fraction for a cause risk pair.
 
     Parameters
