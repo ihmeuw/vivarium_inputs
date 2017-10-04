@@ -2,28 +2,18 @@ import os.path
 
 from getpass import getuser
 
-from ceam_inputs import base_config
-
 STATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'cen_functions_scripts')
 
 
-def get_cache_directory():
-    return base_config.input_data.intermediary_data_cache_path.format(username=getuser())
+def get_input_config(override_config=None):
+    # This will grab the config in this users home directory as well as setting some defaults.
+    if override_config is None:
+        from vivarium.config_tree import ConfigTree
+        override_config = ConfigTree()
+    _inputs_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
+    override_config.update(_inputs_config_path, layer='base', source=_inputs_config_path)
+    return override_config
 
 
-def gbd_year_range():
-    year_start = round_to_gbd_year(base_config.simulation_parameters.year_start)
-    year_end = round_to_gbd_year(base_config.simulation_parameters.year_end, down=False)
-    if year_end == year_start:
-        year_end += 5
-    return year_start, year_end
-
-
-# FIXME: Need to handle GBD 2013!!
-def round_to_gbd_year(year, down=True):
-    rounded_year = int(year/5)*5
-    if not down and rounded_year != year:
-        rounded_year += 5
-    if year >= 2015:
-        rounded_year = year
-    return rounded_year
+def get_cache_directory(config):
+    return config.input_data.intermediary_data_cache_path.format(username=getuser())

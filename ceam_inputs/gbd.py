@@ -4,11 +4,10 @@ import warnings
 from joblib import Memory
 import pandas as pd
 
-from ceam_inputs.util import get_cache_directory
+from ceam_inputs.util import get_cache_directory, get_input_config
 from ceam_inputs.auxiliary_files import auxiliary_file_path
-from ceam_inputs.gbd_mapping import cid
 
-memory = Memory(cachedir=get_cache_directory(), verbose=1)
+memory = Memory(cachedir=get_cache_directory(get_input_config()), verbose=1)
 
 MALE = [1]
 FEMALE = [2]

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ceam_inputs import causes, risk_factors, base_config
+from ceam_inputs import causes, risk_factors
 from ceam_inputs.gbd_ms_functions import (get_sbp_mean_sd, get_relative_risks, get_pafs, get_exposures,
                                           get_angina_proportions, get_disability_weight,
                                           get_post_mi_heart_failure_proportion_draws,
@@ -121,7 +121,7 @@ def test_get_disability_weight():
                                              gbd_round_id=3), 0.0983228), err_msg
 
 
-def test_get_asympt_ihd_proportions():
+def test_get_asympt_ihd_proportions(base_config):
     angina_proportions = get_angina_proportions(gbd_round_id=3)
     pub_ids = base_config.input_data.gbd_publication_ids
     heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(KENYA,

@@ -1,23 +1,11 @@
-import os
-
 import pandas as pd
 
-from vivarium.config_tree import ConfigTree
-# This will grab the config in this users home directory as well as setting some defaults.
-from vivarium.framework.engine import build_simulation_configuration
-base_config = build_simulation_configuration({})
-_inputs_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
-base_config.update(_inputs_config_path, layer='base', source=_inputs_config_path)
-
+from vivarium.config_tree import ConfigTree  # Just for typing info.
 
 # Make these top level imports until external references can be removed.
 from ceam_inputs.gbd_mapping import *
 from ceam_inputs import gbd, gbd_ms_functions as functions
-
-
-def _get_input_config(override_config):
-    base_config.update(override_config)
-    return base_config
+from ceam_inputs.util import get_input_config
 
 
 def _get_gbd_draws(modelable_entity, measure, column_name, config: ConfigTree):
@@ -84,7 +72,7 @@ def get_excess_mortality(cause, override_config: ConfigTree=None):
         df[prevalence == 0] = 0
         return df.reset_index()
     else:
-        config = _get_input_config(override_config)
+        config = get_input_config(override_config)
         return _get_gbd_draws(modelable_entity=cause, measure='excess_mortality', column_name='rate', config=config)
 
 
@@ -103,7 +91,7 @@ def get_incidence(cause, override_config: ConfigTree=None):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return _get_gbd_draws(modelable_entity=cause, measure='incidence', column_name='rate', config=config)
 
 
@@ -122,7 +110,7 @@ def get_cause_specific_mortality(cause, override_config=None):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_cause_specific_mortality(cause_id=cause.gbd_id,
                                                   location_id=config.input_data.location_id,
                                                   gbd_round_id=config.input_data.gbd_round_id,
@@ -145,7 +133,7 @@ def get_remission(cause, override_config=None):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return _get_gbd_draws(modelable_entity=cause, measure='remission', column_name='remission', config=config)
 
 
@@ -166,7 +154,7 @@ def get_duration(cause, override_config=None):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'duration' columns
     """
-    _ = _get_input_config(override_config)
+    _ = get_input_config(override_config)
     if cause.duration is UNKNOWN:
         raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(cause.name, 'duration'))
     else:
@@ -189,7 +177,7 @@ def get_proportion(modelable_entity, override_config=None):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'proportion' columns
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return _get_gbd_draws(modelable_entity=modelable_entity,  measure='proportion',
                           column_name='proportion', config=config)
 
@@ -202,7 +190,7 @@ def get_age_bins(override_config=None):
     override_config :
         Any overrides to the input data configuration.
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return gbd.get_age_bins(gbd_round_id=config.input_data.gbd_round_id)
 
 
@@ -221,7 +209,7 @@ def get_prevalence(cause, override_config=None):
     pandas.DataFrame
         Table with 'age', 'sex', 'year' and 'prevalence' columns
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return _get_gbd_draws(modelable_entity=cause,  measure='prevalence', column_name='prevalence', config=config)
 
 
@@ -240,7 +228,7 @@ def get_relative_risks(risk, cause, override_config=None, rr_type='morbidity'):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_relative_risks(location_id=config.input_data.location_id,
                                         risk_id=risk.gbd_id,
                                         cause_id=cause.gbd_id,
@@ -264,7 +252,7 @@ def get_pafs(risk, cause, override_config=None, paf_type='morbidity'):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_pafs(location_id=config.input_data.location_id,
                               risk_id=risk.gbd_id,
                               cause_id=cause.gbd_id,
@@ -286,7 +274,7 @@ def get_exposure_means(risk, override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_exposures(location_id=config.input_data.location_id,
                                    risk_id=risk.gbd_id,
                                    gbd_round_id=config.input_data.gbd_round_id,
@@ -306,7 +294,7 @@ def get_exposure_standard_errors(risk, override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     # TODO : I still need to generate the standard deviations for the continuous risks.  So stub here for now. J.C.
     pass
 
@@ -328,7 +316,7 @@ def get_populations(location_id, year=-1, sex='All', override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_populations(location_id=location_id,
                                      year=year,
                                      sex=sex,
@@ -347,7 +335,7 @@ def get_age_specific_fertility_rates(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_age_specific_fertility_rates(location_id=config.input_data.location_id,
                                                       gbd_round_id=config.input_data.gbd_round_id)
 
@@ -364,7 +352,7 @@ def get_bmi_distribution_parameters(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_bmi_distribution_parameters(location_id=config.input_data.location_id,
                                                      gbd_round_id=config.input_data.gbd_round_id,
                                                      draw_number=config.run_configuration.input_draw_number)
@@ -382,7 +370,7 @@ def get_fpg_distribution_parameters(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_fpg_distribution_parameters(location_id=config.input_data.location_id,
                                                      gbd_round_id=config.input_data.gbd_round_id,
                                                      draw_number=config.run_configuration.input_draw_number,
@@ -405,7 +393,7 @@ def get_annual_live_births(override_config=None):
     pandas.DataFrame
         Average live births.
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_annual_live_births(location_id=config.input_data.location_id)
 
 
@@ -421,7 +409,7 @@ def get_sbp_distribution(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_sbp_mean_sd(location_id=config.input_data.location_id,
                                      gbd_round_id=config.input_data.gbd_round_id,
                                      draw_number=config.run_configuration.input_draw_number)
@@ -439,7 +427,7 @@ def get_post_mi_heart_failure_proportion_draws(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_post_mi_heart_failure_proportion_draws(location_id=config.input_data.location_id,
                                                                 gbd_round_id=config.input_data.gbd_round_id,
                                                                 publication_ids=config.input_data.gbd_publication_ids,
@@ -458,7 +446,7 @@ def get_angina_proportions(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_angina_proportions(gbd_round_id=config.input_data.gbd_round_id,
                                             draw_number=config.run_configuration.input_draw_number)
 
@@ -475,7 +463,7 @@ def get_asympt_ihd_proportions(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_asympt_ihd_proportions(location_id=config.input_data.location_id,
                                                 gbd_round_id=config.input_data.gbd_round_id,
                                                 publication_ids=config.input_data.gbd_publication_ids,
@@ -498,7 +486,7 @@ def get_subregions(location_id, override_config=None):
     [int]
         Subregions of the given location.
     """
-    _ = _get_input_config(override_config)
+    _ = get_input_config(override_config)
     return gbd.get_subregions(location_id)
 
 
@@ -516,7 +504,7 @@ def get_severity_splits(parent, child, override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_severity_splits(parent_meid=parent.incidence,
                                          child_meid=child.proportion,
                                          gbd_round_id=config.input_data.gbd_round_id,
@@ -536,7 +524,7 @@ def get_disability_weight(cause, override_config=None):
     -------
     float or pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     if cause.disability_weight is UNKNOWN:
         if isinstance(cause, Cause):
             import warnings
@@ -564,7 +552,7 @@ def get_rota_vaccine_coverage(override_config=None):
     Returns
     -------
     pandas.DataFrame"""
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_rota_vaccine_coverage(location_id=config.input_data.location_id,
                                                gbd_round_id=config.input_data.gbd_round_id,
                                                draw_number=config.run_configuration.input_draw_number)
@@ -582,7 +570,7 @@ def get_ors_pafs(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_ors_pafs(location_id=config.input_data.location_id,
                                   gbd_round_id=config.input_data.gbd_round_id,
                                   draw_number=config.run_configuration.input_draw_number)
@@ -600,7 +588,7 @@ def get_ors_relative_risks(override_config=None):
     -------
     float
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_ors_relative_risks(gbd_round_id=config.input_data.gbd_round_id,
                                             draw_number=config.run_configuration.input_draw_number)
 
@@ -617,7 +605,7 @@ def get_ors_exposures(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_ors_exposures(location_id=config.input_data.location_id,
                                        gbd_round_id=config.input_data.gbd_round_id,
                                        draw_number=config.run_configuration.input_draw_number)
@@ -635,7 +623,7 @@ def get_life_table(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_life_table(gbd_round_id=config.input_data.gbd_round_id)
 
 
@@ -651,7 +639,7 @@ def get_outpatient_visit_costs(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_outpatient_visit_costs(gbd_round_id=config.input_data.gbd_round_id)
 
 
@@ -667,7 +655,7 @@ def get_inpatient_visit_costs(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_inpatient_visit_costs(gbd_round_id=config.input_data.gbd_round_id)
 
 
@@ -683,7 +671,7 @@ def get_hypertension_drug_costs(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_hypertension_drug_costs(gbd_round_id=config.input_data.gbd_round_id)
 
 
@@ -699,7 +687,7 @@ def load_risk_correlation_matrices(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.load_risk_correlation_matrices(location_id=config.input_data.location_id,
                                                     gbd_round_id=config.input_data.gbd_round_id)
 
@@ -718,7 +706,7 @@ def get_mediation_factors(risk, cause, override_config=None):
     -------
     float or pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_mediation_factors(risk_id=risk.gbd_id,
                                            cause_id=cause.gbd_id,
                                            gbd_round_id=config.input_data.gbd_round_id,
@@ -737,7 +725,7 @@ def get_dtp3_coverage(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_dtp3_coverage(location_id=config.input_data.location_id,
                                        gbd_round_id=config.input_data.gbd_round_id,
                                        draw_number=config.run_configuration.input_draw_number)
@@ -755,7 +743,7 @@ def get_rota_vaccine_protection(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_rota_vaccine_protection(location_id=config.input_data.location_id,
                                                  gbd_round_id=config.input_data.gbd_round_id,
                                                  draw_number=config.run_configuration.input_draw_number)
@@ -773,7 +761,7 @@ def get_rota_vaccine_rrs(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_rota_vaccine_rrs(location_id=config.input_data.location_id,
                                           gbd_round_id=config.input_data.gbd_round_id,
                                           draw_number=config.run_configuration.input_draw_number)
@@ -792,7 +780,7 @@ def get_diarrhea_visit_costs(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_diarrhea_visit_costs(location_id=config.input_data.location_id,
                                               gbd_round_id=config.input_data.gbd_round_id,
                                               draw_number=config.run_configuration.input_draw_number)
@@ -810,7 +798,7 @@ def get_diarrhea_costs(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_diarrhea_costs(location_id=config.input_data.location_id,
                                         gbd_round_id=config.input_data.gbd_round_id,
                                         draw_number=config.run_configuration.input_draw_number)
@@ -828,7 +816,7 @@ def get_ors_costs(override_config=None):
     -------
     pandas.DataFrame
     """
-    config = _get_input_config(override_config)
+    config = get_input_config(override_config)
     return functions.get_ors_costs(location_id=config.input_data.location_id,
                                    gbd_round_id=config.input_data.gbd_round_id,
                                    draw_number=config.run_configuration.input_draw_number)
