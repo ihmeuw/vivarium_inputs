@@ -825,7 +825,7 @@ def get_ors_relative_risks(gbd_round_id, draw_number):
     Parameters
     ----------
     draw_number: int
-        current draw number (as specified in config.run_configuration.input_draw_numberq)
+        current draw number (as specified in config.run_configuration.input_draw_number)
     gbd_round_id : int
     """
     rr = gbd.get_data_from_auxiliary_file(treatment_technologies.ors.rrs, gbd_round=_gbd_round_id_map[gbd_round_id])
