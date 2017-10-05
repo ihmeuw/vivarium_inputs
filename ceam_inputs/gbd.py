@@ -13,6 +13,7 @@ MALE = [1]
 FEMALE = [2]
 COMBINED = [3]
 
+
 class CentralCompError(Exception):
     """Error for failures in central-comp tooling."""
     pass

@@ -4,6 +4,7 @@ from vivarium.config_tree import ConfigTree  # Just for typing info.
 
 # Make these top level imports until external references can be removed.
 from ceam_inputs.gbd_mapping import *
+
 from ceam_inputs import gbd, gbd_ms_functions as functions
 from ceam_inputs.util import get_input_config
 
