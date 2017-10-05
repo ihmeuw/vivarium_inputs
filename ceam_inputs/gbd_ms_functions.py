@@ -740,6 +740,12 @@ def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex
     return covariate_estimates
 
 
+def get_annual_live_births(location_id):
+    data = get_covariate_estimates('live_births_by_sex', location_id, sex_id=3)
+    data = data[['year_id', 'mean_value']].rename(columns={'year_id': 'year', 'mean_value': 'births'})
+    return data
+
+
 def get_severity_splits(parent_meid, child_meid, gbd_round_id, draw_number):
     """
     Returns a severity split proportion for a given cause
@@ -819,7 +825,7 @@ def get_ors_relative_risks(gbd_round_id, draw_number):
     Parameters
     ----------
     draw_number: int
-        current draw number (as specified in config.run_configuration.draw_number)
+        current draw number (as specified in config.run_configuration.input_draw_number)
     gbd_round_id : int
     """
     rr = gbd.get_data_from_auxiliary_file(treatment_technologies.ors.rrs, gbd_round=_gbd_round_id_map[gbd_round_id])
@@ -833,7 +839,7 @@ def get_ors_exposures(location_id, gbd_round_id, draw_number=None):
     location_id : int
         location_id takes same location_id values as are used for GBD
     draw_number: int
-        current draw number (as specified in config.run_configuration.draw_number)
+        current draw number (as specified in config.run_configuration.input_draw_numberq)
     gbd_round_id : int
     """
     ors_exp = gbd.get_data_from_auxiliary_file(treatment_technologies.ors.exposures,
@@ -871,7 +877,7 @@ def get_diarrhea_visit_costs(location_id, gbd_round_id, draw_number):
     location_id : int
         location_id takes same location_id values as are used for GBD
     draw_number: int
-        current draw number (as specified in config.run_configuration.draw_number)
+        current draw number (as specified in config.run_configuration.input_draw_numberq)
     gbd_round_id : int
     """
     if location_id not in [179, 161, 214]:
