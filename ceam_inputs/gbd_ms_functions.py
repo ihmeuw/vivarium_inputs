@@ -960,7 +960,11 @@ def get_fpg_distribution_parameters(location_id, gbd_round_id, draw_number=None,
 
     parameters = pd.concat(dfs)
     assert isinstance(parameters, pd.DataFrame)
-    parameters.drop_duplicates()
+
+    # This is safe because the source data file has rows for multiple cause_ids but the data we care about is the same
+    # for each cause so we don't care which one we get.
+    parameters.drop_duplicates(['age_group_id', 'sex_id', 'location_id', 'year_id'])
+
     parameters = get_age_group_midpoint_from_age_group_id(parameters, gbd_round_id)
     parameters = parameters.drop(['age_group_start', 'age_group_end'], axis=1)
     parameters = (parameters
@@ -976,6 +980,8 @@ def get_fpg_distribution_parameters(location_id, gbd_round_id, draw_number=None,
 
 
 def aggregate_location_data(df, location_id):
+    if not gbd.get_subregions(location_id):
+        return df
     weights = get_subregion_weights(location_id)
     merge_cols = ['age', 'sex', 'year', 'location']
     param_cols = list(set(df.columns).difference(merge_cols))
