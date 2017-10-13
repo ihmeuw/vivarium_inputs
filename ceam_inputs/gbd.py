@@ -98,7 +98,7 @@ def get_age_group_ids(gbd_round_id, mortality=False):
     else:
         team = 'epi'
 
-    return get_demographics(team, gbd_round_id)['age_group_id']
+    return get_demographics(team, gbd_round_id)['age_group_ids']
 
 @memory.cache
 def get_healthstate_id(me_id):
