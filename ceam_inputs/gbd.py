@@ -285,7 +285,7 @@ def get_deaths(location_id, gbd_round_id):
     return get_draws(gbd_id_field="cause_id",
                      gbd_id=294,
                      source="dalynator",
-                     age_group_ids=get_age_group_ids(gbd_raund_id, mortality=True),
+                     age_group_ids=get_age_group_ids(gbd_round_id, mortality=True),
                      location_ids=location_id,
                      measure_ids=1,
                      gbd_round_id=gbd_round_id,
