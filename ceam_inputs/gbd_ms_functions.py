@@ -961,7 +961,10 @@ def get_fpg_distribution_parameters(location_id, gbd_round_id, draw_number=None,
 
     # This is safe because the source data file has rows for multiple cause_ids but the data we care about is the same
     # for each cause so we don't care which one we get.
-    parameters.drop_duplicates(['age_group_id', 'sex_id', 'location_id', 'year_id'])
+    if 'location_id' in parameters.columns:
+        parameters.drop_duplicates(['age_group_id', 'sex_id', 'location_id', 'year_id'])
+    elif 'location' in parameters.columns:
+        parameters.drop_duplicates(['age_group_id', 'sex_id', 'location', 'year_id'])
 
     parameters = get_age_group_midpoint_from_age_group_id(parameters, gbd_round_id)
     parameters = parameters.drop(['age_group_start', 'age_group_end'], axis=1)
