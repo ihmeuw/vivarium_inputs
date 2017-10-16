@@ -1,5 +1,6 @@
 TAB = " "*4
 
+from db_queries import get_rei_metadata
 
 def make_etiology(name, rid):
     # building inner script
@@ -17,6 +18,11 @@ def make_etiologies(etiology_list):
         out += make_etiology(name, rid)
     out += ")"
     return out
+
+def get_etiology_data():
+    etiologies = get_rei_metadata(rei_set_id = 3, gbd_round_id= 4)
+    etiologies = etiologies[etiologies['most_detailed'] == 1]
+    return list(zip(etiologies.rei_name, etiologies.rei_id))
 
 
 if __name__ == "__main__":
