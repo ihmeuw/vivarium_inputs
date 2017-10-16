@@ -711,7 +711,7 @@ def get_age_specific_fertility_rates(location_id, gbd_round_id):
 # TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of
 # covariate short name, because names are subject to change but ids should stay the same
 # TODO: Also link that covariate id to a publication id, if possible
-def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex_id=None):
+def get_covariate_estimates(covariate_id, location_id, year_id=None, sex_id=None):
     """Gets covariate estimates for a specified location.
 
     Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.)
@@ -720,10 +720,7 @@ def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex
     ----------
     location_id : int
         location_id takes same location_id values as are used for GBD
-    covariate_name_short: str
-        the covariate_short_name for the covariate of interest.
-        you can look up covariate_short_names here: http://cn307.ihme.washington.edu:9998/
-        (check the covariate_metadata_tab in website above)
+    covariate_id: int
     year_id: int
     sex_id: int
 
@@ -732,7 +729,7 @@ def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex
     A dataframe of covariate_estimates.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    covariate_estimates = gbd.get_covariate_estimates(covariate_name_short, location_id)
+    covariate_estimates = gbd.get_covariate_estimates(covariate_id, location_id)
     if year_id:
         covariate_estimates = covariate_estimates[covariate_estimates.year_id == year_id]
     if sex_id:
@@ -741,7 +738,8 @@ def get_covariate_estimates(covariate_name_short, location_id, year_id=None, sex
 
 
 def get_annual_live_births(location_id):
-    data = get_covariate_estimates('live_births_by_sex', location_id, sex_id=3)
+    # FIXME: Set up covariates mapping and remove the raw id
+    data = get_covariate_estimates(1106, location_id, sex_id=3)
     data = data[['year_id', 'mean_value']].rename(columns={'year_id': 'year', 'mean_value': 'births'})
     return data
 

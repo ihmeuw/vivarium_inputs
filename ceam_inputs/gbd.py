@@ -182,11 +182,10 @@ def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
 
 
 @memory.cache
-def get_covariate_estimates(covariate_name_short, location_id):
+def get_covariate_estimates(covariate_id, location_id):
     from db_queries import get_covariate_estimates
 
-    covariate_estimates = get_covariate_estimates(covariate_name_short=covariate_name_short,
-                                                  covariate_id=None,
+    covariate_estimates = get_covariate_estimates(covariate_id=covariate_id,
                                                   location_id=location_id,
                                                   sex_id=MALE + FEMALE + COMBINED,
                                                   age_group_id=-1,
