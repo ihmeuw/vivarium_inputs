@@ -1,4 +1,5 @@
 TAB = " "*4
+TEXTWIDTH = 120
 
 
 def make_sequela(name, sid, mei_id):
