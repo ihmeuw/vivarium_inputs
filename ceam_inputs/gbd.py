@@ -61,6 +61,7 @@ def get_gbd_tool_version(publication_ids, source):
         return None
     return como_ids['val'].astype('int')[0]
 
+
 @memory.cache
 def get_dismod_model_versions(publication_ids):
     from db_tools import ezfuncs
@@ -75,6 +76,51 @@ def get_dismod_model_versions(publication_ids):
         """.format(','.join([str(pid) for pid in publication_ids])), conn_def='epi')
 
     return dict(mapping[['modelable_entity_id', 'model_version_id']].values)
+
+
+@memory.cache
+def get_sequela_set_version_id(gbd_round_id):
+    from db_tools import ezfuncs
+    q = """
+        SELECT gbd_round_id,
+               sequela_set_version_id
+        FROM epi.sequela_set_version_active
+        """
+    return ezfuncs.query(q, conn_def='epi').set_index('gbd_round_id').at[gbd_round_id, 'sequela_set_version_id']
+
+
+@memory.cache
+def get_sequela_id_mapping(model_version):
+    from db_tools import ezfuncs
+
+    q = f"""
+        SELECT sequela_id,
+               sequela_name,
+               modelable_entity_id,
+               cause_id, 
+               healthstate_id
+        FROM epi.sequela_hierarchy_history
+        WHERE sequela_set_version_id = {model_version}"""
+    return ezfuncs.query(q, conn_def='epi')
+
+
+@memory.cache
+def get_cause_etiology_mapping(gbd_round_id):
+    from db_tools import ezfuncs
+    # FIXME: This table has not been updated with the round 4 mapping, but Joe Wagner assures
+    # me that the mapping did not change from round 3.  He's going to update the table, then we
+    # should remove this.
+    if gbd_round_id == 4:
+        gbd_round_id = 3
+
+    q = f""" 
+        SELECT rei_id,
+               cause_id
+        FROM shared.cause_etiology
+        WHERE gbd_round_id = {gbd_round_id}
+        AND cause_id in (302, 322)
+        """
+    return ezfuncs.query(q, conn_def='epi')
 
 
 @memory.cache
@@ -99,6 +145,19 @@ def get_age_group_ids(gbd_round_id, mortality=False):
         team = 'epi'
 
     return get_demographics(team, gbd_round_id)['age_group_id']
+
+
+@memory.cache
+def get_healthstate_ids():
+    from db_tools import ezfuncs
+
+    q = """
+        SELECT healthstate_id,
+               healthstate_name
+        FROM epi.healthstate
+        """
+    return ezfuncs.query(q, conn_def='epi')
+
 
 @memory.cache
 def get_healthstate_id(me_id):
