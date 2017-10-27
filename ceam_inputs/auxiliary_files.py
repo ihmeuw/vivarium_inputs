@@ -122,6 +122,11 @@ FILES = {
         'source':  '/home/j/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_diarrhea_cost_all_country_years.csv',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
+    'Risk Data': {
+        'path': 'risk_variables.xlsx',
+        'source': '/home/j/WORK/05_risk/central/documentation/GBD\ 2016/risk_variables.xlsx',
+        'owner': 'Kelly Cercy <kcercy@uw.edu>'
+    }
 }
 
 
