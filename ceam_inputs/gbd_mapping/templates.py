@@ -34,7 +34,7 @@ class hid(int):
 class scalar(float):
     """Raw measure value"""
     def __repr__(self):
-        return 'scalar({:d})'.format(self)
+        return 'scalar({:f})'.format(self)
 
 
 class _Unknown:
@@ -61,7 +61,7 @@ class GbdRecord:
         if item in self.__slots__:
             return getattr(self, item)
         else:
-            raise KeyError
+            raise KeyError(item)
 
     def __iter__(self):
         for item in self.__slots__:
@@ -284,7 +284,8 @@ class Sequelae(GbdRecord):
                  'acute_myocardial_infarction_3_to_28_days',
                  'heart_failure', 'angina', 'asymptomatic_ihd',
                  'chronic_ischemic_stroke', 'acute_ischemic_stroke',
-                 'chronic_hemorrhagic_stroke', 'acute_hemorrhagic_stroke',)
+                 'chronic_hemorrhagic_stroke', 'acute_hemorrhagic_stroke',
+                 'mild_diarrhea', 'moderate_diarrhea', 'severe_diarrhea',)
 
     def __init__(self,
                  heart_attack: Sequela,
@@ -296,7 +297,10 @@ class Sequelae(GbdRecord):
                  chronic_ischemic_stroke: Sequela,
                  acute_ischemic_stroke: Sequela,
                  chronic_hemorrhagic_stroke: Sequela,
-                 acute_hemorrhagic_stroke: Sequela,):
+                 acute_hemorrhagic_stroke: Sequela,
+                 mild_diarrhea: Sequela,
+                 moderate_diarrhea: Sequela,
+                 severe_diarrhea: Sequela):
 
         super().__init__()
         self.heart_attack = heart_attack
@@ -309,6 +313,9 @@ class Sequelae(GbdRecord):
         self.acute_ischemic_stroke = acute_ischemic_stroke
         self.chronic_hemorrhagic_stroke = chronic_hemorrhagic_stroke
         self.acute_hemorrhagic_stroke = acute_hemorrhagic_stroke
+        self.mild_diarrhea =mild_diarrhea
+        self.moderate_diarrhea =moderate_diarrhea
+        self.severe_diarrhea =severe_diarrhea
 
 
 class Tmred(GbdRecord):
@@ -357,13 +364,14 @@ class Levels(GbdRecord):
 
 class Risk(ModelableEntity):
     """Container type for risk factor GBD ids."""
-    __slots__ = ('name', 'gbd_id', 'affected_causes', 'distribution', 'levels', 'tmred',
+    __slots__ = ('name', 'gbd_id', 'affected_causes', 'distribution', 'standard_deviation', 'levels', 'tmred',
                  'scale', 'max_rr', 'min_rr', 'max_val', 'min_val', 'max_var')
 
     def __init__(self,
                  name: str,
                  gbd_id: rid,
                  affected_causes: Tuple[Cause, ...],
+                 standard_deviation: meid = UNKNOWN,
                  distribution: str = UNKNOWN,
                  levels: Levels = None,
                  tmred: Tmred = None,
@@ -377,6 +385,7 @@ class Risk(ModelableEntity):
         super().__init__(name=name, gbd_id=gbd_id)
         self.affected_causes = affected_causes
         self.distribution = distribution
+        self.standard_deviation = standard_deviation
         self.levels = levels
         self.tmred = tmred
         self.scale = scale
@@ -870,6 +879,21 @@ class HealthcareEntities(GbdRecord):
         self.outpatient_visits = outpatient_visits
         self.inpatient_visits = inpatient_visits
 
+
+
+class Vaccine(ModelableEntity):
+    """Container for vaccine data"""
+    __slots__ = ('name')
+
+class Vaccines(GbdRecord):
+    """Holder for vaccine record."""
+    __slots__ = ('rota_virus', 'dtp3',)
+
+    def __init__(self,
+                 rota_virus: Vaccine,
+                 dtp3: Vaccine):
+        self.rota_virus = rota_virus
+        self.dtp3 = dtp3
 
 class TreatmentTechnology(ModelableEntity):
     """Container for treatment technology GBD ids and data."""

@@ -1,6 +1,6 @@
 """Mapping of GBD risks onto vivarium conventions."""
 
-from .templates import Risk, Risks, Levels, Tmred, rid
+from .templates import Risk, Risks, Levels, Tmred, rid, meid
 from .causes import causes
 
 
@@ -237,6 +237,7 @@ risk_factors = Risks(
     high_total_cholesterol=Risk(
         name='high_total_cholesterol',
         gbd_id=rid(106),
+        standard_deviation=meid(15789),
         distribution='lognormal',
         affected_causes=(causes.ischemic_heart_disease,
                          causes.ischemic_stroke),
@@ -257,6 +258,7 @@ risk_factors = Risks(
         name='high_systolic_blood_pressure',
         gbd_id=rid(107),
         distribution='lognormal',
+        standard_deviation=meid(15788),
         affected_causes=(causes.rheumatic_heart_disease,
                          causes.ischemic_heart_disease,
                          causes.ischemic_stroke,
