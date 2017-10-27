@@ -125,11 +125,9 @@ def test_get_asympt_ihd_proportions(base_config):
     angina_proportions = get_angina_proportions(gbd_round_id=3)
     pub_ids = base_config.input_data.gbd_publication_ids
     heart_failure_proportions = get_post_mi_heart_failure_proportion_draws(KENYA,
-                                                                           gbd_round_id=3,
-                                                                           publication_ids=pub_ids)
+                                                                           gbd_round_id=3)
     asympt_ihd_proportions = get_asympt_ihd_proportions(KENYA,
-                                                        gbd_round_id=3,
-                                                        publication_ids=pub_ids)
+                                                        gbd_round_id=3)
 
     ang_filter = angina_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
     hf_filter = heart_failure_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")

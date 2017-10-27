@@ -105,7 +105,8 @@ def get_all_age_groups_for_years_in_df(df, gbd_round_id):
     """
 
     mapping = gbd.get_age_bins(gbd_round_id)
-    mapping_filter = mapping.query('age_group_id >=2 and age_group_id <=21').copy()
+    age_group_ids = gbd.get_age_group_ids(gbd_round_id)
+    mapping_filter = mapping.query('age_group_id in @age_group_ids').copy()
     mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5
 

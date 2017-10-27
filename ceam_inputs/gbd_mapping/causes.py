@@ -359,6 +359,24 @@ sequelae = Sequelae(
             ),
         ),
     ),
+    mild_diarrhea=Sequela(
+        name='mild_diarrhea',
+        gbd_id=meid(2608),
+        disability_weight=hid(355),
+        remission=meid(1181),
+    ),
+    moderate_diarrhea=Sequela(
+        name='moderate_diarrhea',
+        gbd_id=meid(2609),
+        disability_weight=hid(356),
+        remission=meid(1181),
+    ),
+    severe_diarrhea=Sequela(
+        name='severe_diarrhea',
+        gbd_id=meid(2610),
+        disability_weight=hid(357),
+        remission=meid(1181),
+    ),
 )
 
 

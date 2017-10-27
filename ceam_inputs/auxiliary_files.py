@@ -28,7 +28,8 @@ FILES = {
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv',
         },
     'Systolic Blood Pressure Distributions': {
-        'path': 'systolic_blood_pressure/exp_{location_id}_{sex_id}.dta',
+#        'path': 'systolic_blood_pressure/exp_{location_id}_{sex_id}.dta',
+        'path': '/share/costeffectiveness/CEAM/Auxliary_Data/systolic_blood_pressure/exp_{location_id}_{sex_id}.dta',
         'source': '/share/epi/risk/paf/metab_sbp/exposures',
         'encoding': 'latin1',
         'owner': 'Stan Biryukov <stan0625@uw.edu>',
@@ -52,7 +53,7 @@ FILES = {
         'owner': 'Reed Sorenson <rsoren@uw.edu>',
         },
     'Inpatient Visit Costs': {
-        'path': 'inpatient_visit_cost_KEN_20170125.csv',
+        'path': 'ip_cost.csv',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
     'Hypertension Drug Costs': {
@@ -113,7 +114,7 @@ FILES = {
         'owner': 'Everett Mumford <emumford@uw.edu>',
     },
     'Diarrhea Costs': {
-        'path': 'healthcare_access/diarrhea_cost/{location_id}.csv',
+        'path':  'op_ip_diarrhea_cost_all_country_years.csv',
         'source':  '/home/j/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_diarrhea_cost_all_country_years.csv',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },

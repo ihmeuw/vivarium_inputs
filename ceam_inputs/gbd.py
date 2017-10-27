@@ -40,6 +40,13 @@ def _get_draws_safely(draw_function, draw_options, *args, **kwargs):
 
 
 @memory.cache
+def get_publication_ids_for_round(gbd_round_id):
+    from db_tools import ezfuncs
+    round_year = {3: 2015, 4: 2016}[gbd_round_id]
+
+    return ezfuncs.query(f'select publication_id from shared.publication where gbd_round = {round_year}', conn_def='epi').publication_id.values
+
+@memory.cache
 def get_gbd_tool_version(publication_ids, source):
     from db_tools import ezfuncs
     # NOTE: this mapping comes from the gbd.metadata_type table but in that
@@ -47,6 +54,7 @@ def get_gbd_tool_version(publication_ids, source):
     #       ids should be stable so I'm sticking it here -Alec
     metadata_type_id = {
             'codcorrect': 1,
+            'burdenator': 11,
             'como': 4
     }[source]
 
@@ -66,7 +74,7 @@ def get_dismod_model_versions(publication_ids):
     from db_tools import ezfuncs
 
     mapping = ezfuncs.query("""
-        SELECT modelable_entity_id, 
+        SELECT modelable_entity_id,
                model_version_id
         FROM epi.publication_model_version
         JOIN epi.model_version USING (model_version_id)
@@ -104,8 +112,8 @@ def get_age_group_ids(gbd_round_id, mortality=False):
 def get_healthstate_id(me_id):
     from db_tools import ezfuncs
 
-    healthstate_id_df = ezfuncs.query("""    
-    SELECT modelable_entity_id, 
+    healthstate_id_df = ezfuncs.query("""
+    SELECT modelable_entity_id,
            healthstate_id
     FROM epi.sequela_hierarchy_history
     WHERE modelable_entity_id = {}
@@ -128,18 +136,17 @@ def get_subregions(location_id):
 
 
 @memory.cache
-def get_modelable_entity_draws(location_id, me_id, gbd_round_id, publication_ids=None):
+def get_modelable_entity_draws(location_id, me_id, gbd_round_id):
     from transmogrifier.draw_ops import get_draws
     model_version = None
-    if publication_ids:
-        versions = get_dismod_model_versions(publication_ids)
-        if me_id in versions:
-            model_version = versions[me_id]
-        else:
-            warnings.warn('publication_ids supplied to get_modelable_entity_draws but me_id {} does map to any version ' \
-                    'associated with those publications. That likely means there is a mapping missing in the database' \
-                    .format(me_id))
-    gbd_round_id = gbd_round_id if gbd_round_id else 4
+
+    publication_ids = get_publication_ids_for_round(gbd_round_id)
+    versions = get_dismod_model_versions(publication_ids)
+    if me_id in versions:
+        model_version = versions[me_id]
+    else:
+        warnings.warn(f'me_id {me_id} does map to any version associated with those publications for round {gbd_round_id}.' \
+                      ' That likely means there is a mapping missing in the database')
 
     return get_draws(gbd_id_field='modelable_entity_id',
                      gbd_id=me_id,
@@ -152,8 +159,10 @@ def get_modelable_entity_draws(location_id, me_id, gbd_round_id, publication_ids
 
 
 @memory.cache
-def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
+def get_codcorrect_draws(location_id, cause_id, gbd_round_id):
     from transmogrifier.draw_ops import get_draws
+
+    publication_ids = get_publication_ids_for_round(gbd_round_id)
 
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
@@ -167,8 +176,10 @@ def get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids=No
 
 
 @memory.cache
-def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
+def get_como_draws(location_id, cause_id, gbd_round_id):
     from transmogrifier.draw_ops import get_draws
+
+    publication_ids = get_publication_ids_for_round(gbd_round_id)
 
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
@@ -178,6 +189,7 @@ def get_como_draws(location_id, cause_id, gbd_round_id, publication_ids=None):
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=get_age_group_ids(gbd_round_id),
+                     version_id=227,
                      gbd_round_id=gbd_round_id)
 
 
@@ -304,3 +316,8 @@ def get_data_from_auxiliary_file(file_name, **kwargs):
     else:
         raise NotImplementedError("File type {} is not supported".format(file_type))
     return data
+
+@memory.cache
+def get_estimation_years(gbd_round_id):
+    from db_queries.get_demographics import get_demographics
+    return get_demographics('epi', gbd_round_id=gbd_round_id)['year_id']
