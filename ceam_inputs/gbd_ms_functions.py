@@ -1030,7 +1030,7 @@ def get_bmi_distribution_parameters(location_id, gbd_round_id, draw_number=None)
 
     parameters = pd.DataFrame()
     for p, df in param_frames.items():
-        parameters[param_map[p]] = df.set_index(['age_group_id', 'sex_id', 'year_id'])['draw_{}'.format(draw_number)]
+        parameters[param_map[p]] = df.set_index(['age_group_id', 'sex_id', 'year_id', 'location_id'])['draw_{}'.format(draw_number)]
 
     parameters = parameters.reset_index()
     parameters = get_age_group_midpoint_from_age_group_id(parameters, gbd_round_id)
@@ -1040,8 +1040,9 @@ def get_bmi_distribution_parameters(location_id, gbd_round_id, draw_number=None)
 
     parameters =  parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc', 'location_id']]
 
-    if not config.simulation_parameters.use_subregions:
-        return aggregate_location_data(parameters, location_id, round_id)
+    # TODO: I don't think we need to do this any more but for now I'm pulling it out
+    #if not config.simulation_parameters.use_subregions:
+    #return aggregate_location_data(parameters, location_id, gbd_round_id)
     return parameters
 
 
