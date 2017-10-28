@@ -103,14 +103,19 @@ def make_ids():
                         ('rid', 'Risk Factor ID'),
                         ('cid', 'Cause ID'),
                         ('sid', 'Sequela ID'),
-                        ('hid', 'Health State ID'),
-                        ('scalar', 'Raw Measure Value'))
+                        ('hid', 'Health State ID'))
     for k, v in id_docstring_map:
         out += f'class {k}(int):\n'
         out += TAB + f'"""{v}"""\n'
         out += TAB + 'def __repr__(self):\n'
         out += 2*TAB + f'return "{k}({{:d}}).format(self)"\n'
         out += SPACING
+
+    out += 'class scalar(float):\n'
+    out += TAB + '"""Raw Measure Value"""\n'
+    out += TAB + 'def __repr__(self):\n'
+    out += 2 * TAB + 'return "scalar({:f}).format(self)"\n'
+    out += SPACING
 
     return out
 
@@ -139,7 +144,7 @@ def make_gbd_record():
     out += 2*TAB + 'if item in self:\n'
     out += 3*TAB + 'return getattr(self, item)\n'
     out += 2*TAB + 'else:\n'
-    out += 3*TAB + 'raise KeyError\n\n'
+    out += 3*TAB + 'raise KeyError(item)\n\n'
     out += TAB + 'def __iter__(self):\n'
     out += 2*TAB + 'for item in self.__slots__:\n'
     out += 3*TAB + 'yield getattr(self, item)\n\n'

@@ -35,10 +35,10 @@ class hid(int):
         return "hid({:d}).format(self)"
 
 
-class scalar(int):
+class scalar(float):
     """Raw Measure Value"""
     def __repr__(self):
-        return "scalar({:d}).format(self)"
+        return "scalar({:f}).format(self)"
 
 
 class _Unknown:
@@ -66,7 +66,7 @@ class GbdRecord:
         if item in self:
             return getattr(self, item)
         else:
-            raise KeyError
+            raise KeyError(item)
 
     def __iter__(self):
         for item in self.__slots__:
@@ -3843,3 +3843,5 @@ class Risks(GbdRecord):
         self.diet_low_in_legumes = diet_low_in_legumes
         self.low_birth_weight_and_short_gestation = low_birth_weight_and_short_gestation
         self.impaired_kidney_function = impaired_kidney_function
+
+
