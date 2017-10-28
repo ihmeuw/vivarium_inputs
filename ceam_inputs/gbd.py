@@ -1,6 +1,6 @@
 from multiprocessing.process import current_process
 import warnings
-from typing import Iterable, Union, List, Dict, Callable, Any, Mapping
+from typing import Iterable, Union, List, Callable, Any
 
 from joblib import Memory
 import pandas as pd
@@ -14,9 +14,6 @@ memory = Memory(cachedir=get_cache_directory(get_input_config()), verbose=1)
 MALE = [1]
 FEMALE = [2]
 COMBINED = [3]
-
-
-
 
 
 class CentralCompError(Exception):
@@ -34,6 +31,16 @@ class DataNotFoundError(CentralCompError):
 #######################################################
 
 @memory.cache
+def get_publication_ids_for_round(gbd_round_id: int) -> Iterable[int]:
+    """Gets the Lancet publication ids associated with a particular gbd round."""
+    from db_tools import ezfuncs
+    round_year = {3: 2015, 4: 2016}[gbd_round_id]
+
+    return ezfuncs.query(f'select publication_id from shared.publication where gbd_round = {round_year}',
+                         conn_def='epi').publication_id.values
+
+
+@memory.cache
 def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[int, None]:
     """Grabs the version id for codcorrect and como draws."""
     from db_tools import ezfuncs
@@ -42,6 +49,7 @@ def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[i
     #       ids should be stable so I'm sticking it here -Alec
     metadata_type_id = {
             'codcorrect': 1,
+            'burdenator': 11,
             'como': 4
     }[source]
 
@@ -157,6 +165,7 @@ def get_cause_risk_mapping(cause_risk_set_version_id: int) -> pd.DataFrame:
          """
     return ezfuncs.query(q, conn_def='epi')
 
+
 @memory.cache
 def get_age_group_ids(gbd_round_id: int, mortality: bool = False) -> pd.DataFrame:
     """Get the age group ids associated with a particular gbd round and team."""
@@ -254,11 +263,10 @@ def _get_draws_safely(draw_function: Callable, draw_options: Iterable[Iterable[i
 
 
 @memory.cache
-def get_modelable_entity_draws(location_id: int, me_id: int, gbd_round_id: int,
-                               publication_ids: Union[Iterable[int], None] = None) -> pd.DataFrame:
+def get_modelable_entity_draws(location_id: int, me_id: int, gbd_round_id: int,) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular dismod model, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
-
+    publication_ids = get_publication_ids_for_round(gbd_round_id)
     model_version = get_dismod_model_version(me_id, publication_ids)
     return get_draws(gbd_id_field='modelable_entity_id',
                      gbd_id=me_id,
@@ -271,10 +279,10 @@ def get_modelable_entity_draws(location_id: int, me_id: int, gbd_round_id: int,
 
 
 @memory.cache
-def get_codcorrect_draws(location_id: int, cause_id: int, gbd_round_id: int,
-                         publication_ids: Union[Iterable[int], None] = None) -> pd.DataFrame:
+def get_codcorrect_draws(location_id: int, cause_id: int, gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level deaths for a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
+    # publication_ids = get_publication_ids_for_round(gbd_round_id)
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
     return get_draws(gbd_id_field='cause_id',
@@ -287,10 +295,10 @@ def get_codcorrect_draws(location_id: int, cause_id: int, gbd_round_id: int,
 
 
 @memory.cache
-def get_como_draws(location_id: int, cause_id: int, gbd_round_id: int,
-                   publication_ids: Union[Iterable[int], None] = None) -> pd.DataFrame:
+def get_como_draws(location_id: int, cause_id: int, gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
+    # publication_ids = get_publication_ids_for_round(gbd_round_id)
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
     return get_draws(gbd_id_field='cause_id',
@@ -299,6 +307,7 @@ def get_como_draws(location_id: int, cause_id: int, gbd_round_id: int,
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=get_age_group_ids(gbd_round_id),
+                     version_id=227,
                      gbd_round_id=gbd_round_id)
 
 
@@ -436,3 +445,10 @@ def get_risk(risk_id: int, gbd_round_id: int):  # FIXME: I don't know how to pro
     """Gets a risk object containing info about the exposure distribution type and names of exposure categories."""
     from risk_utils.classes import risk
     return risk(risk_id=risk_id, gbd_round_id=gbd_round_id)
+
+
+@memory.cache
+def get_estimation_years(gbd_round_id: int) -> pd.Series:
+    """Gets the estimation years for a particular gbd round."""
+    from db_queries.get_demographics import get_demographics
+    return get_demographics('epi', gbd_round_id=gbd_round_id)['year_id']

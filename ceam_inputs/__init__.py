@@ -45,7 +45,6 @@ def _get_gbd_draws(modelable_entity, measure, column_name, config: ConfigTree):
                                    measure=measure,
                                    gbd_id=gbd_id,
                                    gbd_round_id=config.input_data.gbd_round_id,
-                                   publication_ids=config.input_data.gbd_publication_ids,
                                    draw_number=config.run_configuration.input_draw_number,
                                    column_name=column_name)
 

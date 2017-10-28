@@ -17,12 +17,12 @@ from vivarium.framework.util import rate_to_probability
 from ceam_inputs import gbd, risk_factor_correlation
 from ceam_inputs.gbd_mapping import cid, meid, hid, sequelae, treatment_technologies, healthcare_entities
 from ceam_inputs.gbd_ms_auxiliary_functions import (normalize_for_simulation,
-                                                    expand_ages_for_dfs_w_all_age_estimates, expand_ages,
-                                                    get_age_group_midpoint_from_age_group_id)
+        expand_ages_for_dfs_w_all_age_estimates, expand_ages,
+        get_age_group_midpoint_from_age_group_id)
 import logging
 
 _log = logging.getLogger(__name__)
-_name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'proportion': 18}
+_name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'proportion': 18, 'deaths': 1, 'continuous': 19}
 _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
@@ -41,7 +41,7 @@ class UnmodelledDataError(GBDError):
     pass
 
 
-def get_gbd_draws(location_id, measure, gbd_id, gbd_round_id, publication_ids, draw_number=None, column_name='rate'):
+def get_gbd_draws(location_id, measure, gbd_id, gbd_round_id, draw_number=None, column_name='rate'):
     """Returns draws for a given measure and modelable entity
 
     Gives you incidence, prevalence, csmr, excess mortality, and
@@ -58,16 +58,15 @@ def get_gbd_draws(location_id, measure, gbd_id, gbd_round_id, publication_ids, d
     gbd_id: int, gbd entity id
         gbd_id takes same id values as are used for GBD
     gbd_round_id: int
-    publication_ids: [int]
 
     Returns
     -------
     df with year_id, sex_id, age and 1k draws
     """
     if isinstance(gbd_id, cid):
-        draws = gbd.get_como_draws(location_id, gbd_id, gbd_round_id, publication_ids)
+        draws = gbd.get_como_draws(location_id, gbd_id, gbd_round_id)
     else:
-        draws = gbd.get_modelable_entity_draws(location_id, gbd_id, gbd_round_id, publication_ids)
+        draws = gbd.get_modelable_entity_draws(location_id, gbd_id, gbd_round_id)
     draws = draws[draws.measure_id == _name_measure_map[measure]]
     draws = get_age_group_midpoint_from_age_group_id(draws, gbd_round_id)
 
@@ -123,7 +122,7 @@ def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
     return normalize_for_simulation(pop)
 
 
-def get_cause_specific_mortality(location_id, cause_id, gbd_round_id, publication_ids, draw_number=None):
+def get_cause_specific_mortality(location_id, cause_id, gbd_round_id, draw_number=None):
     """
     location_id : int
         location_id takes same location_id values as are used for GBD
@@ -139,8 +138,10 @@ def get_cause_specific_mortality(location_id, cause_id, gbd_round_id, publicatio
         GBD draw of interest
     """
     assert isinstance(cause_id, cid)
-    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id, publication_ids)
+    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
     draws = get_age_group_midpoint_from_age_group_id(draws, gbd_round_id)
+
+    draws = draws.query('measure_id == {}'.format(_name_measure_map['deaths']))
 
     key_columns = ['year_id', 'sex_id', 'age']
 
@@ -163,7 +164,7 @@ def get_cause_specific_mortality(location_id, cause_id, gbd_round_id, publicatio
     return csmr[['age', 'sex', 'year', 'rate']]
 
 
-def get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id, publication_ids, draw_number=None):
+def get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id, draw_number=None):
     """Returns post-mi proportion draws for hf due to ihd
 
     Parameters
@@ -171,7 +172,6 @@ def get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id, public
     location_id : int
         location_id takes same location_id values as are used for GBD
     gbd_round_id: int
-    publication_ids : [int]
     draw_number: int, optional
 
     Returns
@@ -189,13 +189,11 @@ def get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id, public
     hf_envelope = get_gbd_draws(location_id,
                                 measure='incidence',
                                 gbd_id=sequelae.heart_failure.incidence,
-                                gbd_round_id=gbd_round_id,
-                                publication_ids=publication_ids)
+                                gbd_round_id=gbd_round_id)
     proportion_draws = get_gbd_draws(location_id,
                                      measure='proportion',
                                      gbd_id=sequelae.heart_failure.proportion,
-                                     gbd_round_id=gbd_round_id,
-                                     publication_ids=publication_ids)
+                                     gbd_round_id=gbd_round_id)
     key_columns = ['year_id', 'sex_id', 'age']
     draw_columns = ['draw_{}'.format(i) for i in range(1000)]
 
@@ -359,7 +357,7 @@ def get_exposures(location_id, risk_id, gbd_round_id, draw_number=None):
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure, gbd_round_id)
 
-    if risk_id == 100:
+    if risk_id == 100 and round_id < 4:
         exposure = _extract_secondhand_smoking_exposures(exposure)
     elif risk_id == 83:
         # Just fixing some poorly structured data.  cat10 and cat11 are zero, cat12 is the balance of the exposure
@@ -539,6 +537,10 @@ def get_sbp_mean_sd(location_id, gbd_round_id, draw_number=None):
         out = output_df
     return out
 
+    if not config.simulation_parameters.use_subregions:
+        return aggregate_location_data(output_df, location_id, round_id=4)
+
+    return output_df
 
 def get_angina_proportions(gbd_round_id, draw_number=None):
     """Format the angina proportions so that we can use them in CEAM.
@@ -645,7 +647,7 @@ def get_disability_weight(cause, gbd_round_id, draw_number):
     return df['draw{}'.format(draw_number)].iloc[0]
 
 
-def get_asympt_ihd_proportions(location_id, gbd_round_id, publication_ids, draw_number=None):
+def get_asympt_ihd_proportions(location_id, gbd_round_id, draw_number=None):
     """
     Gets the proportion of post-mi simulants that will get asymptomatic ihd.
     Proportion that will get asymptomatic ihd is equal to 1 - proportion of
@@ -672,7 +674,7 @@ def get_asympt_ihd_proportions(location_id, gbd_round_id, publication_ids, draw_
     draw_columns = ['draw_{}'.format(i) for i in range(1000)]
     prop_columns = ['asympt_prop_{}'.format(i) for i in range(1000)]
 
-    hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id, publication_ids)
+    hf_prop_df = get_post_mi_heart_failure_proportion_draws(location_id, gbd_round_id)
     angina_prop_df = get_angina_proportions(gbd_round_id)
 
     merged = pd.merge(hf_prop_df, angina_prop_df, on=key_columns).set_index(key_columns)
@@ -980,10 +982,12 @@ def get_fpg_distribution_parameters(location_id, gbd_round_id, draw_number=None,
     return parameters
 
 
-def aggregate_location_data(df, location_id):
-    if not gbd.get_subregions(location_id):
+def aggregate_location_data(df, location_id, round_id=4):
+    sub_regions = gbd.get_subregions(location_id)
+    if not sub_regions:
         return df
-    weights = get_subregion_weights(location_id)
+
+    weights = get_subregion_weights(location_id, round_id)
     merge_cols = ['age', 'sex', 'year', 'location']
     param_cols = list(set(df.columns).difference(merge_cols))
     df = df.merge(weights, on=merge_cols, how='inner')
@@ -994,8 +998,8 @@ def aggregate_location_data(df, location_id):
     return df.groupby(['age', 'year', 'sex'], as_index=False).sum().assign(location=location_id)
 
 
-def get_subregion_weights(location_id):
-    sub_pops = pd.concat([get_populations(location_id=location) for location in gbd.get_subregions(location_id)],
+def get_subregion_weights(location_id, round_id=4):
+    sub_pops = pd.concat([get_populations(location_id=location, gbd_round_id=round_id) for location in gbd.get_subregions(location_id)],
                          ignore_index=True)
     assert isinstance(sub_pops, pd.DataFrame)
     sub_pops = sub_pops[['age', 'sex', 'year', 'location_id', 'pop_scaled']].rename(columns={'location_id': 'location'})
@@ -1026,7 +1030,7 @@ def get_bmi_distribution_parameters(location_id, gbd_round_id, draw_number=None)
 
     parameters = pd.DataFrame()
     for p, df in param_frames.items():
-        parameters[param_map[p]] = df.set_index(['age_group_id', 'sex_id', 'year_id'])['draw_{}'.format(draw_number)]
+        parameters[param_map[p]] = df.set_index(['age_group_id', 'sex_id', 'year_id', 'location_id'])['draw_{}'.format(draw_number)]
 
     parameters = parameters.reset_index()
     parameters = get_age_group_midpoint_from_age_group_id(parameters, gbd_round_id)
@@ -1034,7 +1038,12 @@ def get_bmi_distribution_parameters(location_id, gbd_round_id, draw_number=None)
     parameters.loc[parameters.sex_id == 1, 'sex'] = 'Male'
     parameters.loc[parameters.sex_id == 2, 'sex'] = 'Female'
 
-    return parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc']]
+    parameters =  parameters[['age', 'year', 'sex', 'a', 'b', 'scale', 'loc', 'location_id']]
+
+    # TODO: I don't think we need to do this any more but for now I'm pulling it out
+    #if not config.simulation_parameters.use_subregions:
+    #return aggregate_location_data(parameters, location_id, gbd_round_id)
+    return parameters
 
 
 def get_dtp3_coverage(location_id, gbd_round_id, draw_number=None):
@@ -1081,12 +1090,13 @@ def get_rota_vaccine_rrs(location_id, gbd_round_id, draw_number):
     return rrs.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
 
 
-def get_diarrhea_costs(location_id, gbd_round_id, draw_number):
+def get_diarrhea_costs(locations, draws, gbd_round_id):
     costs = gbd.get_data_from_auxiliary_file('Diarrhea Costs',
-                                             location_id=location_id,
                                              gbd_round=_gbd_round_id_map[gbd_round_id])
-    costs = costs[[c for c in costs.columns if ('draw_{}'.format(draw_number) in c or 'draw' not in c)]]
-    return costs.rename(columns={'year_id': 'year', 'draw_{}'.format(draw_number): 'cost'})
+    draws = [f'draw_{i}' for i in draws]
+    costs = costs.query('location_id in @locations and variable in @draws')
+    costs = costs.pivot_table(index=['year_id', 'location_id'], columns='variable', values='diarrhea_cost')
+    return costs.reset_index().rename(columns={'year_id': 'year'})
 
 
 def get_ors_costs(location_id, gbd_round_id, draw_number):
