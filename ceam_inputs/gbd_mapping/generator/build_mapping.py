@@ -16,7 +16,8 @@ if __name__ == '__main__':
 
     for mapping_type in func_mapping:
         if args.mapping in [mapping_type, 'all']:
+            data = func_mapping[mapping_type]()
             with open(os.path.join(args.output_directory, f'{mapping_type}.py'), 'w') as f:
-                f.write(func_mapping[mapping_type]())
+                f.write(data)
 
 

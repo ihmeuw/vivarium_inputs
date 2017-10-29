@@ -136,6 +136,7 @@ def load_risk_params():
     risks = risks.set_index('rei_id').join(risk_params.set_index('rei_id')).reset_index()
     return risks
 
+
 def get_cause_risk_mapping():
     cause_risk_mapping = gbd.get_cause_risk_mapping(gbd.get_cause_risk_set_version_id(GBD_ROUND_ID))
     causes = get_causes()
@@ -191,18 +192,45 @@ def get_risk_data():
             levels = (('cat1', 'exposed'), ('cat2', 'unexposed'))
 
         elif r.polytomous:
-            assert distribution_type in ['categorical', 'unknown'] or np.isnan(distribution_type), f"{r.risk} {distribution_type}"
-            params = r.me_df.loc[r.me_df.draw_type == 'exposure', ['me_name', 'parameter']]
-            params.loc[:, 'me_name'] = clean_risk_me(params.me_name)
+            is_categorical = distribution_type in ['categorical', 'unknown'] or np.isnan(distribution_type)
+            assert is_categorical, f"{r.risk} {distribution_type}"
+
+            params = r.me_df
+            # FIXME: Working around some missing information in risk_utils. Already talked to Kelly Cercy about this
+            # -J.C. 10/28/17
+            if rid == 341:
+                params = params.set_index('me_id')
+                for cat, (me_id, me_name) in enumerate(zip([16442, 16443, 16444, 16445],
+                                                         ['albuminuria', 'stage_iii_chronic_kidney_disease',
+                                                          'stage_iv_chronic_kidney_disease',
+                                                          'stage_v_chronic_kidney_disease'])):
+                    params.set_value(index=me_id, col='draw_type', value='exposure')
+                    params.set_value(index=me_id, col='me_name', value=me_name)
+                    params.set_value(index=me_id, col='parameter', value='cat' + str(cat + 1))
+            elif rid == 339:  # Some categories were combined near the end of the 2016 round.  Clean these up.
+                params = params[params.parameter.notnull()]
+                params.loc[:, 'cat'] = params.parameter.apply(lambda s: int(s.split('cat')[-1]))
+                params = params.sort_values('cat')
+                for i in range(1, len(params)+1):
+                    params.parameter.iat[i-1] = 'cat' + str(i)
+                    me_name = params.me_name.iat[i-1]
+                    cleaned_me_name = me_name[19:].split('interpolated')[0][:-2]
+                    params.me_name.iat[i-1] = cleaned_me_name
+                params = params.reset_index()[['draw_type', 'me_name', 'parameter']]
+
+            else:
+                params.loc[:, 'me_name'] = clean_risk_me(params.me_name)
+
+            params = params.loc[params.draw_type == 'exposure', ['me_name', 'parameter']]
+
             distribution = 'polytomous'
 
-            if rid != 339:  # FIXME: Not all data is available here.
-                levels = [("", "") for i in range(len(params))]
-                for __, (me_name, param) in params.iterrows():
-                    idx = int(param.split('cat')[-1])
-                    levels[idx-1] = (param, me_name)
-                levels.append(('cat' + str(len(params) + 1), 'unexposed'))
-                levels = tuple(levels)
+            levels = [("", "") for i in range(len(params))]
+            for __, (me_name, param) in params.iterrows():
+                idx = int(param.split('cat')[-1])
+                levels[idx-1] = (param, me_name)
+            levels.append(('cat' + str(len(params) + 1), 'unexposed'))
+            levels = tuple(levels)
 
         restrictions = []
         for restriction in ['male_only', 'female_only', 'yll_only', 'yld_only']:

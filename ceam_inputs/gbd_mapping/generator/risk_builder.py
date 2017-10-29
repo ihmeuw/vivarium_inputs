@@ -32,9 +32,6 @@ def make_risk_factor(name, rid, distribution, restrictions, cause_list,
     distribution = "UNKNOWN" if distribution == 'unknown' else f"'{distribution}'"
     out += 2*TAB + f"distribution={distribution},\n"
 
-    if rid == 339 or rid == 341:
-        levels = 'UNKNOWN'
-
     for field_class_name, field in zip(['Restrictions', 'Levels', 'Tmred', 'ExposureParameters'],
                                        [restrictions, levels, tmred, exposure_parameters]):
         field_name = 'exposure_parameters' if field_class_name == 'ExposureParameters' else field_class_name.lower()

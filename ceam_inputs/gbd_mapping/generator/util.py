@@ -25,7 +25,7 @@ def clean_entity_list(raw_entity_series):
 
 
 def clean_risk_me(me_names):
-    replace = {' ': '_', '&': 'and'}
+    replace = {' ': '_', '&': 'and', '_interpolated_annual_results': ''}
     out = []
     for me_name in me_names:
         me_name = ''.join(me_name.split(',')[1:]).lower().lstrip()
