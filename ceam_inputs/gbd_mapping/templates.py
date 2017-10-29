@@ -184,7 +184,12 @@ class Tmred(GbdRecord):
 
 class Levels(GbdRecord):
     """Container for categorical risk exposure levels."""
-    __slots__ = ('cat1', 'cat2', 'cat3', 'cat4', 'cat5', 'cat6', 'cat7', 'cat8', 'cat9', 'cat10', 'cat11', 'cat12', )
+    __slots__ = ('cat1', 'cat2', 'cat3', 'cat4', 'cat5', 'cat6', 'cat7', 'cat8', 'cat9', 'cat10', 'cat11', 'cat12',
+                 'cat13', 'cat14', 'cat15', 'cat16', 'cat17', 'cat18', 'cat19', 'cat20', 'cat21', 'cat22', 'cat23',
+                 'cat24', 'cat25', 'cat26', 'cat27', 'cat28', 'cat29', 'cat30', 'cat31', 'cat32', 'cat33', 'cat34',
+                 'cat35', 'cat36', 'cat37', 'cat38', 'cat39', 'cat40', 'cat41', 'cat42', 'cat43', 'cat44', 'cat45',
+                 'cat46', 'cat47', 'cat48', 'cat49', 'cat50', 'cat51', 'cat52', 'cat53', 'cat54', 'cat55', 'cat56',
+                 'cat57', 'cat58', 'cat59', )
 
     def __init__(self,
                  cat1: str,
@@ -198,7 +203,54 @@ class Levels(GbdRecord):
                  cat9: str = None,
                  cat10: str = None,
                  cat11: str = None,
-                 cat12: str = None, ):
+                 cat12: str = None,
+                 cat13: str = None,
+                 cat14: str = None,
+                 cat15: str = None,
+                 cat16: str = None,
+                 cat17: str = None,
+                 cat18: str = None,
+                 cat19: str = None,
+                 cat20: str = None,
+                 cat21: str = None,
+                 cat22: str = None,
+                 cat23: str = None,
+                 cat24: str = None,
+                 cat25: str = None,
+                 cat26: str = None,
+                 cat27: str = None,
+                 cat28: str = None,
+                 cat29: str = None,
+                 cat30: str = None,
+                 cat31: str = None,
+                 cat32: str = None,
+                 cat33: str = None,
+                 cat34: str = None,
+                 cat35: str = None,
+                 cat36: str = None,
+                 cat37: str = None,
+                 cat38: str = None,
+                 cat39: str = None,
+                 cat40: str = None,
+                 cat41: str = None,
+                 cat42: str = None,
+                 cat43: str = None,
+                 cat44: str = None,
+                 cat45: str = None,
+                 cat46: str = None,
+                 cat47: str = None,
+                 cat48: str = None,
+                 cat49: str = None,
+                 cat50: str = None,
+                 cat51: str = None,
+                 cat52: str = None,
+                 cat53: str = None,
+                 cat54: str = None,
+                 cat55: str = None,
+                 cat56: str = None,
+                 cat57: str = None,
+                 cat58: str = None,
+                 cat59: str = None, ):
         super().__init__()
         self.cat1 = cat1
         self.cat2 = cat2
@@ -212,6 +264,53 @@ class Levels(GbdRecord):
         self.cat10 = cat10
         self.cat11 = cat11
         self.cat12 = cat12
+        self.cat13 = cat13
+        self.cat14 = cat14
+        self.cat15 = cat15
+        self.cat16 = cat16
+        self.cat17 = cat17
+        self.cat18 = cat18
+        self.cat19 = cat19
+        self.cat20 = cat20
+        self.cat21 = cat21
+        self.cat22 = cat22
+        self.cat23 = cat23
+        self.cat24 = cat24
+        self.cat25 = cat25
+        self.cat26 = cat26
+        self.cat27 = cat27
+        self.cat28 = cat28
+        self.cat29 = cat29
+        self.cat30 = cat30
+        self.cat31 = cat31
+        self.cat32 = cat32
+        self.cat33 = cat33
+        self.cat34 = cat34
+        self.cat35 = cat35
+        self.cat36 = cat36
+        self.cat37 = cat37
+        self.cat38 = cat38
+        self.cat39 = cat39
+        self.cat40 = cat40
+        self.cat41 = cat41
+        self.cat42 = cat42
+        self.cat43 = cat43
+        self.cat44 = cat44
+        self.cat45 = cat45
+        self.cat46 = cat46
+        self.cat47 = cat47
+        self.cat48 = cat48
+        self.cat49 = cat49
+        self.cat50 = cat50
+        self.cat51 = cat51
+        self.cat52 = cat52
+        self.cat53 = cat53
+        self.cat54 = cat54
+        self.cat55 = cat55
+        self.cat56 = cat56
+        self.cat57 = cat57
+        self.cat58 = cat58
+        self.cat59 = cat59
 
 
 class ExposureParameters(GbdRecord):
