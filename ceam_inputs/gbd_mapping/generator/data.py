@@ -101,14 +101,50 @@ def get_cause_data():
     cause_etiology_map = gbd.get_cause_etiology_mapping(GBD_ROUND_ID)
 
     causes = gbd.get_cause_metadata(cause_set_id=CAUSE_SET_ID, gbd_round_id=GBD_ROUND_ID)
-    causes = causes[causes.most_detailed == 1].sort_values('cause_id')
+    causes = causes[causes.most_detailed == 1]
+    causes = causes.append(pd.DataFrame({'cause_name': ['all_causes'],
+                                         'cause_id': [294],
+                                         'male': [True],
+                                         'female': [True],
+                                         'yll_only': [np.NaN],
+                                         'yld_only': [np.NaN],
+                                         'yll_age_start': [0],
+                                         'yll_age_end': [95],
+                                         'yld_age_start': [0],
+                                         'yld_age_end': [95]}),
+                           ignore_index=True)
+    causes = pd.DataFrame({'cause_name': clean_entity_list(causes.cause_name),
+                           'cause_id': causes.cause_id,
+                           'male': causes.male.replace({np.NaN: False, 1: True}),
+                           'female': causes.female.replace({np.NaN: False, 1: True}),
+                           'yll_only': causes.yll_only.replace({np.NaN: False, 1: True}),
+                           'yld_only': causes.yld_only.replace({np.NaN: False, 1: True}),
+                           'yll_age_start': causes.yll_age_start.replace({np.NaN: 0}),
+                           'yll_age_end': causes.yll_age_end,
+                           'yld_age_start': causes.yld_age_start,
+                           'yld_age_end': causes.yld_age_end})
+    causes = causes.sort_values('cause_id')
 
     cause_data = []
-    for name, cid in zip(clean_entity_list(causes.cause_name), causes.cause_id):
+    for _, cause in causes.iterrows():
+        name = cause['cause_name']
+        cid = cause['cause_id']
+
+        restrictions = [('male_only', not cause['female']), ('female_only', not cause['male'])]
+        restrictions.extend([('yll_only', cause['yll_only']), ('yld_only', cause['yld_only'])])
+        if cause['yll_only']:
+            restrictions.extend([('yll_age_start', cause['yll_age_start']), ('yll_age_end', cause['yll_age_end'])])
+        elif cause['yld_only']:
+            restrictions.extend([('yld_age_start', cause['yld_age_start']), ('yld_age_end', cause['yld_age_end'])])
+        else:
+            restrictions.extend([('yll_age_start', cause['yll_age_start']), ('yll_age_end', cause['yll_age_end'])])
+            restrictions.extend([('yld_age_start', cause['yld_age_start']), ('yld_age_end', cause['yld_age_end'])])
+        restrictions = tuple(restrictions)
+
         eti_ids = cause_etiology_map[cause_etiology_map.cause_id == cid].rei_id.tolist()
         associated_etiologies = clean_entity_list(etiologies[etiologies.rei_id.isin(eti_ids)].rei_name)
         associated_sequelae = clean_entity_list(sequelae[sequelae.cause_id == cid].sequela_name)
-        cause_data.append((name, cid, associated_sequelae, associated_etiologies))
+        cause_data.append((name, cid, restrictions, associated_sequelae, associated_etiologies))
 
     return cause_data
 

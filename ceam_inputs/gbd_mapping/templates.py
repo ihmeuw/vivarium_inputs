@@ -133,37 +133,48 @@ class Sequela(ModelableEntity):
         self.healthstate = healthstate
 
 
+class Restrictions(GbdRecord):
+    """Container for risk restriction data."""
+    __slots__ = ('male_only', 'female_only', 'yll_only', 'yld_only', 'yll_age_start', 'yll_age_end', 'yld_age_start',
+                 'yld_age_end', )
+
+    def __init__(self,
+                 male_only: bool,
+                 female_only: bool,
+                 yll_only: bool,
+                 yld_only: bool,
+                 yll_age_start: scalar = None,
+                 yll_age_end: scalar = None,
+                 yld_age_start: scalar = None,
+                 yld_age_end: scalar = None, ):
+        super().__init__()
+        self.male_only = male_only
+        self.female_only = female_only
+        self.yll_only = yll_only
+        self.yld_only = yld_only
+        self.yll_age_start = yll_age_start
+        self.yll_age_end = yll_age_end
+        self.yld_age_start = yld_age_start
+        self.yld_age_end = yld_age_end
+
+
 class Cause(ModelableEntity):
     """Container for cause GBD ids and metadata."""
-    __slots__ = ('name', 'gbd_id', 'sequelae', 'etiologies', )
+    __slots__ = ('name', 'gbd_id', 'restrictions', 'sequelae', 'etiologies', )
 
     def __init__(self,
                  name: str,
                  gbd_id: cid,
+                 restrictions: Restrictions,
                  sequelae: Tuple[Sequela, ...] = None,
                  etiologies: Tuple[Etiology, ...] = None, ):
         super().__init__(name=name,
                          gbd_id=gbd_id)
         self.name = name
         self.gbd_id = gbd_id
+        self.restrictions = restrictions
         self.sequelae = sequelae
         self.etiologies = etiologies
-
-
-class Restrictions(GbdRecord):
-    """Container for risk restriction data."""
-    __slots__ = ('male_only', 'female_only', 'yll_only', 'yld_only', )
-
-    def __init__(self,
-                 male_only: bool,
-                 female_only: bool,
-                 yll_only: bool,
-                 yld_only: bool, ):
-        super().__init__()
-        self.male_only = male_only
-        self.female_only = female_only
-        self.yll_only = yll_only
-        self.yld_only = yld_only
 
 
 class Tmred(GbdRecord):
