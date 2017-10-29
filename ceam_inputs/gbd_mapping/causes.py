@@ -19925,20 +19925,6 @@ causes = Causes(**{
             yld_age_end=scalar(95.0),
         ),
     ),
-    'none': Cause(
-        name='none',
-        gbd_id=cid(740),
-        restrictions=Restrictions(
-            male_only=True,
-            female_only=True,
-            yll_only=False,
-            yld_only=False,
-            yll_age_start=scalar(0.0),
-            yll_age_end=scalar(nan),
-            yld_age_start=scalar(nan),
-            yld_age_end=scalar(nan),
-        ),
-    ),
     'maternal_deaths_aggravated_by_hiv_aids': Cause(
         name='maternal_deaths_aggravated_by_hiv_aids',
         gbd_id=cid(741),
