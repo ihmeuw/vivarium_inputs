@@ -101,18 +101,8 @@ def get_cause_data():
     cause_etiology_map = gbd.get_cause_etiology_mapping(GBD_ROUND_ID)
 
     causes = gbd.get_cause_metadata(cause_set_id=CAUSE_SET_ID, gbd_round_id=GBD_ROUND_ID)
-    causes = causes[causes.most_detailed == 1]
-    causes = causes.append(pd.DataFrame({'cause_name': ['all_causes'],
-                                         'cause_id': [294],
-                                         'male': [True],
-                                         'female': [True],
-                                         'yll_only': [np.NaN],
-                                         'yld_only': [np.NaN],
-                                         'yll_age_start': [0],
-                                         'yll_age_end': [95],
-                                         'yld_age_start': [0],
-                                         'yld_age_end': [95]}),
-                           ignore_index=True)
+    causes = causes[((causes.most_detailed == 1) | (causes.cause_id == 294)) & ~(causes.cause_id == 740)]
+    import pdb; pdb.set_trace()
     causes = pd.DataFrame({'cause_name': clean_entity_list(causes.cause_name),
                            'cause_id': causes.cause_id,
                            'male': causes.male.replace({np.NaN: False, 1: True}),

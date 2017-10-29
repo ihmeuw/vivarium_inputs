@@ -20,7 +20,6 @@ def make_imports():
 
 
 def make_etiology(name, rid):
-    # building inner script
     out = ""
     out += TAB + f"{name}=Etiology(\n"
     out += TAB*2 + f"name='{name}',\n"

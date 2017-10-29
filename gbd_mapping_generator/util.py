@@ -134,5 +134,5 @@ def make_record(name, attrs=None, superclass=None, docstring=None):
 
 def get_default_output_directory():
     here = os.path.realpath(__file__)
-    return os.path.realpath(os.path.dirname(here) + '/..')
+    return os.path.realpath(os.path.dirname(here) + '/../ceam_inputs/gbd_mapping/')
 

@@ -1,10 +1,10 @@
 import argparse
 import os
 
-from ceam_inputs.gbd_mapping.generator.template_builder import build_templates
-from ceam_inputs.gbd_mapping.generator.cause_builder import build_cause_mapping
-from ceam_inputs.gbd_mapping.generator.risk_builder import build_risk_mapping
-from ceam_inputs.gbd_mapping.generator.util import get_default_output_directory
+from generator.cause_builder import build_cause_mapping
+from generator.risk_builder import build_risk_mapping
+from generator.template_builder import build_templates
+from generator.util import get_default_output_directory
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
