@@ -1,10 +1,10 @@
 import argparse
 import os
 
-from generator.cause_builder import build_cause_mapping
-from generator.risk_builder import build_risk_mapping
-from generator.template_builder import build_templates
-from generator.util import get_default_output_directory
+from gbd_mapping_generator.cause_builder import build_cause_mapping
+from gbd_mapping_generator.risk_builder import build_risk_mapping
+from gbd_mapping_generator.template_builder import build_templates
+from gbd_mapping_generator.util import get_default_output_directory
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
