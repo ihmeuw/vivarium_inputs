@@ -17,8 +17,8 @@ from vivarium.framework.util import rate_to_probability
 from ceam_inputs import gbd, risk_factor_correlation
 from ceam_inputs.gbd_mapping import cid, meid, hid, sequelae, treatment_technologies, healthcare_entities
 from ceam_inputs.gbd_ms_auxiliary_functions import (normalize_for_simulation,
-        expand_ages_for_dfs_w_all_age_estimates, expand_ages,
-        get_age_group_midpoint_from_age_group_id)
+                                                    expand_ages_for_dfs_w_all_age_estimates, expand_ages,
+                                                    get_age_group_midpoint_from_age_group_id)
 import logging
 
 _log = logging.getLogger(__name__)
@@ -76,7 +76,6 @@ def get_gbd_draws(location_id, measure, gbd_id, gbd_round_id, draw_number=None, 
     draws = draws[key_columns + draw_columns].sort_values(by=key_columns)
 
     out = select_draw_data(draws, draw_number, column_name) if draw_number is not None else draws
-    out.metadata = {'gbd_id': gbd_id}
 
     return out
 
@@ -275,7 +274,6 @@ def get_relative_risks(location_id, risk_id, cause_id, gbd_round_id, rr_type='mo
     else:
         out = rr
 
-    out.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
     return out
 
 
@@ -324,7 +322,6 @@ def get_pafs(location_id, risk_id, cause_id, gbd_round_id, paf_type='morbidity',
     validate_data(pafs, key_columns)
 
     out = select_draw_data(pafs, draw_number, column_name='PAF') if draw_number is not None else pafs
-    out.metadata = {'risk_id': risk_id, 'cause_id': cause_id}
     return out
 
 
@@ -357,7 +354,7 @@ def get_exposures(location_id, risk_id, gbd_round_id, draw_number=None):
 
     exposure = get_age_group_midpoint_from_age_group_id(exposure, gbd_round_id)
 
-    if risk_id == 100 and round_id < 4:
+    if risk_id == 100 and gbd_round_id < 4:
         exposure = _extract_secondhand_smoking_exposures(exposure)
     elif risk_id == 83:
         # Just fixing some poorly structured data.  cat10 and cat11 are zero, cat12 is the balance of the exposure
@@ -412,7 +409,6 @@ def get_exposures(location_id, risk_id, gbd_round_id, draw_number=None):
     else:
         out = exposure
 
-    out.metadata = {'risk_id': risk_id}
     return out
 
 
@@ -577,7 +573,7 @@ def get_angina_proportions(gbd_round_id, draw_number=None):
     # values are same for each sex, so we can grab the value for the lowest age from either
     # sex to apply to the younger age groups for which we do not have data.
     ang_copy = ang.set_index('age').copy()
-    value_at_youngest_age_for_which_we_have_data = ang_copy.query("sex_id == 1").get_value(22.5, 'angina_prop')
+    value_at_youngest_age_for_which_we_have_data = ang_copy.query("sex_id == 1").loc[22.5, 'angina_prop']
     total_ang = pd.DataFrame()
 
     # the data is not year specific. we manually add year_id values here
@@ -631,7 +627,7 @@ def get_disability_weight(cause, gbd_round_id, draw_number):
         for file_name in ['Disability Weights', 'Combined Disability Weights']:
             weights = gbd.get_data_from_auxiliary_file(file_name, gbd_round=_gbd_round_id_map[gbd_round_id])
             if healthstate_id in weights.healthstate_id.tolist():
-                df = weights[weights.healthstate_id == healthstate_id]
+                df = weights.loc[weights.healthstate_id == healthstate_id].copy()
                 break
 
     if df is None:

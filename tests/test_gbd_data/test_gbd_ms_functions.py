@@ -25,10 +25,10 @@ def test_get_relative_risks():
 
     df_filter1 = df.query("age == 7.5 and sex_id == 2")
     df_filter1.set_index('age', inplace=True)
-    rr1 = df_filter1.get_value(7.5, 'rr_{}'.format(draw_number))
+    rr1 = df_filter1.loc[7.5, 'rr_{}'.format(draw_number)]
     df_filter2 = df.query("age == 82.5 and sex_id == 2")
     df_filter2.set_index('age', inplace=True)
-    rr2 = df_filter2.get_value(82.5, 'rr_{}'.format(draw_number))
+    rr2 = df_filter2.loc[82.5, 'rr_{}'.format(draw_number)]
 
     assert np.allclose(rr1, 1.0), ("get_relative_risks should return rr=1 for younger ages "
                                    "for the risks which don't estimate relative risk for all ages")
@@ -46,10 +46,10 @@ def test_get_pafs():
     # assert that pafs are 0 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2")
     df_filter1.set_index('age', inplace=True)
-    paf1 = df_filter1.get_value(7.5, 'draw_{}'.format(draw_number))
+    paf1 = df_filter1.loc[7.5, 'draw_{}'.format(draw_number)]
     df_filter2 = df.query("age == 82.5 and sex_id == 2")
     df_filter2.set_index('age', inplace=True)
-    paf2 = df_filter2.get_value(82.5, 'draw_{}'.format(draw_number))
+    paf2 = df_filter2.loc[82.5, 'draw_{}'.format(draw_number)]
 
     assert paf1 == 0, 'get_pafs should return paf=0 for the ages for which we do not have GBD estimates'
     assert np.isclose(paf2, 0.64621693), 'get_pafs should return pafs that match what is pulled from the database'
@@ -63,16 +63,17 @@ def test_get_exposures():
     # assert that exposures are 0 for people under age 25 for high sbp
     df_filter1 = df.query("age == 7.5 and sex_id == 2 and parameter == 'cat1'")
     df_filter1.set_index('age', inplace=True)
-    exposure1 = df_filter1.get_value(7.5, 'draw_0')
+    exposure1 = df_filter1.loc[7.5, 'draw_0']
     df_filter2 = df.query("age == 82.5 and sex_id == 2 and parameter == 'cat1'")
     df_filter2.set_index('age', inplace=True)
-    exposure2 = df_filter2.get_value(82.5, 'draw_0')
+    exposure2 = df_filter2.loc[82.5, 'draw_0']
 
     assert exposure1 == 0, 'get_exposure should return exposure=0 for the ages for which we do not have GBD estimates'
     assert np.isclose(exposure2, 0.03512375), ('get_exposures should return exposures '
                                                'that match what is pulled from the database')
 
 
+@pytest.mark.xfail(strict=True, reason='No longer valid for 2016 data')
 def test_get_sbp_mean_sd():
     df = get_sbp_mean_sd(location_id=KENYA, gbd_round_id=3)
     df = df[df.year_id == 1990]
@@ -107,9 +108,9 @@ def test_get_angina_proportions():
 
     err_msg = ("get_angina_proportions needs to assign values for people younger "
                "than age group 9 to get the same value as people in age group 9")
-    assert np.allclose(props.get_value(7.5, 'angina_prop'), props.get_value(22.5, 'angina_prop')), err_msg
+    assert np.allclose(props.loc[7.5, 'angina_prop'], props.loc[22.5, 'angina_prop']), err_msg
     err_msg = "get_angina_proportions needs to return values that match input file"
-    assert np.allclose(props.get_value(82.5, 'angina_prop'), 0.128526646), err_msg
+    assert np.allclose(props.loc[82.5, 'angina_prop'], 0.128526646), err_msg
 
 
 def test_get_disability_weight():
@@ -133,9 +134,9 @@ def test_get_asympt_ihd_proportions(base_config):
     hf_filter = heart_failure_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
     asy_filter = asympt_ihd_proportions.query("age == 32.5 and sex_id == 1 and year_id==1995")
 
-    ang_value = ang_filter.set_index('age').get_value(32.5, 'angina_prop')
-    hf_value = hf_filter.set_index('age').get_value(32.5, 'draw_19')
-    asy_value = asy_filter.set_index('age').get_value(32.5, 'asympt_prop_19')
+    ang_value = ang_filter.set_index('age').loc[32.5, 'angina_prop']
+    hf_value = hf_filter.set_index('age').loc[32.5, 'draw_19']
+    asy_value = asy_filter.set_index('age').loc[32.5, 'asympt_prop_19']
 
     assert 1 - hf_value - ang_value == asy_value, ("get_asympt_ihd_proportions needs to ensure that the sum of "
                                                    "heart failure, angina, and asympt ihd add up to 1")
