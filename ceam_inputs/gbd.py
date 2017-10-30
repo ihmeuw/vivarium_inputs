@@ -42,7 +42,7 @@ def get_publication_ids_for_round(gbd_round_id: int) -> Iterable[int]:
 
 @memory.cache
 def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[int, None]:
-    """Grabs the version id for codcorrect and como draws."""
+    """Grabs the version id for codcorrect, burdenator, and como draws."""
     from db_tools import ezfuncs
     # NOTE: this mapping comes from the gbd.metadata_type table but in that
     #       database it isn't in a form that's convenient to query and these
@@ -53,17 +53,18 @@ def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[i
             'como': 4
     }[source]
 
-    como_ids = ezfuncs.query("""
+    version_ids = ezfuncs.query(f"""
         SELECT distinct val
         FROM gbd.gbd_process_version_metadata
         JOIN gbd.gbd_process_version_publication USING (gbd_process_version_id)
-        WHERE metadata_type_id = {} and publication_id in ({})
-        """.format(metadata_type_id, ','.join([str(pid) for pid in publication_ids])), conn_def='gbd')
-    if como_ids.empty:
+        WHERE metadata_type_id = {metadata_type_id} 
+              and publication_id in ({','.join([str(pid) for pid in publication_ids])})
+        """, conn_def='gbd')
+    if version_ids.empty:
         warnings.warn(f'No version id found for {source} with publications {publication_ids}. '
                       'This likely indicates missing entries in the GBD database.')
         return None
-    return como_ids['val'].astype('int')[0]
+    return version_ids['val'].astype('int')[0]
 
 
 @memory.cache
@@ -163,6 +164,19 @@ def get_cause_risk_mapping(cause_risk_set_version_id: int) -> pd.DataFrame:
          FROM shared.cause_risk_hierarchy_history
          WHERE cause_risk_set_version_id = {cause_risk_set_version_id}
          """
+    return ezfuncs.query(q, conn_def='epi')
+
+
+@memory.cache
+def get_cause_me_id_mapping() -> pd.DataFrame:
+    """Get a mapping between causes and epi/dismod models"""
+    from db_tools import ezfuncs
+
+    q = """SELECT modelable_entity_id,
+                  cause_id, 
+                  modelable_entity_name
+           FROM epi.modelable_entity_cause
+           JOIN epi.modelable_entity USING (modelable_entity_id)"""
     return ezfuncs.query(q, conn_def='epi')
 
 
@@ -282,9 +296,10 @@ def get_modelable_entity_draws(location_id: int, me_id: int, gbd_round_id: int,)
 def get_codcorrect_draws(location_id: int, cause_id: int, gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level deaths for a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
-    # publication_ids = get_publication_ids_for_round(gbd_round_id)
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
+    #publication_ids = get_publication_ids_for_round(gbd_round_id)
+    #version_id = get_gbd_tool_version(publication_ids, source='codcorrect')
     return get_draws(gbd_id_field='cause_id',
                      gbd_id=cause_id,
                      source="codcorrect",
@@ -298,16 +313,18 @@ def get_codcorrect_draws(location_id: int, cause_id: int, gbd_round_id: int) -> 
 def get_como_draws(location_id: int, cause_id: int, gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
-    # publication_ids = get_publication_ids_for_round(gbd_round_id)
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
+    # publication_ids = get_publication_ids_for_round(gbd_round_id)
+    # version_id = get_gbd_tool_version(publication_ids, source='codcorrect')
+
     return get_draws(gbd_id_field='cause_id',
                      gbd_id=cause_id,
                      source="como",
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=get_age_group_ids(gbd_round_id),
-                     version_id=227,
+                     version_id=227,  # FIXME: Hardcoded value.
                      gbd_round_id=gbd_round_id)
 
 
