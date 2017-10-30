@@ -103,13 +103,13 @@ def make_ids():
         out += f'class {k}(int):\n'
         out += TAB + f'"""{v}"""\n'
         out += TAB + 'def __repr__(self):\n'
-        out += 2*TAB + f'return "{k}({{:d}}).format(self)"\n'
+        out += 2*TAB + f'return "{k}({{:d}})".format(self)\n'
         out += SPACING
 
     out += 'class scalar(float):\n'
     out += TAB + '"""Raw Measure Value"""\n'
     out += TAB + 'def __repr__(self):\n'
-    out += 2 * TAB + 'return "scalar({:f}).format(self)"\n'
+    out += 2 * TAB + 'return "scalar({:f})".format(self)\n'
     out += SPACING
 
     return out

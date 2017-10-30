@@ -8,37 +8,37 @@ from typing import Union, Tuple
 class meid(int):
     """Modelable Entity ID"""
     def __repr__(self):
-        return "meid({:d}).format(self)"
+        return "meid({:d})".format(self)
 
 
 class rid(int):
     """Risk Factor ID"""
     def __repr__(self):
-        return "rid({:d}).format(self)"
+        return "rid({:d})".format(self)
 
 
 class cid(int):
     """Cause ID"""
     def __repr__(self):
-        return "cid({:d}).format(self)"
+        return "cid({:d})".format(self)
 
 
 class sid(int):
     """Sequela ID"""
     def __repr__(self):
-        return "sid({:d}).format(self)"
+        return "sid({:d})".format(self)
 
 
 class hid(int):
     """Health State ID"""
     def __repr__(self):
-        return "hid({:d}).format(self)"
+        return "hid({:d})".format(self)
 
 
 class scalar(float):
     """Raw Measure Value"""
     def __repr__(self):
-        return "scalar({:f}).format(self)"
+        return "scalar({:f})".format(self)
 
 
 class _Unknown:
