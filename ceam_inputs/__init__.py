@@ -114,8 +114,7 @@ def get_cause_specific_mortality(cause, override_config=None):
     return functions.get_cause_specific_mortality(cause_id=cause.gbd_id,
                                                   location_id=config.input_data.location_id,
                                                   gbd_round_id=config.input_data.gbd_round_id,
-                                                  draw_number=config.run_configuration.input_draw_number,
-                                                  publication_ids=config.input_data.gbd_publication_ids)
+                                                  draw_number=config.run_configuration.input_draw_number)
 
 
 def get_remission(cause, override_config=None):
