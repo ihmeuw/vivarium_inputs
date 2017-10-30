@@ -17,8 +17,8 @@ from vivarium.framework.util import rate_to_probability
 from ceam_inputs import gbd, risk_factor_correlation
 from ceam_inputs.gbd_mapping import cid, meid, hid, sequelae, treatment_technologies, healthcare_entities
 from ceam_inputs.gbd_ms_auxiliary_functions import (normalize_for_simulation,
-        expand_ages_for_dfs_w_all_age_estimates, expand_ages,
-        get_age_group_midpoint_from_age_group_id)
+                                                    expand_ages_for_dfs_w_all_age_estimates, expand_ages,
+                                                    get_age_group_midpoint_from_age_group_id)
 import logging
 
 _log = logging.getLogger(__name__)
@@ -627,7 +627,7 @@ def get_disability_weight(cause, gbd_round_id, draw_number):
         for file_name in ['Disability Weights', 'Combined Disability Weights']:
             weights = gbd.get_data_from_auxiliary_file(file_name, gbd_round=_gbd_round_id_map[gbd_round_id])
             if healthstate_id in weights.healthstate_id.tolist():
-                df = weights[weights.healthstate_id == healthstate_id]
+                df = weights.loc[weights.healthstate_id == healthstate_id].copy()
                 break
 
     if df is None:
