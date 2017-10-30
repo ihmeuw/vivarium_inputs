@@ -160,11 +160,12 @@ class Restrictions(GbdRecord):
 
 class Cause(ModelableEntity):
     """Container for cause GBD ids and metadata."""
-    __slots__ = ('name', 'gbd_id', 'restrictions', 'sequelae', 'etiologies', )
+    __slots__ = ('name', 'gbd_id', 'dismod_id', 'restrictions', 'sequelae', 'etiologies', )
 
     def __init__(self,
                  name: str,
                  gbd_id: cid,
+                 dismod_id: Union[meid, _Unknown],
                  restrictions: Restrictions,
                  sequelae: Tuple[Sequela, ...] = None,
                  etiologies: Tuple[Etiology, ...] = None, ):
@@ -172,6 +173,7 @@ class Cause(ModelableEntity):
                          gbd_id=gbd_id)
         self.name = name
         self.gbd_id = gbd_id
+        self.dismod_id = dismod_id
         self.restrictions = restrictions
         self.sequelae = sequelae
         self.etiologies = etiologies

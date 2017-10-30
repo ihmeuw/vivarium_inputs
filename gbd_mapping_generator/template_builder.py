@@ -24,6 +24,7 @@ restrictions_attrs = (('male_only', 'bool'),
                       ('yld_age_end', 'scalar = None'),)
 cause_attrs = (('name', 'str'),
                ('gbd_id', 'cid'),
+               ('dismod_id', 'Union[meid, _Unknown]'),
                ('restrictions', 'Restrictions'),
                ('sequelae', 'Tuple[Sequela, ...] = None'),
                ('etiologies', 'Tuple[Etiology, ...] = None'),)

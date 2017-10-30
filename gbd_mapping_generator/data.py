@@ -99,10 +99,12 @@ def get_cause_data():
     etiologies = etiologies[etiologies['most_detailed'] == 1].sort_values('rei_id')
 
     cause_etiology_map = gbd.get_cause_etiology_mapping(GBD_ROUND_ID)
+    cause_me_map = gbd.get_cause_me_id_mapping()
+    cause_me_map['cause_name'] = clean_entity_list(cause_me_map['modelable_entity_name'])
+    cause_me_map = cause_me_map[['modelable_entity_id', 'cause_name']].set_index('cause_name')
 
     causes = gbd.get_cause_metadata(cause_set_id=CAUSE_SET_ID, gbd_round_id=GBD_ROUND_ID)
     causes = causes[((causes.most_detailed == 1) | (causes.cause_id == 294)) & ~(causes.cause_id == 740)]
-    import pdb; pdb.set_trace()
     causes = pd.DataFrame({'cause_name': clean_entity_list(causes.cause_name),
                            'cause_id': causes.cause_id,
                            'male': causes.male.replace({np.NaN: False, 1: True}),
@@ -113,12 +115,13 @@ def get_cause_data():
                            'yll_age_end': causes.yll_age_end,
                            'yld_age_start': causes.yld_age_start,
                            'yld_age_end': causes.yld_age_end})
-    causes = causes.sort_values('cause_id')
+    causes = causes.set_index('cause_name').join(cause_me_map).sort_values('cause_id').reset_index()
 
     cause_data = []
     for _, cause in causes.iterrows():
         name = cause['cause_name']
         cid = cause['cause_id']
+        dismod_id = cause['modelable_entity_id']
 
         restrictions = [('male_only', not cause['female']), ('female_only', not cause['male'])]
         restrictions.extend([('yll_only', cause['yll_only']), ('yld_only', cause['yld_only'])])
@@ -134,7 +137,7 @@ def get_cause_data():
         eti_ids = cause_etiology_map[cause_etiology_map.cause_id == cid].rei_id.tolist()
         associated_etiologies = clean_entity_list(etiologies[etiologies.rei_id.isin(eti_ids)].rei_name)
         associated_sequelae = clean_entity_list(sequelae[sequelae.cause_id == cid].sequela_name)
-        cause_data.append((name, cid, restrictions, associated_sequelae, associated_etiologies))
+        cause_data.append((name, cid, dismod_id, restrictions, associated_sequelae, associated_etiologies))
 
     return cause_data
 

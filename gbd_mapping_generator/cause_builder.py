@@ -60,11 +60,12 @@ def make_sequelae(sequela_list):
     return out
 
 
-def make_cause(name, cid, restrictions, sequelae=None, etiologies=None):
+def make_cause(name, cid, dismod_id, restrictions, sequelae=None, etiologies=None):
     out = ""
     out += TAB + f"'{name}': Cause(\n"
     out += TAB*2 + f"name='{name}',\n"
     out += TAB*2 + f"gbd_id=cid({cid}),\n"
+    out += TAB*2 + f"dismod_id={to_id(dismod_id, 'meid')},\n"
     out += TAB*2 + f"restrictions=Restrictions(\n"
     for restriction, value in restrictions:
         if isinstance(value, bool):
@@ -100,8 +101,8 @@ def make_cause(name, cid, restrictions, sequelae=None, etiologies=None):
 
 def make_causes(causes_list):
     out = "causes = Causes(**{\n"
-    for name, cid, restrictions, seq_id, etiol_id in causes_list:
-        out += make_cause(name, cid, restrictions, seq_id, etiol_id)
+    for name, cid, dismod_id, restrictions, seq_id, etiol_id in causes_list:
+        out += make_cause(name, cid, dismod_id, restrictions, seq_id, etiol_id)
     out += "})"
     return out
 

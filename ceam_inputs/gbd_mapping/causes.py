@@ -15150,6 +15150,7 @@ causes = Causes(**{
     'all_causes': Cause(
         name='all_causes',
         gbd_id=cid(294),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15164,6 +15165,7 @@ causes = Causes(**{
     'hiv_aids_resulting_in_other_diseases': Cause(
         name='hiv_aids_resulting_in_other_diseases',
         gbd_id=cid(300),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15190,6 +15192,7 @@ causes = Causes(**{
     'diarrheal_diseases': Cause(
         name='diarrheal_diseases',
         gbd_id=cid(302),
+        dismod_id=meid(1181),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15211,6 +15214,7 @@ causes = Causes(**{
     'typhoid_fever': Cause(
         name='typhoid_fever',
         gbd_id=cid(319),
+        dismod_id=meid(1247),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15227,6 +15231,7 @@ causes = Causes(**{
     'paratyphoid_fever': Cause(
         name='paratyphoid_fever',
         gbd_id=cid(320),
+        dismod_id=meid(1252),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15243,6 +15248,7 @@ causes = Causes(**{
     'other_intestinal_infectious_diseases': Cause(
         name='other_intestinal_infectious_diseases',
         gbd_id=cid(321),
+        dismod_id=meid(1257),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15258,6 +15264,7 @@ causes = Causes(**{
     'lower_respiratory_infections': Cause(
         name='lower_respiratory_infections',
         gbd_id=cid(322),
+        dismod_id=meid(1258),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15276,6 +15283,7 @@ causes = Causes(**{
     'upper_respiratory_infections': Cause(
         name='upper_respiratory_infections',
         gbd_id=cid(328),
+        dismod_id=meid(1276),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15292,6 +15300,7 @@ causes = Causes(**{
     'otitis_media': Cause(
         name='otitis_media',
         gbd_id=cid(329),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15315,6 +15324,7 @@ causes = Causes(**{
     'pneumococcal_meningitis': Cause(
         name='pneumococcal_meningitis',
         gbd_id=cid(333),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15356,6 +15366,7 @@ causes = Causes(**{
     'h_influenzae_type_b_meningitis': Cause(
         name='h_influenzae_type_b_meningitis',
         gbd_id=cid(334),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15397,6 +15408,7 @@ causes = Causes(**{
     'meningococcal_meningitis': Cause(
         name='meningococcal_meningitis',
         gbd_id=cid(335),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15438,6 +15450,7 @@ causes = Causes(**{
     'other_meningitis': Cause(
         name='other_meningitis',
         gbd_id=cid(336),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15480,6 +15493,7 @@ causes = Causes(**{
     'encephalitis': Cause(
         name='encephalitis',
         gbd_id=cid(337),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15507,6 +15521,7 @@ causes = Causes(**{
     'diphtheria': Cause(
         name='diphtheria',
         gbd_id=cid(338),
+        dismod_id=meid(1421),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15522,6 +15537,7 @@ causes = Causes(**{
     'whooping_cough': Cause(
         name='whooping_cough',
         gbd_id=cid(339),
+        dismod_id=meid(1424),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15537,6 +15553,7 @@ causes = Causes(**{
     'tetanus': Cause(
         name='tetanus',
         gbd_id=cid(340),
+        dismod_id=meid(1425),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15568,6 +15585,7 @@ causes = Causes(**{
     'measles': Cause(
         name='measles',
         gbd_id=cid(341),
+        dismod_id=meid(1436),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15583,6 +15601,7 @@ causes = Causes(**{
     'varicella_and_herpes_zoster': Cause(
         name='varicella_and_herpes_zoster',
         gbd_id=cid(342),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15598,6 +15617,7 @@ causes = Causes(**{
     'malaria': Cause(
         name='malaria',
         gbd_id=cid(345),
+        dismod_id=meid(3055),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15635,6 +15655,7 @@ causes = Causes(**{
     'chagas_disease': Cause(
         name='chagas_disease',
         gbd_id=cid(346),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15655,6 +15676,7 @@ causes = Causes(**{
     'visceral_leishmaniasis': Cause(
         name='visceral_leishmaniasis',
         gbd_id=cid(348),
+        dismod_id=meid(1458),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15670,6 +15692,7 @@ causes = Causes(**{
     'cutaneous_and_mucocutaneous_leishmaniasis': Cause(
         name='cutaneous_and_mucocutaneous_leishmaniasis',
         gbd_id=cid(349),
+        dismod_id=meid(1461),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15683,6 +15706,7 @@ causes = Causes(**{
     'african_trypanosomiasis': Cause(
         name='african_trypanosomiasis',
         gbd_id=cid(350),
+        dismod_id=meid(1462),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15701,6 +15725,7 @@ causes = Causes(**{
     'schistosomiasis': Cause(
         name='schistosomiasis',
         gbd_id=cid(351),
+        dismod_id=meid(2797),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15721,6 +15746,7 @@ causes = Causes(**{
     'cysticercosis': Cause(
         name='cysticercosis',
         gbd_id=cid(352),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15736,6 +15762,7 @@ causes = Causes(**{
     'cystic_echinococcosis': Cause(
         name='cystic_echinococcosis',
         gbd_id=cid(353),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15753,6 +15780,7 @@ causes = Causes(**{
     'lymphatic_filariasis': Cause(
         name='lymphatic_filariasis',
         gbd_id=cid(354),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15768,6 +15796,7 @@ causes = Causes(**{
     'onchocerciasis': Cause(
         name='onchocerciasis',
         gbd_id=cid(355),
+        dismod_id=meid(1494),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15788,6 +15817,7 @@ causes = Causes(**{
     'trachoma': Cause(
         name='trachoma',
         gbd_id=cid(356),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15802,6 +15832,7 @@ causes = Causes(**{
     'dengue': Cause(
         name='dengue',
         gbd_id=cid(357),
+        dismod_id=meid(1505),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15817,6 +15848,7 @@ causes = Causes(**{
     'yellow_fever': Cause(
         name='yellow_fever',
         gbd_id=cid(358),
+        dismod_id=meid(1509),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15832,6 +15864,7 @@ causes = Causes(**{
     'rabies': Cause(
         name='rabies',
         gbd_id=cid(359),
+        dismod_id=meid(1512),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15847,6 +15880,7 @@ causes = Causes(**{
     'ascariasis': Cause(
         name='ascariasis',
         gbd_id=cid(361),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15863,6 +15897,7 @@ causes = Causes(**{
     'trichuriasis': Cause(
         name='trichuriasis',
         gbd_id=cid(362),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15878,6 +15913,7 @@ causes = Causes(**{
     'hookworm_disease': Cause(
         name='hookworm_disease',
         gbd_id=cid(363),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15895,6 +15931,7 @@ causes = Causes(**{
     'food_borne_trematodiases': Cause(
         name='food_borne_trematodiases',
         gbd_id=cid(364),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15916,6 +15953,7 @@ causes = Causes(**{
     'other_neglected_tropical_diseases': Cause(
         name='other_neglected_tropical_diseases',
         gbd_id=cid(365),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -15934,6 +15972,7 @@ causes = Causes(**{
     'maternal_hemorrhage': Cause(
         name='maternal_hemorrhage',
         gbd_id=cid(367),
+        dismod_id=meid(1535),
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -15953,6 +15992,7 @@ causes = Causes(**{
     'maternal_sepsis_and_other_maternal_infections': Cause(
         name='maternal_sepsis_and_other_maternal_infections',
         gbd_id=cid(368),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -15969,6 +16009,7 @@ causes = Causes(**{
     'maternal_hypertensive_disorders': Cause(
         name='maternal_hypertensive_disorders',
         gbd_id=cid(369),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -15986,6 +16027,7 @@ causes = Causes(**{
     'maternal_obstructed_labor_and_uterine_rupture': Cause(
         name='maternal_obstructed_labor_and_uterine_rupture',
         gbd_id=cid(370),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -16002,6 +16044,7 @@ causes = Causes(**{
     'maternal_abortion_miscarriage_and_ectopic_pregnancy': Cause(
         name='maternal_abortion_miscarriage_and_ectopic_pregnancy',
         gbd_id=cid(371),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -16017,6 +16060,7 @@ causes = Causes(**{
     'indirect_maternal_deaths': Cause(
         name='indirect_maternal_deaths',
         gbd_id=cid(375),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -16029,6 +16073,7 @@ causes = Causes(**{
     'late_maternal_deaths': Cause(
         name='late_maternal_deaths',
         gbd_id=cid(376),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -16041,6 +16086,7 @@ causes = Causes(**{
     'other_maternal_disorders': Cause(
         name='other_maternal_disorders',
         gbd_id=cid(379),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -16056,6 +16102,7 @@ causes = Causes(**{
     'neonatal_preterm_birth_complications': Cause(
         name='neonatal_preterm_birth_complications',
         gbd_id=cid(381),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16126,6 +16173,7 @@ causes = Causes(**{
     'neonatal_encephalopathy_due_to_birth_asphyxia_and_trauma': Cause(
         name='neonatal_encephalopathy_due_to_birth_asphyxia_and_trauma',
         gbd_id=cid(382),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16157,6 +16205,7 @@ causes = Causes(**{
     'neonatal_sepsis_and_other_neonatal_infections': Cause(
         name='neonatal_sepsis_and_other_neonatal_infections',
         gbd_id=cid(383),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16189,6 +16238,7 @@ causes = Causes(**{
     'hemolytic_disease_and_other_neonatal_jaundice': Cause(
         name='hemolytic_disease_and_other_neonatal_jaundice',
         gbd_id=cid(384),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16217,6 +16267,7 @@ causes = Causes(**{
     'other_neonatal_disorders': Cause(
         name='other_neonatal_disorders',
         gbd_id=cid(385),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16232,6 +16283,7 @@ causes = Causes(**{
     'protein_energy_malnutrition': Cause(
         name='protein_energy_malnutrition',
         gbd_id=cid(387),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16248,6 +16300,7 @@ causes = Causes(**{
     'iodine_deficiency': Cause(
         name='iodine_deficiency',
         gbd_id=cid(388),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16269,6 +16322,7 @@ causes = Causes(**{
     'vitamin_a_deficiency': Cause(
         name='vitamin_a_deficiency',
         gbd_id=cid(389),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16284,6 +16338,7 @@ causes = Causes(**{
     'iron_deficiency_anemia': Cause(
         name='iron_deficiency_anemia',
         gbd_id=cid(390),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16303,6 +16358,7 @@ causes = Causes(**{
     'other_nutritional_deficiencies': Cause(
         name='other_nutritional_deficiencies',
         gbd_id=cid(391),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16318,6 +16374,7 @@ causes = Causes(**{
     'syphilis': Cause(
         name='syphilis',
         gbd_id=cid(394),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16341,6 +16398,7 @@ causes = Causes(**{
     'chlamydial_infection': Cause(
         name='chlamydial_infection',
         gbd_id=cid(395),
+        dismod_id=meid(1629),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16361,6 +16419,7 @@ causes = Causes(**{
     'gonococcal_infection': Cause(
         name='gonococcal_infection',
         gbd_id=cid(396),
+        dismod_id=meid(1635),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16381,6 +16440,7 @@ causes = Causes(**{
     'trichomoniasis': Cause(
         name='trichomoniasis',
         gbd_id=cid(397),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16394,6 +16454,7 @@ causes = Causes(**{
     'genital_herpes': Cause(
         name='genital_herpes',
         gbd_id=cid(398),
+        dismod_id=meid(1642),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16408,6 +16469,7 @@ causes = Causes(**{
     'other_sexually_transmitted_diseases': Cause(
         name='other_sexually_transmitted_diseases',
         gbd_id=cid(399),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16427,6 +16489,7 @@ causes = Causes(**{
     'acute_hepatitis_a': Cause(
         name='acute_hepatitis_a',
         gbd_id=cid(401),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16443,6 +16506,7 @@ causes = Causes(**{
     'hepatitis_b': Cause(
         name='hepatitis_b',
         gbd_id=cid(402),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16459,6 +16523,7 @@ causes = Causes(**{
     'hepatitis_c': Cause(
         name='hepatitis_c',
         gbd_id=cid(403),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16475,6 +16540,7 @@ causes = Causes(**{
     'acute_hepatitis_e': Cause(
         name='acute_hepatitis_e',
         gbd_id=cid(404),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16491,6 +16557,7 @@ causes = Causes(**{
     'leprosy': Cause(
         name='leprosy',
         gbd_id=cid(405),
+        dismod_id=meid(1662),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16504,6 +16571,7 @@ causes = Causes(**{
     'other_infectious_diseases': Cause(
         name='other_infectious_diseases',
         gbd_id=cid(408),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16523,6 +16591,7 @@ causes = Causes(**{
     'esophageal_cancer': Cause(
         name='esophageal_cancer',
         gbd_id=cid(411),
+        dismod_id=meid(9469),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16540,6 +16609,7 @@ causes = Causes(**{
     'stomach_cancer': Cause(
         name='stomach_cancer',
         gbd_id=cid(414),
+        dismod_id=meid(9509),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16557,6 +16627,7 @@ causes = Causes(**{
     'liver_cancer_due_to_hepatitis_b': Cause(
         name='liver_cancer_due_to_hepatitis_b',
         gbd_id=cid(418),
+        dismod_id=meid(9665),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16575,6 +16646,7 @@ causes = Causes(**{
     'liver_cancer_due_to_hepatitis_c': Cause(
         name='liver_cancer_due_to_hepatitis_c',
         gbd_id=cid(419),
+        dismod_id=meid(9666),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16593,6 +16665,7 @@ causes = Causes(**{
     'liver_cancer_due_to_alcohol_use': Cause(
         name='liver_cancer_due_to_alcohol_use',
         gbd_id=cid(420),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16611,6 +16684,7 @@ causes = Causes(**{
     'liver_cancer_due_to_other_causes': Cause(
         name='liver_cancer_due_to_other_causes',
         gbd_id=cid(421),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16629,6 +16703,7 @@ causes = Causes(**{
     'larynx_cancer': Cause(
         name='larynx_cancer',
         gbd_id=cid(423),
+        dismod_id=meid(9473),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16646,6 +16721,7 @@ causes = Causes(**{
     'tracheal_bronchus_and_lung_cancer': Cause(
         name='tracheal_bronchus_and_lung_cancer',
         gbd_id=cid(426),
+        dismod_id=meid(9496),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16664,6 +16740,7 @@ causes = Causes(**{
     'breast_cancer': Cause(
         name='breast_cancer',
         gbd_id=cid(429),
+        dismod_id=meid(9466),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16681,6 +16758,7 @@ causes = Causes(**{
     'cervical_cancer': Cause(
         name='cervical_cancer',
         gbd_id=cid(432),
+        dismod_id=meid(9467),
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -16698,6 +16776,7 @@ causes = Causes(**{
     'uterine_cancer': Cause(
         name='uterine_cancer',
         gbd_id=cid(435),
+        dismod_id=meid(9512),
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -16715,6 +16794,7 @@ causes = Causes(**{
     'prostate_cancer': Cause(
         name='prostate_cancer',
         gbd_id=cid(438),
+        dismod_id=meid(9508),
         restrictions=Restrictions(
             male_only=True,
             female_only=False,
@@ -16733,6 +16813,7 @@ causes = Causes(**{
     'colon_and_rectum_cancer': Cause(
         name='colon_and_rectum_cancer',
         gbd_id=cid(441),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16751,6 +16832,7 @@ causes = Causes(**{
     'lip_and_oral_cavity_cancer': Cause(
         name='lip_and_oral_cavity_cancer',
         gbd_id=cid(444),
+        dismod_id=meid(9500),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16768,6 +16850,7 @@ causes = Causes(**{
     'nasopharynx_cancer': Cause(
         name='nasopharynx_cancer',
         gbd_id=cid(447),
+        dismod_id=meid(9502),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16785,6 +16868,7 @@ causes = Causes(**{
     'other_pharynx_cancer': Cause(
         name='other_pharynx_cancer',
         gbd_id=cid(450),
+        dismod_id=meid(9505),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16802,6 +16886,7 @@ causes = Causes(**{
     'gallbladder_and_biliary_tract_cancer': Cause(
         name='gallbladder_and_biliary_tract_cancer',
         gbd_id=cid(453),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16820,6 +16905,7 @@ causes = Causes(**{
     'pancreatic_cancer': Cause(
         name='pancreatic_cancer',
         gbd_id=cid(456),
+        dismod_id=meid(9507),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16837,6 +16923,7 @@ causes = Causes(**{
     'malignant_skin_melanoma': Cause(
         name='malignant_skin_melanoma',
         gbd_id=cid(459),
+        dismod_id=meid(9498),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16855,6 +16942,7 @@ causes = Causes(**{
     'ovarian_cancer': Cause(
         name='ovarian_cancer',
         gbd_id=cid(465),
+        dismod_id=meid(9506),
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -16872,6 +16960,7 @@ causes = Causes(**{
     'testicular_cancer': Cause(
         name='testicular_cancer',
         gbd_id=cid(468),
+        dismod_id=meid(9510),
         restrictions=Restrictions(
             male_only=True,
             female_only=False,
@@ -16889,6 +16978,7 @@ causes = Causes(**{
     'kidney_cancer': Cause(
         name='kidney_cancer',
         gbd_id=cid(471),
+        dismod_id=meid(9472),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16906,6 +16996,7 @@ causes = Causes(**{
     'bladder_cancer': Cause(
         name='bladder_cancer',
         gbd_id=cid(474),
+        dismod_id=meid(9464),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16923,6 +17014,7 @@ causes = Causes(**{
     'brain_and_nervous_system_cancer': Cause(
         name='brain_and_nervous_system_cancer',
         gbd_id=cid(477),
+        dismod_id=meid(9465),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16941,6 +17033,7 @@ causes = Causes(**{
     'thyroid_cancer': Cause(
         name='thyroid_cancer',
         gbd_id=cid(480),
+        dismod_id=meid(9511),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16958,6 +17051,7 @@ causes = Causes(**{
     'mesothelioma': Cause(
         name='mesothelioma',
         gbd_id=cid(483),
+        dismod_id=meid(9499),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16975,6 +17069,7 @@ causes = Causes(**{
     'hodgkin_lymphoma': Cause(
         name='hodgkin_lymphoma',
         gbd_id=cid(484),
+        dismod_id=meid(9471),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -16992,6 +17087,7 @@ causes = Causes(**{
     'non_hodgkin_lymphoma': Cause(
         name='non_hodgkin_lymphoma',
         gbd_id=cid(485),
+        dismod_id=meid(9497),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17009,6 +17105,7 @@ causes = Causes(**{
     'multiple_myeloma': Cause(
         name='multiple_myeloma',
         gbd_id=cid(486),
+        dismod_id=meid(9501),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17026,6 +17123,7 @@ causes = Causes(**{
     'other_neoplasms': Cause(
         name='other_neoplasms',
         gbd_id=cid(488),
+        dismod_id=meid(9504),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17043,6 +17141,7 @@ causes = Causes(**{
     'rheumatic_heart_disease': Cause(
         name='rheumatic_heart_disease',
         gbd_id=cid(492),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17061,6 +17160,7 @@ causes = Causes(**{
     'ischemic_heart_disease': Cause(
         name='ischemic_heart_disease',
         gbd_id=cid(493),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17085,6 +17185,7 @@ causes = Causes(**{
     'ischemic_stroke': Cause(
         name='ischemic_stroke',
         gbd_id=cid(495),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17106,6 +17207,7 @@ causes = Causes(**{
     'hemorrhagic_stroke': Cause(
         name='hemorrhagic_stroke',
         gbd_id=cid(496),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17131,6 +17233,7 @@ causes = Causes(**{
     'hypertensive_heart_disease': Cause(
         name='hypertensive_heart_disease',
         gbd_id=cid(498),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17148,6 +17251,7 @@ causes = Causes(**{
     'atrial_fibrillation_and_flutter': Cause(
         name='atrial_fibrillation_and_flutter',
         gbd_id=cid(500),
+        dismod_id=meid(1859),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17164,6 +17268,7 @@ causes = Causes(**{
     'aortic_aneurysm': Cause(
         name='aortic_aneurysm',
         gbd_id=cid(501),
+        dismod_id=meid(1860),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17176,6 +17281,7 @@ causes = Causes(**{
     'peripheral_artery_disease': Cause(
         name='peripheral_artery_disease',
         gbd_id=cid(502),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17192,6 +17298,7 @@ causes = Causes(**{
     'endocarditis': Cause(
         name='endocarditis',
         gbd_id=cid(503),
+        dismod_id=meid(1862),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17210,6 +17317,7 @@ causes = Causes(**{
     'other_cardiovascular_and_circulatory_diseases': Cause(
         name='other_cardiovascular_and_circulatory_diseases',
         gbd_id=cid(507),
+        dismod_id=meid(1868),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17229,6 +17337,7 @@ causes = Causes(**{
     'chronic_obstructive_pulmonary_disease': Cause(
         name='chronic_obstructive_pulmonary_disease',
         gbd_id=cid(509),
+        dismod_id=meid(1872),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17250,6 +17359,7 @@ causes = Causes(**{
     'silicosis': Cause(
         name='silicosis',
         gbd_id=cid(511),
+        dismod_id=meid(1879),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17269,6 +17379,7 @@ causes = Causes(**{
     'asbestosis': Cause(
         name='asbestosis',
         gbd_id=cid(512),
+        dismod_id=meid(3051),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17288,6 +17399,7 @@ causes = Causes(**{
     'coal_workers_pneumoconiosis': Cause(
         name='coal_workers_pneumoconiosis',
         gbd_id=cid(513),
+        dismod_id=meid(3052),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17308,6 +17420,7 @@ causes = Causes(**{
     'other_pneumoconiosis': Cause(
         name='other_pneumoconiosis',
         gbd_id=cid(514),
+        dismod_id=meid(1900),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17328,6 +17441,7 @@ causes = Causes(**{
     'asthma': Cause(
         name='asthma',
         gbd_id=cid(515),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17344,6 +17458,7 @@ causes = Causes(**{
     'interstitial_lung_disease_and_pulmonary_sarcoidosis': Cause(
         name='interstitial_lung_disease_and_pulmonary_sarcoidosis',
         gbd_id=cid(516),
+        dismod_id=meid(1911),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17365,6 +17480,7 @@ causes = Causes(**{
     'other_chronic_respiratory_diseases': Cause(
         name='other_chronic_respiratory_diseases',
         gbd_id=cid(520),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17380,6 +17496,7 @@ causes = Causes(**{
     'cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_b': Cause(
         name='cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_b',
         gbd_id=cid(522),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17396,6 +17513,7 @@ causes = Causes(**{
     'cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_c': Cause(
         name='cirrhosis_and_other_chronic_liver_diseases_due_to_hepatitis_c',
         gbd_id=cid(523),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17412,6 +17530,7 @@ causes = Causes(**{
     'cirrhosis_and_other_chronic_liver_diseases_due_to_alcohol_use': Cause(
         name='cirrhosis_and_other_chronic_liver_diseases_due_to_alcohol_use',
         gbd_id=cid(524),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17428,6 +17547,7 @@ causes = Causes(**{
     'cirrhosis_and_other_chronic_liver_diseases_due_to_other_causes': Cause(
         name='cirrhosis_and_other_chronic_liver_diseases_due_to_other_causes',
         gbd_id=cid(525),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17444,6 +17564,7 @@ causes = Causes(**{
     'peptic_ulcer_disease': Cause(
         name='peptic_ulcer_disease',
         gbd_id=cid(527),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17473,6 +17594,7 @@ causes = Causes(**{
     'gastritis_and_duodenitis': Cause(
         name='gastritis_and_duodenitis',
         gbd_id=cid(528),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17502,6 +17624,7 @@ causes = Causes(**{
     'appendicitis': Cause(
         name='appendicitis',
         gbd_id=cid(529),
+        dismod_id=meid(1932),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17517,6 +17640,7 @@ causes = Causes(**{
     'paralytic_ileus_and_intestinal_obstruction': Cause(
         name='paralytic_ileus_and_intestinal_obstruction',
         gbd_id=cid(530),
+        dismod_id=meid(1933),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17532,6 +17656,7 @@ causes = Causes(**{
     'inguinal_femoral_and_abdominal_hernia': Cause(
         name='inguinal_femoral_and_abdominal_hernia',
         gbd_id=cid(531),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17550,6 +17675,7 @@ causes = Causes(**{
     'inflammatory_bowel_disease': Cause(
         name='inflammatory_bowel_disease',
         gbd_id=cid(532),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17566,6 +17692,7 @@ causes = Causes(**{
     'vascular_intestinal_disorders': Cause(
         name='vascular_intestinal_disorders',
         gbd_id=cid(533),
+        dismod_id=meid(1939),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17581,6 +17708,7 @@ causes = Causes(**{
     'gallbladder_and_biliary_diseases': Cause(
         name='gallbladder_and_biliary_diseases',
         gbd_id=cid(534),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17599,6 +17727,7 @@ causes = Causes(**{
     'pancreatitis': Cause(
         name='pancreatitis',
         gbd_id=cid(535),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17615,6 +17744,7 @@ causes = Causes(**{
     'other_digestive_diseases': Cause(
         name='other_digestive_diseases',
         gbd_id=cid(541),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17630,6 +17760,7 @@ causes = Causes(**{
     'alzheimer_disease_and_other_dementias': Cause(
         name='alzheimer_disease_and_other_dementias',
         gbd_id=cid(543),
+        dismod_id=meid(1943),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17647,6 +17778,7 @@ causes = Causes(**{
     'parkinson_disease': Cause(
         name='parkinson_disease',
         gbd_id=cid(544),
+        dismod_id=meid(1947),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17663,6 +17795,7 @@ causes = Causes(**{
     'epilepsy': Cause(
         name='epilepsy',
         gbd_id=cid(545),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17678,6 +17811,7 @@ causes = Causes(**{
     'multiple_sclerosis': Cause(
         name='multiple_sclerosis',
         gbd_id=cid(546),
+        dismod_id=meid(1955),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17694,6 +17828,7 @@ causes = Causes(**{
     'migraine': Cause(
         name='migraine',
         gbd_id=cid(547),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17709,6 +17844,7 @@ causes = Causes(**{
     'tension_type_headache': Cause(
         name='tension_type_headache',
         gbd_id=cid(548),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17724,6 +17860,7 @@ causes = Causes(**{
     'motor_neuron_disease': Cause(
         name='motor_neuron_disease',
         gbd_id=cid(554),
+        dismod_id=meid(3940),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17768,6 +17905,7 @@ causes = Causes(**{
     'other_neurological_disorders': Cause(
         name='other_neurological_disorders',
         gbd_id=cid(557),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17784,6 +17922,7 @@ causes = Causes(**{
     'schizophrenia': Cause(
         name='schizophrenia',
         gbd_id=cid(559),
+        dismod_id=meid(1964),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17797,6 +17936,7 @@ causes = Causes(**{
     'alcohol_use_disorders': Cause(
         name='alcohol_use_disorders',
         gbd_id=cid(560),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17816,6 +17956,7 @@ causes = Causes(**{
     'opioid_use_disorders': Cause(
         name='opioid_use_disorders',
         gbd_id=cid(562),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17832,6 +17973,7 @@ causes = Causes(**{
     'cocaine_use_disorders': Cause(
         name='cocaine_use_disorders',
         gbd_id=cid(563),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17848,6 +17990,7 @@ causes = Causes(**{
     'amphetamine_use_disorders': Cause(
         name='amphetamine_use_disorders',
         gbd_id=cid(564),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17864,6 +18007,7 @@ causes = Causes(**{
     'cannabis_use_disorders': Cause(
         name='cannabis_use_disorders',
         gbd_id=cid(565),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17878,6 +18022,7 @@ causes = Causes(**{
     'other_drug_use_disorders': Cause(
         name='other_drug_use_disorders',
         gbd_id=cid(566),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17893,6 +18038,7 @@ causes = Causes(**{
     'major_depressive_disorder': Cause(
         name='major_depressive_disorder',
         gbd_id=cid(568),
+        dismod_id=meid(1981),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17908,6 +18054,7 @@ causes = Causes(**{
     'dysthymia': Cause(
         name='dysthymia',
         gbd_id=cid(569),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17921,6 +18068,7 @@ causes = Causes(**{
     'bipolar_disorder': Cause(
         name='bipolar_disorder',
         gbd_id=cid(570),
+        dismod_id=meid(1986),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17935,6 +18083,7 @@ causes = Causes(**{
     'anxiety_disorders': Cause(
         name='anxiety_disorders',
         gbd_id=cid(571),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17949,6 +18098,7 @@ causes = Causes(**{
     'anorexia_nervosa': Cause(
         name='anorexia_nervosa',
         gbd_id=cid(573),
+        dismod_id=meid(1993),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17964,6 +18114,7 @@ causes = Causes(**{
     'bulimia_nervosa': Cause(
         name='bulimia_nervosa',
         gbd_id=cid(574),
+        dismod_id=meid(1994),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17979,6 +18130,7 @@ causes = Causes(**{
     'autism': Cause(
         name='autism',
         gbd_id=cid(576),
+        dismod_id=meid(1995),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -17997,6 +18149,7 @@ causes = Causes(**{
     'asperger_syndrome_and_other_autistic_spectrum_disorders': Cause(
         name='asperger_syndrome_and_other_autistic_spectrum_disorders',
         gbd_id=cid(577),
+        dismod_id=meid(1996),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18010,6 +18163,7 @@ causes = Causes(**{
     'attention_deficit_hyperactivity_disorder': Cause(
         name='attention_deficit_hyperactivity_disorder',
         gbd_id=cid(578),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18024,6 +18178,7 @@ causes = Causes(**{
     'conduct_disorder': Cause(
         name='conduct_disorder',
         gbd_id=cid(579),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18037,6 +18192,7 @@ causes = Causes(**{
     'idiopathic_developmental_intellectual_disability': Cause(
         name='idiopathic_developmental_intellectual_disability',
         gbd_id=cid(582),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18054,6 +18210,7 @@ causes = Causes(**{
     'other_mental_and_substance_use_disorders': Cause(
         name='other_mental_and_substance_use_disorders',
         gbd_id=cid(585),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18068,6 +18225,7 @@ causes = Causes(**{
     'diabetes_mellitus': Cause(
         name='diabetes_mellitus',
         gbd_id=cid(587),
+        dismod_id=meid(2005),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18088,6 +18246,7 @@ causes = Causes(**{
     'acute_glomerulonephritis': Cause(
         name='acute_glomerulonephritis',
         gbd_id=cid(588),
+        dismod_id=meid(2017),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18103,6 +18262,7 @@ causes = Causes(**{
     'chronic_kidney_disease_due_to_diabetes_mellitus': Cause(
         name='chronic_kidney_disease_due_to_diabetes_mellitus',
         gbd_id=cid(590),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18131,6 +18291,7 @@ causes = Causes(**{
     'chronic_kidney_disease_due_to_hypertension': Cause(
         name='chronic_kidney_disease_due_to_hypertension',
         gbd_id=cid(591),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18159,6 +18320,7 @@ causes = Causes(**{
     'chronic_kidney_disease_due_to_glomerulonephritis': Cause(
         name='chronic_kidney_disease_due_to_glomerulonephritis',
         gbd_id=cid(592),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18187,6 +18349,7 @@ causes = Causes(**{
     'chronic_kidney_disease_due_to_other_causes': Cause(
         name='chronic_kidney_disease_due_to_other_causes',
         gbd_id=cid(593),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18215,6 +18378,7 @@ causes = Causes(**{
     'interstitial_nephritis_and_urinary_tract_infections': Cause(
         name='interstitial_nephritis_and_urinary_tract_infections',
         gbd_id=cid(595),
+        dismod_id=meid(2055),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18231,6 +18395,7 @@ causes = Causes(**{
     'urolithiasis': Cause(
         name='urolithiasis',
         gbd_id=cid(596),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18247,6 +18412,7 @@ causes = Causes(**{
     'benign_prostatic_hyperplasia': Cause(
         name='benign_prostatic_hyperplasia',
         gbd_id=cid(597),
+        dismod_id=meid(2060),
         restrictions=Restrictions(
             male_only=True,
             female_only=False,
@@ -18261,6 +18427,7 @@ causes = Causes(**{
     'male_infertility': Cause(
         name='male_infertility',
         gbd_id=cid(598),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=True,
             female_only=False,
@@ -18274,6 +18441,7 @@ causes = Causes(**{
     'other_urinary_diseases': Cause(
         name='other_urinary_diseases',
         gbd_id=cid(602),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18289,6 +18457,7 @@ causes = Causes(**{
     'uterine_fibroids': Cause(
         name='uterine_fibroids',
         gbd_id=cid(604),
+        dismod_id=meid(2064),
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -18308,6 +18477,7 @@ causes = Causes(**{
     'polycystic_ovarian_syndrome': Cause(
         name='polycystic_ovarian_syndrome',
         gbd_id=cid(605),
+        dismod_id=meid(2068),
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -18328,6 +18498,7 @@ causes = Causes(**{
     'female_infertility': Cause(
         name='female_infertility',
         gbd_id=cid(606),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -18341,6 +18512,7 @@ causes = Causes(**{
     'endometriosis': Cause(
         name='endometriosis',
         gbd_id=cid(607),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -18366,6 +18538,7 @@ causes = Causes(**{
     'genital_prolapse': Cause(
         name='genital_prolapse',
         gbd_id=cid(608),
+        dismod_id=meid(2078),
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -18383,6 +18556,7 @@ causes = Causes(**{
     'premenstrual_syndrome': Cause(
         name='premenstrual_syndrome',
         gbd_id=cid(609),
+        dismod_id=meid(2079),
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -18398,6 +18572,7 @@ causes = Causes(**{
     'other_gynecological_diseases': Cause(
         name='other_gynecological_diseases',
         gbd_id=cid(612),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -18417,6 +18592,7 @@ causes = Causes(**{
     'thalassemias': Cause(
         name='thalassemias',
         gbd_id=cid(614),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18447,6 +18623,7 @@ causes = Causes(**{
     'sickle_cell_disorders': Cause(
         name='sickle_cell_disorders',
         gbd_id=cid(615),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18491,6 +18668,7 @@ causes = Causes(**{
     'g6pd_deficiency': Cause(
         name='g6pd_deficiency',
         gbd_id=cid(616),
+        dismod_id=meid(2112),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18510,6 +18688,7 @@ causes = Causes(**{
     'other_hemoglobinopathies_and_hemolytic_anemias': Cause(
         name='other_hemoglobinopathies_and_hemolytic_anemias',
         gbd_id=cid(618),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18531,6 +18710,7 @@ causes = Causes(**{
     'endocrine_metabolic_blood_and_immune_disorders': Cause(
         name='endocrine_metabolic_blood_and_immune_disorders',
         gbd_id=cid(619),
+        dismod_id=meid(2125),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18555,6 +18735,7 @@ causes = Causes(**{
     'rheumatoid_arthritis': Cause(
         name='rheumatoid_arthritis',
         gbd_id=cid(627),
+        dismod_id=meid(2137),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18571,6 +18752,7 @@ causes = Causes(**{
     'osteoarthritis': Cause(
         name='osteoarthritis',
         gbd_id=cid(628),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18586,6 +18768,7 @@ causes = Causes(**{
     'low_back_pain': Cause(
         name='low_back_pain',
         gbd_id=cid(630),
+        dismod_id=meid(2149),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18603,6 +18786,7 @@ causes = Causes(**{
     'neck_pain': Cause(
         name='neck_pain',
         gbd_id=cid(631),
+        dismod_id=meid(2154),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18617,6 +18801,7 @@ causes = Causes(**{
     'gout': Cause(
         name='gout',
         gbd_id=cid(632),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18630,6 +18815,7 @@ causes = Causes(**{
     'other_musculoskeletal_disorders': Cause(
         name='other_musculoskeletal_disorders',
         gbd_id=cid(639),
+        dismod_id=meid(3136),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18651,6 +18837,7 @@ causes = Causes(**{
     'neural_tube_defects': Cause(
         name='neural_tube_defects',
         gbd_id=cid(642),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18750,6 +18937,7 @@ causes = Causes(**{
     'congenital_heart_anomalies': Cause(
         name='congenital_heart_anomalies',
         gbd_id=cid(643),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18867,6 +19055,7 @@ causes = Causes(**{
     'orofacial_clefts': Cause(
         name='orofacial_clefts',
         gbd_id=cid(644),
+        dismod_id=meid(3245),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18885,6 +19074,7 @@ causes = Causes(**{
     'down_syndrome': Cause(
         name='down_syndrome',
         gbd_id=cid(645),
+        dismod_id=meid(3246),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -18946,6 +19136,7 @@ causes = Causes(**{
     'turner_syndrome': Cause(
         name='turner_syndrome',
         gbd_id=cid(646),
+        dismod_id=meid(3247),
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -18962,6 +19153,7 @@ causes = Causes(**{
     'klinefelter_syndrome': Cause(
         name='klinefelter_syndrome',
         gbd_id=cid(647),
+        dismod_id=meid(3248),
         restrictions=Restrictions(
             male_only=True,
             female_only=False,
@@ -18980,6 +19172,7 @@ causes = Causes(**{
     'other_chromosomal_abnormalities': Cause(
         name='other_chromosomal_abnormalities',
         gbd_id=cid(648),
+        dismod_id=meid(3249),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19044,6 +19237,7 @@ causes = Causes(**{
     'congenital_musculoskeletal_and_limb_anomalies': Cause(
         name='congenital_musculoskeletal_and_limb_anomalies',
         gbd_id=cid(649),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19071,6 +19265,7 @@ causes = Causes(**{
     'urogenital_congenital_anomalies': Cause(
         name='urogenital_congenital_anomalies',
         gbd_id=cid(650),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19117,6 +19312,7 @@ causes = Causes(**{
     'digestive_congenital_anomalies': Cause(
         name='digestive_congenital_anomalies',
         gbd_id=cid(651),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19167,6 +19363,7 @@ causes = Causes(**{
     'other_congenital_birth_defects': Cause(
         name='other_congenital_birth_defects',
         gbd_id=cid(652),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19194,6 +19391,7 @@ causes = Causes(**{
     'dermatitis': Cause(
         name='dermatitis',
         gbd_id=cid(654),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19210,6 +19408,7 @@ causes = Causes(**{
     'psoriasis': Cause(
         name='psoriasis',
         gbd_id=cid(655),
+        dismod_id=meid(2251),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19223,6 +19422,7 @@ causes = Causes(**{
     'cellulitis': Cause(
         name='cellulitis',
         gbd_id=cid(656),
+        dismod_id=meid(2255),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19238,6 +19438,7 @@ causes = Causes(**{
     'pyoderma': Cause(
         name='pyoderma',
         gbd_id=cid(657),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19253,6 +19454,7 @@ causes = Causes(**{
     'scabies': Cause(
         name='scabies',
         gbd_id=cid(658),
+        dismod_id=meid(2262),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19266,6 +19468,7 @@ causes = Causes(**{
     'fungal_skin_diseases': Cause(
         name='fungal_skin_diseases',
         gbd_id=cid(659),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19279,6 +19482,7 @@ causes = Causes(**{
     'viral_skin_diseases': Cause(
         name='viral_skin_diseases',
         gbd_id=cid(660),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19293,6 +19497,7 @@ causes = Causes(**{
     'acne_vulgaris': Cause(
         name='acne_vulgaris',
         gbd_id=cid(661),
+        dismod_id=meid(2275),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19306,6 +19511,7 @@ causes = Causes(**{
     'alopecia_areata': Cause(
         name='alopecia_areata',
         gbd_id=cid(662),
+        dismod_id=meid(2276),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19319,6 +19525,7 @@ causes = Causes(**{
     'pruritus': Cause(
         name='pruritus',
         gbd_id=cid(663),
+        dismod_id=meid(2280),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19332,6 +19539,7 @@ causes = Causes(**{
     'urticaria': Cause(
         name='urticaria',
         gbd_id=cid(664),
+        dismod_id=meid(2283),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19345,6 +19553,7 @@ causes = Causes(**{
     'decubitus_ulcer': Cause(
         name='decubitus_ulcer',
         gbd_id=cid(665),
+        dismod_id=meid(2286),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19360,6 +19569,7 @@ causes = Causes(**{
     'other_skin_and_subcutaneous_diseases': Cause(
         name='other_skin_and_subcutaneous_diseases',
         gbd_id=cid(668),
+        dismod_id=meid(2290),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19376,6 +19586,7 @@ causes = Causes(**{
     'glaucoma': Cause(
         name='glaucoma',
         gbd_id=cid(670),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19390,6 +19601,7 @@ causes = Causes(**{
     'cataract': Cause(
         name='cataract',
         gbd_id=cid(671),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19404,6 +19616,7 @@ causes = Causes(**{
     'macular_degeneration': Cause(
         name='macular_degeneration',
         gbd_id=cid(672),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19419,6 +19632,7 @@ causes = Causes(**{
     'refraction_and_accommodation_disorders': Cause(
         name='refraction_and_accommodation_disorders',
         gbd_id=cid(673),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19434,6 +19648,7 @@ causes = Causes(**{
     'age_related_and_other_hearing_loss': Cause(
         name='age_related_and_other_hearing_loss',
         gbd_id=cid(674),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19458,6 +19673,7 @@ causes = Causes(**{
     'other_vision_loss': Cause(
         name='other_vision_loss',
         gbd_id=cid(675),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19473,6 +19689,7 @@ causes = Causes(**{
     'other_sense_organ_diseases': Cause(
         name='other_sense_organ_diseases',
         gbd_id=cid(679),
+        dismod_id=meid(2330),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19488,6 +19705,7 @@ causes = Causes(**{
     'caries_of_deciduous_teeth': Cause(
         name='caries_of_deciduous_teeth',
         gbd_id=cid(681),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19501,6 +19719,7 @@ causes = Causes(**{
     'caries_of_permanent_teeth': Cause(
         name='caries_of_permanent_teeth',
         gbd_id=cid(682),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19514,6 +19733,7 @@ causes = Causes(**{
     'periodontal_diseases': Cause(
         name='periodontal_diseases',
         gbd_id=cid(683),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19527,6 +19747,7 @@ causes = Causes(**{
     'edentulism_and_severe_tooth_loss': Cause(
         name='edentulism_and_severe_tooth_loss',
         gbd_id=cid(684),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19541,6 +19762,7 @@ causes = Causes(**{
     'other_oral_disorders': Cause(
         name='other_oral_disorders',
         gbd_id=cid(685),
+        dismod_id=meid(3254),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19554,6 +19776,7 @@ causes = Causes(**{
     'sudden_infant_death_syndrome': Cause(
         name='sudden_infant_death_syndrome',
         gbd_id=cid(686),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19566,6 +19789,7 @@ causes = Causes(**{
     'pedestrian_road_injuries': Cause(
         name='pedestrian_road_injuries',
         gbd_id=cid(690),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19580,6 +19804,7 @@ causes = Causes(**{
     'cyclist_road_injuries': Cause(
         name='cyclist_road_injuries',
         gbd_id=cid(691),
+        dismod_id=meid(2586),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19594,6 +19819,7 @@ causes = Causes(**{
     'motorcyclist_road_injuries': Cause(
         name='motorcyclist_road_injuries',
         gbd_id=cid(692),
+        dismod_id=meid(2587),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19608,6 +19834,7 @@ causes = Causes(**{
     'motor_vehicle_road_injuries': Cause(
         name='motor_vehicle_road_injuries',
         gbd_id=cid(693),
+        dismod_id=meid(2588),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19622,6 +19849,7 @@ causes = Causes(**{
     'other_road_injuries': Cause(
         name='other_road_injuries',
         gbd_id=cid(694),
+        dismod_id=meid(2589),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19636,6 +19864,7 @@ causes = Causes(**{
     'other_transport_injuries': Cause(
         name='other_transport_injuries',
         gbd_id=cid(695),
+        dismod_id=meid(2340),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19650,6 +19879,7 @@ causes = Causes(**{
     'falls': Cause(
         name='falls',
         gbd_id=cid(697),
+        dismod_id=meid(2341),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19664,6 +19894,7 @@ causes = Causes(**{
     'drowning': Cause(
         name='drowning',
         gbd_id=cid(698),
+        dismod_id=meid(2342),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19678,6 +19909,7 @@ causes = Causes(**{
     'fire_heat_and_hot_substances': Cause(
         name='fire_heat_and_hot_substances',
         gbd_id=cid(699),
+        dismod_id=meid(2343),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19692,6 +19924,7 @@ causes = Causes(**{
     'poisonings': Cause(
         name='poisonings',
         gbd_id=cid(700),
+        dismod_id=meid(2344),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19706,6 +19939,7 @@ causes = Causes(**{
     'unintentional_firearm_injuries': Cause(
         name='unintentional_firearm_injuries',
         gbd_id=cid(705),
+        dismod_id=meid(2590),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19720,6 +19954,7 @@ causes = Causes(**{
     'unintentional_suffocation': Cause(
         name='unintentional_suffocation',
         gbd_id=cid(706),
+        dismod_id=meid(2591),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19734,6 +19969,7 @@ causes = Causes(**{
     'other_exposure_to_mechanical_forces': Cause(
         name='other_exposure_to_mechanical_forces',
         gbd_id=cid(707),
+        dismod_id=meid(2592),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19748,6 +19984,7 @@ causes = Causes(**{
     'adverse_effects_of_medical_treatment': Cause(
         name='adverse_effects_of_medical_treatment',
         gbd_id=cid(708),
+        dismod_id=meid(2346),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19762,6 +19999,7 @@ causes = Causes(**{
     'venomous_animal_contact': Cause(
         name='venomous_animal_contact',
         gbd_id=cid(710),
+        dismod_id=meid(2593),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19776,6 +20014,7 @@ causes = Causes(**{
     'non_venomous_animal_contact': Cause(
         name='non_venomous_animal_contact',
         gbd_id=cid(711),
+        dismod_id=meid(2594),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19790,6 +20029,7 @@ causes = Causes(**{
     'pulmonary_aspiration_and_foreign_body_in_airway': Cause(
         name='pulmonary_aspiration_and_foreign_body_in_airway',
         gbd_id=cid(713),
+        dismod_id=meid(2348),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19804,6 +20044,7 @@ causes = Causes(**{
     'foreign_body_in_eyes': Cause(
         name='foreign_body_in_eyes',
         gbd_id=cid(714),
+        dismod_id=meid(2595),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19816,6 +20057,7 @@ causes = Causes(**{
     'foreign_body_in_other_body_part': Cause(
         name='foreign_body_in_other_body_part',
         gbd_id=cid(715),
+        dismod_id=meid(2596),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19830,6 +20072,7 @@ causes = Causes(**{
     'other_unintentional_injuries': Cause(
         name='other_unintentional_injuries',
         gbd_id=cid(716),
+        dismod_id=meid(2349),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19844,6 +20087,7 @@ causes = Causes(**{
     'self_harm_by_firearm': Cause(
         name='self_harm_by_firearm',
         gbd_id=cid(721),
+        dismod_id=meid(10726),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19858,6 +20102,7 @@ causes = Causes(**{
     'self_harm_by_other_specified_means': Cause(
         name='self_harm_by_other_specified_means',
         gbd_id=cid(723),
+        dismod_id=meid(10727),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19872,6 +20117,7 @@ causes = Causes(**{
     'physical_violence_by_firearm': Cause(
         name='physical_violence_by_firearm',
         gbd_id=cid(725),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19886,6 +20132,7 @@ causes = Causes(**{
     'physical_violence_by_sharp_object': Cause(
         name='physical_violence_by_sharp_object',
         gbd_id=cid(726),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19900,6 +20147,7 @@ causes = Causes(**{
     'physical_violence_by_other_means': Cause(
         name='physical_violence_by_other_means',
         gbd_id=cid(727),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19914,6 +20162,7 @@ causes = Causes(**{
     'exposure_to_forces_of_nature': Cause(
         name='exposure_to_forces_of_nature',
         gbd_id=cid(729),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19928,6 +20177,7 @@ causes = Causes(**{
     'maternal_deaths_aggravated_by_hiv_aids': Cause(
         name='maternal_deaths_aggravated_by_hiv_aids',
         gbd_id=cid(741),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=True,
@@ -19940,6 +20190,7 @@ causes = Causes(**{
     'thalassemias_trait': Cause(
         name='thalassemias_trait',
         gbd_id=cid(837),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19958,6 +20209,7 @@ causes = Causes(**{
     'sickle_cell_trait': Cause(
         name='sickle_cell_trait',
         gbd_id=cid(838),
+        dismod_id=meid(2501),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19972,6 +20224,7 @@ causes = Causes(**{
     'g6pd_trait': Cause(
         name='g6pd_trait',
         gbd_id=cid(839),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -19988,6 +20241,7 @@ causes = Causes(**{
     'environmental_heat_and_cold_exposure': Cause(
         name='environmental_heat_and_cold_exposure',
         gbd_id=cid(842),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20002,6 +20256,7 @@ causes = Causes(**{
     'ebola': Cause(
         name='ebola',
         gbd_id=cid(843),
+        dismod_id=meid(9668),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20017,6 +20272,7 @@ causes = Causes(**{
     'acute_lymphoid_leukemia': Cause(
         name='acute_lymphoid_leukemia',
         gbd_id=cid(845),
+        dismod_id=meid(9475),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20035,6 +20291,7 @@ causes = Causes(**{
     'chronic_lymphoid_leukemia': Cause(
         name='chronic_lymphoid_leukemia',
         gbd_id=cid(846),
+        dismod_id=meid(9480),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20053,6 +20310,7 @@ causes = Causes(**{
     'acute_myeloid_leukemia': Cause(
         name='acute_myeloid_leukemia',
         gbd_id=cid(847),
+        dismod_id=meid(9485),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20071,6 +20329,7 @@ causes = Causes(**{
     'chronic_myeloid_leukemia': Cause(
         name='chronic_myeloid_leukemia',
         gbd_id=cid(848),
+        dismod_id=meid(9490),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20089,6 +20348,7 @@ causes = Causes(**{
     'non_melanoma_skin_cancer_squamous_cell_carcinoma': Cause(
         name='non_melanoma_skin_cancer_squamous_cell_carcinoma',
         gbd_id=cid(849),
+        dismod_id=meid(9503),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20106,6 +20366,7 @@ causes = Causes(**{
     'non_melanoma_skin_cancer_basal_cell_carcinoma': Cause(
         name='non_melanoma_skin_cancer_basal_cell_carcinoma',
         gbd_id=cid(850),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20119,6 +20380,7 @@ causes = Causes(**{
     'executions_and_police_conflict': Cause(
         name='executions_and_police_conflict',
         gbd_id=cid(854),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20133,6 +20395,7 @@ causes = Causes(**{
     'drug_susceptible_tuberculosis': Cause(
         name='drug_susceptible_tuberculosis',
         gbd_id=cid(934),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20148,6 +20411,7 @@ causes = Causes(**{
     'zika_virus': Cause(
         name='zika_virus',
         gbd_id=cid(935),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20164,6 +20428,7 @@ causes = Causes(**{
     'guinea_worm_disease': Cause(
         name='guinea_worm_disease',
         gbd_id=cid(936),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20179,6 +20444,7 @@ causes = Causes(**{
     'alcoholic_cardiomyopathy': Cause(
         name='alcoholic_cardiomyopathy',
         gbd_id=cid(938),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20196,6 +20462,7 @@ causes = Causes(**{
     'sexual_violence': Cause(
         name='sexual_violence',
         gbd_id=cid(941),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20208,6 +20475,7 @@ causes = Causes(**{
     'myocarditis': Cause(
         name='myocarditis',
         gbd_id=cid(942),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20225,6 +20493,7 @@ causes = Causes(**{
     'other_leukemia': Cause(
         name='other_leukemia',
         gbd_id=cid(943),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20242,6 +20511,7 @@ causes = Causes(**{
     'other_cardiomyopathy': Cause(
         name='other_cardiomyopathy',
         gbd_id=cid(944),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20259,6 +20529,7 @@ causes = Causes(**{
     'conflict_and_terrorism': Cause(
         name='conflict_and_terrorism',
         gbd_id=cid(945),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20273,6 +20544,7 @@ causes = Causes(**{
     'multidrug_resistant_tuberculosis_without_extensive_drug_resistance': Cause(
         name='multidrug_resistant_tuberculosis_without_extensive_drug_resistance',
         gbd_id=cid(946),
+        dismod_id=meid(10830),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20288,6 +20560,7 @@ causes = Causes(**{
     'extensively_drug_resistant_tuberculosis': Cause(
         name='extensively_drug_resistant_tuberculosis',
         gbd_id=cid(947),
+        dismod_id=meid(10831),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20303,6 +20576,7 @@ causes = Causes(**{
     'drug_susceptible_hiv_aids_tuberculosis': Cause(
         name='drug_susceptible_hiv_aids_tuberculosis',
         gbd_id=cid(948),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20321,6 +20595,7 @@ causes = Causes(**{
     'multidrug_resistant_hiv_aids_tuberculosis_without_extensive_drug_resistance': Cause(
         name='multidrug_resistant_hiv_aids_tuberculosis_without_extensive_drug_resistance',
         gbd_id=cid(949),
+        dismod_id=meid(10833),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20339,6 +20614,7 @@ causes = Causes(**{
     'extensively_drug_resistant_hiv_aids_tuberculosis': Cause(
         name='extensively_drug_resistant_hiv_aids_tuberculosis',
         gbd_id=cid(950),
+        dismod_id=meid(10834),
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
@@ -20357,6 +20633,7 @@ causes = Causes(**{
     'latent_tuberculosis_infection': Cause(
         name='latent_tuberculosis_infection',
         gbd_id=cid(954),
+        dismod_id=UNKNOWN,
         restrictions=Restrictions(
             male_only=False,
             female_only=False,
