@@ -114,8 +114,7 @@ def get_cause_specific_mortality(cause, override_config=None):
     return functions.get_cause_specific_mortality(cause_id=cause.gbd_id,
                                                   location_id=config.input_data.location_id,
                                                   gbd_round_id=config.input_data.gbd_round_id,
-                                                  draw_number=config.run_configuration.input_draw_number,
-                                                  publication_ids=config.input_data.gbd_publication_ids)
+                                                  draw_number=config.run_configuration.input_draw_number)
 
 
 def get_remission(cause, override_config=None):
@@ -430,7 +429,6 @@ def get_post_mi_heart_failure_proportion_draws(override_config=None):
     config = get_input_config(override_config)
     return functions.get_post_mi_heart_failure_proportion_draws(location_id=config.input_data.location_id,
                                                                 gbd_round_id=config.input_data.gbd_round_id,
-                                                                publication_ids=config.input_data.gbd_publication_ids,
                                                                 draw_number=config.run_configuration.input_draw_number)
 
 
@@ -466,7 +464,6 @@ def get_asympt_ihd_proportions(override_config=None):
     config = get_input_config(override_config)
     return functions.get_asympt_ihd_proportions(location_id=config.input_data.location_id,
                                                 gbd_round_id=config.input_data.gbd_round_id,
-                                                publication_ids=config.input_data.gbd_publication_ids,
                                                 draw_number=config.run_configuration.input_draw_number)
 
 
