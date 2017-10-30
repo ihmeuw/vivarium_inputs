@@ -28,8 +28,7 @@ FILES = {
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv',
         },
     'Systolic Blood Pressure Distributions': {
-#        'path': 'systolic_blood_pressure/exp_{location_id}_{sex_id}.dta',
-        'path': '/share/costeffectiveness/CEAM/Auxliary_Data/systolic_blood_pressure/exp_{location_id}_{sex_id}.dta',
+        'path': 'systolic_blood_pressure/exp_{location_id}_{sex_id}.dta',
         'source': '/share/epi/risk/paf/metab_sbp/exposures',
         'encoding': 'latin1',
         'owner': 'Stan Biryukov <stan0625@uw.edu>',
