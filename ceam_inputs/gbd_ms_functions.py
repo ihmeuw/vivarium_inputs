@@ -760,7 +760,7 @@ def get_rota_vaccine_coverage(location_id, gbd_round_id, draw_number=None):
     key_columns = ['year_id', 'sex_id', 'age']
     draw_columns = ['draw_{}'.format(i) for i in range(1000)]
 
-    draws = gbd.get_modelable_entity_draws(location_id, treatment_technologies.rota_vaccine.coverage, gbd_round_id)
+    draws = gbd.get_modelable_entity_draws([treatment_technologies.rota_vaccine.coverage], [location_id], gbd_round_id)
     draws = draws.query('age_group_id < {}'.format(6))
     draws = get_age_group_midpoint_from_age_group_id(draws, gbd_round_id)
     draws = expand_ages(draws, gbd_round_id)
