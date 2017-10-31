@@ -864,7 +864,7 @@ def get_diarrhea_visit_costs(location_id, gbd_round_id, draw_number):
 
 
 def get_life_table(location_id, gbd_round_id):
-    return gbd.get_data_from_auxiliary_file('Life Table', gbd_round=_gbd_round_id_map[gbd_round_id])
+    return gbd.get_life_table(location_id, gbd_round_id)
 
 
 def get_outpatient_visit_costs(gbd_round_id):
