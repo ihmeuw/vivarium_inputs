@@ -45,10 +45,6 @@ FILES = {
         'source': '/share/epi/risk/paf/metab_fpg_cont_sll/FILE_[location_id]_[year_id]_[sex_id]_OUT.csv',
         'owner': 'Stan Biryukov <stan0625@uw.edu>',
         },
-    'Life Table': {
-        'path': 'FINAL_min_pred_ex.csv',
-        'source': '/home/j/WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv',
-        },
     'Risk Factor Propensity Correlation Matrices': {
         'path': 'risk_factor_propensity_correlation_matricies/location_{location_id}',
         'owner': 'Reed Sorenson <rsoren@uw.edu>',
@@ -86,21 +82,10 @@ FILES = {
         'source': '/share/epi/risk/bmgf/paf/diarrhea_ors/paf_yll_{location_id}.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
-    'Severity Splits': {
-        'path': 'severity_splits/{parent_meid}/prop_draws.h5',
-        'source': '/share/epi/split_prop_draws_2016/{parent_meid}/prop_draws.h5',
-        'owner': 'Ben Miltz <benmiltz@uw.edu>'
-    },
     'Mediation Factors': {
         'path': 'mediation_matrix_corrected.csv',
         'source': '/home/j/WORK/05_risk/mediation/mediation_matrix_corrected.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
-    },
-    'DTP3 Coverage': {
-        'path': 'vacc_dtp3/exp/{location_id}.csv',
-        # This filepath will change at some point in the future (not sure when though) -- EM 6.22.2017
-        'source': '/snfs1/temp/pyliu/scratch/draws/exp/vacc_dpt3/{location_id}.csv',
-        'owner': 'Patrick Liu <pyliu@uw.edu>; GBD Vaccine Coverage Team',
     },
     'Rota Vaccine Protection': {
         'path': 'rota_protection_draws.csv',

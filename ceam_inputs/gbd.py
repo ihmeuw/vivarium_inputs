@@ -1,11 +1,12 @@
 from multiprocessing.process import current_process
 import warnings
-from typing import Iterable, Union, List, Callable, Any
+from typing import Iterable, Union, List, Callable, Any, Mapping
 
 from joblib import Memory
 import pandas as pd
 
 from ceam_inputs.util import get_cache_directory, get_input_config
+from ceam_inputs.gbd_mapping import cid, sid
 from ceam_inputs.auxiliary_files import auxiliary_file_path
 
 memory = Memory(cachedir=get_cache_directory(get_input_config()), verbose=1)
@@ -26,11 +27,10 @@ class DataNotFoundError(CentralCompError):
     pass
 
 
-#######################################################
-# Tools for pulling version ids for particular models #
-#######################################################
+#####################################################################################
+# Tools for pulling version ids for particular models.  These should not be cached. #
+#####################################################################################
 
-@memory.cache
 def get_publication_ids_for_round(gbd_round_id: int) -> Iterable[int]:
     """Gets the Lancet publication ids associated with a particular gbd round."""
     from db_tools import ezfuncs
@@ -40,7 +40,6 @@ def get_publication_ids_for_round(gbd_round_id: int) -> Iterable[int]:
                          conn_def='epi').publication_id.values
 
 
-@memory.cache
 def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[int, None]:
     """Grabs the version id for codcorrect, burdenator, and como draws."""
     from db_tools import ezfuncs
@@ -67,29 +66,28 @@ def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[i
     return version_ids['val'].astype('int')[0]
 
 
-@memory.cache
-def get_dismod_model_version(me_id: int, publication_ids: Union[Iterable[int], None]) -> Union[int, None]:
+def get_dismod_model_versions(me_ids: Iterable[int],
+                              publication_ids: Union[Iterable[int], None]) -> Mapping[int, Union[int, str]]:
     """Grabs the model version ids for dismod draws."""
-    try:
-        from db_tools import ezfuncs
-        mapping = ezfuncs.query(f"""
-            SELECT modelable_entity_id, 
-                   model_version_id
-            FROM epi.publication_model_version
-            JOIN epi.model_version USING (model_version_id)
-            JOIN shared.publication USING (publication_id)
-            WHERE publication_id in ({','.join([str(pid) for pid in publication_ids])})
-            """, conn_def='epi')
-        return dict(mapping[['modelable_entity_id', 'model_version_id']].values)[me_id]
-    except (TypeError, KeyError):
-        pass
+    from db_tools import ezfuncs
 
-    warnings.warn(f'publication_ids supplied to get_modelable_entity_draws but me_id {me_id} does map to any version '
-                  'associated with those publications. That likely means there is a mapping missing in the database')
-    return None
+    mapping = ezfuncs.query(f"""
+        SELECT modelable_entity_id, 
+               model_version_id
+        FROM epi.publication_model_version
+        JOIN epi.model_version USING (model_version_id)
+        JOIN shared.publication USING (publication_id)
+        WHERE publication_id in ({','.join([str(pid) for pid in publication_ids])})
+        """, conn_def='epi')
+
+    version_dict = dict(mapping[['modelable_entity_id', 'model_version_id']].values)
+    versions = {}
+    for me_id in me_ids:
+        versions[me_id] = version_dict[me_id] if me_id in version_dict else 'best'
+
+    return versions
 
 
-@memory.cache
 def get_sequela_set_version_id(gbd_round_id: int) -> int:
     """Grabs the sequela set version associated with a particular gbd round."""
     from db_tools import ezfuncs
@@ -101,7 +99,6 @@ def get_sequela_set_version_id(gbd_round_id: int) -> int:
     return ezfuncs.query(q, conn_def='epi').set_index('gbd_round_id').at[gbd_round_id, 'sequela_set_version_id']
 
 
-@memory.cache
 def get_cause_risk_set_version_id(gbd_round_id: int) -> int:
     """Grabs the version id associated with a cause risk mapping for a particular gbd round."""
     from db_tools import ezfuncs
@@ -224,34 +221,11 @@ def get_healthstate_mapping() -> pd.DataFrame:
     return ezfuncs.query(q, conn_def='epi')
 
 
-# FIXME: This function is probably unnecessary with the update to 2016 data.
-@memory.cache
-def get_healthstate_id(me_id: int) -> int:
-    """Get's the healthstate id associate with a particular modelable entity id."""
-    from db_tools import ezfuncs
-
-    healthstate_id_df = ezfuncs.query(f"""    
-        SELECT modelable_entity_id, 
-               healthstate_id
-        FROM epi.sequela_hierarchy_history
-        WHERE modelable_entity_id = {me_id}
-        """, conn_def='epi')
-
-    if healthstate_id_df.empty:
-        raise ValueError(f"Modelable entity id {me_id} does not have a healthstate id. "
-                         "There is not a disability weight associated with this sequela, "
-                         "so you should not try to pull draws for it")
-
-    healthstate_id = healthstate_id_df.at[0, 'healthstate_id']
-
-    return healthstate_id
-
-
 @memory.cache
 def get_subregions(location_id: int) -> List[int]:
     """Get the subregion location ids associated with a particular location id."""
     from hierarchies import dbtrees
-    return [c.id for c in dbtrees.loctree(None, location_set_id=2).get_node_by_id(location_id).children]
+    return [c.id for c in dbtrees.loctree(location_set_id=2).get_node_by_id(location_id).children]
 
 
 #####################################
@@ -277,51 +251,53 @@ def _get_draws_safely(draw_function: Callable, draw_options: Iterable[Iterable[i
 
 
 @memory.cache
-def get_modelable_entity_draws(location_id: int, me_id: int, gbd_round_id: int,) -> pd.DataFrame:
+def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int], gbd_round_id: int,) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular dismod model, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
     publication_ids = get_publication_ids_for_round(gbd_round_id)
-    model_version = get_dismod_model_version(me_id, publication_ids)
-    return get_draws(gbd_id_field='modelable_entity_id',
-                     gbd_id=me_id,
-                     source="dismod",
-                     location_ids=location_id,
-                     sex_ids=MALE + FEMALE,
-                     age_group_ids=get_age_group_ids(gbd_round_id),
-                     version_id=model_version,
-                     gbd_round_id=gbd_round_id)
+    model_versions = get_dismod_model_versions(me_ids, publication_ids)
+    return pd.concat([get_draws(gbd_id_field='modelable_entity_id',
+                                gbd_id=me_id,
+                                source="dismod",
+                                location_ids=location_ids,
+                                sex_ids=MALE + FEMALE,
+                                age_group_ids=get_age_group_ids(gbd_round_id),
+                                version_id=version,
+                                gbd_round_id=gbd_round_id) for me_id, version in model_versions.items()])
 
 
 @memory.cache
-def get_codcorrect_draws(location_id: int, cause_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_codcorrect_draws(cause_ids: List[cid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level deaths for a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
-    #publication_ids = get_publication_ids_for_round(gbd_round_id)
-    #version_id = get_gbd_tool_version(publication_ids, source='codcorrect')
-    return get_draws(gbd_id_field='cause_id',
-                     gbd_id=cause_id,
+    # publication_ids = get_publication_ids_for_round(gbd_round_id)
+    # version_id = get_gbd_tool_version(publication_ids, source='codcorrect')
+    return get_draws(gbd_id_field=['cause_id']*len(cause_ids),
+                     gbd_id=cause_ids,
                      source="codcorrect",
-                     location_ids=location_id,
+                     location_ids=location_ids,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=get_age_group_ids(gbd_round_id),
                      gbd_round_id=gbd_round_id)
 
 
 @memory.cache
-def get_como_draws(location_id: int, cause_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int],
+                   gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
     # publication_ids = get_publication_ids_for_round(gbd_round_id)
     # version_id = get_gbd_tool_version(publication_ids, source='codcorrect')
+    entity_types = ['cause_id' if isinstance(entity_id, cid) else 'sequela_id' for entity_id in entity_ids]
 
-    return get_draws(gbd_id_field='cause_id',
-                     gbd_id=cause_id,
+    return get_draws(gbd_id_field=entity_types,
+                     gbd_id=entity_ids,
                      source="como",
-                     location_ids=location_id,
+                     location_ids=location_ids,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=get_age_group_ids(gbd_round_id),
                      version_id=227,  # FIXME: Hardcoded value.
@@ -403,13 +379,15 @@ def get_pafs(location_id: int, cause_id: int, gbd_round_id: int) -> pd.DataFrame
 ####################################
 
 @memory.cache
-def get_covariate_estimates(covariate_id: int, location_id: int) -> pd.DataFrame:
+def get_covariate_estimates(covariate_id: int, location_id: int, gbd_round_id: int) -> pd.DataFrame:
     """Pulls covariate data for a particular covariate and location."""
     from db_queries import get_covariate_estimates
+    # FIXME: Make sure we don't need a version id here.
     covariate_estimates = get_covariate_estimates(covariate_id=covariate_id,
                                                   location_id=location_id,
                                                   sex_id=MALE + FEMALE + COMBINED,
-                                                  age_group_id=-1)
+                                                  age_group_id=-1,
+                                                  gbd_round_id=gbd_round_id)
     return covariate_estimates
 
 
@@ -469,3 +447,11 @@ def get_estimation_years(gbd_round_id: int) -> pd.Series:
     """Gets the estimation years for a particular gbd round."""
     from db_queries.get_demographics import get_demographics
     return get_demographics('epi', gbd_round_id=gbd_round_id)['year_id']
+
+
+@memory.cache
+def get_life_table(location_id: int, gbd_round_id: int) -> pd.DataFrame:
+    """Gets the table of life expectancies for a particular location and gbd round."""
+    from db_queries import get_life_table
+    # FIXME: Make sure we don't need version info here.
+    return get_life_table(location_id=location_id, gbd_round_id=gbd_round_id)

@@ -27,20 +27,7 @@ def _get_gbd_draws(modelable_entity, measure, column_name, config: ConfigTree):
     pandas.DataFrame :
         Table with columns 'age', 'sex', 'year' and `column_name`
     """
-    gbd_id = modelable_entity[measure]
-    if gbd_id is UNKNOWN:
-        if modelable_entity.gbd_id is not None:
-            import warnings
-            warnings.warn('The mapping between {} and {} '.format(modelable_entity.name, measure)
-                          + 'has not been verified.  We are using {} '.format(repr(modelable_entity.gbd_id))
-                          + 'but you should verify that this is the correct id and update the gbd mapping.')
-            gbd_id = modelable_entity.gbd_id
-        else:
-            raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(
-                modelable_entity.name, measure))
-    elif isinstance(gbd_id, scalar):  # We have a scalar value rather than an actual id.
-        return gbd_id
-
+    gbd_id = modelable_entity.gbd_id if measure != 'remission' else modelable_entity.dismod_id
     return functions.get_gbd_draws(location_id=config.input_data.location_id,
                                    measure=measure,
                                    gbd_id=gbd_id,
@@ -64,7 +51,7 @@ def get_excess_mortality(cause, override_config: ConfigTree=None):
     pandas.DataFrame or float
         Table with 'age', 'sex', 'year' and 'rate' columns
     """
-    if isinstance(cause.excess_mortality, cid):
+    if isinstance(cause.gbd_id, cid):
         csmr = get_cause_specific_mortality(cause, override_config).set_index(['age', 'sex', 'year'])
         prevalence = get_prevalence(cause, override_config).set_index(['age', 'sex', 'year'])
         prevalence.columns = ['rate']
@@ -393,7 +380,8 @@ def get_annual_live_births(override_config=None):
         Average live births.
     """
     config = get_input_config(override_config)
-    return functions.get_annual_live_births(location_id=config.input_data.location_id)
+    return functions.get_annual_live_births(location_id=config.input_data.location_id,
+                                            gbd_round_id=config.input_data.gbd_round_id)
 
 
 def get_sbp_distribution(override_config=None):
@@ -489,33 +477,12 @@ def get_subregions(location_id, override_config=None):
     return gbd.get_subregions(location_id)
 
 
-def get_severity_splits(parent, child, override_config=None):
-    """Gets the proportion of the parent cause cases represented by the child cause.
-
-    Parameters
-    ----------
-    parent: ceam_inputs.gbd_mapping.Cause
-    child: ceam_inputs.gbd_mapping.CauseLike
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_severity_splits(parent_meid=parent.incidence,
-                                         child_meid=child.proportion,
-                                         gbd_round_id=config.input_data.gbd_round_id,
-                                         draw_number=config.run_configuration.input_draw_number)
-
-
-def get_disability_weight(cause, override_config=None):
+def get_disability_weight(sequela, override_config=None):
     """Gets the disability weight associated with the given cause-like entity.
 
     Parameters
     ----------
-    cause: ceam_inputs.gbd_mapping.Sequela or ceam_inputs.gbd_mapping.SeveritySplit
+    sequela: ceam_inputs.gbd_mapping.Sequela
     override_config :
         Any overrides to the input data configuration.
 
@@ -524,20 +491,9 @@ def get_disability_weight(cause, override_config=None):
     float or pandas.DataFrame
     """
     config = get_input_config(override_config)
-    if cause.disability_weight is UNKNOWN:
-        if isinstance(cause, Cause):
-            import warnings
-            warnings.warn('Cause-level disability weights are not implemented. '
-                          'Disability is specified at the sequela level. You can specify a '
-                          'scalar value to use in ceam_inputs.gbd_mapping.causes.  Returning 0.')
-            return 0
-        raise UnknownEntityError('No mapping exists between cause {} and measure disability weight'.format(cause.name))
-    elif isinstance(cause.disability_weight, scalar):
-        return cause.disability_weight
-    else:
-        return functions.get_disability_weight(cause,
-                                               gbd_round_id=config.input_data.gbd_round_id,
-                                               draw_number=config.run_configuration.input_draw_number)
+    return functions.get_disability_weight(sequela,
+                                           gbd_round_id=config.input_data.gbd_round_id,
+                                           draw_number=config.run_configuration.input_draw_number)
 
 
 def get_rota_vaccine_coverage(override_config=None):
@@ -623,7 +579,8 @@ def get_life_table(override_config=None):
     pandas.DataFrame
     """
     config = get_input_config(override_config)
-    return functions.get_life_table(gbd_round_id=config.input_data.gbd_round_id)
+    return functions.get_life_table(location_id=config.input_data.location_id,
+                                    gbd_round_id=config.input_data.gbd_round_id)
 
 
 def get_outpatient_visit_costs(override_config=None):

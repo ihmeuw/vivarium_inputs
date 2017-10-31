@@ -15,14 +15,14 @@ import pandas as pd
 from vivarium.framework.util import rate_to_probability
 
 from ceam_inputs import gbd, risk_factor_correlation
-from ceam_inputs.gbd_mapping import cid, meid, hid, sequelae, treatment_technologies, healthcare_entities
+from ceam_inputs.gbd_mapping import cid, sid, meid, hid, sequelae, treatment_technologies, healthcare_entities
 from ceam_inputs.gbd_ms_auxiliary_functions import (normalize_for_simulation,
                                                     expand_ages_for_dfs_w_all_age_estimates, expand_ages,
                                                     get_age_group_midpoint_from_age_group_id)
 import logging
 
 _log = logging.getLogger(__name__)
-_name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'proportion': 18, 'deaths': 1, 'continuous': 19}
+_name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'proportion': 18, 'deaths':1, 'continuous': 19}
 _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
@@ -63,10 +63,10 @@ def get_gbd_draws(location_id, measure, gbd_id, gbd_round_id, draw_number=None, 
     -------
     df with year_id, sex_id, age and 1k draws
     """
-    if isinstance(gbd_id, cid):
-        draws = gbd.get_como_draws(location_id, gbd_id, gbd_round_id)
+    if isinstance(gbd_id, (cid, sid)):
+        draws = gbd.get_como_draws([gbd_id], [location_id], gbd_round_id)
     else:
-        draws = gbd.get_modelable_entity_draws(location_id, gbd_id, gbd_round_id)
+        draws = gbd.get_modelable_entity_draws([gbd_id], [location_id], gbd_round_id)
     draws = draws[draws.measure_id == _name_measure_map[measure]]
     draws = get_age_group_midpoint_from_age_group_id(draws, gbd_round_id)
 
@@ -137,7 +137,7 @@ def get_cause_specific_mortality(location_id, cause_id, gbd_round_id, draw_numbe
         GBD draw of interest
     """
     assert isinstance(cause_id, cid)
-    draws = gbd.get_codcorrect_draws(location_id, cause_id, gbd_round_id)
+    draws = gbd.get_codcorrect_draws([cause_id], [location_id], gbd_round_id)
     draws = get_age_group_midpoint_from_age_group_id(draws, gbd_round_id)
 
     draws = draws.query('measure_id == {}'.format(_name_measure_map['deaths']))
@@ -594,51 +594,28 @@ def get_angina_proportions(gbd_round_id, draw_number=None):
     return out
 
 
-def get_disability_weight(cause, gbd_round_id, draw_number):
-    """Returns a dataframe with disability weight draws for a given healthstate id
-
-    Parameters
-    ----------
-    draw_number: int
-        GBD draw to pull data for
-    cause: ceam_inputs.gbd_mapping.CauseLike
-    gbd_round_id: int
-
-    Returns
-    -------
-    df with disability weight draws
-    """
-    if isinstance(cause.disability_weight, meid):
-        healthstate_id = gbd.get_healthstate_id(cause.disability_weight)
-        modelable_entity_id = cause.disability_weight
-    elif isinstance(cause.disability_weight, hid):
-        healthstate_id = cause.disability_weight
-        modelable_entity_id = None
-    else:
-        raise ValueError('Unknown id type: {}'.format(type(cause.disability_weight)))
-
+def get_disability_weight(sequela, gbd_round_id, draw_number):
     df = None
     # TODO: Need to confirm with someone on central comp that all 'asymptomatic' sequela get this healthstate_id
-    if healthstate_id == 799:
+    if sequela.healthstate.gbd_id == 799:
         df = pd.DataFrame({'healthstate_id': [799],
                            'healthstate': ['asymptomatic'],
                            'draw{}'.format(draw_number): [0]})
     else:
         for file_name in ['Disability Weights', 'Combined Disability Weights']:
             weights = gbd.get_data_from_auxiliary_file(file_name, gbd_round=_gbd_round_id_map[gbd_round_id])
-            if healthstate_id in weights.healthstate_id.tolist():
-                df = weights.loc[weights.healthstate_id == healthstate_id].copy()
+            if sequela.healthstate.gbd_id in weights.healthstate_id.tolist():
+                df = weights.loc[weights.healthstate_id == sequela.healthstate.gbd_id].copy()
                 break
 
     if df is None:
-        raise ValueError("the modelable entity id {} ".format(modelable_entity_id)
-                         + "has a healthstate_id of {}. There are no draws for".format(healthstate_id)
-                         + "this healthstate_id in the csvs that get_healthstate_id_draws checked. "
-                         + "Look in this folder for the draws for healthstate_id {}: ".format(healthstate_id)
-                         + "/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom. "
-                         + "if you can't find draws there, talk w/ central comp")
+        raise ValueError(f"There are no draws for healthstate id {sequela.healthstate.gbd_id}"
+                         "this healthstate_id in the csvs that get_healthstate_id_draws checked. "
+                         "Look in this folder for the draws for the healthstate_id: "
+                         "/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom. "
+                         "if you can't find draws there, talk w/ central comp")
 
-    df.loc[:, 'modelable_entity_id'] = modelable_entity_id
+    df.loc[:, 'modelable_entity_id'] = sequela.dismod_id
 
     return df['draw{}'.format(draw_number)].iloc[0]
 
@@ -709,7 +686,7 @@ def get_age_specific_fertility_rates(location_id, gbd_round_id):
 # TODO: Write a SQL query for get_covariate_estimates that returns a covariate id instead of
 # covariate short name, because names are subject to change but ids should stay the same
 # TODO: Also link that covariate id to a publication id, if possible
-def get_covariate_estimates(covariate_id, location_id, year_id=None, sex_id=None):
+def get_covariate_estimates(covariate_id, location_id, gbd_round_id, year_id=None, sex_id=None):
     """Gets covariate estimates for a specified location.
 
     Processes data to put in correct format for CEAM (i.e. gets estimates for all years/ages/ and both sexes.)
@@ -727,7 +704,7 @@ def get_covariate_estimates(covariate_id, location_id, year_id=None, sex_id=None
     A dataframe of covariate_estimates.
         Column are age, sex_id, year_id, and {etiology_name}_incidence_{draw} (1k draws)
     """
-    covariate_estimates = gbd.get_covariate_estimates(covariate_id, location_id)
+    covariate_estimates = gbd.get_covariate_estimates(covariate_id, location_id, gbd_round_id)
     if year_id:
         covariate_estimates = covariate_estimates[covariate_estimates.year_id == year_id]
     if sex_id:
@@ -735,9 +712,9 @@ def get_covariate_estimates(covariate_id, location_id, year_id=None, sex_id=None
     return covariate_estimates
 
 
-def get_annual_live_births(location_id):
+def get_annual_live_births(location_id, gbd_round_id):
     # FIXME: Set up covariates mapping and remove the raw id
-    data = get_covariate_estimates(1106, location_id, sex_id=3)
+    data = get_covariate_estimates(1106, location_id, gbd_round_id, sex_id=3)
     data = data[['year_id', 'mean_value']].rename(columns={'year_id': 'year', 'mean_value': 'births'})
     return data
 
@@ -886,7 +863,7 @@ def get_diarrhea_visit_costs(location_id, gbd_round_id, draw_number):
     return costs
 
 
-def get_life_table(gbd_round_id):
+def get_life_table(location_id, gbd_round_id):
     return gbd.get_data_from_auxiliary_file('Life Table', gbd_round=_gbd_round_id_map[gbd_round_id])
 
 
@@ -1043,27 +1020,20 @@ def get_bmi_distribution_parameters(location_id, gbd_round_id, draw_number=None)
 
 
 def get_dtp3_coverage(location_id, gbd_round_id, draw_number=None):
-    if gbd.get_subregions(location_id):
-        raise ValueError('DTP 3 coverage only available at the finest geographic level.  '
-                         'Use the subregion ids {}'.format(gbd.get_subregions(location_id)))
-    dtp3 = gbd.get_data_from_auxiliary_file(treatment_technologies.dtp3_vaccine.coverage,
-                                            location_id=location_id,
-                                            gbd_round=_gbd_round_id_map[gbd_round_id])
+    dtp3 = gbd.get_covariate_estimates(covariate_id=32, location_id=location_id, gbd_round_id=gbd_round_id)
     dtp3 = expand_ages_for_dfs_w_all_age_estimates(dtp3, gbd_round_id)
 
     key_columns = ['year_id', 'sex_id', 'age']
-    draw_columns = ['draw_{}'.format(i) for i in range(1000)]
-
     # TODO: Confirm below assumption.
     # Per Patrick Liu, the ors relative risk and exposure estimates are only valid
     # for children under 5 the input data only uses the all ages age group id since
     # the covariates database requires that covariates apply to all ages
     dtp3 = dtp3.query("age < 5")
     dtp3 = expand_ages(dtp3, gbd_round_id)
-    dtp3[draw_columns] = dtp3[draw_columns].fillna(value=0)
-    dtp3 = dtp3[key_columns + draw_columns]
+    dtp3 = dtp3[key_columns + ['mean_value']].fillna(0)
+    dtp3 = dtp3.rename(columns={'mean_value': 'coverage'})
 
-    out = select_draw_data(dtp3, draw=draw_number, column_name='coverage') if draw_number is not None else dtp3
+    out = normalize_for_simulation(dtp3)
     return out
 
 
@@ -1073,7 +1043,8 @@ def get_rota_vaccine_protection(location_id, gbd_round_id, draw_number):
     assert location_id in protection.location_id.unique(), ("protection draws do not exist for the "
                                                             + "requested location id -- {}. ".format(location_id)
                                                             + "you may need to generate them")
-    return protection.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
+    return protection.loc[protection.location_id == location_id, :].set_index('vaccine')[f'draw_{draw_number}']
+
 
 
 def get_rota_vaccine_rrs(location_id, gbd_round_id, draw_number):
@@ -1086,13 +1057,15 @@ def get_rota_vaccine_rrs(location_id, gbd_round_id, draw_number):
     return rrs.set_index(['location_id']).get_value(location_id, 'draw_{}'.format(draw_number))
 
 
-def get_diarrhea_costs(locations, draws, gbd_round_id):
+def get_diarrhea_costs(location_id, gbd_round_id, draw_number):
     costs = gbd.get_data_from_auxiliary_file('Diarrhea Costs',
+                                             location_id=location_id,
                                              gbd_round=_gbd_round_id_map[gbd_round_id])
-    draws = [f'draw_{i}' for i in draws]
+    locations = [location_id]
+    draws = [f'draw_{draw_number}']
     costs = costs.query('location_id in @locations and variable in @draws')
     costs = costs.pivot_table(index=['year_id', 'location_id'], columns='variable', values='diarrhea_cost')
-    return costs.reset_index().rename(columns={'year_id': 'year'})
+    return costs.reset_index().rename(columns={'year_id': 'year', f'draw_{draw_number}': 'cost'})
 
 
 def get_ors_costs(location_id, gbd_round_id, draw_number):
