@@ -864,7 +864,11 @@ def get_diarrhea_visit_costs(location_id, gbd_round_id, draw_number):
 
 
 def get_life_table(location_id, gbd_round_id):
-    return gbd.get_life_table(location_id, gbd_round_id)
+    life_table = gbd.get_life_table(location_id, gbd_round_id)
+    life_table = get_age_group_midpoint_from_age_group_id(life_table, gbd_round_id)
+    keep_columns = ['age', 'year_id', 'sex_id', 'mean']
+    life_table = life_table.loc[life_table.life_table_parameter_id == 6, keep_columns]
+    return normalize_for_simulation(life_table)
 
 
 def get_outpatient_visit_costs(gbd_round_id):
