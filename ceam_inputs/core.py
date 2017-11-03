@@ -105,8 +105,7 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
 
         data = data.append(measure_data)
         data = data.rename(columns={'cause_id': 'gbd_id'})
-        data = data.rename(columns={'modelable_entity_id': 'gbd_id'})
-
+        data = data.rename(columns={'sequela_id': 'gbd_id'})
 
         del data['measure_id']
         if 'output_version_id' in data.columns:
