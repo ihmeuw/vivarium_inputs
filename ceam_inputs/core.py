@@ -98,18 +98,27 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['incidence']]
             measure_data['measure']= 'incidence'
 
+
         if 'incidence' not in measures: # if prevalence
             measure_data = measure_data[measure_data.measure_id != name_measure_map['incidence']]
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['prevalence']]
             measure_data['measure'] = 'prevalence'
 
         data = data.append(measure_data)
-        data = data.rename(columns={'cause_id': 'gbd_id'})
-        data = data.rename(columns={'sequela_id': 'gbd_id'})
 
-        del data['measure_id']
+        if ("sequela_id" in data.columns) and ("cause_id" in data.columns):
+            data['gbd_id']= pd.concat([data['cause_id'].dropna(), data['sequela_id'].dropna()])
+            del data['cause_id']
+            del data['sequela_id']
+        elif ("sequela_id" in data.columns) and ("cause_id" not in data.columns):
+            data = data.rename(columns={'sequela_id': 'gbd_id'})
+        else:
+            data = data.rename(columns={'cause_id': 'gbd_id'})
+
         if 'output_version_id' in data.columns:
             del data['output_version_id']
+
+        del data['measure_id']
 
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'measure']
     draw_columns = ['draw_{}'.format(i) for i in range(0, 1000)]
