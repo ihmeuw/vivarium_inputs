@@ -1069,7 +1069,9 @@ def get_diarrhea_costs(location_id, gbd_round_id, draw_number):
     draws = [f'draw_{draw_number}']
     costs = costs.query('location_id in @locations and variable in @draws')
     costs = costs.pivot_table(index=['year_id', 'location_id'], columns='variable', values='diarrhea_cost')
-    return costs.reset_index().rename(columns={'year_id': 'year', f'draw_{draw_number}': 'cost'})
+    costs = costs.reset_index().rename(columns={'year_id': 'year', f'draw_{draw_number}': 'cost'})
+    costs.year = costs.year.astype(int)
+    return costs
 
 
 def get_ors_costs(location_id, gbd_round_id, draw_number):

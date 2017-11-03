@@ -116,7 +116,7 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
     data = data[key_columns + draw_columns].sort_values(by=key_columns)
     validate_data(data, key_columns)
 
-    return data.reset_index()
+    return data.reset_index(drop=True)
 
 
 def get_populations(location_ids, gbd_round_id):
