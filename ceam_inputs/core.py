@@ -96,13 +96,19 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
         if 'prevalence' not in measures:  # if incidence
             measure_data = measure_data[measure_data.measure_id != name_measure_map['prevalence']]
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['incidence']]
-            measure_data['measure']= 'incidence'
-
+            measure_data['measure'] = 'incidence'
 
         if 'incidence' not in measures: # if prevalence
             measure_data = measure_data[measure_data.measure_id != name_measure_map['incidence']]
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['prevalence']]
             measure_data['measure'] = 'prevalence'
+
+        if ("incidence" in measures) and ("prevalence" in measures): # if both
+            measure_data = measure_data[(measure_data.measure_id == name_measure_map['prevalence'])|
+                                        (measure_data.measure_id == name_measure_map['incidence'])]
+            measure_data["measure"] = ""
+            measure_data["measure"][measure_data.measure_id == name_measure_map['incidence']] = "incidence"
+            measure_data["measure"][measure_data.measure_id == name_measure_map['prevalence']] = "prevalence"
 
         data = data.append(measure_data)
 
