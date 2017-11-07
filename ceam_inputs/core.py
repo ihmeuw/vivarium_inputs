@@ -202,3 +202,41 @@ def get_proportion(entity_pairs, location_ids, gbd_round_id):
     proportions = pd.concat([prevalences[child]/prevalences[parent] for parent, child in entity_pairs])
 
     return proportions
+
+
+def get_disability_weights(entities, location_ids, gbd_round_id):
+    _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
+    df = []
+
+    # part 1: get disability weights data & construct df
+    for each in entities:
+        if isinstance(each, tuple):
+            entities = list(each)
+
+    for entity in entities:
+        disability_weights = gbd.get_data_from_auxiliary_file('Disability Weights',
+                                                              gbd_round=_gbd_round_id_map[gbd_round_id])
+        combined_disability_weights = gbd.get_data_from_auxiliary_file('Combined Disability Weights',
+                                                                       gbd_round=_gbd_round_id_map[gbd_round_id])
+
+        gbd_ids = entity.gbd_id
+        df_1 = disability_weights.loc[disability_weights.healthstate_id == gbd_ids].copy()
+        df_2 = combined_disability_weights.loc[combined_disability_weights.healthstate_id == gbd_ids].copy()
+
+        if not df_1.empty:
+            df.append(df_1)
+
+        if not df_2.empty:
+            df.append(df_2)
+
+    df = pd.concat(df, axis=0)
+    df = df.rename(columns={'healthstate_id': 'gbd_id'})
+    df = df.rename(columns={'healthstate': 'measure'})
+    df["age"] = np.nan
+    df["location_id"] = np.nan
+    df["sex"] = np.nan
+    df["year_id"] = np.nan
+
+    del df["hhseqid"]
+
+    return df.reset_index(drop=True)
