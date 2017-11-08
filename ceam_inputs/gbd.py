@@ -189,7 +189,6 @@ def get_como_draws(location_id, cause_id, gbd_round_id):
                      location_ids=location_id,
                      sex_ids=MALE + FEMALE,
                      age_group_ids=get_age_group_ids(gbd_round_id),
-                     version_id=227,
                      gbd_round_id=gbd_round_id)
 
 
