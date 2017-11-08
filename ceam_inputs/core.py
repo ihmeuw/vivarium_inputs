@@ -56,6 +56,11 @@ def get_ids_for_measure(entities, measures):
             # Only one id type at a time can be queried
             assert isinstance(entity.gbd_id, type(entities[0].gbd_id))
             out['incidence'].add(entity.gbd_id)
+    if 'exposure' in measures:
+        for entity in entities:
+            # exposure is pulled only with rei_ids
+            assert isinstance(entity.gbd_id, rei_id)
+            out['exposure'].add(entity.gbd_id)
     return out
 
 
@@ -151,6 +156,10 @@ def get_remissions(causes, location_ids, gbd_round_id):
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
     return get_gbd_draws(causes, ['remission'], location_ids, gbd_round_id)[key_columns + draw_columns]
 
+def get_exposures(risks, location_ids, gbd_round_id):
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'parameter']
+    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+    return get_gbd_draws(risks, ['exposure'], location_ids, gbd_round_id)[key_columns + draw_columns]
 
 def get_cause_specific_mortalities(causes, location_ids, gbd_round_id):
     deaths = get_gbd_draws(causes, ["deaths"], location_ids, gbd_round_id)
