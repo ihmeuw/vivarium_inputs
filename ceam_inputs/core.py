@@ -46,11 +46,15 @@ def get_ids_for_measure(entities, measures):
         for entity in entities:
             # Prevalence can be pulled at the cause or sequela level.
             assert isinstance(entity.gbd_id, cid) or isinstance(entity.gbd_id, sid)
+            # Only one id type at a time can be queried
+            assert isinstance(entity.gbd_id, type(entities[0].gbd_id))
             out['prevalence'].add(entity.gbd_id)
     if 'incidence' in measures:
         for entity in entities:
             # Prevalence can be pulled at the cause or sequela level.
             assert isinstance(entity.gbd_id, cid) or isinstance(entity.gbd_id, sid)
+            # Only one id type at a time can be queried
+            assert isinstance(entity.gbd_id, type(entities[0].gbd_id))
             out['incidence'].add(entity.gbd_id)
     return out
 
@@ -65,71 +69,46 @@ def validate_data(data, key_columns=None):
 
 def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
     measure_entity_map = get_ids_for_measure(entities, measures)
-    data = pd.DataFrame()
+    data = []
     if 'deaths' in measure_entity_map:
         death_data = gbd.get_codcorrect_draws(cause_ids=list(measure_entity_map['deaths']),
                                               location_ids=location_ids,
                                               gbd_round_id=gbd_round_id)
-        # do processing to clean up data, add measure column if needed
-        data = data.append(death_data)
-        data = data.rename(columns={'cause_id': 'gbd_id'})
-        data = data[data['sex_id'] != COMBINED]
-        data = data[data['measure_id'] == name_measure_map['deaths']]
-        data['measure'] = 'deaths'
-
+        death_data = death_data[death_data['measure_id'] == name_measure_map['deaths']]
+        death_data.rename(columns={'cause_id': 'gbd_id'}, inplace=True)
+        data.append(death_data)
     if 'remission' in measures:
         remission_data = gbd.get_modelable_entity_draws(me_ids=list(measure_entity_map['remission']),
                                                         location_ids=location_ids,
                                                         gbd_round_id=gbd_round_id)
-        # do processing to clean up data, add measure column if needed
-        data = data.append(remission_data)
-        data = data.rename(columns={'modelable_entity_id': 'gbd_id'})
-        data = data[data['measure_id'] == name_measure_map['remission']]
-        data['measure'] = 'remission'
+        remission_data = remission_data[remission_data['measure_id'] == name_measure_map['remission']]
+        id_map = {entity.dismod_id: entity.gbd_id for entity in entities}
+        remission_data['gbd_id'] = remission_data['modelable_entity_id'].replace(id_map)
+        data.append(remission_data)
 
     if 'prevalence' in measures or 'incidence' in measures:
-        ids = measure_entity_map['prevalence'].copy().union(measure_entity_map['incidence'])
+        ids = measure_entity_map['prevalence'].union(measure_entity_map['incidence'])
         measure_data = gbd.get_como_draws(entity_ids=list(ids),
                                           location_ids=location_ids,
                                           gbd_round_id=gbd_round_id)
-        # do processing to clean up data, add measure column if needed
-        if 'prevalence' not in measures:  # if incidence
-            measure_data = measure_data[measure_data.measure_id != name_measure_map['prevalence']]
+        if 'prevalence' not in measures:
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['incidence']]
-            measure_data['measure'] = 'incidence'
-
-        if 'incidence' not in measures: # if prevalence
-            measure_data = measure_data[measure_data.measure_id != name_measure_map['incidence']]
+        elif 'incidence' not in measures:
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['prevalence']]
-            measure_data['measure'] = 'prevalence'
 
-        if ("incidence" in measures) and ("prevalence" in measures): # if both
-            measure_data = measure_data[(measure_data.measure_id == name_measure_map['prevalence'])|
-                                        (measure_data.measure_id == name_measure_map['incidence'])]
-            measure_data["measure"] = ""
-            measure_data["measure"][measure_data.measure_id == name_measure_map['incidence']] = "incidence"
-            measure_data["measure"][measure_data.measure_id == name_measure_map['prevalence']] = "prevalence"
-
-        data = data.append(measure_data)
-
-        if ("sequela_id" in data.columns) and ("cause_id" in data.columns):
-            data['gbd_id']= pd.concat([data['cause_id'].dropna(), data['sequela_id'].dropna()])
-            del data['cause_id']
-            del data['sequela_id']
-        elif ("sequela_id" in data.columns) and ("cause_id" not in data.columns):
-            data = data.rename(columns={'sequela_id': 'gbd_id'})
+        if 'cause_id' in measure_data.columns:
+            measure_data.rename(columns={'cause_id': 'gbd_id'}, inplace=True)
         else:
-            data = data.rename(columns={'cause_id': 'gbd_id'})
+            measure_data.rename(columns={'sequela_id': 'gbd_id'}, inplace=True)
 
-        if 'output_version_id' in data.columns:
-            del data['output_version_id']
+        data.append(measure_data)
 
-        del data['measure_id']
+    data = pd.concat(data)
 
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'measure']
-    draw_columns = ['draw_{}'.format(i) for i in range(0, 1000)]
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'measure_id']
+    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
 
-    data = data[key_columns + draw_columns].sort_values(by=key_columns)
+    data = data[key_columns + draw_columns]
     validate_data(data, key_columns)
 
     return data.reset_index(drop=True)
@@ -142,61 +121,59 @@ def get_populations(location_ids, gbd_round_id):
     return populations[keep_columns]
 
 
-def get_prevalence(entities, location_ids, gbd_round_id):
-    return get_gbd_draws(entities, ['prevalence'], location_ids, gbd_round_id)
+def get_prevalences(entities, location_ids, gbd_round_id):
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id']
+    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+    return get_gbd_draws(entities, ['prevalence'], location_ids, gbd_round_id)[key_columns + draw_columns]
 
 
-def get_incidence(entities, location_ids, gbd_round_id):
-    return get_gbd_draws(entities, ['incidence'], location_ids, gbd_round_id)
+def get_incidences(entities, location_ids, gbd_round_id):
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id']
+    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+    return get_gbd_draws(entities, ['incidence'], location_ids, gbd_round_id)[key_columns + draw_columns]
 
 
-def get_remission(causes, location_ids, gbd_round_id):
-    return get_gbd_draws(causes, ['remission'], location_ids, gbd_round_id)
+def get_remissions(causes, location_ids, gbd_round_id):
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id']
+    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+    return get_gbd_draws(causes, ['remission'], location_ids, gbd_round_id)[key_columns + draw_columns]
 
 
-def get_cause_specific_mortality(causes, location_ids, gbd_round_id):
+def get_cause_specific_mortalities(causes, location_ids, gbd_round_id):
     deaths = get_gbd_draws(causes, ["deaths"], location_ids, gbd_round_id)
+    del deaths['measure_id']
 
     populations = get_populations(location_ids, gbd_round_id)
     populations = populations[populations['year_id'] >= deaths.year_id.min()]
 
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id']
-    populations = populations.sort_values(by=key_columns)
-    deaths = deaths.set_index(key_columns)
-    populations = populations.set_index(key_columns)
-    del deaths["measure"]
+    merge_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id']
+    key_columns = merge_columns + ['gbd_id']
+    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
 
-    csmr = pd.DataFrame()
+    df = deaths.merge(populations, on=merge_columns).set_index(key_columns)
+    csmr = df[draw_columns].divide(df['population'], axis=0).reset_index()
 
-    # when given more than one cause:
-    for each in deaths.gbd_id.unique():
-        temp_df = deaths[deaths.gbd_id == each]
-        del temp_df["gbd_id"]
-        temp_df = temp_df.divide(populations.population, axis="index")
-        temp_df["gbd_id"] = each
-        csmr = pd.concat([csmr, temp_df])
+    csmr = csmr[key_columns + draw_columns]
+    validate_data(csmr, key_columns)
 
-    return csmr.reset_index()
+    return csmr
 
 
-def get_excess_mortality(causes, location_ids, gbd_round_id):
-    prevalences = get_prevalence(causes, location_ids, gbd_round_id)
-    csmrs = get_cause_specific_mortality(causes, location_ids, gbd_round_id)
-    csmrs = csmrs[csmrs['year_id'] >= prevalences.year_id.min()]
+def get_excess_mortalities(causes, location_ids, gbd_round_id):
+    prevalences = get_prevalences(causes, location_ids, gbd_round_id)
+    csmrs = get_cause_specific_mortalities(causes, location_ids, gbd_round_id)
 
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', "gbd_id"]
     prevalences = prevalences.set_index(key_columns)
     csmrs = csmrs.set_index(key_columns)
 
-    del prevalences["measure"]
-
     em = csmrs.divide(prevalences, axis="index")
 
-    return em.reset_index()
+    return em.reset_index().dropna()
 
 
 def get_proportion(entity_pairs, location_ids, gbd_round_id):
-    prevalences = get_prevalence(list({entity for pair in entity_pairs for entity in pair}), location_ids, gbd_round_id)
+    prevalences = get_prevalences(list({entity for pair in entity_pairs for entity in pair}), location_ids, gbd_round_id)
 
     # FIXME: stand in for actual calculation
     proportions = pd.concat([prevalences[child]/prevalences[parent] for parent, child in entity_pairs])
