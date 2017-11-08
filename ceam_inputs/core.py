@@ -239,3 +239,28 @@ def get_disability_weights(entities, location_ids, gbd_round_id):
     del df["hhseqid"]
 
     return df.reset_index(drop=True)
+
+
+def get_mediation_factors(risks, location_ids, gbd_round_id):
+    ids = [risk.gbd_id for risk in risks]
+    _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
+    data = gbd.get_data_from_auxiliary_file("Mediation Factors", gbd_round=_gbd_round_id_map[gbd_round_id])
+    df_list = []
+    for id in ids:
+        rf_df = data[data["rei_id"] == id]
+        if not rf_df.empty:
+            df_list.append(rf_df)
+
+    if len(df_list) >= 1:
+        data = pd.concat(df_list)
+        draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+        data[draw_columns] = 1 - (data[draw_columns])
+        data = data.groupby(["cause_id", 'rei_id'])[draw_columns].prod()
+        data.reset_index(inplace=True)
+        data = data.rename(columns={'rei_id': 'risk_id'})
+        return data
+
+    else:
+        print("No mediation data found.")
+
+
