@@ -75,7 +75,7 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
                                               location_ids=location_ids,
                                               gbd_round_id=gbd_round_id)
         death_data = death_data[death_data['measure_id'] == name_measure_map['deaths']]
-        death_data.rename(columns={'cause_id': 'gbd_id'}, inplace=True)
+        death_data['measure'] = 'deaths'
         data.append(death_data)
     if 'remission' in measures:
         remission_data = gbd.get_modelable_entity_draws(me_ids=list(measure_entity_map['remission']),
@@ -83,7 +83,8 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
                                                         gbd_round_id=gbd_round_id)
         remission_data = remission_data[remission_data['measure_id'] == name_measure_map['remission']]
         id_map = {entity.dismod_id: entity.gbd_id for entity in entities}
-        remission_data['gbd_id'] = remission_data['modelable_entity_id'].replace(id_map)
+        remission_data['cause_id'] = remission_data['modelable_entity_id'].replace(id_map)
+        remission_data['measure'] = 'remission'
         data.append(remission_data)
 
     if 'prevalence' in measures or 'incidence' in measures:
@@ -93,19 +94,31 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
                                           gbd_round_id=gbd_round_id)
         if 'prevalence' not in measures:
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['incidence']]
+            measure_data['measure'] = 'prevalence'
         elif 'incidence' not in measures:
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['prevalence']]
-
-        if 'cause_id' in measure_data.columns:
-            measure_data.rename(columns={'cause_id': 'gbd_id'}, inplace=True)
+            measure_data['measure'] = 'incidence'
         else:
-            measure_data.rename(columns={'sequela_id': 'gbd_id'}, inplace=True)
+            measure_data['measure'] = 'temp'
+            measure_data.loc[measure_data['measure_id'] == name_measure_map['prevalence'], 'measure'] = 'prevalence'
+            measure_data.loc[measure_data['measure_id'] == name_measure_map['incidence'], 'measure'] = 'incidence'
 
         data.append(measure_data)
 
     data = pd.concat(data)
 
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'measure_id']
+    if data['measure'].str.contains('paf') or data['measure'].str.contains('rr'):
+        id_cols = ['cause_id', 'risk_id']
+    elif 'cause_id' in data.columns:
+        id_cols = ['cause_id']
+    elif 'sequela_id' in data.columns:
+        id_cols = ['sequela_id']
+    elif 'risk_id' in data.columns:
+        id_cols = ['risk_id']
+    else:
+        raise GbdDataError('Stuff is broken')
+
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'measure'] + id_cols
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
 
     data = data[key_columns + draw_columns]
