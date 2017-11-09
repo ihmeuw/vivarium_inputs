@@ -386,6 +386,22 @@ causes = Causes(
         gbd_id=cid(294),
         csmr=cid(294),
     ),
+    tetanus=Cause(
+        name='tetanus',
+        gbd_id=cid(340),
+        incidence=cid(340),
+        prevalence=cid(340),
+        csmr=cid(340),
+        excess_mortality=cid(340),
+    ),
+    hiv_aids=Cause(
+        name='hiv_aids',
+        gbd_id=cid(298),
+        incidence=cid(298),
+        prevalence=cid(298),
+        csmr=cid(298),
+        excess_mortality=cid(298),
+    ),
     tuberculosis=Cause(
         name='tuberculosis',
         gbd_id=cid(297),

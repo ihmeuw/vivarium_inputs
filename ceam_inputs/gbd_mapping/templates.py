@@ -398,7 +398,7 @@ class Risk(ModelableEntity):
 
 class Causes(GbdRecord):
     """Holder of causes"""
-    __slots__ = ('all_causes', 'tuberculosis', 'hiv_aids_tuberculosis', 'hiv_aids_other_diseases', 'diarrhea',
+    __slots__ = ('all_causes', 'hiv_aids', 'tetanus', 'tuberculosis', 'hiv_aids_tuberculosis', 'hiv_aids_other_diseases', 'diarrhea',
                  'typhoid_fever', 'paratyphoid_fever', 'lower_respiratory_infections', 'otitis_media', 'measles',
                  'maternal_hemorrhage', 'maternal_sepsis_and_other_infections',
                  'maternal_abortion_miscarriage_and_ectopic_pregnancy', 'protein_energy_malnutrition',
@@ -439,6 +439,8 @@ class Causes(GbdRecord):
 
     def __init__(self,
                  all_causes: Cause,
+                 hiv_aids: Cause,
+                 tetanus: Cause,
                  tuberculosis: Cause,
                  hiv_aids_tuberculosis: Cause,
                  hiv_aids_other_diseases: Cause,
@@ -559,6 +561,8 @@ class Causes(GbdRecord):
 
         super().__init__()
         self.all_causes = all_causes
+        self.hiv_aids = hiv_aids
+        self.tetanus = tetanus
         self.tuberculosis = tuberculosis
         self.hiv_aids_tuberculosis = hiv_aids_tuberculosis
         self.hiv_aids_other_diseases = hiv_aids_other_diseases
