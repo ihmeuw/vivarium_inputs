@@ -6,7 +6,7 @@ from joblib import Memory
 import pandas as pd
 
 from ceam_inputs.util import get_cache_directory, get_input_config
-from ceam_inputs.gbd_mapping import cid, sid
+from ceam_inputs.gbd_mapping import cid, sid, rid
 from ceam_inputs.auxiliary_files import auxiliary_file_path
 
 memory = Memory(cachedir=get_cache_directory(get_input_config()), verbose=1)
@@ -233,21 +233,23 @@ def get_subregions(location_id: int) -> List[int]:
 #####################################
 
 
-def _get_draws_safely(draw_function: Callable, draw_options: Iterable[Iterable[int]],
-                      *args: Any, **kwargs: Any) -> pd.DataFrame:
-    """Allows for pulling draws with multiple draw options to overcome some common errors in central comp tools."""
-    measure_draws = None
-    for location_id, round_id in draw_options:
-        try:
-            measure_draws = draw_function(*args, location_ids=location_id, gbd_round_id=round_id, **kwargs)
-            break
-        except:  # FIXME: Figure out the pattern of errors we get back here and replace the bare except clause.
-            pass
-    if measure_draws is None:
-        raise DataNotFoundError("Couldn't find draws for your requirements\n"
-                                f"function : {draw_function.__name__}\ndraw_options :  {draw_options}\n"
-                                f"args : {args}\nkwargs : {kwargs}.")
-    return measure_draws
+# TODO: Either this function will be necessary with the 2016 update, or it should be removed.  I'm super hoping
+# for the latter.
+# def _get_draws_safely(draw_function: Callable, draw_options: Iterable[Iterable[int]],
+#                       *args: Any, **kwargs: Any) -> pd.DataFrame:
+#     """Allows for pulling draws with multiple draw options to overcome some common errors in central comp tools."""
+#     measure_draws = None
+#     for location_id, round_id in draw_options:
+#         try:
+#             measure_draws = draw_function(*args, location_ids=location_id, gbd_round_id=round_id, **kwargs)
+#             break
+#         except:  # FIXME: Figure out the pattern of errors we get back here and replace the bare except clause.
+#             pass
+#     if measure_draws is None:
+#         raise DataNotFoundError("Couldn't find draws for your requirements\n"
+#                                 f"function : {draw_function.__name__}\ndraw_options :  {draw_options}\n"
+#                                 f"args : {args}\nkwargs : {kwargs}.")
+#     return measure_draws
 
 
 @memory.cache
@@ -260,7 +262,7 @@ def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int
                                 gbd_id=me_id,
                                 source="dismod",
                                 location_ids=location_ids,
-                                sex_ids=MALE + FEMALE,
+                                sex_ids=MALE + FEMALE + COMBINED,
                                 age_group_ids=get_age_group_ids(gbd_round_id),
                                 version_id=version,
                                 gbd_round_id=gbd_round_id) for me_id, version in model_versions.items()])
@@ -278,7 +280,7 @@ def get_codcorrect_draws(cause_ids: List[cid], location_ids: Iterable[int], gbd_
                      gbd_id=cause_ids,
                      source="codcorrect",
                      location_ids=location_ids,
-                     sex_ids=MALE + FEMALE,
+                     sex_ids=MALE + FEMALE + COMBINED,
                      age_group_ids=get_age_group_ids(gbd_round_id),
                      gbd_round_id=gbd_round_id)
 
@@ -298,47 +300,42 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
                      gbd_id=entity_ids,
                      source="como",
                      location_ids=location_ids,
-                     sex_ids=MALE + FEMALE,
+                     sex_ids=MALE + FEMALE + COMBINED,
                      age_group_ids=get_age_group_ids(gbd_round_id),
                      version_id=227,  # FIXME: Hardcoded value.
                      gbd_round_id=gbd_round_id)
 
 
 @memory.cache
-def get_relative_risks(location_id: int, risk_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level relative risks for a particular risk, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
-    # Some RRs are only reported at the global level (1). Also, sometimes draws from a previous gbd round are reused.
-    global_location_id = 1
-    draw_options = [[location_id, gbd_round_id], [global_location_id, gbd_round_id],
-                    [location_id, gbd_round_id-1], [global_location_id, gbd_round_id-1]]
-    return _get_draws_safely(get_draws, draw_options,
-                             gbd_id_field='rei_id',
-                             gbd_id=risk_id,
-                             source='risk',
-                             sex_ids=MALE + FEMALE,
-                             age_group_ids=get_age_group_ids(gbd_round_id),
-                             draw_type='rr')
+    return get_draws(gbd_id_field='rei_id',
+                     gbd_id=risk_ids,
+                     source='risk',
+                     location_ids=location_ids,
+                     sex_ids=MALE + FEMALE + COMBINED,
+                     age_group_ids=get_age_group_ids(gbd_round_id),
+                     draw_type='rr',
+                     gbd_round_id=gbd_round_id)
 
 
 @memory.cache
-def get_exposures(location_id: int, risk_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level exposure means for a particular risk, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
-
-    # Sometimes draws from a previous gbd round are reused.
-    draw_options = [[location_id, gbd_round_id], [location_id, gbd_round_id - 1]]
-    return _get_draws_safely(get_draws, draw_options,
-                             gbd_id_field='rei_id',
-                             gbd_id=risk_id,
-                             source='risk',
-                             sex_ids=MALE + FEMALE,
-                             age_group_ids=get_age_group_ids(gbd_round_id),
-                             draw_type='exposure')
+    return get_draws(gbd_id_field='rei_id',
+                     gbd_id=risk_ids,
+                     source='risk',
+                     location_ids=location_ids,
+                     sex_ids=MALE + FEMALE + COMBINED,
+                     age_group_ids=get_age_group_ids(gbd_round_id),
+                     draw_type='exposure',
+                     gbd_round_id=gbd_round_id)
 
 
 @memory.cache
-def get_pafs(location_id: int, cause_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_pafs(cause_ids: Iterable[cid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level pafs for all risks associated with a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
 
@@ -349,29 +346,14 @@ def get_pafs(location_id: int, cause_id: int, gbd_round_id: int) -> pd.DataFrame
     # which I'm going to do right now. -Alec
     # TODO: Find out if the dalynator files are still structured the same for the 2016 round.
     worker_count = 0 if current_process().daemon else 6  # One worker per 5-year dalynator file (1990 - 2015)
-
-    if gbd_round_id >= 4:
-        # The risk-cause data moved from dalynator to burdenator as of round 4 so must be retrieved from there.
-        draw_options = [[location_id, gbd_round_id]]
-        return _get_draws_safely(get_draws, draw_options,
-                                 gbd_id_field='cause_id',
-                                 gbd_id=cause_id,
-                                 source='burdenator',
-                                 sex_ids=MALE + FEMALE,
-                                 age_group_ids=get_age_group_ids(gbd_round_id),
-                                 num_workers=worker_count)
-
-    # FIXME: Probably don't need this branch anymore post 2016 update.
-    # Sometimes draws from a previous gbd round are reused.
-    draw_options = [[location_id, gbd_round_id], [location_id, gbd_round_id - 1]]
-    return _get_draws_safely(get_draws, draw_options,
-                             gbd_id_field='cause_id',
-                             gbd_id=cause_id,
-                             source='dalynator',
-                             sex_ids=MALE + FEMALE,
-                             age_group_ids=get_age_group_ids(gbd_round_id),
-                             include_risks=True,
-                             num_workers=worker_count)
+    return get_draws(gbd_id_field='cause_id',
+                     gbd_id=cause_id,
+                     source='burdenator',
+                     location_ids=location_ids,
+                     sex_ids=MALE + FEMALE + COMBINED,
+                     age_group_ids=get_age_group_ids(gbd_round_id),
+                     num_workers=worker_count,
+                     gbd_round_id=gbd_round_id)
 
 
 ####################################
