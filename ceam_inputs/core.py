@@ -59,7 +59,6 @@ def get_ids_for_measure(entities, measures):
             out['incidence'].add(entity.gbd_id)
     if 'exposure' in measures:
         for entity in entities:
-            # exposure is pulled only with rei_ids
             assert isinstance(entity.gbd_id, rid)
             out['exposure'].add(entity.gbd_id)
     if 'rr' in measures:
@@ -116,8 +115,6 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
 
         data.append(measure_data)
 
-
-
     data = pd.concat(data)
 
     if data['measure'].str.contains('paf') or data['measure'].str.contains('rr'):
@@ -138,13 +135,6 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
     validate_data(data, key_columns)
 
     return data.reset_index(drop=True)
-
-
-def get_populations(location_ids, gbd_round_id):
-    populations = pd.concat([gbd.get_populations(location_id, gbd_round_id) for location_id in location_ids])
-    populations = populations[populations['sex_id'] != COMBINED]
-    keep_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population']
-    return populations[keep_columns]
 
 
 ####################################
@@ -215,9 +205,7 @@ def get_disability_weights(sequelae, _, gbd_round_id):
         if s.healthstate.gbd_id in disability_weights['healthstate_id']:
             df = disability_weights.loc[disability_weights.healthstate_id == gbd_ids].copy()
 
-
     for entity in entities:
-
 
         gbd_ids = entity.gbd_id
         df_1 = disability_weights.loc[disability_weights.healthstate_id == gbd_ids].copy()
@@ -256,6 +244,44 @@ def get_relative_risks(risks, location_ids, gbd_round_id):
         df.rename(columns={f'rr_{i}' : f'draw_{i}'},  inplace = True)
     return df[key_columns + draw_columns]
 
+
+def get_exposures(risks, location_ids, gbd_round_id):
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'parameter']
+    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+    return get_gbd_draws(risks, ['exposure'], location_ids, gbd_round_id)[key_columns + draw_columns]
+
+
+def get_mediation_factors(risks, location_ids, gbd_round_id):
+    ids = [risk.gbd_id for risk in risks]
+    _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
+    data = gbd.get_data_from_auxiliary_file("Mediation Factors", gbd_round=_gbd_round_id_map[gbd_round_id])
+    df_list = []
+    for id in ids:
+        rf_df = data[data["rei_id"] == id]
+        if not rf_df.empty:
+            df_list.append(rf_df)
+
+    if len(df_list) >= 1:
+        data = pd.concat(df_list)
+        draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+        data[draw_columns] = 1 - (data[draw_columns])
+        data = data.groupby(["cause_id", 'rei_id'])[draw_columns].prod()
+        data.reset_index(inplace=True)
+        data = data.rename(columns={'rei_id': 'risk_id'})
+        return data
+
+    else:
+        print("No mediation data found.")
+
 #######################
 # Other kinds of data #
 #######################
+
+def get_populations(location_ids, gbd_round_id):
+    populations = pd.concat([gbd.get_populations(location_id, gbd_round_id) for location_id in location_ids])
+    populations = populations[populations['sex_id'] != COMBINED]
+    keep_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population']
+    return populations[keep_columns]
+
+
+
