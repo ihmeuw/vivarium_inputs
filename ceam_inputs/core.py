@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from ceam_inputs import gbd
-from ceam_inputs.gbd_mapping.templates import cid, sid, UNKNOWN
+from ceam_inputs.gbd_mapping.templates import cid, sid, rid, UNKNOWN
 
 # Define GBD sex ids for usage with central comp tools.
 MALE = [1]
@@ -13,6 +13,7 @@ FEMALE = [2]
 COMBINED = [3]
 
 name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'deaths': 1}
+gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
 class GbdDataError(Exception):
@@ -56,6 +57,16 @@ def get_ids_for_measure(entities, measures):
             # Only one id type at a time can be queried
             assert isinstance(entity.gbd_id, type(entities[0].gbd_id))
             out['incidence'].add(entity.gbd_id)
+    if 'exposure' in measures:
+        for entity in entities:
+            # exposure is pulled only with rei_ids
+            assert isinstance(entity.gbd_id, rid)
+            out['exposure'].add(entity.gbd_id)
+    if 'rr' in measures:
+        for entity in entities:
+            # rrs are pulled with rei_ids
+            assert isinstance(entity.gbd_id, rid)
+            out['rr'].add(entity.gbd_id)
     return out
 
 
@@ -105,6 +116,8 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
 
         data.append(measure_data)
 
+
+
     data = pd.concat(data)
 
     if data['measure'].str.contains('paf') or data['measure'].str.contains('rr'):
@@ -132,6 +145,11 @@ def get_populations(location_ids, gbd_round_id):
     populations = populations[populations['sex_id'] != COMBINED]
     keep_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population']
     return populations[keep_columns]
+
+
+####################################
+# Measures for cause like entities #
+####################################
 
 
 def get_prevalences(entities, location_ids, gbd_round_id):
@@ -185,29 +203,21 @@ def get_excess_mortalities(causes, location_ids, gbd_round_id):
     return em.reset_index().dropna()
 
 
-def get_proportion(entity_pairs, location_ids, gbd_round_id):
-    prevalences = get_prevalences(list({entity for pair in entity_pairs for entity in pair}), location_ids, gbd_round_id)
+def get_disability_weights(sequelae, _, gbd_round_id):
+    gbd_round = gbd_round_id_map[gbd_round_id]
+    disability_weights = gbd.get_data_from_auxiliary_file('Disability Weights', gbd_round=gbd_round)
+    combined_disability_weights = gbd.get_data_from_auxiliary_file('Combined Disability Weights', gbd_round=gbd_round)
 
-    # FIXME: stand in for actual calculation
-    proportions = pd.concat([prevalences[child]/prevalences[parent] for parent, child in entity_pairs])
+    data = []
+    for s in sequelae:
+        # Only sequelae have disability weights.
+        assert isinstance(s.gbd_id, sid)
+        if s.healthstate.gbd_id in disability_weights['healthstate_id']:
+            df = disability_weights.loc[disability_weights.healthstate_id == gbd_ids].copy()
 
-    return proportions
-
-
-def get_disability_weights(entities, location_ids, gbd_round_id):
-    _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
-    df = []
-
-    # part 1: get disability weights data & construct df
-    for each in entities:
-        if isinstance(each, tuple):
-            entities = list(each)
 
     for entity in entities:
-        disability_weights = gbd.get_data_from_auxiliary_file('Disability Weights',
-                                                              gbd_round=_gbd_round_id_map[gbd_round_id])
-        combined_disability_weights = gbd.get_data_from_auxiliary_file('Combined Disability Weights',
-                                                                       gbd_round=_gbd_round_id_map[gbd_round_id])
+
 
         gbd_ids = entity.gbd_id
         df_1 = disability_weights.loc[disability_weights.healthstate_id == gbd_ids].copy()
@@ -230,3 +240,22 @@ def get_disability_weights(entities, location_ids, gbd_round_id):
     del df["hhseqid"]
 
     return df.reset_index(drop=True)
+
+
+####################################
+# Measures for risk like entities  #
+####################################
+
+
+def get_relative_risks(risks, location_ids, gbd_round_id):
+    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'parameter', 'mortality', 'morbidity']
+    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+    df = get_gbd_draws(risks, ['rr'], location_ids, gbd_round_id)[key_columns + draw_columns]
+    df['rei_id'] = risks
+    for i in range(0, 1000):
+        df.rename(columns={f'rr_{i}' : f'draw_{i}'},  inplace = True)
+    return df[key_columns + draw_columns]
+
+#######################
+# Other kinds of data #
+#######################
