@@ -345,9 +345,9 @@ def get_pafs(cause_ids: Iterable[cid], location_ids: Iterable[int], gbd_round_id
     # better or working on shared function code, neither of
     # which I'm going to do right now. -Alec
     # TODO: Find out if the dalynator files are still structured the same for the 2016 round.
-    worker_count = 0 if current_process().daemon else 6  # One worker per 5-year dalynator file (1990 - 2015)
+    worker_count = 0 if current_process().daemon else 6  # One worker per 5-year burdenator file (1990 - 2015)
     return get_draws(gbd_id_field='cause_id',
-                     gbd_id=cause_id,
+                     gbd_id=cause_ids,
                      source='burdenator',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,

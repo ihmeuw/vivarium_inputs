@@ -1,6 +1,7 @@
 """This module performs the core data transformations on GBD data and provides a basic API for data access."""
 from collections import defaultdict
 
+
 import numpy as np
 import pandas as pd
 
@@ -28,9 +29,10 @@ class DataMissingError(GbdDataError):
 
 class DuplicateDataError(GbdDataError):
     """Exception raised when data has duplication in the index."""
+    pass
 
 
-def get_ids_for_measure(entities, measures):
+def get_ids_for_measure(entities: , measures):
     """Selects the appropriate gbd id type for each entity and measure pair."""
     out = defaultdict(set)
     if 'deaths' in measures:
@@ -104,10 +106,10 @@ def get_gbd_draws(entities, measures, location_ids, gbd_round_id):
                                           gbd_round_id=gbd_round_id)
         if 'prevalence' not in measures:
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['incidence']]
-            measure_data['measure'] = 'prevalence'
+            measure_data['measure'] = 'incidence'
         elif 'incidence' not in measures:
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['prevalence']]
-            measure_data['measure'] = 'incidence'
+            measure_data['measure'] = 'prevalence'
         else:
             measure_data['measure'] = 'temp'
             measure_data.loc[measure_data['measure_id'] == name_measure_map['prevalence'], 'measure'] = 'prevalence'
@@ -203,29 +205,17 @@ def get_disability_weights(sequelae, _, gbd_round_id):
         # Only sequelae have disability weights.
         assert isinstance(s.gbd_id, sid)
         if s.healthstate.gbd_id in disability_weights['healthstate_id']:
-            df = disability_weights.loc[disability_weights.healthstate_id == gbd_ids].copy()
+            df = disability_weights.loc[disability_weights.healthstate_id == s.healthstate.gbd_id].copy()
+        elif s.healthstate.gbd_id in combined_disability_weights['healthstate_id']:
+            df = disability_weights.loc[disability_weights.healthstate_id == s.healthstate.gbd_id].copy()
+        else:
+            raise DataMissingError(f"No disability weight available for the sequela {s.name}")
+        df['sequela_id'] = s.gbd_id
+        df['measure'] = 'disability_weight'
+        data.append(df)
 
-    for entity in entities:
+    data = pd.concat(data)
 
-        gbd_ids = entity.gbd_id
-        df_1 = disability_weights.loc[disability_weights.healthstate_id == gbd_ids].copy()
-        df_2 = combined_disability_weights.loc[combined_disability_weights.healthstate_id == gbd_ids].copy()
-
-        if not df_1.empty:
-            df.append(df_1)
-
-        if not df_2.empty:
-            df.append(df_2)
-
-    df = pd.concat(df, axis=0)
-    df = df.rename(columns={'healthstate_id': 'gbd_id'})
-    df = df.rename(columns={'healthstate': 'measure'})
-    df["age"] = np.nan
-    df["location_id"] = np.nan
-    df["sex"] = np.nan
-    df["year_id"] = np.nan
-
-    del df["hhseqid"]
 
     return df.reset_index(drop=True)
 
@@ -273,9 +263,11 @@ def get_mediation_factors(risks, location_ids, gbd_round_id):
     else:
         print("No mediation data found.")
 
+
 #######################
 # Other kinds of data #
 #######################
+
 
 def get_populations(location_ids, gbd_round_id):
     populations = pd.concat([gbd.get_populations(location_id, gbd_round_id) for location_id in location_ids])
