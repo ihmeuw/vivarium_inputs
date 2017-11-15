@@ -1,12 +1,13 @@
 """This module performs the core data transformations on GBD data and provides a basic API for data access."""
 from collections import defaultdict
-
+from typing import Iterable, Union, DefaultDict, Set
 
 import numpy as np
 import pandas as pd
 
 from ceam_inputs import gbd
-from ceam_inputs.gbd_mapping.templates import cid, sid, rid, UNKNOWN
+from ceam_inputs.gbd_mapping.templates import cid, sid, rid, UNKNOWN, Cause, Sequela, Etiology, Risk
+Entity = Union[Cause, Sequela, Etiology, Risk]
 
 # Define GBD sex ids for usage with central comp tools.
 MALE = [1]
@@ -32,7 +33,7 @@ class DuplicateDataError(GbdDataError):
     pass
 
 
-def get_ids_for_measure(entities: , measures):
+def get_ids_for_measure(entities: Iterable[Entity], measures: Iterable[str]) -> DefaultDict[str, Set]:
     """Selects the appropriate gbd id type for each entity and measure pair."""
     out = defaultdict(set)
     if 'deaths' in measures:
