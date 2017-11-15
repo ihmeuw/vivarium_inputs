@@ -1,6 +1,6 @@
 from multiprocessing.process import current_process
 import warnings
-from typing import Iterable, Union, List, Callable, Any, Mapping
+from typing import Iterable, Union, List, Any, Mapping
 
 from joblib import Memory
 import pandas as pd
@@ -15,6 +15,8 @@ memory = Memory(cachedir=get_cache_directory(get_input_config()), verbose=1)
 MALE = [1]
 FEMALE = [2]
 COMBINED = [3]
+
+GBD_ROUND_ID = 4
 
 
 class CentralCompError(Exception):
@@ -253,46 +255,45 @@ def get_subregions(location_id: int) -> List[int]:
 
 
 @memory.cache
-def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int], gbd_round_id: int,) -> pd.DataFrame:
+def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular dismod model, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
-    publication_ids = get_publication_ids_for_round(gbd_round_id)
+    publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
     model_versions = get_dismod_model_versions(me_ids, publication_ids)
     return pd.concat([get_draws(gbd_id_field='modelable_entity_id',
                                 gbd_id=me_id,
                                 source="dismod",
                                 location_ids=location_ids,
                                 sex_ids=MALE + FEMALE + COMBINED,
-                                age_group_ids=get_age_group_ids(gbd_round_id),
+                                age_group_ids=get_age_group_ids(GBD_ROUND_ID),
                                 version_id=version,
-                                gbd_round_id=gbd_round_id) for me_id, version in model_versions.items()])
+                                gbd_round_id=GBD_ROUND_ID) for me_id, version in model_versions.items()])
 
 
 @memory.cache
-def get_codcorrect_draws(cause_ids: List[cid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
+def get_codcorrect_draws(cause_ids: List[cid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level deaths for a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
-    # publication_ids = get_publication_ids_for_round(gbd_round_id)
+    # publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
     # version_id = get_gbd_tool_version(publication_ids, source='codcorrect')
     return get_draws(gbd_id_field=['cause_id']*len(cause_ids),
                      gbd_id=cause_ids,
                      source="codcorrect",
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(gbd_round_id),
-                     gbd_round_id=gbd_round_id)
+                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
+                     gbd_round_id=GBD_ROUND_ID)
 
 
 @memory.cache
-def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int],
-                   gbd_round_id: int) -> pd.DataFrame:
+def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
-    # publication_ids = get_publication_ids_for_round(gbd_round_id)
+    # publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
     # version_id = get_gbd_tool_version(publication_ids, source='codcorrect')
     entity_types = ['cause_id' if isinstance(entity_id, cid) else 'sequela_id' for entity_id in entity_ids]
 
@@ -301,13 +302,13 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
                      source="como",
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(gbd_round_id),
+                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
                      version_id=227,  # FIXME: Hardcoded value.
-                     gbd_round_id=gbd_round_id)
+                     gbd_round_id=GBD_ROUND_ID)
 
 
 @memory.cache
-def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
+def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level relative risks for a particular risk, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
     return get_draws(gbd_id_field='rei_id',
@@ -315,13 +316,13 @@ def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int], gbd
                      source='risk',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(gbd_round_id),
+                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
                      draw_type='rr',
-                     gbd_round_id=gbd_round_id)
+                     gbd_round_id=GBD_ROUND_ID)
 
 
 @memory.cache
-def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
+def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level exposure means for a particular risk, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
     return get_draws(gbd_id_field='rei_id',
@@ -329,13 +330,13 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int], gbd_roun
                      source='risk',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(gbd_round_id),
+                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
                      draw_type='exposure',
-                     gbd_round_id=gbd_round_id)
+                     gbd_round_id=GBD_ROUND_ID)
 
 
 @memory.cache
-def get_pafs(cause_ids: Iterable[cid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
+def get_pafs(cause_ids: Iterable[cid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level pafs for all risks associated with a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
 
@@ -351,9 +352,9 @@ def get_pafs(cause_ids: Iterable[cid], location_ids: Iterable[int], gbd_round_id
                      source='burdenator',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(gbd_round_id),
+                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
                      num_workers=worker_count,
-                     gbd_round_id=gbd_round_id)
+                     gbd_round_id=GBD_ROUND_ID)
 
 
 ####################################
@@ -361,7 +362,7 @@ def get_pafs(cause_ids: Iterable[cid], location_ids: Iterable[int], gbd_round_id
 ####################################
 
 @memory.cache
-def get_covariate_estimates(covariate_id: int, location_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_covariate_estimates(covariate_id: int, location_id: int) -> pd.DataFrame:
     """Pulls covariate data for a particular covariate and location."""
     from db_queries import get_covariate_estimates
     # FIXME: Make sure we don't need a version id here.
@@ -369,20 +370,20 @@ def get_covariate_estimates(covariate_id: int, location_id: int, gbd_round_id: i
                                                   location_id=location_id,
                                                   sex_id=MALE + FEMALE + COMBINED,
                                                   age_group_id=-1,
-                                                  gbd_round_id=gbd_round_id)
+                                                  gbd_round_id=GBD_ROUND_ID)
     return covariate_estimates
 
 
 @memory.cache
-def get_populations(location_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_populations(location_id: int) -> pd.DataFrame:
     """Gets all population levels for a particular location and gbd round."""
     from db_queries import get_population
 
-    return get_population(age_group_id=get_age_group_ids(gbd_round_id),
+    return get_population(age_group_id=get_age_group_ids(GBD_ROUND_ID),
                           location_id=location_id,
                           year_id=[-1],
                           sex_id=MALE + FEMALE + COMBINED,
-                          gbd_round_id=gbd_round_id)
+                          gbd_round_id=GBD_ROUND_ID)
 
 
 @memory.cache
@@ -404,24 +405,24 @@ def get_data_from_auxiliary_file(file_name: str, **kwargs: Any) -> pd.DataFrame:
 
 
 @memory.cache
-def get_rei_metadata(rei_set_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_rei_metadata(rei_set_id: int) -> pd.DataFrame:
     """Gets a whole host of metadata associated with a particular rei set and gbd round"""
     import db_queries
-    return db_queries.get_rei_metadata(rei_set_id=rei_set_id, gbd_round_id=gbd_round_id)
+    return db_queries.get_rei_metadata(rei_set_id=rei_set_id, gbd_round_id=GBD_ROUND_ID)
 
 
 @memory.cache
-def get_cause_metadata(cause_set_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_cause_metadata(cause_set_id: int) -> pd.DataFrame:
     """Gets a whole host of metadata associated with a particular cause set and gbd round"""
     import db_queries
-    return db_queries.get_cause_metadata(cause_set_id=cause_set_id, gbd_round_id=gbd_round_id)
+    return db_queries.get_cause_metadata(cause_set_id=cause_set_id, gbd_round_id=GBD_ROUND_ID)
 
 
 @memory.cache
-def get_risk(risk_id: int, gbd_round_id: int):  # FIXME: I don't know how to properly annotate the return type
+def get_risk(risk_id: int):  # FIXME: I don't know how to properly annotate the return type
     """Gets a risk object containing info about the exposure distribution type and names of exposure categories."""
     from risk_utils.classes import risk
-    return risk(risk_id=risk_id, gbd_round_id=gbd_round_id)
+    return risk(risk_id=risk_id, gbd_round_id=GBD_ROUND_ID)
 
 
 @memory.cache
@@ -432,8 +433,8 @@ def get_estimation_years(gbd_round_id: int) -> pd.Series:
 
 
 @memory.cache
-def get_life_table(location_id: int, gbd_round_id: int) -> pd.DataFrame:
+def get_life_table(location_id: int) -> pd.DataFrame:
     """Gets the table of life expectancies for a particular location and gbd round."""
-    from db_queries import get_life_table
+    import db_queries
     # FIXME: Make sure we don't need version info here.
-    return get_life_table(location_id=location_id, gbd_round_id=gbd_round_id)
+    return db_queries.get_life_table(location_id=location_id, gbd_round_id=GBD_ROUND_ID)
