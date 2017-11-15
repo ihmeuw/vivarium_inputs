@@ -32,7 +32,7 @@ class DuplicateDataError(GbdDataError):
     pass
 
 
-def get_ids_for_measure(entities: , measures):
+def get_ids_for_measure(entities, measures):
     """Selects the appropriate gbd id type for each entity and measure pair."""
     out = defaultdict(set)
     if 'deaths' in measures:
@@ -68,6 +68,11 @@ def get_ids_for_measure(entities: , measures):
             # rrs are pulled with rei_ids
             assert isinstance(entity.gbd_id, rid)
             out['rr'].add(entity.gbd_id)
+    if "pafs" in measures:
+        for entity in entities:
+            assert isinstance(entity.gbd_id, rid)
+            out['pafs'].add(entity.gbd_id)
+
     return out
 
 
@@ -239,6 +244,13 @@ def get_exposures(risks, location_ids, gbd_round_id):
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'parameter']
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
     return get_gbd_draws(risks, ['exposure'], location_ids, gbd_round_id)[key_columns + draw_columns]
+
+
+def get_pafs(rei_ids: Iterable[rid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
+    measure_entity_map = get_ids_for_measure(rei_ids, ["pafs"])
+    return gbd_ms_functions.get_pafs(location_id = location_ids,
+                                     risk_id=list(measure_entity_map["pafs"]),
+                                     gbd_round_id =gbd_round_id)
 
 
 def get_mediation_factors(risks, location_ids, gbd_round_id):
