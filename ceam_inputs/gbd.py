@@ -336,7 +336,7 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int], gbd_roun
 
 @memory.cache
 def get_pafs(rei_ids: Iterable[rid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
-    """Gets draw level pafs for all risks associated with a particular cause, location, and gbd round."""
+    """Gets draw level pafs for all causes associated with a particular rei, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
 
     # I'm cargo culting here. When the simulation is hosted by a dask worker,
