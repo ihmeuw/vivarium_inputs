@@ -220,8 +220,6 @@ def get_disability_weights(sequelae, _, gbd_round_id):
         data.append(df)
 
     data = pd.concat(data)
-
-
     return df.reset_index(drop=True)
 
 
@@ -246,11 +244,11 @@ def get_exposures(risks, location_ids, gbd_round_id):
     return get_gbd_draws(risks, ['exposure'], location_ids, gbd_round_id)[key_columns + draw_columns]
 
 
-def get_pafs(rei_ids, location_ids, gbd_round_id):
-    measure_entity_map = get_ids_for_measure(rei_ids, ["pafs"])
-    return gbd.get_pafs(location_ids = location_ids,
-                                     rei_ids=list(measure_entity_map["pafs"]),
-                                     gbd_round_id =gbd_round_id)
+def get_pafs(risks, location_ids, gbd_round_id):
+    measure_entity_map = get_ids_for_measure(risks, ["pafs"])
+    return gbd.get_pafs(location_ids=location_ids,
+                        rei_ids=list(measure_entity_map["pafs"]),
+                        gbd_round_id=gbd_round_id)
 
 
 def get_mediation_factors(risks, location_ids, gbd_round_id):
