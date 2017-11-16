@@ -335,7 +335,7 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int], gbd_roun
 
 
 @memory.cache
-def get_pafs(cause_ids: Iterable[cid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
+def get_pafs(rei_ids: Iterable[rid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
     """Gets draw level pafs for all risks associated with a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
 
@@ -346,8 +346,8 @@ def get_pafs(cause_ids: Iterable[cid], location_ids: Iterable[int], gbd_round_id
     # which I'm going to do right now. -Alec
     # TODO: Find out if the dalynator files are still structured the same for the 2016 round.
     worker_count = 0 if current_process().daemon else 6  # One worker per 5-year burdenator file (1990 - 2015)
-    return get_draws(gbd_id_field='cause_id',
-                     gbd_id=cause_ids,
+    return get_draws(gbd_id_field=['rei_id'] * len(rei_ids),
+                     gbd_id=rei_ids,
                      source='burdenator',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
