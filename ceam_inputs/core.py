@@ -246,10 +246,10 @@ def get_exposures(risks, location_ids, gbd_round_id):
     return get_gbd_draws(risks, ['exposure'], location_ids, gbd_round_id)[key_columns + draw_columns]
 
 
-def get_pafs(rei_ids: Iterable[rid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
+def get_pafs(rei_ids, location_ids, gbd_round_id):
     measure_entity_map = get_ids_for_measure(rei_ids, ["pafs"])
-    return gbd_ms_functions.get_pafs(location_id = location_ids,
-                                     risk_id=list(measure_entity_map["pafs"]),
+    return gbd.get_pafs(location_ids = location_ids,
+                                     rei_ids=list(measure_entity_map["pafs"]),
                                      gbd_round_id =gbd_round_id)
 
 
@@ -288,4 +288,10 @@ def get_populations(location_ids, gbd_round_id):
     return populations[keep_columns]
 
 
+def get_age_bins(gbd_round_id):
+    return gbd.get_age_bins(gbd_round_id)
+
+
+def get_life_tables(location_id, gbd_round_id):
+    return gbd.get_life_table(location_id, gbd_round_id)
 
