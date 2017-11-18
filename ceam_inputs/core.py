@@ -251,6 +251,20 @@ def get_pafs(risks, location_ids, gbd_round_id):
                         gbd_round_id=gbd_round_id)
 
 
+def get_ensemble_weights(risks, gbd_round_id):
+    data = []
+    ids = [risk.gbd_id for risk in risks]
+    for i in range(0, (len(ids))):
+        risk_id = ids[i]
+        temp = gbd.get_data_from_auxiliary_file('Ensemble Distribution Weights',
+                                            gbd_round = gbd_round_id_map[gbd_round_id],
+                                            rei_id = risk_id)
+        temp['risk_id'] = risk_id
+        data.append(temp)
+    data = pd.concat(data)
+    return data
+
+
 def get_mediation_factors(risks, location_ids, gbd_round_id):
     ids = [risk.gbd_id for risk in risks]
     _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
