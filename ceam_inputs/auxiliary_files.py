@@ -40,6 +40,11 @@ FILES = {
         'source': '/share/covariates/ubcov/04_model/beta_parameters/8',
         'owner': 'Marissa B. Reitsma <mreitsma@uw.edu>',
         },
+    'Ensemble Distribution Weights': {
+        'path': 'ensemble/weights/{rei_id}.csv',
+        'source': '/home/j/WORK/05_risk/ensemble/weights',
+        'owner': 'Patrick J Sur <psur2417@uw.edu>, Stan Biryukov <stan0625@uw.edu>',
+        },
     'Fasting Plasma Glucose Distributions': {
         'path': 'fpg/FILE_{location_id}_{year_id}_{sex_id}_OUT.csv',
         'source': '/share/epi/risk/paf/metab_fpg_cont_sll/FILE_[location_id]_[year_id]_[sex_id]_OUT.csv',
