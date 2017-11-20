@@ -296,6 +296,10 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
     # publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
     # version_id = get_gbd_tool_version(publication_ids, source='codcorrect')
     entity_types = ['cause_id' if isinstance(entity_id, cid) else 'sequela_id' for entity_id in entity_ids]
+    publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
+    # NOTE: Currently this doesn't pull any thing because the tables haven't been built yet,
+    # but get_draws doesn't mind and this will automatically update once the DB tables are in place - J.C 11/20
+    model_version = get_gbd_tool_version(publication_ids, 'como')
 
     return get_draws(gbd_id_field=entity_types,
                      gbd_id=entity_ids,
@@ -303,7 +307,7 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
                      age_group_ids=get_age_group_ids(GBD_ROUND_ID),
-                     version_id=227,  # FIXME: Hardcoded value.
+                     version_id=model_version,
                      gbd_round_id=GBD_ROUND_ID)
 
 
@@ -345,7 +349,7 @@ def get_pafs(cause_ids: Iterable[cid], location_ids: Iterable[int]) -> pd.DataFr
     # There are better ways of solving this but they involve understanding dask
     # better or working on shared function code, neither of
     # which I'm going to do right now. -Alec
-    # TODO: Find out if the dalynator files are still structured the same for the 2016 round.
+    # FIXME: This is not reflective of the actual file structure according to Joe. -James
     worker_count = 0 if current_process().daemon else 6  # One worker per 5-year burdenator file (1990 - 2015)
     return get_draws(gbd_id_field='cause_id',
                      gbd_id=cause_ids,
