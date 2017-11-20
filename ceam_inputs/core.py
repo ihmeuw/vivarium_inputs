@@ -267,8 +267,6 @@ def get_disability_weights(sequelae, _, gbd_round_id):
         data.append(df)
 
     data = pd.concat(data)
-
-
     return df.reset_index(drop=True)
 
 
@@ -293,11 +291,25 @@ def get_exposures(risks, location_ids, gbd_round_id):
     return get_gbd_draws(risks, ['exposure'], location_ids, gbd_round_id)[key_columns + draw_columns]
 
 
-def get_pafs(rei_ids: Iterable[rid], location_ids: Iterable[int], gbd_round_id: int) -> pd.DataFrame:
-    measure_entity_map = get_ids_for_measure(rei_ids, ["pafs"])
-    return gbd_ms_functions.get_pafs(location_id = location_ids,
-                                     risk_id=list(measure_entity_map["pafs"]),
-                                     gbd_round_id =gbd_round_id)
+def get_pafs(risks, location_ids, gbd_round_id):
+    measure_entity_map = get_ids_for_measure(risks, ["pafs"])
+    return gbd.get_pafs(location_ids=location_ids,
+                        rei_ids=list(measure_entity_map["pafs"]),
+                        gbd_round_id=gbd_round_id)
+
+
+def get_ensemble_weights(risks, gbd_round_id):
+    data = []
+    ids = [risk.gbd_id for risk in risks]
+    for i in range(0, (len(ids))):
+        risk_id = ids[i]
+        temp = gbd.get_data_from_auxiliary_file('Ensemble Distribution Weights',
+                                            gbd_round = gbd_round_id_map[gbd_round_id],
+                                            rei_id = risk_id)
+        temp['risk_id'] = risk_id
+        data.append(temp)
+    data = pd.concat(data)
+    return data
 
 
 def get_mediation_factors(risks, location_ids, gbd_round_id):
@@ -335,4 +347,10 @@ def get_populations(location_ids, gbd_round_id):
     return populations[keep_columns]
 
 
+def get_age_bins(gbd_round_id):
+    return gbd.get_age_bins(gbd_round_id)
+
+
+def get_life_tables(location_id, gbd_round_id):
+    return gbd.get_life_table(location_id, gbd_round_id)
 
