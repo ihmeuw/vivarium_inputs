@@ -169,6 +169,74 @@ def standardize_data_for_sex(data: pd.DataFrame, fill_na_value: float, extent: I
     return data
 ### END OF PAOLA'S CODE ###
 
+### ALEC'S CODE ###
+### Make dummy data again, but this time with specific values that we need to add to dummy data
+def makeAppendableData(year_id, sex_id, age_group_id, location_id, fill_na_value):
+    index = list(itertools.product(year_id, sex_id, age_group_id,
+                                   location_id))  # Makes a list of tuples with all the possible combinations for the
+    #  demographic columns
+    df = pd.DataFrame(
+        {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
+         'location_id': list(zip(*index))[3]})  # Makes a dataframe with demographic columns
+
+    draw_columns = [f'draw_{i}' for i in range(0, 1000)]  # Create a list of strings that tells us column names
+    df_dummy = pd.DataFrame(data=fill_na_value, index=df.index,
+                            columns=draw_columns)  # Create df filled entirely with fill_na_value
+    df1 = pd.concat([df, df_dummy], axis=1)  # Concatenate the two data frames (by column)
+
+    return df1
+
+
+def standardize_data_for_sex(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
+    # Potential inputs:
+    # Data with all sex_ids -> return data
+    # Data with only sex_id 1 or sex_id 2 -> Generate other half and sex_id 3, fill_na
+    # Data with only sex_id 1 and sex_id 2 -> Population weighted average for sex_id 3 (Unlikely to occur) (HOLD)
+    # Data with only sex_id 3 -> Drop sex_id column.
+
+    possible_sex_ids = set({1, 2, 3})  # All possible sex ids
+    sex_ids_in_data = set(data['sex_id'])  # The sex ids that are present in the data
+    missing_sex_ids = possible_sex_ids.difference(sex_ids_in_data)  # Missing sex ids
+    if len(missing_sex_ids) == 0:  # Nothing is missing, just pass data
+        data = data
+
+    if len(missing_sex_ids) == 1:  # One sex_id is missing
+        if 3 not in sex_ids_in_data:
+            # Weighted average for sex_id 3 (HOLD)
+            print('on hold')
+
+        else:
+            # Generate [missing_sex_id] and fill na
+            # Just use the lone value that is in missing_sex_ids as input to generator
+            appendable_data = makeAppendableData(set(data['year_id']), missing_sex_ids, set(data['age_group_id']),
+                                                 set(data['location_id']), fill_na_value)
+            data = pd.concat([data, appendable_data], axis=0)
+
+    if len(missing_sex_ids) == 2:  # Two sex_ids are missing
+        if 3 in sex_ids_in_data:
+            # Drop sex_id column
+            del data['sex_id']
+        else:
+            # Generate [missing_sex_id_1] and [missing_sex_id_2] and fill na
+            # Just use the two values that are in missing_sex_ids as input to generator
+            appendable_data = makeAppendableData(set(data['year_id']), missing_sex_ids, set(data['age_group_id']),
+                                                 set(data['location_id']), fill_na_value)
+            data = pd.concat([data, appendable_data], axis=0)
+
+    ## Check against extent and get rid of excess
+    # (James said we may not need this but it's already written so leaving it for now)
+    sex_ids_to_cut = set(data['sex_id']).difference(extent)  # Find which sex ids need to be removed
+    sex_ids_to_keep = possible_sex_ids  # Start with keeping all sex ids
+    for i in sex_ids_to_cut:
+        sex_ids_to_keep.discard(i)
+    data = data[data['sex_id'].isin(sex_ids_to_keep)]
+
+    ## Check that sex ids are 1, 2, or 3
+    assert set(data['sex_id']).issubset({1, 2, 3})
+
+    return data
+### END ALEC'S CODE ###
+
 def standardize_data_for_year(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
     # Potential inputs:
     # Data with all year ids and all data -> return data
