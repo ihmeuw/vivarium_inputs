@@ -114,16 +114,60 @@ def check_for_age_group_ids(data_frame, extent, value):
     return data_with_correct_age_group_ids
 
 ### END OF PAOLA'S CODE ###
+### START OF PAOLA'S CODE (SEX_ID) ###
+def makeMissingData(data_frame, sex, fill_na_value):
+        data = data_frame.copy()
+        extent_missing_data = extent  # assume this is an input to the standardize_data_for_age function
+        sex_ids_in_data = data['sex_id'].unique()
+        missing_sex_id = sex + both
+        year_ids = set(data['year_id'])
+        location_ids = set(data['location_id'])
+        age_group_ids = set(data['age_group_id'])
+        draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+        value = fill_na_value
+        index = list(itertools.product(year_ids, sex_ids, age_group_ids,
+                                       location_ids))  # makes a list of tuples with all the possible combinations for the demographic columns
+        df = pd.DataFrame(
+            {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
+             'location_id': list(zip(*index))[3]})
+        df_dummy = pd.DataFrame(data=value, index=df.index, columns=draw_columns)
+        df1 = pd.concat([df, df_dummy], axis=1)
+        completed_df = pd.concat([data, df1], axis=0)
+        return completed_df
 
 
 def standardize_data_for_sex(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
-    # Potential inputs:
-    # Data with all sex_ids -> return data
-    # Data with only sex_id 1 or sex_id 2 -> Generate other half and sex_id 3, fill_na
-    # Data with only sex_id 1 and sex_id 2 -> Population weighted average for sex_id 3 (Unlikely to occur)
-    # Data with only sex_id 3 -> Drop sex_id column.
-    return data
 
+    standard_sex_group_ids = [1, 2, 3]
+    sex_ids_in_df = data['sex_id'].unique()
+
+    males = 1
+    females = 2
+    both = 3
+
+    if len(sex_ids_in_df) == 3:
+        data = data.copy()  # return original dataframe
+
+    if len(sex_ids_in_df) == 2:
+        print('FIXME')
+
+    if len(sex_ids_in_df) == 1:
+
+        if sex_ids_in_df == both:
+            data = data.drop('sex_id', 1)
+
+        elif sex_ids_in_df == females:
+            data = makeMissingData(data, males, fill_na_value)
+
+        elif sex_ids_in_df == males:
+            data = makeMissingData(data, females, fill_na_value)
+
+    # checks the sex_ids of the resulting dataframe
+    if 'sex_id' in data:
+        assert (set(data['sex_id']).issubset(set(standard_sex_group_ids))), "missing sex_ids"
+
+    return data
+### END OF PAOLA'S CODE ###
 
 def standardize_data_for_year(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
     # Potential inputs:
