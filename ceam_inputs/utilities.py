@@ -1,5 +1,5 @@
 from typing import Mapping, Iterable
-
+from scipy import interpolate
 import pandas as pd
 
 
@@ -114,60 +114,7 @@ def check_for_age_group_ids(data_frame, extent, value):
     return data_with_correct_age_group_ids
 
 ### END OF PAOLA'S CODE ###
-### START OF PAOLA'S CODE (SEX_ID) ###
-def makeMissingData(data_frame, sex, fill_na_value):
-        data = data_frame.copy()
-        extent_missing_data = extent  # assume this is an input to the standardize_data_for_age function
-        sex_ids_in_data = data['sex_id'].unique()
-        missing_sex_id = sex + both
-        year_ids = set(data['year_id'])
-        location_ids = set(data['location_id'])
-        age_group_ids = set(data['age_group_id'])
-        draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-        value = fill_na_value
-        index = list(itertools.product(year_ids, sex_ids, age_group_ids,
-                                       location_ids))  # makes a list of tuples with all the possible combinations for the demographic columns
-        df = pd.DataFrame(
-            {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
-             'location_id': list(zip(*index))[3]})
-        df_dummy = pd.DataFrame(data=value, index=df.index, columns=draw_columns)
-        df1 = pd.concat([df, df_dummy], axis=1)
-        completed_df = pd.concat([data, df1], axis=0)
-        return completed_df
 
-
-def standardize_data_for_sex(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
-
-    standard_sex_group_ids = [1, 2, 3]
-    sex_ids_in_df = data['sex_id'].unique()
-
-    males = 1
-    females = 2
-    both = 3
-
-    if len(sex_ids_in_df) == 3:
-        data = data.copy()  # return original dataframe
-
-    if len(sex_ids_in_df) == 2:
-        print('FIXME')
-
-    if len(sex_ids_in_df) == 1:
-
-        if sex_ids_in_df == both:
-            data = data.drop('sex_id', 1)
-
-        elif sex_ids_in_df == females:
-            data = makeMissingData(data, males, fill_na_value)
-
-        elif sex_ids_in_df == males:
-            data = makeMissingData(data, females, fill_na_value)
-
-    # checks the sex_ids of the resulting dataframe
-    if 'sex_id' in data:
-        assert (set(data['sex_id']).issubset(set(standard_sex_group_ids))), "missing sex_ids"
-
-    return data
-### END OF PAOLA'S CODE ###
 
 ### ALEC'S CODE ###
 ### Make dummy data again, but this time with specific values that we need to add to dummy data
@@ -237,11 +184,72 @@ def standardize_data_for_sex(data: pd.DataFrame, fill_na_value: float, extent: I
     return data
 ### END ALEC'S CODE ###
 
+### START OF PAOLA'S CODE (SEX_ID) ###
+def standardize_data_for_sex(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
+    standard_sex_group_ids = [1, 2, 3]
+    sex_ids_in_df = data['sex_id'].unique()
+
+    males = 1
+    females = 2
+    both = 3
+
+    if len(sex_ids_in_df) == 3:
+        data = data.copy()  # return original dataframe
+
+    if len(sex_ids_in_df) == 2:
+        print('FIXME: df only has values for males and females. Missing Both')
+
+    if len(sex_ids_in_df) == 1:
+        # make dataframe with missing values and append it to the original.
+
+        if sex_ids_in_df == both:
+            data = data.drop('sex_id', 1)
+
+        else:
+            missing_sex_ids = set(standard_sex_group_ids).difference(sex_ids_in_df)
+            year_ids = set(data['year_id'])
+            location_ids = set(data['location_id'])
+            age_group_ids = set(data['age_group_id'])
+            draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+            index = list(itertools.product(year_ids, missing_sex_ids, age_group_ids,
+                                           location_ids))  # makes a list of tuples with all the possible combinations for the demographic columns
+            df = pd.DataFrame(
+                {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
+                 'location_id': list(zip(*index))[3]})
+            df_dummy = pd.DataFrame(data=fill_na_value, index=df.index, columns=draw_columns)
+            df1 = pd.concat([df, df_dummy], axis=1)
+            data = pd.concat([data, df1], axis=0)
+
+    # checks the sex_ids of the resulting dataframe
+    if 'sex_id' in data:
+        assert (set(data['sex_id']).issubset(set(standard_sex_group_ids))), "sex_ids!"
+
+    return data  # or data[data['year_id'].isin(extent)]
+### END OF PAOLA'S CODE ###
+
+### START OF PAOLA'S CODE (YEAR_ID) ###
+
 def standardize_data_for_year(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
-    # Potential inputs:
-    # Data with all year ids and all data -> return data
-    # Data with too many year_ids -> clip and return
-    # Data with only gbd_years -> interpolate(1d)
-    return data
+        standard_years = set(range(1990, 2017))
+        years_in_df = set(data['year_id'])
 
+        if years_in_df.issuperset(standard_years):
+            data = data[data['year_id'].isin(standard_years)]
 
+        else:
+
+            year_ids = standard_years.difference(years_in_df)
+            sex_ids = set(data['sex_id'])
+            age_group_ids = set(data['age_group_id'])
+            location_ids = set(data['location_id'])
+            index = list(itertools.product(year_id, sex_id, age_group_id,
+                                           location_id))  # makes a list of tuples with all the possible combinations for the demographic columns
+            empty_df = pd.DataFrame(
+                {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
+                 'location_id': list(zip(*index))[3]})  # makes a dataframe with demographic columns
+            df_all_years = pd.concat([data, empty_df], axis=0)
+            data = df_all_years.interpolate(method='linear')
+
+        return data  # or data[data['year_id'].isin(extent)]
+
+### END OF PAOLA'S CODE ###
