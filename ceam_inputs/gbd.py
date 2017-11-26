@@ -315,14 +315,24 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
 def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level relative risks for a particular risk, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
-    return get_draws(gbd_id_field='rei_id',
-                     gbd_id=risk_ids,
+    results = []
+    for reid in risk_ids:
+        # FIXME: We should not need this loop but the current version of get_draws does not return
+        # a risk_id/gbd_id column so it's impossible to disambiguate the data for the different
+        # risks without doing additional complicated lookups to associate the meid (which it does
+        # return) with the risk. So instead we loop and wait for central comp to fix the issue.
+        # Help desk ticket: HELP-4746 
+        data = get_draws(gbd_id_field='rei_id',
+                     gbd_id=reid,
                      source='risk',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
                      age_group_ids=get_age_group_ids(GBD_ROUND_ID),
                      draw_type='rr',
                      gbd_round_id=GBD_ROUND_ID)
+        data['risk_id'] = reid
+        results.append(data)
+    return pd.concat(results)
 
 
 @memory.cache

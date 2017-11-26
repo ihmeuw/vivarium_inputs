@@ -93,18 +93,18 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
                 raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'exposure'")
 
             out['exposure'].add(entity.gbd_id)
-    if 'rr' in measures:
+    if 'relative_risk' in measures:
         for entity in entities:
             if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'rr'")
+                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'relative_risk'")
 
-            out['rr'].add(entity.gbd_id)
+            out['relative_risk'].add(entity.gbd_id)
     if "paf" in measures:
         for entity in entities:
             if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'paf'")
+                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
 
-            out['paf'].add(entity.gbd_id)
+            out['population_attributable_fraction'].add(entity.gbd_id)
 
     return out
 
@@ -169,16 +169,22 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
 
         data.append(measure_data)
 
+    if 'relative_risk' in measures:
+        ids = measure_entity_map['relative_risk']
+        measure_data = gbd.get_relative_risks(risk_ids=list(ids), location_ids=location_ids)
+        measure_data['measure'] = 'relative_risk'
+        measure_data = measure_data.rename(columns={f'rr_{i}':f'draw_{i}' for i in range(1000)})
+
+        data.append(measure_data)
+
     data = pd.concat(data)
 
-    if data['measure'].str.contains('paf') or data['measure'].str.contains('rr'):
-        id_cols = ['cause_id', 'risk_id']
+    if np.any(data['measure'].str.contains('population_attributable_fraction')) or np.any(data['measure'].str.contains('relative_risk')):
+        id_cols = ['cause_id', 'risk_id', 'parameter', 'mortality', 'morbidity']
     elif 'cause_id' in data.columns:
         id_cols = ['cause_id']
     elif 'sequela_id' in data.columns:
         id_cols = ['sequela_id']
-    elif 'risk_id' in data.columns:
-        id_cols = ['risk_id']
     else:
         raise GbdDataError('Stuff is broken')
 
@@ -275,13 +281,10 @@ def get_disability_weights(sequelae, _, gbd_round_id):
 ####################################
 
 
-def get_relative_risks(risks, location_ids, gbd_round_id):
-    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'parameter', 'mortality', 'morbidity']
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    df = get_gbd_draws(risks, ['rr'], location_ids, gbd_round_id)[key_columns + draw_columns]
-    df['rei_id'] = risks
-    for i in range(0, 1000):
-        df.rename(columns={f'rr_{i}' : f'draw_{i}'},  inplace = True)
+def get_relative_risks(risks, location_ids):
+    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'cause_id', 'parameter', 'mortality', 'morbidity']
+    draw_columns = [f'draw_{i}' for i in range(1000)]
+    df = get_gbd_draws(risks, ['relative_risk'], location_ids)[key_columns + draw_columns]
     return df[key_columns + draw_columns]
 
 
