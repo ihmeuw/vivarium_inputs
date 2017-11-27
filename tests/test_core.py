@@ -4,11 +4,6 @@ from ceam_inputs.gbd_mapping import causes
 from ceam_inputs import core
 
 
-
-
-
-
-
 def test_get_ids_for_inconsistent_entities(cause_list, sequela_list):
     with pytest.raises(core.InvalidQueryError):
         core.get_ids_for_measure(cause_list + sequela_list, ['test'])

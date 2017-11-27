@@ -6,7 +6,7 @@ import numpy as np
 
 from ceam_inputs import gbd
 from ceam_inputs.util import get_input_config
-from ceam_inputs.gbd_mapping import causes, risk_factors
+from ceam_inputs.gbd_mapping import causes, risk_factors, sid
 
 
 @pytest.fixture(scope='module')
