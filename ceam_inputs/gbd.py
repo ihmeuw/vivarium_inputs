@@ -351,7 +351,7 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.Da
 
 
 @memory.cache
-def get_pafs(risk_ids: Iterable[cid], location_ids: Iterable[int]) -> pd.DataFrame:
+def get_pafs(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level pafs for all risks associated with a particular cause, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
 
