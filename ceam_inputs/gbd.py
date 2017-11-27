@@ -373,10 +373,8 @@ def get_pafs(risk_ids: Iterable[cid], location_ids: Iterable[int]) -> pd.DataFra
                          num_workers=worker_count,
                          gbd_round_id=GBD_ROUND_ID)
 
-        data = data.query('measure_id in (1, 3) and metric_id == 2')
-        data['mortality'] = np.where(data.measure_id == 1, 1, 0)
-        data['morbidity'] = np.where(data.measure_id == 3, 1, 0)
-        del data['measure_id']
+        data = data.query('metric_id == 2')
+        del data['metric_id']
 
         data = data.rename(columns={'rei_id': 'risk_id'})
 
