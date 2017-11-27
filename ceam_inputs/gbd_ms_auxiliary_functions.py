@@ -33,13 +33,12 @@ def normalize_for_simulation(df):
     return df
 
 
-def get_age_group_midpoint_from_age_group_id(df, gbd_round_id):
+def get_age_group_midpoint_from_age_group_id(df):
     """Creates an "age" column from the "age_group_id" column
 
     Parameters
     ----------
     df: df for which you want an age column that has an age_group_id column
-    gbd_round_id: int
 
     Returns
     -------
@@ -59,7 +58,7 @@ def get_age_group_midpoint_from_age_group_id(df, gbd_round_id):
 
     df = df.copy()
     idx = df.index
-    mapping = gbd.get_age_bins(gbd_round_id)
+    mapping = gbd.get_age_bins()
     mapping = mapping.set_index('age_group_id')
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
 
@@ -98,14 +97,14 @@ def expand_grid(a, y):
     return df[['year_id', 'age']].sort_values(by=['year_id', 'age'])
 
 
-def get_all_age_groups_for_years_in_df(df, gbd_round_id):
+def get_all_age_groups_for_years_in_df(df):
     """Returns a dataframe with all ages for all years in df
 
     columns are age and year_id
     """
 
-    mapping = gbd.get_age_bins(gbd_round_id)
-    age_group_ids = gbd.get_age_group_ids(gbd_round_id)
+    mapping = gbd.get_age_bins()
+    age_group_ids = gbd.get_age_group_ids()
     mapping_filter = mapping.query('age_group_id in @age_group_ids').copy()
     mapping_filter['age'] = mapping_filter[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
     mapping_filter.loc[mapping_filter.age == 102.5, 'age'] = 82.5

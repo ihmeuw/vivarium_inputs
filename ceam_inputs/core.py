@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from ceam_inputs import gbd
+from ceam_inputs.gbd import GBD_ROUND_ID
 from ceam_inputs.gbd_mapping.templates import cid, sid, rid, UNKNOWN, Cause, Sequela, Etiology, Risk
 Entity = Union[Cause, Sequela, Etiology, Risk]
 
@@ -99,7 +100,7 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
                 raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'relative_risk'")
 
             out['relative_risk'].add(entity.gbd_id)
-    if "paf" in measures:
+    if "population_attributable_fraction" in measures:
         for entity in entities:
             if not isinstance(entity.gbd_id, rid):
                 raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
@@ -143,6 +144,7 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
         death_data = death_data[death_data['measure_id'] == name_measure_map['deaths']]
         death_data['measure'] = 'deaths'
         data.append(death_data)
+
     if 'remission' in measures:
         remission_data = gbd.get_modelable_entity_draws(me_ids=list(measure_entity_map['remission']),
                                                         location_ids=location_ids)
@@ -177,10 +179,26 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
 
         data.append(measure_data)
 
+    if 'population_attributable_fraction' in measures:
+        ids = measure_entity_map['population_attributable_fraction']
+        measure_data = gbd.get_pafs(risk_ids=list(ids), location_ids=location_ids)
+        measure_data['measure'] = 'population_attributable_fraction'
+        data.append(measure_data)
+
+    if 'exposure' in measures:
+        ids = measure_entity_map['exposure']
+        measure_data = gbd.get_exposures(risk_ids=list(ids), location_ids=location_ids)
+        measure_data['measure'] = 'exposure'
+        data.append(measure_data)
+
     data = pd.concat(data)
 
-    if np.any(data['measure'].str.contains('population_attributable_fraction')) or np.any(data['measure'].str.contains('relative_risk')):
+    if np.any(data['measure'].str.contains('population_attributable_fraction')):
+        id_cols = ['cause_id', 'risk_id', 'mortality', 'morbidity']
+    elif np.any(data['measure'].str.contains('relative_risk')):
         id_cols = ['cause_id', 'risk_id', 'parameter', 'mortality', 'morbidity']
+    elif np.any(data['measure'].str.contains('exposure')):
+        id_cols = ['risk_id', 'parameter']
     elif 'cause_id' in data.columns:
         id_cols = ['cause_id']
     elif 'sequela_id' in data.columns:
@@ -288,17 +306,17 @@ def get_relative_risks(risks, location_ids):
     return df[key_columns + draw_columns]
 
 
-def get_exposures(risks, location_ids, gbd_round_id):
+def get_exposures(risks, location_ids):
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'parameter']
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    return get_gbd_draws(risks, ['exposure'], location_ids, gbd_round_id)[key_columns + draw_columns]
+    return get_gbd_draws(risks, ['exposure'], location_ids)[key_columns + draw_columns]
 
 
-def get_pafs(risks, location_ids, gbd_round_id):
-    measure_entity_map = get_ids_for_measure(risks, ["pafs"])
-    return gbd.get_pafs(location_ids=location_ids,
-                        rei_ids=list(measure_entity_map["pafs"]),
-                        gbd_round_id=gbd_round_id)
+def get_population_attributable_fractions(risks, location_ids):
+    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'cause_id', 'mortality', 'morbidity']
+    draw_columns = [f'draw_{i}' for i in range(1000)]
+    df = get_gbd_draws(risks, ['population_attributable_fraction'], location_ids)[key_columns + draw_columns]
+    return df[key_columns + draw_columns]
 
 
 def get_ensemble_weights(risks, gbd_round_id):
@@ -315,27 +333,23 @@ def get_ensemble_weights(risks, gbd_round_id):
     return data
 
 
-def get_mediation_factors(risks, location_ids, gbd_round_id):
-    ids = [risk.gbd_id for risk in risks]
+def get_mediation_factors(risks, location_ids):
+    risk_ids = [risk.gbd_id for risk in risks]
     _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
-    data = gbd.get_data_from_auxiliary_file("Mediation Factors", gbd_round=_gbd_round_id_map[gbd_round_id])
-    df_list = []
-    for id in ids:
-        rf_df = data[data["rei_id"] == id]
-        if not rf_df.empty:
-            df_list.append(rf_df)
+    data = gbd.get_data_from_auxiliary_file("Mediation Factors", gbd_round=_gbd_round_id_map[GBD_ROUND_ID])
+    data = data.rename(columns={'rei_id': 'risk_id'})
 
-    if len(df_list) >= 1:
-        data = pd.concat(df_list)
+    data = data.query('risk_id in @risk_ids').copy()
+
+    if not data.empty:
         draw_columns = [f'draw_{i}' for i in range(0, 1000)]
         data[draw_columns] = 1 - (data[draw_columns])
-        data = data.groupby(["cause_id", 'rei_id'])[draw_columns].prod()
-        data.reset_index(inplace=True)
-        data = data.rename(columns={'rei_id': 'risk_id'})
+        data = data.groupby(['cause_id', 'risk_id'])[draw_columns].prod()
+        data = data.reset_index()
         return data
 
     else:
-        print("No mediation data found.")
+        return 0
 
 
 #######################
@@ -350,8 +364,8 @@ def get_populations(location_ids, gbd_round_id):
     return populations[keep_columns]
 
 
-def get_age_bins(gbd_round_id):
-    return gbd.get_age_bins(gbd_round_id)
+def get_age_bins():
+    return gbd.get_age_bins()
 
 
 def get_life_tables(location_id, gbd_round_id):
