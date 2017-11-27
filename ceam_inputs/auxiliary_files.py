@@ -67,11 +67,6 @@ FILES = {
         'source': "/snfs1/Project/Cost_Effectiveness/Access_to_care/02_analysis/01_data/op_unit_cost.csv",
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
-    'Diarrhea Visit Costs': {
-        'path': 'op_ip_weighted_cost.csv',
-        'source': "/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_weighted_cost.csv",
-        'owner': 'Mark Moses <mwm6@uw.edu>',
-    },
     'Ors Exposure': {
         'path': 'diarrhea_ors/exposure/{location_id}.csv',
         'source': '/share/epi/risk/bmgf/exp/diarrhea_ors/{location_id}.csv',
