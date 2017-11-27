@@ -225,10 +225,10 @@ def get_healthstate_mapping() -> pd.DataFrame:
 
 
 @memory.cache
-def get_subregions(location_id: int) -> List[int]:
+def get_subregions(location_ids: Iterable[int]) -> List[int]:
     """Get the subregion location ids associated with a particular location id."""
     from hierarchies import dbtrees
-    return [c.id for c in dbtrees.loctree(location_set_id=2).get_node_by_id(location_id).children]
+    return {location_id : [c.id for c in dbtrees.loctree(location_set_id=2).get_node_by_id(location_id).children] for location_id in location_ids}
 
 
 #####################################

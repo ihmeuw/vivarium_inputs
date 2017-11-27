@@ -372,3 +372,6 @@ def get_age_bins():
 def get_life_tables(location_id):
     return gbd.get_life_table(location_id)
 
+
+def get_subregions(location_ids):
+    return gbd.get_subregions(location_ids)
