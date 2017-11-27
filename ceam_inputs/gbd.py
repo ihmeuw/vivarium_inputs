@@ -4,6 +4,7 @@ from typing import Iterable, Union, List, Any, Mapping
 
 from joblib import Memory
 import pandas as pd
+import numpy as np
 
 from ceam_inputs.util import get_cache_directory, get_input_config
 from ceam_inputs.gbd_mapping import cid, sid, rid
@@ -180,7 +181,7 @@ def get_cause_me_id_mapping() -> pd.DataFrame:
 
 
 @memory.cache
-def get_age_group_ids(gbd_round_id: int, mortality: bool = False) -> pd.DataFrame:
+def get_age_group_ids(mortality: bool = False) -> pd.DataFrame:
     """Get the age group ids associated with a particular gbd round and team."""
     from db_queries.get_demographics import get_demographics
     if mortality:
@@ -188,11 +189,11 @@ def get_age_group_ids(gbd_round_id: int, mortality: bool = False) -> pd.DataFram
     else:
         team = 'epi'
 
-    return get_demographics(team, gbd_round_id)['age_group_id']
+    return get_demographics(team, GBD_ROUND_ID)['age_group_id']
 
 
 @memory.cache
-def get_age_bins(gbd_round_id: int) -> pd.DataFrame:
+def get_age_bins() -> pd.DataFrame:
     """Get the age group bin edges, ids, and names associated with a particular gbd round."""
     from db_tools import ezfuncs
     return ezfuncs.query(f"""
@@ -201,7 +202,7 @@ def get_age_bins(gbd_round_id: int) -> pd.DataFrame:
                    age_group_years_end,
                    age_group_name
             FROM age_group
-            WHERE age_group_id IN ({','.join([str(a) for a in get_age_group_ids(gbd_round_id)])})
+            WHERE age_group_id IN ({','.join([str(a) for a in get_age_group_ids()])})
             """, conn_def='shared')
 
 
@@ -315,14 +316,24 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
 def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level relative risks for a particular risk, location, and gbd round."""
     from transmogrifier.draw_ops import get_draws
-    return get_draws(gbd_id_field='rei_id',
-                     gbd_id=risk_ids,
+    results = []
+    for risk_id in risk_ids:
+        # FIXME: We should not need this loop but the current version of get_draws does not return
+        # a risk_id/gbd_id column so it's impossible to disambiguate the data for the different
+        # risks without doing additional complicated lookups to associate the meid (which it does
+        # return) with the risk. So instead we loop and wait for central comp to fix the issue.
+        # Help desk ticket: HELP-4746 
+        data = get_draws(gbd_id_field='rei_id',
+                     gbd_id=risk_id,
                      source='risk',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
                      age_group_ids=get_age_group_ids(GBD_ROUND_ID),
                      draw_type='rr',
                      gbd_round_id=GBD_ROUND_ID)
+        data['risk_id'] = risk_id
+        results.append(data)
+    return pd.concat(results)
 
 
 @memory.cache
@@ -351,14 +362,26 @@ def get_pafs(risk_ids: Iterable[cid], location_ids: Iterable[int]) -> pd.DataFra
     # which I'm going to do right now. -Alec
     # FIXME: This is not reflective of the actual file structure according to Joe. -James
     worker_count = 0 if current_process().daemon else 6  # One worker per 5-year burdenator file (1990 - 2015)
-    return get_draws(gbd_id_field=['rei_id'] * len(risk_ids),
-                     gbd_id=risk_ids,
+    results = []
+    for risk_id in risk_ids:
+        data = get_draws(gbd_id_field='rei_id',
+                     gbd_id=risk_id,
                      source='burdenator',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
                      age_group_ids=get_age_group_ids(GBD_ROUND_ID),
                      num_workers=worker_count,
                      gbd_round_id=GBD_ROUND_ID)
+
+        data = data.query('measure_id in (1, 3) and metric_id == 2')
+        data['mortality'] = np.where(data.measure_id == 1, 1, 0)
+        data['morbidity'] = np.where(data.measure_id == 3, 1, 0)
+        del data['measure_id']
+
+        data = data.rename(columns={'rei_id': 'risk_id'})
+
+        results.append(data)
+    return pd.concat(results)
 
 
 ####################################
