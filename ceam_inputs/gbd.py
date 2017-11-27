@@ -266,7 +266,7 @@ def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int
                                 source="dismod",
                                 location_ids=location_ids,
                                 sex_ids=MALE + FEMALE + COMBINED,
-                                age_group_ids=get_age_group_ids(GBD_ROUND_ID),
+                                age_group_ids=get_age_group_ids(),
                                 version_id=version,
                                 gbd_round_id=GBD_ROUND_ID) for me_id, version in model_versions.items()])
 
@@ -284,7 +284,7 @@ def get_codcorrect_draws(cause_ids: List[cid], location_ids: Iterable[int]) -> p
                      source="codcorrect",
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
+                     age_group_ids=get_age_group_ids(),
                      gbd_round_id=GBD_ROUND_ID)
 
 
@@ -307,7 +307,7 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
                      source="como",
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
+                     age_group_ids=get_age_group_ids(),
                      version_id=model_version,
                      gbd_round_id=GBD_ROUND_ID)
 
@@ -322,13 +322,13 @@ def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> 
         # a risk_id/gbd_id column so it's impossible to disambiguate the data for the different
         # risks without doing additional complicated lookups to associate the meid (which it does
         # return) with the risk. So instead we loop and wait for central comp to fix the issue.
-        # Help desk ticket: HELP-4746 
+        # Help desk ticket: HELP-4746
         data = get_draws(gbd_id_field='rei_id',
                      gbd_id=risk_id,
                      source='risk',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
+                     age_group_ids=get_age_group_ids(),
                      draw_type='rr',
                      gbd_round_id=GBD_ROUND_ID)
         data['risk_id'] = risk_id
@@ -345,7 +345,7 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.Da
                      source='risk',
                      location_ids=location_ids,
                      sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
+                     age_group_ids=get_age_group_ids(),
                      draw_type='exposure',
                      gbd_round_id=GBD_ROUND_ID)
 
@@ -365,13 +365,13 @@ def get_pafs(risk_ids: Iterable[cid], location_ids: Iterable[int]) -> pd.DataFra
     results = []
     for risk_id in risk_ids:
         data = get_draws(gbd_id_field='rei_id',
-                     gbd_id=risk_id,
-                     source='burdenator',
-                     location_ids=location_ids,
-                     sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(GBD_ROUND_ID),
-                     num_workers=worker_count,
-                     gbd_round_id=GBD_ROUND_ID)
+                         gbd_id=risk_id,
+                         source='burdenator',
+                         location_ids=location_ids,
+                         sex_ids=MALE + FEMALE + COMBINED,
+                         age_group_ids=get_age_group_ids(),
+                         num_workers=worker_count,
+                         gbd_round_id=GBD_ROUND_ID)
 
         data = data.query('measure_id in (1, 3) and metric_id == 2')
         data['mortality'] = np.where(data.measure_id == 1, 1, 0)
@@ -406,7 +406,7 @@ def get_populations(location_id: int) -> pd.DataFrame:
     """Gets all population levels for a particular location and gbd round."""
     from db_queries import get_population
 
-    return get_population(age_group_id=get_age_group_ids(GBD_ROUND_ID),
+    return get_population(age_group_id=get_age_group_ids(),
                           location_id=location_id,
                           year_id=[-1],
                           sex_id=MALE + FEMALE + COMBINED,

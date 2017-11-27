@@ -19,6 +19,7 @@ name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mor
 gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
+
 class GbdDataError(Exception):
     """Base exception for errors in GBD data."""
     pass
@@ -220,29 +221,29 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
 ####################################
 
 
-def get_prevalences(entities, location_ids, gbd_round_id):
+def get_prevalences(entities, location_ids):
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id']
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    return get_gbd_draws(entities, ['prevalence'], location_ids, gbd_round_id)[key_columns + draw_columns]
+    return get_gbd_draws(entities, ['prevalence'], location_ids)[key_columns + draw_columns]
 
 
-def get_incidences(entities, location_ids, gbd_round_id):
+def get_incidences(entities, location_ids):
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id']
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    return get_gbd_draws(entities, ['incidence'], location_ids, gbd_round_id)[key_columns + draw_columns]
+    return get_gbd_draws(entities, ['incidence'], location_ids)[key_columns + draw_columns]
 
 
-def get_remissions(causes, location_ids, gbd_round_id):
+def get_remissions(causes, location_ids):
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id']
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    return get_gbd_draws(causes, ['remission'], location_ids, gbd_round_id)[key_columns + draw_columns]
+    return get_gbd_draws(causes, ['remission'], location_ids)[key_columns + draw_columns]
 
 
-def get_cause_specific_mortalities(causes, location_ids, gbd_round_id):
-    deaths = get_gbd_draws(causes, ["deaths"], location_ids, gbd_round_id)
+def get_cause_specific_mortalities(causes, location_ids):
+    deaths = get_gbd_draws(causes, ["deaths"], location_ids)
     del deaths['measure_id']
 
-    populations = get_populations(location_ids, gbd_round_id)
+    populations = get_populations(location_ids)
     populations = populations[populations['year_id'] >= deaths.year_id.min()]
 
     merge_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id']
@@ -258,9 +259,9 @@ def get_cause_specific_mortalities(causes, location_ids, gbd_round_id):
     return csmr
 
 
-def get_excess_mortalities(causes, location_ids, gbd_round_id):
-    prevalences = get_prevalences(causes, location_ids, gbd_round_id)
-    csmrs = get_cause_specific_mortalities(causes, location_ids, gbd_round_id)
+def get_excess_mortalities(causes, location_ids):
+    prevalences = get_prevalences(causes, location_ids)
+    csmrs = get_cause_specific_mortalities(causes, location_ids)
 
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', "gbd_id"]
     prevalences = prevalences.set_index(key_columns)
@@ -271,8 +272,8 @@ def get_excess_mortalities(causes, location_ids, gbd_round_id):
     return em.reset_index().dropna()
 
 
-def get_disability_weights(sequelae, _, gbd_round_id):
-    gbd_round = gbd_round_id_map[gbd_round_id]
+def get_disability_weights(sequelae, _):
+    gbd_round = gbd_round_id_map[GBD_ROUND_ID]
     disability_weights = gbd.get_data_from_auxiliary_file('Disability Weights', gbd_round=gbd_round)
     combined_disability_weights = gbd.get_data_from_auxiliary_file('Combined Disability Weights', gbd_round=gbd_round)
 
@@ -319,13 +320,13 @@ def get_population_attributable_fractions(risks, location_ids):
     return df[key_columns + draw_columns]
 
 
-def get_ensemble_weights(risks, gbd_round_id):
+def get_ensemble_weights(risks):
     data = []
     ids = [risk.gbd_id for risk in risks]
     for i in range(0, (len(ids))):
         risk_id = ids[i]
         temp = gbd.get_data_from_auxiliary_file('Ensemble Distribution Weights',
-                                            gbd_round = gbd_round_id_map[gbd_round_id],
+                                            gbd_round = gbd_round_id_map[GBD_ROUND_ID],
                                             rei_id = risk_id)
         temp['risk_id'] = risk_id
         data.append(temp)
@@ -357,8 +358,8 @@ def get_mediation_factors(risks, location_ids):
 #######################
 
 
-def get_populations(location_ids, gbd_round_id):
-    populations = pd.concat([gbd.get_populations(location_id, gbd_round_id) for location_id in location_ids])
+def get_populations(location_ids):
+    populations = pd.concat([gbd.get_populations(location_id) for location_id in location_ids])
     populations = populations[populations['sex_id'] != COMBINED]
     keep_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population']
     return populations[keep_columns]
@@ -368,6 +369,6 @@ def get_age_bins():
     return gbd.get_age_bins()
 
 
-def get_life_tables(location_id, gbd_round_id):
-    return gbd.get_life_table(location_id, gbd_round_id)
+def get_life_tables(location_id):
+    return gbd.get_life_table(location_id)
 
