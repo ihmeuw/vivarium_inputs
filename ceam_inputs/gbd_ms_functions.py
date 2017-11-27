@@ -843,26 +843,6 @@ def get_ors_exposures(location_id, gbd_round_id, draw_number=None):
     return out
 
 
-def get_diarrhea_visit_costs(location_id, gbd_round_id, draw_number):
-    """
-    Parameters
-    ----------
-    location_id : int
-        location_id takes same location_id values as are used for GBD
-    draw_number: int
-        current draw number (as specified in config.run_configuration.input_draw_numberq)
-    gbd_round_id : int
-    """
-    if location_id not in [179, 161, 214]:
-        raise ValueError("We only currently have outpatient costs for Ethiopia, Bangladesh, and Nigeria")
-
-    costs = gbd.get_data_from_auxiliary_file('Diarrhea Visit Costs', gbd_round=_gbd_round_id_map[gbd_round_id])
-    costs = costs.query("location_id == {}".format(location_id))
-    costs = costs.query("variable == 'draw_{}'".format(draw_number))
-
-    return costs
-
-
 def get_life_table(location_id, gbd_round_id):
     life_table = gbd.get_life_table(location_id, gbd_round_id)
     life_table = get_age_group_midpoint_from_age_group_id(life_table, gbd_round_id)
