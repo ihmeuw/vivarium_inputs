@@ -35,6 +35,12 @@ class hid(int):
         return "hid({:d})".format(self)
 
 
+class covid(int):
+    """Covariate ID"""
+    def __repr__(self):
+        return "covid({:d})".format(self)
+
+
 class scalar(float):
     """Raw Measure Value"""
     def __repr__(self):
@@ -84,7 +90,7 @@ class ModelableEntity(GbdRecord):
 
     def __init__(self,
                  name: str,
-                 gbd_id: Union[rid, cid, sid, hid, None], ):
+                 gbd_id: Union[rid, cid, sid, hid, meid, covid, None], ):
         super().__init__()
         self.name = name
         self.gbd_id = gbd_id
