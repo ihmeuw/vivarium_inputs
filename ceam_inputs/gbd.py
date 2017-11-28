@@ -387,15 +387,16 @@ def get_pafs(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFra
 ####################################
 
 @memory.cache
-def get_covariate_estimates(covariate_id: int, location_id: int) -> pd.DataFrame:
+def get_covariate_estimates(covariate_ids: Iterable[int], location_ids: Iterable[int]) -> pd.DataFrame:
     """Pulls covariate data for a particular covariate and location."""
     from db_queries import get_covariate_estimates
     # FIXME: Make sure we don't need a version id here.
-    covariate_estimates = get_covariate_estimates(covariate_id=covariate_id,
-                                                  location_id=location_id,
-                                                  sex_id=MALE + FEMALE + COMBINED,
-                                                  age_group_id=-1,
-                                                  gbd_round_id=GBD_ROUND_ID)
+    covariate_estimates = pd.concat([get_covariate_estimates(covariate_id=covariate_id,
+                                                             location_id=location_ids,
+                                                             sex_id=MALE + FEMALE + COMBINED,
+                                                             age_group_id=-1,
+                                                             gbd_round_id=GBD_ROUND_ID)
+                                     for covariate_id in covariate_ids])
     return covariate_estimates
 
 
