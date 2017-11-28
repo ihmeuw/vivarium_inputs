@@ -15,7 +15,14 @@ MALE = [1]
 FEMALE = [2]
 COMBINED = [3]
 
-name_measure_map = {'prevalence': 5, 'incidence': 6, 'remission': 7, 'excess_mortality': 9, 'deaths': 1}
+name_measure_map = {'death': 1,
+                    'DALY': 2,
+                    'YLD': 3,
+                    'YLL': 4,
+                    'prevalence': 5,
+                    'incidence': 6,
+                    'remission': 7,
+                    'excess_mortality': 9}
 gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
@@ -65,12 +72,12 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
         raise InvalidQueryError("All entities must be of the same type")
 
     out = defaultdict(set)
-    if 'deaths' in measures:
+    if 'death' in measures:
         for entity in entities:
             if not isinstance(entity.gbd_id, cid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'deaths'")
+                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'death'")
 
-            out['deaths'].add(entity.gbd_id)
+            out['death'].add(entity.gbd_id)
     if 'remission' in measures:
         for entity in entities:
             if not isinstance(entity.gbd_id, cid) or entity.dismod_id is UNKNOWN:
@@ -139,11 +146,11 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
     measure_entity_map = get_ids_for_measure(entities, measures)
 
     data = []
-    if 'deaths' in measure_entity_map:
-        death_data = gbd.get_codcorrect_draws(cause_ids=list(measure_entity_map['deaths']),
+    if 'death' in measure_entity_map:
+        death_data = gbd.get_codcorrect_draws(cause_ids=list(measure_entity_map['death']),
                                               location_ids=location_ids)
-        death_data = death_data[death_data['measure_id'] == name_measure_map['deaths']]
-        death_data['measure'] = 'deaths'
+        death_data = death_data[death_data['measure_id'] == name_measure_map['death']]
+        death_data['measure'] = 'death'
         data.append(death_data)
 
     if 'remission' in measures:
@@ -175,6 +182,13 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
     if 'relative_risk' in measures:
         ids = measure_entity_map['relative_risk']
         measure_data = gbd.get_relative_risks(risk_ids=list(ids), location_ids=location_ids)
+        assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), \
+               "Not all relative risk data has both the 'mortality' and 'morbidity' flag " \
+               "set. This may not indicate an error but it is a case we don't explicitly handle. " \
+               "If you need this risk, come talk to one of the programmers."
+        del measure_data['mortality']
+        del measure_data['morbidity']
+
         measure_data['measure'] = 'relative_risk'
         measure_data = measure_data.rename(columns={f'rr_{i}':f'draw_{i}' for i in range(1000)})
 
@@ -183,6 +197,18 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
     if 'population_attributable_fraction' in measures:
         ids = measure_entity_map['population_attributable_fraction']
         measure_data = gbd.get_pafs(risk_ids=list(ids), location_ids=location_ids)
+
+        key_columns = ['sex_id', 'risk_id', 'year_id', 'cause_id', 'age_group_id', 'location_id']
+        measure_ids = {name_measure_map['death'], name_measure_map['DALY'], name_measure_map['YLD'], name_measure_map['YLL']}
+        assert np.all(measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), \
+               "Not all PAF data has values for deaths, DALYs, YLDs and YLLs. " \
+               "This may not indicate an error but it is a case we don't explicitly handle. " \
+               "If you need this PAF, come talk to one of the programmers."
+        #TODO: figure out if we need to assert some property of the different PAF measures
+
+        yld_id = name_measure_map['YLD']
+        measure_data = measure_data.query('measure_id == @yld_id').copy()
+        del measure_data['measure_id']
         measure_data['measure'] = 'population_attributable_fraction'
         data.append(measure_data)
 
@@ -195,9 +221,9 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
     data = pd.concat(data)
 
     if np.any(data['measure'].str.contains('population_attributable_fraction')):
-        id_cols = ['cause_id', 'risk_id', 'mortality', 'morbidity']
+        id_cols = ['cause_id', 'risk_id']
     elif np.any(data['measure'].str.contains('relative_risk')):
-        id_cols = ['cause_id', 'risk_id', 'parameter', 'mortality', 'morbidity']
+        id_cols = ['cause_id', 'risk_id', 'parameter']
     elif np.any(data['measure'].str.contains('exposure')):
         id_cols = ['risk_id', 'parameter']
     elif 'cause_id' in data.columns:
@@ -240,7 +266,7 @@ def get_remissions(causes, location_ids):
 
 
 def get_cause_specific_mortalities(causes, location_ids):
-    deaths = get_gbd_draws(causes, ["deaths"], location_ids)
+    deaths = get_gbd_draws(causes, ["death"], location_ids)
     del deaths['measure_id']
 
     populations = get_populations(location_ids)
@@ -301,7 +327,7 @@ def get_disability_weights(sequelae, _):
 
 
 def get_relative_risks(risks, location_ids):
-    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'cause_id', 'parameter', 'mortality', 'morbidity']
+    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'cause_id', 'parameter']
     draw_columns = [f'draw_{i}' for i in range(1000)]
     df = get_gbd_draws(risks, ['relative_risk'], location_ids)[key_columns + draw_columns]
     return df[key_columns + draw_columns]
@@ -314,7 +340,7 @@ def get_exposures(risks, location_ids):
 
 
 def get_population_attributable_fractions(risks, location_ids):
-    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'cause_id', 'mortality', 'morbidity']
+    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'cause_id']
     draw_columns = [f'draw_{i}' for i in range(1000)]
     df = get_gbd_draws(risks, ['population_attributable_fraction'], location_ids)[key_columns + draw_columns]
     return df[key_columns + draw_columns]
@@ -372,3 +398,6 @@ def get_age_bins():
 def get_life_tables(location_id):
     return gbd.get_life_table(location_id)
 
+
+def get_subregions(location_ids):
+    return gbd.get_subregions(location_ids)
