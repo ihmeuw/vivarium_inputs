@@ -26,7 +26,6 @@ name_measure_map = {'death': 1,
 gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
-
 class GbdDataError(Exception):
     """Base exception for errors in GBD data."""
     pass
@@ -96,12 +95,12 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
                 raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'incidence'")
 
             out['incidence'].add(entity.gbd_id)
-    if 'exposure' in measures:
+    if 'exposure_mean' in measures:
         for entity in entities:
             if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'exposure'")
+                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'exposure_mean'")
 
-            out['exposure'].add(entity.gbd_id)
+            out['exposure_mean'].add(entity.gbd_id)
     if 'relative_risk' in measures:
         for entity in entities:
             if not isinstance(entity.gbd_id, rid):
@@ -111,7 +110,8 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
     if "population_attributable_fraction" in measures:
         for entity in entities:
             if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
+                raise InvalidQueryError(
+                    f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
 
             out['population_attributable_fraction'].add(entity.gbd_id)
 
@@ -142,7 +142,25 @@ def validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
         raise DuplicateDataError()
 
 
-def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_ids: Iterable[int]):
+# FIXME: This function is too big.  Split it up to ease testing.
+def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_ids: Iterable[int]) -> pd.DataFrame:
+    """Gets draw level gbd data for each specified measure and entity.
+
+    Parameters
+    ----------
+    entities:
+        A list of data containers from the `gbd_mapping` package. The entities must all be the same
+        type (e.g. all `gbd_mapping.Cause` objects or all `gbd_mapping.Risk` objects, etc.
+    measures:
+        A list of the GBD measures requested for the provided entities.
+    location_ids:
+        A list of location ids to pull data for.
+
+    Returns
+    -------
+    A table of draw level data for indexed by an entity, measure, and location combination as well as demographic data
+    (age_group_id, sex_id, year_id) where appropriate.
+    """
     measure_entity_map = get_ids_for_measure(entities, measures)
 
     data = []
@@ -182,15 +200,16 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
     if 'relative_risk' in measures:
         ids = measure_entity_map['relative_risk']
         measure_data = gbd.get_relative_risks(risk_ids=list(ids), location_ids=location_ids)
-        assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), \
-               "Not all relative risk data has both the 'mortality' and 'morbidity' flag " \
-               "set. This may not indicate an error but it is a case we don't explicitly handle. " \
-               "If you need this risk, come talk to one of the programmers."
+        err_msg = ("Not all relative risk data has both the 'mortality' and 'morbidity' flag "
+                   + "set. This may not indicate an error but it is a case we don't explicitly handle. "
+                   + "If you need this risk, come talk to one of the programmers.")
+        assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), err_msg
+
         del measure_data['mortality']
         del measure_data['morbidity']
 
         measure_data['measure'] = 'relative_risk'
-        measure_data = measure_data.rename(columns={f'rr_{i}':f'draw_{i}' for i in range(1000)})
+        measure_data = measure_data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
 
         data.append(measure_data)
 
@@ -199,23 +218,25 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
         measure_data = gbd.get_pafs(risk_ids=list(ids), location_ids=location_ids)
 
         key_columns = ['sex_id', 'risk_id', 'year_id', 'cause_id', 'age_group_id', 'location_id']
-        measure_ids = {name_measure_map['death'], name_measure_map['DALY'], name_measure_map['YLD'], name_measure_map['YLL']}
-        assert np.all(measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), \
-               "Not all PAF data has values for deaths, DALYs, YLDs and YLLs. " \
-               "This may not indicate an error but it is a case we don't explicitly handle. " \
-               "If you need this PAF, come talk to one of the programmers."
-        #TODO: figure out if we need to assert some property of the different PAF measures
+        measure_ids = {name_measure_map['death'], name_measure_map['DALY'],
+                       name_measure_map['YLD'], name_measure_map['YLL']}
+        err_msg = ("Not all PAF data has values for deaths, DALYs, YLDs and YLLs. "
+                   + "This may not indicate an error but it is a case we don't explicitly handle. "
+                   + "If you need this PAF, come talk to one of the programmers.")
+        assert np.all(
+            measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
 
+        # TODO: figure out if we need to assert some property of the different PAF measures
         yld_id = name_measure_map['YLD']
         measure_data = measure_data.query('measure_id == @yld_id').copy()
         del measure_data['measure_id']
         measure_data['measure'] = 'population_attributable_fraction'
         data.append(measure_data)
 
-    if 'exposure' in measures:
-        ids = measure_entity_map['exposure']
+    if 'exposure_mean' in measures:
+        ids = measure_entity_map['exposure_mean']
         measure_data = gbd.get_exposures(risk_ids=list(ids), location_ids=location_ids)
-        measure_data['measure'] = 'exposure'
+        measure_data['measure'] = 'exposure_mean'
         data.append(measure_data)
 
     data = pd.concat(data)
@@ -224,7 +245,7 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
         id_cols = ['cause_id', 'risk_id']
     elif np.any(data['measure'].str.contains('relative_risk')):
         id_cols = ['cause_id', 'risk_id', 'parameter']
-    elif np.any(data['measure'].str.contains('exposure')):
+    elif np.any(data['measure'].str.contains('exposure_mean')):
         id_cols = ['risk_id', 'parameter']
     elif 'cause_id' in data.columns:
         id_cols = ['cause_id']
@@ -247,25 +268,85 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
 ####################################
 
 
-def get_prevalences(entities, location_ids):
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id']
+def get_prevalences(entities: Union[Sequence[Cause], Sequence[Sequela]], location_ids: Sequence[int]) -> pd.DataFrame:
+    """Gets prevalence data for the specified entities and locations.
+
+    Parameters
+    ----------
+    entities:
+        A list of data containers from the `gbd_mapping` package. The entities must all be the same
+        type (all `gbd_mapping.Cause` objects or all `gbd_mapping.Sequela` objects).
+    location_ids:
+        A list of location ids to pull data for.
+
+    Returns
+    -------
+    A table of prevalence data for indexed by the given entity ids and location ids
+    as well as by demographic data (year_id, sex_id, and age_group_id).
+    """
+    id_type = 'cause_id' if isinstance(entities[0], Cause) else 'sequela_id'
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_type]
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
     return get_gbd_draws(entities, ['prevalence'], location_ids)[key_columns + draw_columns]
 
 
-def get_incidences(entities, location_ids):
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id']
+def get_incidences(entities: Union[Sequence[Cause], Sequence[Sequela]], location_ids: Sequence[int]) -> pd.DataFrame:
+    """Gets incidence data for the specified entities and locations.
+
+    Parameters
+    ----------
+    entities:
+        A list of data containers from the `gbd_mapping` package. The entities must all be the same
+        type (all `gbd_mapping.Cause` objects or all `gbd_mapping.Sequela` objects).
+    location_ids:
+        A list of location ids to pull data for.
+
+    Returns
+    -------
+    A table of incidence data for indexed by the given entity ids and location ids
+    as well as by demographic data (year_id, sex_id, and age_group_id).
+    """
+    id_type = 'cause_id' if isinstance(entities[0], Cause) else 'sequela_id'
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_type]
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
     return get_gbd_draws(entities, ['incidence'], location_ids)[key_columns + draw_columns]
 
 
-def get_remissions(causes, location_ids):
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id']
+def get_remissions(causes: Sequence[Cause], location_ids: Sequence[int]) -> pd.DataFrame:
+    """Gets remission data for the specified causes and locations.
+
+    Parameters
+    ----------
+    causes:
+        A list of `Cause` data containers from the `gbd_mapping` package.
+    location_ids:
+        A list of location ids to pull data for.
+
+    Returns
+    -------
+    A table of incidence data for indexed by the given cause ids and location ids
+    as well as by demographic data (year_id, sex_id, and age_group_id).
+    """
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'cause_id']
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
     return get_gbd_draws(causes, ['remission'], location_ids)[key_columns + draw_columns]
 
 
-def get_cause_specific_mortalities(causes, location_ids):
+def get_cause_specific_mortalities(causes: Sequence[Cause], location_ids: Sequence[int]) -> pd.DataFrame:
+    """Gets cause specific mortality data for the specified causes and locations.
+
+    Parameters
+    ----------
+    causes:
+        A list of `Cause` data containers from the `gbd_mapping` package.
+    location_ids:
+        A list of location ids to pull data for.
+
+    Returns
+    -------
+    A table of cause specific mortality data for indexed by the given cause ids and location ids
+    as well as by demographic data (year_id, sex_id, and age_group_id).
+    """
     deaths = get_gbd_draws(causes, ["death"], location_ids)
     del deaths['measure_id']
 
@@ -273,7 +354,7 @@ def get_cause_specific_mortalities(causes, location_ids):
     populations = populations[populations['year_id'] >= deaths.year_id.min()]
 
     merge_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id']
-    key_columns = merge_columns + ['gbd_id']
+    key_columns = merge_columns + ['cause_id']
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
 
     df = deaths.merge(populations, on=merge_columns).set_index(key_columns)
@@ -285,20 +366,49 @@ def get_cause_specific_mortalities(causes, location_ids):
     return csmr
 
 
-def get_excess_mortalities(causes, location_ids):
+def get_excess_mortalities(causes: Sequence[Cause], location_ids: Sequence[int]) -> pd.DataFrame:
+    """Gets excess mortality data for the specified causes and locations.
+
+    Parameters
+    ----------
+    causes:
+        A list of `Cause` data containers from the `gbd_mapping` package.
+    location_ids:
+        A list of location ids to pull data for.
+
+    Returns
+    -------
+    A table of excess mortality data for indexed by the given cause ids and location ids
+    as well as by demographic data (year_id, sex_id, and age_group_id).
+    """
     prevalences = get_prevalences(causes, location_ids)
     csmrs = get_cause_specific_mortalities(causes, location_ids)
 
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', "gbd_id"]
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'cause_id']
     prevalences = prevalences.set_index(key_columns)
     csmrs = csmrs.set_index(key_columns)
 
-    em = csmrs.divide(prevalences, axis="index")
+    em = csmrs.divide(prevalences, axis='index')
 
     return em.reset_index().dropna()
 
 
-def get_disability_weights(sequelae, _):
+def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.DataFrame:
+    # TODO: Check out what the data looks like to verify Returns section.
+    """Gets disability weight data for the specified sequelae and locations.
+
+    Parameters
+    ----------
+    sequelae:
+        A list of `Sequela` data containers from the `gbd_mapping` package.
+    _:
+        A list of location ids for API consistency.
+
+    Returns
+    -------
+    A table of disability data for indexed by the given sequela ids and location ids
+    as well as by demographic data (year_id, sex_id, and age_group_id).
+    """
     gbd_round = gbd_round_id_map[GBD_ROUND_ID]
     disability_weights = gbd.get_data_from_auxiliary_file('Disability Weights', gbd_round=gbd_round)
     combined_disability_weights = gbd.get_data_from_auxiliary_file('Combined Disability Weights', gbd_round=gbd_round)
@@ -318,7 +428,7 @@ def get_disability_weights(sequelae, _):
         data.append(df)
 
     data = pd.concat(data)
-    return df.reset_index(drop=True)
+    return data.reset_index(drop=True)
 
 
 ####################################
@@ -333,10 +443,15 @@ def get_relative_risks(risks, location_ids):
     return df[key_columns + draw_columns]
 
 
-def get_exposures(risks, location_ids):
+def get_exposure_means(risks, location_ids):
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'parameter']
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    return get_gbd_draws(risks, ['exposure'], location_ids)[key_columns + draw_columns]
+    return get_gbd_draws(risks, ['exposure_mean'], location_ids)[key_columns + draw_columns]
+
+
+def get_exposure_standard_deviations(risks, location_ids):
+    # TODO: This stuff.
+    pass
 
 
 def get_population_attributable_fractions(risks, location_ids):
@@ -346,7 +461,7 @@ def get_population_attributable_fractions(risks, location_ids):
     return df[key_columns + draw_columns]
 
 
-def get_ensemble_weights(risks):
+def get_ensemble_weights(risks, location_ids):
     data = []
     ids = [risk.gbd_id for risk in risks]
     for i in range(0, (len(ids))):
@@ -401,3 +516,25 @@ def get_life_tables(location_id):
 
 def get_subregions(location_ids):
     return gbd.get_subregions(location_ids)
+
+
+def get_costs(entities, location_ids):
+    data = []
+    for entity in entities:
+        df = gbd.get_data_from_auxiliary_file(entity.cost)
+        if entity.name in ['inpatient_visits', 'outpatient_visits']:
+            df = df[df['location_id'].isin(location_ids)]
+        data.append(df)
+    return pd.concat(data)
+
+
+def get_covariate_estimates(covariates, location_ids):
+    return gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)
+
+
+def get_protection():
+    pass
+
+
+def get_coverage():
+    pass
