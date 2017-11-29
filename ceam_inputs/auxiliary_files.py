@@ -17,7 +17,7 @@ FILES = {
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv',
         },
     'Ensemble Distribution Weights': {
-        'path': 'ensemble/weights/{rei_id}.csv',
+        'path': 'ensemble_weight/risk/{rei_id}.csv',
         'source': '/home/j/WORK/05_risk/ensemble/weights',
         'owner': 'Patrick J Sur <psur2417@uw.edu>, Stan Biryukov <stan0625@uw.edu>',
         },
@@ -26,16 +26,16 @@ FILES = {
         'owner': 'Reed Sorenson <rsoren@uw.edu>',
         },
     'Inpatient Visit Costs': {
-        'path': 'costs/healthcare_entities/inpatient.hdf',
+        'path': 'cost/healthcare_entity/inpatient.hdf',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
     'Outpatient Visit Costs': {
-        'path': 'costs/healthcare_entities/outpatient.hdf',
+        'path': 'cost/healthcare_entity/outpatient.hdf',
         'source': "/snfs1/Project/Cost_Effectiveness/Access_to_care/02_analysis/01_data/op_unit_cost.csv",
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
     'Hypertension Drug Costs': {
-        'path': 'costs/treatment_technologies/hypertension_drugs.hdf',
+        'path': 'cost/treatment_technology/hypertension_drugs.hdf',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
     'Ors Exposure': {
@@ -44,12 +44,12 @@ FILES = {
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
     'Ors Relative Risks': {
-        'path': 'diarrhea_ors/diarrhea_ors_rrs.csv',
+        'path': 'relative_risk/treatment_technology/ors.hdf',
         'source': '/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
     'Ors Pafs': {
-        'path': 'diarrhea_ors/pafs/paf_yll_{location_id}.csv',
+        'path': 'population_attributable_fraction/treatment_technology/ors.hdf',
         'source': '/share/epi/risk/bmgf/paf/diarrhea_ors/paf_yll_{location_id}.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
@@ -59,13 +59,7 @@ FILES = {
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
     'Rota Vaccine Protection': {
-        'path': 'rota_protection_draws.csv',
-        # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
-        'source': '',
-        'owner': 'Everett Mumford <emumford@uw.edu>',
-    },
-    'Rota Vaccine RRs': {
-        'path': 'rota_vaccine_rrs.csv',
+        'path': '/protection/treatment_technology/rotaviral_entiritis_vaccines.hdf',
         # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
         'source': '',
         'owner': 'Everett Mumford <emumford@uw.edu>',
