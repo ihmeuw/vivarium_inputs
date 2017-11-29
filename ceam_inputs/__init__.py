@@ -160,3 +160,9 @@ def get_protection(treatment_technology, override_config=None):
     data = core.get_protection([treatment_technology], [config.input_data.location_id])
     data = data[['location_id', 'measure', 'treatment_technology', f'draw_{config.input_data.draw_number}']]
     return data.rename(columns={f'draw_{config.input_data.draw_number}': 'protection'})
+
+
+def get_healthcare_annual_visits(healthcare_entity, ovverride_config=None):
+    config = get_input_config(override_config)
+    data = core.get_healthcare_annual_visits([healthcare_entity], [config.inupt_data.location_id])
+    return _clean_and_filter_data(data, config.input_data.draw_number, 'annual_visits')

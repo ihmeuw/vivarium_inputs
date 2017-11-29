@@ -7,6 +7,7 @@ import pandas as pd
 
 from ceam_inputs import gbd, risk_factor_correlation
 from ceam_inputs.gbd_mapping.templates import cid, sid, rid, UNKNOWN, Cause, Sequela, Etiology, Risk
+from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
 Entity = Union[Cause, Sequela, Etiology, Risk]
 
 # Define GBD sex ids for usage with central comp tools.
@@ -21,7 +22,9 @@ name_measure_map = {'death': 1,
                     'prevalence': 5,
                     'incidence': 6,
                     'remission': 7,
-                    'excess_mortality': 9}
+                    'excess_mortality': 9,
+                    'proportion': 18,
+                    'continuous': 19,}
 gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
@@ -113,6 +116,12 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
                     f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
 
             out['population_attributable_fraction'].add(entity.gbd_id)
+    if "utilization" in measures:
+        for entity in entities:
+            if not isinstance(entity, HealthcareEntity):
+                raise InvalidQueryError(
+                    f"Entity {entity.name} has no data for measure 'utilization'")
+            out['utilization'].add(entity.utilization)
 
     return out
 
@@ -242,6 +251,15 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
         measure_data['measure'] = 'exposure_mean'
         data.append(measure_data)
 
+    if 'annual_visits' in measures:
+        ids = measure_entity_map['annual_visits']
+        measure_data = gbd.get_modelable_entity_draws(me_ids=list(ids), location_ids=location_ids)
+        measure_data = measure_data[measure_data['measure_id'] == name_measure_map['continuous']]
+        measure_data = measure_data[measure_data['sex_id'] != COMBINED]
+        measure_data['measure'] = 'annual_visits'
+        data.append(measure_data)
+
+
     data = pd.concat(data)
 
     if np.any(data['measure'].str.contains('population_attributable_fraction')):
@@ -250,6 +268,8 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
         id_cols = ['cause_id', 'risk_id', 'parameter']
     elif np.any(data['measure'].str.contains('exposure_mean')):
         id_cols = ['risk_id', 'parameter']
+    elif np.any(data['measure'].str.contains('utilization')):
+        id_cols = ['modelable_entity_id']
     elif 'cause_id' in data.columns:
         id_cols = ['cause_id']
     elif 'sequela_id' in data.columns:
@@ -558,6 +578,11 @@ def get_costs(entities, location_ids):
         data.append(df)
     return pd.concat(data)
 
+def get_healthcare_annual_visits(entities, location_ids):
+    key_columns = ['age_group_id', 'location_id', 'modelable_entity_id', 'sex_id', 'year_id']
+    draw_columns = [f'draw_{i}' for i in range(1000)]
+    df = get_gbd_draws(entities, ['annual_visits'], location_ids)[key_columns + draw_columns]
+    return df
 
 def get_covariate_estimates(covariates, location_ids):
     return gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)

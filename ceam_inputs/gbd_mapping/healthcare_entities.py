@@ -4,15 +4,15 @@ from .templates import GbdRecord, ModelableEntity, meid
 
 class HealthcareEntity(ModelableEntity):
     """Container for healthcare system GBD ids and data."""
-    __slots__ = ('name', 'gbd_id', 'proportion', 'cost')
+    __slots__ = ('name', 'gbd_id', 'utilization', 'cost')
 
     def __init__(self,
                  name: str,
                  gbd_id: Union[meid, None],
-                 proportion: meid = None,
+                 utilization: meid = None,
                  cost: str = None,):
         super().__init__(name=name, gbd_id=gbd_id)
-        self.proportion = proportion
+        self.utilization = utilization
         self.cost = cost
 
 
@@ -32,13 +32,14 @@ class HealthcareEntities(GbdRecord):
 healthcare_entities = HealthcareEntities(
     outpatient_visits=HealthcareEntity(
         name='outpatient_visits',
-        gbd_id=meid(9458),
-        proportion=meid(9458),
+        gbd_id=meid(10333),
+        utilization=meid(10333),
         cost='Outpatient Visit Costs'
     ),
     inpatient_visits=HealthcareEntity(
         name='inpatient_visits',
-        gbd_id=None,
+        gbd_id=meid(10334),
+        utilization=meid(10334),
         cost='Inpatient Visit Costs',
     )
 )
