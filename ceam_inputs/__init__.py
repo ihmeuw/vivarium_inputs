@@ -60,9 +60,9 @@ def get_disability_weight(sequela, override_config=None):
 ####################################
 
 
-def get_relative_risks(risk, cause, override_config=None):
+def get_relative_risks(entity, cause, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_relative_risks([risk], [config.input_data.location_id])
+    data = core.get_relative_risks([entity], [config.input_data.location_id])
     data = data[data['cause_id'] == cause.gbd_id]
     return _clean_and_filter_data(data, config.input_data.draw_number, 'relative_risk')
 
@@ -79,9 +79,9 @@ def get_exposure_standard_deviation(risk, override_config=None):
     return _clean_and_filter_data(data, config.input_data.draw_number, 'exposure_standard_deviation')
 
 
-def get_population_attributable_fraction(risk, cause, override_config=None):
+def get_population_attributable_fraction(entity, cause, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_population_attributable_fractions([risk], [config.input_data.location_id])
+    data = core.get_population_attributable_fractions([entity], [config.input_data.location_id])
     data = data[data['cause_id'] == cause.gbd_id]
     return _clean_and_filter_data(data, config.input_data.draw_number, 'population_attributable_fraction')
 
@@ -96,6 +96,10 @@ def get_mediation_factors(risk, cause, override_config=None):
     data = core.get_mediation_factors([risk], [config.input_data.location_id])
     return data[data['cause_id'] == cause.gbd_id]
 
+
+def get_risk_correlation_matrices(override_config=None):
+    config = get_input_config(override_config)
+    return core.get_risk_correlation_matrices([config.input_data.location_id])
 
 #######################
 # Other kinds of data #
@@ -151,28 +155,8 @@ def get_dtp3_coverage(override_config=None):
     return core.get_covariate_estimates([covariates.dtp3_coverage_proportion], [config.input_data.location_id])
 
 
-# TODO: These have no backing implementation in core.py yet.
-
-def load_risk_correlation_matrices(override_config=None):
+def get_protection(treatment_technology, override_config=None):
     config = get_input_config(override_config)
-    return functions.load_risk_correlation_matrices(location_id=config.input_data.location_id,
-                                                    gbd_round_id=config.input_data.gbd_round_id)
-
-
-def get_ors_pafs(override_config=None):
-    config = get_input_config(override_config)
-    return functions.get_ors_pafs(location_id=config.input_data.location_id,
-                                  gbd_round_id=config.input_data.gbd_round_id,
-                                  draw_number=config.run_configuration.input_draw_number)
-
-
-def get_ors_relative_risks(override_config=None):
-    config = get_input_config(override_config)
-    return functions.get_ors_relative_risks(gbd_round_id=config.input_data.gbd_round_id,
-                                            draw_number=config.run_configuration.input_draw_number)
-
-def get_rota_vaccine_protection(override_config=None):
-    config = get_input_config(override_config)
-    return functions.get_rota_vaccine_protection(location_id=config.input_data.location_id,
-                                                 gbd_round_id=config.input_data.gbd_round_id,
-                                                 draw_number=config.run_configuration.input_draw_number)
+    data = core.get_protection([treatment_technology], [config.input_data.location_id])
+    data = data[['location_id', 'measure', 'treatment_technology', f'draw_{config.input_data.draw_number}']]
+    return data.rename(columns={f'draw_{config.input_data.draw_number}': 'protection'})

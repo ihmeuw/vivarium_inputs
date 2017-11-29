@@ -5,8 +5,7 @@ from typing import Iterable, Sequence, Union, DefaultDict, Set, List
 import numpy as np
 import pandas as pd
 
-from ceam_inputs import gbd
-from ceam_inputs.gbd import GBD_ROUND_ID
+from ceam_inputs import gbd, risk_factor_correlation
 from ceam_inputs.gbd_mapping.templates import cid, sid, rid, UNKNOWN, Cause, Sequela, Etiology, Risk
 Entity = Union[Cause, Sequela, Etiology, Risk]
 
@@ -409,7 +408,7 @@ def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.
     A table of disability data for indexed by the given sequela ids and location ids
     as well as by demographic data (year_id, sex_id, and age_group_id).
     """
-    gbd_round = gbd_round_id_map[GBD_ROUND_ID]
+    gbd_round = gbd_round_id_map[gbd.GBD_ROUND_ID]
     disability_weights = gbd.get_data_from_auxiliary_file('Disability Weights', gbd_round=gbd_round)
     combined_disability_weights = gbd.get_data_from_auxiliary_file('Combined Disability Weights', gbd_round=gbd_round)
 
@@ -436,10 +435,18 @@ def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.
 ####################################
 
 
-def get_relative_risks(risks, location_ids):
-    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'cause_id', 'parameter']
+def get_relative_risks(entities, location_ids):
+    id_col = 'risk_id' if isinstance(entities[0], Risk) else 'treatment_technology'
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_col, 'cause_id', 'parameter']
     draw_columns = [f'draw_{i}' for i in range(1000)]
-    df = get_gbd_draws(risks, ['relative_risk'], location_ids)[key_columns + draw_columns]
+    if isinstance(entities[0], Risk):
+        df = get_gbd_draws(entities, ['relative_risk'], location_ids)
+    else:
+        data = []
+        for entity in entities:
+            data.append(gbd.get_data_from_auxiliary_file(entity.relative_risk,
+                                                         gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID]))
+        df = pd.concat(data)
     return df[key_columns + draw_columns]
 
 
@@ -454,10 +461,20 @@ def get_exposure_standard_deviations(risks, location_ids):
     pass
 
 
-def get_population_attributable_fractions(risks, location_ids):
-    key_columns = ['cause_id', 'year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'cause_id']
+def get_population_attributable_fractions(entities, location_ids):
+    id_col = 'risk_id' if isinstance(entities[0], Risk) else 'treatment_technology'
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_col, 'cause_id']
     draw_columns = [f'draw_{i}' for i in range(1000)]
-    df = get_gbd_draws(risks, ['population_attributable_fraction'], location_ids)[key_columns + draw_columns]
+    if isinstance(entities[0], Risk):
+        df = get_gbd_draws(entities, ['population_attributable_fraction'], location_ids)
+    else:
+        data = []
+        for entity in entities:
+            temp = gbd.get_data_from_auxiliary_file(entity.population_attributable_fraction,
+                                                    gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
+            temp = temp[temp['location_id'].isin(location_ids)]
+            data.append(temp)
+        df = pd.concat(data)
     return df[key_columns + draw_columns]
 
 
@@ -467,8 +484,8 @@ def get_ensemble_weights(risks, location_ids):
     for i in range(0, (len(ids))):
         risk_id = ids[i]
         temp = gbd.get_data_from_auxiliary_file('Ensemble Distribution Weights',
-                                            gbd_round = gbd_round_id_map[GBD_ROUND_ID],
-                                            rei_id = risk_id)
+                                                gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID],
+                                                rei_id=risk_id)
         temp['risk_id'] = risk_id
         data.append(temp)
     data = pd.concat(data)
@@ -478,7 +495,7 @@ def get_ensemble_weights(risks, location_ids):
 def get_mediation_factors(risks, location_ids):
     risk_ids = [risk.gbd_id for risk in risks]
     _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
-    data = gbd.get_data_from_auxiliary_file("Mediation Factors", gbd_round=_gbd_round_id_map[GBD_ROUND_ID])
+    data = gbd.get_data_from_auxiliary_file("Mediation Factors", gbd_round=_gbd_round_id_map[gbd.GBD_ROUND_ID])
     data = data.rename(columns={'rei_id': 'risk_id'})
 
     data = data.query('risk_id in @risk_ids').copy()
@@ -492,6 +509,16 @@ def get_mediation_factors(risks, location_ids):
 
     else:
         return 0
+
+
+def get_risk_correlation_matrices(location_ids):
+    data = []
+    for location_id in location_ids:
+        df = risk_factor_correlation.load_matrices(location_id=location_id,
+                                                   gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
+        df['location_id'] = location_id
+        data.append(df)
+    return pd.concat(data)
 
 
 #######################
@@ -532,9 +559,15 @@ def get_covariate_estimates(covariates, location_ids):
     return gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)
 
 
-def get_protection():
-    pass
+def get_protection(treatment_technologies, location_ids):
+    data = []
+    for tt in treatment_technologies:
+        df = gbd.get_data_from_auxiliary_file(tt.protection)
+        if not set(location_ids).issubset(set(df['location_id'].unique())):
 
+            raise DataMissingError(f'Protection data for {tt.name} is not available for locations '
+                                   f'{set(location_ids) - set(df["location_id"].unique())}')
+        df = df[df['location_id'].isin(location_ids)]
+        data.append(df)
+    return pd.concat(data)
 
-def get_coverage():
-    pass
