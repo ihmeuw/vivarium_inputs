@@ -183,6 +183,10 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
         ids = measure_entity_map['prevalence'].union(measure_entity_map['incidence'])
         measure_data = gbd.get_como_draws(entity_ids=list(ids),
                                           location_ids=location_ids)
+
+        estimation_years = gbd.get_estimation_years(GBD_ROUND_ID)
+        measure_data = measure_data.query('year_id in @estimation_years')
+
         if 'prevalence' not in measures:
             measure_data = measure_data[measure_data['measure_id'] == name_measure_map['incidence']]
             measure_data['measure'] = 'incidence'
