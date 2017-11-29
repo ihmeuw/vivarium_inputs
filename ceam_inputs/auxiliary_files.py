@@ -38,11 +38,6 @@ FILES = {
         'path': 'cost/treatment_technology/hypertension_drugs.hdf',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
-    'Ors Exposure': {
-        'path': 'diarrhea_ors/exposure/{location_id}.csv',
-        'source': '/share/epi/risk/bmgf/exp/diarrhea_ors/{location_id}.csv',
-        'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
-    },
     'Ors Relative Risks': {
         'path': 'relative_risk/treatment_technology/ors.hdf',
         'source': '/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv',
