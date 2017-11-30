@@ -312,6 +312,7 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
                      gbd_round_id=GBD_ROUND_ID)
 
 
+
 @memory.cache
 def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level relative risks for a particular risk, location, and gbd round."""
@@ -324,13 +325,13 @@ def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> 
         # return) with the risk. So instead we loop and wait for central comp to fix the issue.
         # Help desk ticket: HELP-4746
         data = get_draws(gbd_id_field='rei_id',
-                     gbd_id=risk_id,
-                     source='risk',
-                     location_ids=location_ids,
-                     sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(),
-                     draw_type='rr',
-                     gbd_round_id=GBD_ROUND_ID)
+                         gbd_id=risk_id,
+                         source='risk',
+                         location_ids=location_ids,
+                         sex_ids=MALE + FEMALE + COMBINED,
+                         age_group_ids=get_age_group_ids(),
+                         draw_type='rr',
+                         gbd_round_id=GBD_ROUND_ID)
         data['risk_id'] = risk_id
         results.append(data)
     return pd.concat(results)

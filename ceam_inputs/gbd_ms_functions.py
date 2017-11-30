@@ -364,7 +364,7 @@ def get_exposures(location_id, risk_id, gbd_round_id, draw_number=None):
         exposure.loc[exposure.parameter == 'cat12', 'parameter'] = 'cat10'
     # unsafe sanitation (rei_id 84) and underweight (rei_id 94) both have different modelable entity ids
     # for each different category. this is ok with us, so we don't want to generate the UnhandledRiskError
-    elif risk_id in [84, 94, 136, 240, 241]:
+    elif risk_id in [84, 94, 136, 240, 241, 341]:
         pass
     # TODO: Need to set age, year, sex index here again to make sure that we assign
     # the correct value to points outside of the range
@@ -393,6 +393,7 @@ def get_exposures(location_id, risk_id, gbd_round_id, draw_number=None):
     if 'parameter' not in exposure.columns:
         exposure['parameter'] = 'continuous'
 
+    exposure = exposure.query('measure_id == 18')
     exposure = expand_ages(exposure, gbd_round_id)
 
     exposure[draw_columns] = exposure[draw_columns].fillna(value=0)

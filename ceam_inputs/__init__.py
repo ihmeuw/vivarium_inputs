@@ -24,6 +24,7 @@ def get_prevalence(entity, override_config=None):
     return _clean_and_filter_data(data, config.input_data.draw_number, 'prevalence')
 
 
+
 def get_incidence(entity, override_config: ConfigTree=None):
     config = get_input_config(override_config)
     data = core.get_incidences([entity.gbd_id], [config.input_data.location_id])
@@ -77,6 +78,7 @@ def get_exposure_standard_deviation(risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_exposure_standard_deviations([risk], [config.input_data.location_id])
     return _clean_and_filter_data(data, config.input_data.draw_number, 'exposure_standard_deviation')
+
 
 
 def get_population_attributable_fraction(entity, cause, override_config=None):
@@ -162,7 +164,7 @@ def get_protection(treatment_technology, override_config=None):
     return data.rename(columns={f'draw_{config.input_data.draw_number}': 'protection'})
 
 
-def get_healthcare_annual_visits(healthcare_entity, ovverride_config=None):
+def get_healthcare_annual_visits(healthcare_entity, override_config=None):
     config = get_input_config(override_config)
     data = core.get_healthcare_annual_visits([healthcare_entity], [config.inupt_data.location_id])
     return _clean_and_filter_data(data, config.input_data.draw_number, 'annual_visits')

@@ -793,6 +793,7 @@ class Etiologies(GbdRecord):
         self.respiratory_syncytial_virus_pneumonia = respiratory_syncytial_virus_pneumonia
 
 
+
 class Sequelae(GbdRecord):
     """Container for GBD sequelae."""
     __slots__ = ('acute_typhoid_infection', 'severe_typhoid_fever', 'intestinal_perforation_due_to_typhoid',
