@@ -417,12 +417,12 @@ def get_populations(location_id: int) -> pd.DataFrame:
 def get_data_from_auxiliary_file(file_name: str, **kwargs: Any) -> pd.DataFrame:
     """Gets data from our auxiliary files, i.e. data not accessible from the gbd databases."""
     kwargs = dict(kwargs)
-    kwargs['gbd_round'] = GBD_ROUND_ID
+    kwargs['gbd_round'] = {4: 'GBD_2016'}[GBD_ROUND_ID]
     path, encoding = auxiliary_file_path(file_name, **kwargs)
     file_type = path.split('.')[-1]
     if file_type == 'csv':
         data = pd.read_csv(path, encoding=encoding)
-    elif file_type == 'h5':
+    elif file_type in ('h5', 'hdf'):
         data = pd.read_hdf(path, encoding=encoding)
     elif file_type == 'dta':
         data = pd.read_stata(path, encoding=encoding)
