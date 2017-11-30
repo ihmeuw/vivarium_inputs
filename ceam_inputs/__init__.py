@@ -120,12 +120,8 @@ def get_age_bins():
     return core.get_age_bins()
 
 
-def get_life_table(override_config=None):
-    config = get_input_config(override_config)
-    data = core.get_life_tables([config.input_data.location_id])
-    data = aux.get_age_group_midpoint_from_age_group_id(data)
-    data = aux.normalize_for_simulation(data)
-    return data
+def get_theoretical_minimum_risk_life_expectancy():
+    return core.get_theoretical_minimum_risk_life_expectancy()
 
 
 def get_subregions(override_config=None):
