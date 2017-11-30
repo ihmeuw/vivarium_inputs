@@ -49,11 +49,10 @@ def get_excess_mortality(cause, override_config: ConfigTree=None):
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
 
-# FIXME: This function almost certainly will not work.
 def get_disability_weight(sequela, override_config=None):
     config = get_input_config(override_config)
     data = core.get_disability_weights([sequela], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'disability_weight')
+    return float(data[f'draw_{config.run_configuration.input_draw_number}'])
 
 
 ####################################

@@ -193,7 +193,7 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
         measure_data = gbd.get_como_draws(entity_ids=list(ids),
                                           location_ids=location_ids)
 
-        estimation_years = gbd.get_estimation_years(GBD_ROUND_ID)
+        estimation_years = gbd.get_estimation_years(gbd.GBD_ROUND_ID)
         measure_data = measure_data.query('year_id in @estimation_years')
 
         if 'prevalence' not in measures:
@@ -439,9 +439,9 @@ def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.
     for s in sequelae:
         # Only sequelae have disability weights.
         assert isinstance(s.gbd_id, sid)
-        if s.healthstate.gbd_id in disability_weights['healthstate_id']:
+        if s.healthstate.gbd_id in disability_weights['healthstate_id'].values:
             df = disability_weights.loc[disability_weights.healthstate_id == s.healthstate.gbd_id].copy()
-        elif s.healthstate.gbd_id in combined_disability_weights['healthstate_id']:
+        elif s.healthstate.gbd_id in combined_disability_weights['healthstate_id'].values:
             df = disability_weights.loc[disability_weights.healthstate_id == s.healthstate.gbd_id].copy()
         else:
             raise DataMissingError(f"No disability weight available for the sequela {s.name}")
@@ -450,6 +450,7 @@ def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.
         data.append(df)
 
     data = pd.concat(data)
+    data = data.rename(columns={f'draw{i}':f'draw_{i}' for i in range(1000)})
     return data.reset_index(drop=True)
 
 
