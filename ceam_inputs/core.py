@@ -123,7 +123,7 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
                     f"Entity {entity.name} has no data for measure 'annual_visits'")
             out['annual_visits'].add(entity.utilization)
 
-    return dict(out)
+    return out
 
 
 def validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
