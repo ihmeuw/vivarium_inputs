@@ -416,6 +416,8 @@ def get_populations(location_id: int) -> pd.DataFrame:
 @memory.cache
 def get_data_from_auxiliary_file(file_name: str, **kwargs: Any) -> pd.DataFrame:
     """Gets data from our auxiliary files, i.e. data not accessible from the gbd databases."""
+    kwargs = dict(kwargs)
+    kwargs['gbd_round'] = GBD_ROUND_ID
     path, encoding = auxiliary_file_path(file_name, **kwargs)
     file_type = path.split('.')[-1]
     if file_type == 'csv':

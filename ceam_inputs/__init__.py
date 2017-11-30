@@ -168,5 +168,5 @@ def get_protection(treatment_technology, override_config=None):
 
 def get_healthcare_annual_visits(healthcare_entity, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_healthcare_annual_visits([healthcare_entity], [config.inupt_data.location_id])
+    data = core.get_healthcare_annual_visits([healthcare_entity], [config.input_data.location_id])
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'annual_visits')

@@ -116,14 +116,14 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
                     f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
 
             out['population_attributable_fraction'].add(entity.gbd_id)
-    if "utilization" in measures:
+    if "annual_visits" in measures:
         for entity in entities:
             if not isinstance(entity, HealthcareEntity):
                 raise InvalidQueryError(
-                    f"Entity {entity.name} has no data for measure 'utilization'")
-            out['utilization'].add(entity.utilization)
+                    f"Entity {entity.name} has no data for measure 'annual_visits'")
+            out['annual_visits'].add(entity.utilization)
 
-    return out
+    return dict(out)
 
 
 def validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
@@ -268,7 +268,7 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
         id_cols = ['cause_id', 'risk_id', 'parameter']
     elif np.any(data['measure'].str.contains('exposure_mean')):
         id_cols = ['risk_id', 'parameter']
-    elif np.any(data['measure'].str.contains('utilization')):
+    elif np.any(data['measure'].str.contains('annual_visits')):
         id_cols = ['modelable_entity_id']
     elif 'cause_id' in data.columns:
         id_cols = ['cause_id']
