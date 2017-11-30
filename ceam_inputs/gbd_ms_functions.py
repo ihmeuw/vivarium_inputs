@@ -98,8 +98,8 @@ def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
     Returns
     -------
     `DataFrame` :
-        DataFrame with columns ['age', 'year', 'sex', 'location_id', 'pop_scaled']
-        where 'pop_scaled' is the total population of the demographic subgroup defined by
+        DataFrame with columns ['age', 'year', 'sex', 'location_id', 'population']
+        where 'population' is the total population of the demographic subgroup defined by
         the first four columns.
     """
     pop = gbd.get_populations(location_id=location_id, gbd_round_id=gbd_round_id)
@@ -113,10 +113,10 @@ def get_populations(location_id, year=-1, sex='All', gbd_round_id=3):
         pop = pop[pop.sex_id == sex_map[sex]]
     pop = get_age_group_midpoint_from_age_group_id(pop, gbd_round_id)
 
-    # The population column was called pop_scaled in GBD 2015, but name was changed.
-    # Changing it back since all of our code uses pop_scaled as the col name
-    pop = pop.rename(columns={'population': 'pop_scaled'})
-    pop = pop[['year_id', 'location_id', 'age', 'age_group_start', 'age_group_end', 'sex_id', 'pop_scaled']]
+    # The population column was called population in GBD 2015, but name was changed.
+    # Changing it back since all of our code uses population as the col name
+    pop = pop.rename(columns={'population': 'population'})
+    pop = pop[['year_id', 'location_id', 'age', 'age_group_start', 'age_group_end', 'sex_id', 'population']]
     validate_data(pop, ['age', 'year_id', 'sex_id'])
     return normalize_for_simulation(pop)
 
@@ -153,12 +153,12 @@ def get_cause_specific_mortality(location_id, cause_id, gbd_round_id, draw_numbe
     pop = pop[pop.sex_id != 3]
     pop = get_age_group_midpoint_from_age_group_id(pop, gbd_round_id)
     pop = pop[['year_id', 'age', 'sex_id', 'population']]
-    pop = pop.rename(columns={'population': 'pop_scaled'})
+    pop = pop.rename(columns={'population': 'population'})
     validate_data(pop, key_columns)
     pop = normalize_for_simulation(pop)
 
     csmr = cause_specific_deaths.merge(pop, on=['age', 'sex', 'year'])
-    csmr['rate'] = np.divide(csmr.deaths.values, csmr.pop_scaled.values)
+    csmr['rate'] = np.divide(csmr.deaths.values, csmr.population.values)
 
     return csmr[['age', 'sex', 'year', 'rate']]
 
@@ -960,15 +960,15 @@ def get_subregion_weights(location_id, round_id=4):
     sub_pops = pd.concat([get_populations(location_id=location, gbd_round_id=round_id) for location in gbd.get_subregions(location_id)],
                          ignore_index=True)
     assert isinstance(sub_pops, pd.DataFrame)
-    sub_pops = sub_pops[['age', 'sex', 'year', 'location_id', 'pop_scaled']].rename(columns={'location_id': 'location'})
+    sub_pops = sub_pops[['age', 'sex', 'year', 'location_id', 'population']].rename(columns={'location_id': 'location'})
     sub_pops = sub_pops[sub_pops.sex != 'Both']
     sub_pops['location_weight'] = (
         sub_pops
             .groupby(['age', 'sex', 'year'], as_index=False)
-            .apply(lambda sub_pop: sub_pop.pop_scaled / sub_pop.pop_scaled.sum())
-            .reset_index(level=0).pop_scaled
+            .apply(lambda sub_pop: sub_pop.population / sub_pop.population.sum())
+            .reset_index(level=0).population
     )
-    return sub_pops.drop('pop_scaled', axis=1)
+    return sub_pops.drop('population', axis=1)
 
 
 def get_bmi_distribution_parameters(location_id, gbd_round_id, draw_number=None):

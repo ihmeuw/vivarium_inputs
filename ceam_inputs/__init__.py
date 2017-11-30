@@ -21,39 +21,39 @@ def _clean_and_filter_data(data, draw_number, column_name):
 def get_prevalence(entity, override_config=None):
     config = get_input_config(override_config)
     data = core.get_prevalences([entity.gbd_id], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'prevalence')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'prevalence')
 
 
 
 def get_incidence(entity, override_config: ConfigTree=None):
     config = get_input_config(override_config)
     data = core.get_incidences([entity.gbd_id], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'rate')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
 
 def get_remission(cause, override_config=None):
     config = get_input_config(override_config)
     data = core.get_remissions([cause], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'rate')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
 
 def get_cause_specific_mortality(cause, override_config=None):
     config = get_input_config(override_config)
     data = core.get_cause_specific_mortalities([cause], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'rate')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
 
 def get_excess_mortality(cause, override_config: ConfigTree=None):
     config = get_input_config(override_config)
     data = core.get_excess_mortalities([cause], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'rate')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
 
 # FIXME: This function almost certainly will not work.
 def get_disability_weight(sequela, override_config=None):
     config = get_input_config(override_config)
     data = core.get_disability_weights([sequela], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'disability_weight')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'disability_weight')
 
 
 ####################################
@@ -65,19 +65,19 @@ def get_relative_risks(entity, cause, override_config=None):
     config = get_input_config(override_config)
     data = core.get_relative_risks([entity], [config.input_data.location_id])
     data = data[data['cause_id'] == cause.gbd_id]
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'relative_risk')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'relative_risk')
 
 
 def get_exposure_mean(risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_exposure_means([risk], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'exposure_mean')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'exposure_mean')
 
 
 def get_exposure_standard_deviation(risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_exposure_standard_deviations([risk], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'exposure_standard_deviation')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'exposure_standard_deviation')
 
 
 
@@ -85,7 +85,7 @@ def get_population_attributable_fraction(entity, cause, override_config=None):
     config = get_input_config(override_config)
     data = core.get_population_attributable_fractions([entity], [config.input_data.location_id])
     data = data[data['cause_id'] == cause.gbd_id]
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'population_attributable_fraction')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'population_attributable_fraction')
 
 
 def get_ensemble_weights(risk, override_config=None):
@@ -110,7 +110,10 @@ def get_risk_correlation_matrices(override_config=None):
 
 def get_populations(override_config=None):
     config = get_input_config(override_config)
-    return core.get_populations([config.input_data.location_id])
+    data = core.get_populations([config.input_data.location_id])
+    data = aux.get_age_group_midpoint_from_age_group_id(data)
+    data = aux.normalize_for_simulation(data)
+    return data
 
 
 def get_age_bins():
@@ -119,7 +122,10 @@ def get_age_bins():
 
 def get_life_table(override_config=None):
     config = get_input_config(override_config)
-    return core.get_life_tables([config.input_data.location_id])
+    data = core.get_life_tables([config.input_data.location_id])
+    data = aux.get_age_group_midpoint_from_age_group_id(data)
+    data = aux.normalize_for_simulation(data)
+    return data
 
 
 def get_subregions(override_config=None):
@@ -160,11 +166,11 @@ def get_dtp3_coverage(override_config=None):
 def get_protection(treatment_technology, override_config=None):
     config = get_input_config(override_config)
     data = core.get_protection([treatment_technology], [config.input_data.location_id])
-    data = data[['location_id', 'measure', 'treatment_technology', f'draw_{config.input_data.draw_number}']]
-    return data.rename(columns={f'draw_{config.input_data.draw_number}': 'protection'})
+    data = data[['location_id', 'measure', 'treatment_technology', f'draw_{config.run_configuration.input_draw_number}']]
+    return data.rename(columns={f'draw_{config.run_configuration.input_draw_number}': 'protection'})
 
 
 def get_healthcare_annual_visits(healthcare_entity, override_config=None):
     config = get_input_config(override_config)
     data = core.get_healthcare_annual_visits([healthcare_entity], [config.inupt_data.location_id])
-    return _clean_and_filter_data(data, config.input_data.draw_number, 'annual_visits')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'annual_visits')

@@ -371,7 +371,6 @@ def get_cause_specific_mortalities(causes: Sequence[Cause], location_ids: Sequen
     as well as by demographic data (year_id, sex_id, and age_group_id).
     """
     deaths = get_gbd_draws(causes, ["death"], location_ids)
-    del deaths['measure_id']
 
     populations = get_populations(location_ids)
     populations = populations[populations['year_id'] >= deaths.year_id.min()]
@@ -561,8 +560,8 @@ def get_age_bins():
     return gbd.get_age_bins()
 
 
-def get_life_tables(location_id):
-    return gbd.get_life_table(location_id)
+def get_theoretical_minimum_risk_life_expectancy():
+    return gbd.get_theoretical_minimum_risk_life_expectancy()
 
 
 def get_subregions(location_ids):

@@ -460,8 +460,16 @@ def get_estimation_years(gbd_round_id: int) -> pd.Series:
 
 
 @memory.cache
-def get_life_table(location_id: int) -> pd.DataFrame:
-    """Gets the table of life expectancies for a particular location and gbd round."""
-    import db_queries
-    # FIXME: Make sure we don't need version info here.
-    return db_queries.get_life_table(location_id=location_id, gbd_round_id=GBD_ROUND_ID)
+def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
+    from db_tools import ezfuncs
+    query = f'''
+    select precise_age as age, mean as life_expectancy
+    from upload_theoretical_minimum_risk_life_table_estimate
+    inner join process_version on process_version.run_id = upload_theoretical_minimum_risk_life_table_estimate.run_id
+    where life_table_parameter_id = 5
+    and estimate_stage_id = 6
+    and gbd_round_id = {GBD_ROUND_ID}
+    and status_id = 5
+    and process_id = 30
+    '''
+    return ezfuncs.query(query, conn_def='mortality')
