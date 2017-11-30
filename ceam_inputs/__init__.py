@@ -20,14 +20,14 @@ def _clean_and_filter_data(data, draw_number, column_name):
 
 def get_prevalence(entity, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_prevalences([entity.gbd_id], [config.input_data.location_id])
+    data = core.get_prevalences([entity], [config.input_data.location_id])
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'prevalence')
 
 
 
 def get_incidence(entity, override_config: ConfigTree=None):
     config = get_input_config(override_config)
-    data = core.get_incidences([entity.gbd_id], [config.input_data.location_id])
+    data = core.get_incidences([entity], [config.input_data.location_id])
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
 
