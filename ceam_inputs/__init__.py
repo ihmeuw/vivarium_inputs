@@ -131,12 +131,16 @@ def get_subregions(override_config=None):
 
 def get_outpatient_visit_costs(override_config=None):
     config = get_input_config(override_config)
-    return core.get_costs([healthcare_entities.outpatient_visits], [config.input_data.location_id])
+    data = core.get_costs([healthcare_entities.outpatient_visits], [config.input_data.location_id])
+    data = data[['year_id', f'draw_{config.run_configuration.input_draw_number}']]
+    return data.rename(columns={'year_id':'year', f'draw_{config.run_configuration.input_draw_number}':'op_cost'})
 
 
 def get_inpatient_visit_costs(override_config=None):
     config = get_input_config(override_config)
-    return core.get_costs([healthcare_entities.inpatient_visits], [config.input_data.location_id])
+    data = core.get_costs([healthcare_entities.inpatient_visits], [config.input_data.location_id])
+    data = data[['year_id', f'draw_{config.run_configuration.input_draw_number}']]
+    return data.rename(columns={'year_id':'year', f'draw_{config.run_configuration.input_draw_number}':'ip_cost'})
 
 
 def get_hypertension_drug_costs(override_config=None):
