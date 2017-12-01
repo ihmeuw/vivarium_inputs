@@ -161,7 +161,9 @@ def get_live_births_by_sex(override_config=None):
 
 def get_dtp3_coverage(override_config=None):
     config = get_input_config(override_config)
-    return core.get_covariate_estimates([covariates.dtp3_coverage_proportion], [config.input_data.location_id])
+    data = core.get_covariate_estimates([covariates.dtp3_coverage_proportion], [config.input_data.location_id])
+    data = aux.normalize_for_simulation(data)
+    return data[['mean_value', 'lower_value', 'upper_value', 'year']]
 
 
 def get_protection(treatment_technology, override_config=None):

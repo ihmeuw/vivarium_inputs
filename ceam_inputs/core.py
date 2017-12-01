@@ -186,6 +186,7 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
         id_map = {entity.dismod_id: entity.gbd_id for entity in entities}
         remission_data['cause_id'] = remission_data['modelable_entity_id'].replace(id_map)
         remission_data['measure'] = 'remission'
+        remission_data = remission_data[remission_data['sex_id'] != COMBINED]
         data.append(remission_data)
 
     if 'prevalence' in measures or 'incidence' in measures:
