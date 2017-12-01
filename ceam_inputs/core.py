@@ -461,10 +461,10 @@ def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.
 
 
 def get_relative_risks(entities, location_ids):
-    id_col = 'risk_id' if isinstance(entities[0], Risk) else 'treatment_technology'
+    id_col = 'risk_id' if isinstance(entities[0].gbd_id, rid) else 'treatment_technology'
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_col, 'cause_id', 'parameter']
     draw_columns = [f'draw_{i}' for i in range(1000)]
-    if isinstance(entities[0], Risk):
+    if isinstance(entities[0].gbd_id, rid):
         df = get_gbd_draws(entities, ['relative_risk'], location_ids)
     else:
         data = []
@@ -487,10 +487,10 @@ def get_exposure_standard_deviations(risks, location_ids):
 
 
 def get_population_attributable_fractions(entities, location_ids):
-    id_col = 'risk_id' if isinstance(entities[0], Risk) else 'treatment_technology'
+    id_col = 'risk_id' if isinstance(entities[0].gbd_id, rid) else 'treatment_technology'
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_col, 'cause_id']
     draw_columns = [f'draw_{i}' for i in range(1000)]
-    if isinstance(entities[0], Risk):
+    if isinstance(entities[0].gbd_id, rid):
         df = get_gbd_draws(entities, ['population_attributable_fraction'], location_ids)
     else:
         data = []
