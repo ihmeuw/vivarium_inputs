@@ -552,7 +552,6 @@ def get_risk_correlation_matrices(location_ids):
 
 def get_populations(location_ids):
     populations = pd.concat([gbd.get_populations(location_id) for location_id in location_ids])
-    populations = populations[populations['sex_id'] != COMBINED]
     keep_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population']
     return populations[keep_columns]
 
