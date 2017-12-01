@@ -107,9 +107,12 @@ def get_risk_correlation_matrices(override_config=None):
 #######################
 
 
-def get_populations(override_config=None):
+def get_populations(override_config=None, location=None):
     config = get_input_config(override_config)
-    data = core.get_populations([config.input_data.location_id])
+    if location:
+        data = core.get_populations([location])
+    else:
+        data = core.get_populations([config.input_data.location_id])
     data = aux.get_age_group_midpoint_from_age_group_id(data)
     data = aux.normalize_for_simulation(data)
     return data
@@ -149,7 +152,10 @@ def get_hypertension_drug_costs(override_config=None):
 
 def get_age_specific_fertility_rates(override_config=None):
     config = get_input_config(override_config)
-    return core.get_covariate_estimates([covariates.age_specific_fertility_rate], [config.input_data.location_id])
+    data = core.get_covariate_estimates([covariates.age_specific_fertility_rate], [config.input_data.location_id])
+    data = aux.get_age_group_midpoint_from_age_group_id(data)
+    data = aux.normalize_for_simulation(data)
+    return data.loc[data.sex == 'Female', ['age', 'year', 'mean_value']].rename(columns={'mean_value': 'rate'})
 
 
 def get_live_births_by_sex(override_config=None):
