@@ -249,6 +249,8 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
     if 'exposure_mean' in measures:
         ids = measure_entity_map['exposure_mean']
         measure_data = gbd.get_exposures(risk_ids=list(ids), location_ids=location_ids)
+        measure_data = measure_data[measure_data.measure_id == name_measure_map['proportion']]
+        del measure_data['measure_id']
         measure_data['measure'] = 'exposure_mean'
         data.append(measure_data)
 
@@ -476,7 +478,7 @@ def get_relative_risks(entities, location_ids):
 
 
 def get_exposure_means(risks, location_ids):
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'gbd_id', 'parameter']
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'parameter']
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
     return get_gbd_draws(risks, ['exposure_mean'], location_ids)[key_columns + draw_columns]
 
