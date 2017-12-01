@@ -54,7 +54,7 @@ FILES = {
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
     'Rota Vaccine Protection': {
-        'path': '/protection/treatment_technology/rotaviral_entiritis_vaccines.hdf',
+        'path': 'protection/treatment_technology/rotaviral_entiritis_vaccines.hdf',
         # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
         'source': '',
         'owner': 'Everett Mumford <emumford@uw.edu>',
