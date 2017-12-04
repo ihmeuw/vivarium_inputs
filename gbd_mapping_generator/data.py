@@ -24,7 +24,7 @@ def get_sequelae():
 
 
 def get_etiologies():
-    etiologies = gbd.get_rei_metadata(rei_set_id=ETIOLOGY_SET_ID, gbd_round_id=GBD_ROUND_ID)
+    etiologies = gbd.get_rei_metadata(rei_set_id=ETIOLOGY_SET_ID)
     etiologies = etiologies[etiologies['most_detailed'] == 1]
     etiologies = pd.DataFrame({'rei_name': clean_entity_list(etiologies.rei_name),
                                'rei_id': etiologies.rei_id})
@@ -32,7 +32,7 @@ def get_etiologies():
 
 
 def get_causes():
-    causes = gbd.get_cause_metadata(cause_set_id=CAUSE_SET_ID, gbd_round_id=GBD_ROUND_ID)
+    causes = gbd.get_cause_metadata(cause_set_id=CAUSE_SET_ID)
     causes = causes[causes.most_detailed == 1]
     causes = causes.append(pd.DataFrame({'cause_name': ['all_causes'], 'cause_id': [294]}), ignore_index=True)
     causes = pd.DataFrame({'cause_name': clean_entity_list(causes.cause_name),
@@ -41,7 +41,7 @@ def get_causes():
 
 
 def get_risks():
-    risks = gbd.get_rei_metadata(rei_set_id=REI_SET_ID, gbd_round_id=GBD_ROUND_ID)
+    risks = gbd.get_rei_metadata(rei_set_id=REI_SET_ID)
     risks = risks[((risks['most_detailed'] == 1) | (risks['rei_id'] == 339)) & ~(risks['rei_id'].isin([334, 335]))]
     risks = pd.DataFrame({'rei_name':  clean_entity_list(risks.rei_name),
                           'rei_id': risks.rei_id})
@@ -86,7 +86,7 @@ def get_sequela_data():
 
 
 def get_etiology_data():
-    etiologies = gbd.get_rei_metadata(rei_set_id=ETIOLOGY_SET_ID, gbd_round_id=GBD_ROUND_ID)
+    etiologies = gbd.get_rei_metadata(rei_set_id=ETIOLOGY_SET_ID)
     etiologies = etiologies[etiologies['most_detailed'] == 1]
     return list(zip(clean_entity_list(etiologies.rei_name), etiologies.rei_id))
 
@@ -95,15 +95,15 @@ def get_cause_data():
     version_id = gbd.get_sequela_set_version_id(GBD_ROUND_ID)
     sequelae = gbd.get_sequela_id_mapping(version_id).sort_values('sequela_id')
 
-    etiologies = gbd.get_rei_metadata(rei_set_id=ETIOLOGY_SET_ID, gbd_round_id=GBD_ROUND_ID)
+    etiologies = gbd.get_rei_metadata(rei_set_id=ETIOLOGY_SET_ID)
     etiologies = etiologies[etiologies['most_detailed'] == 1].sort_values('rei_id')
 
-    cause_etiology_map = gbd.get_cause_etiology_mapping(GBD_ROUND_ID)
+    cause_etiology_map = gbd.get_cause_etiology_mapping()
     cause_me_map = gbd.get_cause_me_id_mapping()
     cause_me_map['cause_name'] = clean_entity_list(cause_me_map['modelable_entity_name'])
     cause_me_map = cause_me_map[['modelable_entity_id', 'cause_name']].set_index('cause_name')
 
-    causes = gbd.get_cause_metadata(cause_set_id=CAUSE_SET_ID, gbd_round_id=GBD_ROUND_ID)
+    causes = gbd.get_cause_metadata(cause_set_id=CAUSE_SET_ID)
     causes = causes[((causes.most_detailed == 1) | (causes.cause_id == 294)) & ~(causes.cause_id == 740)]
     causes = pd.DataFrame({'cause_name': clean_entity_list(causes.cause_name),
                            'cause_id': causes.cause_id,
@@ -167,7 +167,7 @@ def load_risk_params():
 
 
 def get_cause_risk_mapping():
-    cause_risk_mapping = gbd.get_cause_risk_mapping(gbd.get_cause_risk_set_version_id(GBD_ROUND_ID))
+    cause_risk_mapping = gbd.get_cause_risk_mapping(gbd.get_cause_risk_set_version_id())
     causes = get_causes()
     risks = get_risks()
 
@@ -188,7 +188,7 @@ def get_risk_data():
         name = risk['rei_name']
         rid = risk['rei_id']
 
-        r = gbd.get_risk(risk_id=rid, gbd_round_id=GBD_ROUND_ID)
+        r = gbd.get_risk(risk_id=rid)
         # No more than one of these can be true.
         assert sum([int(r.dichotomous), int(r.polytomous), int(r.continuous)]) <= 1
 

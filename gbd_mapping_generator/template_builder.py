@@ -5,7 +5,7 @@ from .data import get_cause_list, get_etiology_list, get_sequela_list, get_risk_
 
 gbd_rec_attrs = ()
 me_attrs = (('name', 'str'),
-            ('gbd_id', 'Union[rid, cid, sid, hid, None]'),)
+            ('gbd_id', 'Union[rid, cid, sid, hid, meid, covid, None]'),)
 hs_attrs = (('name', 'str'),
             ('gbd_id', 'hid'),)
 eti_attrs = (('name', 'str'),
@@ -89,7 +89,7 @@ def make_module_docstring():
 
 
 def make_imports():
-    return 'from typing import Union, Tuple\n'
+    return '''from typing import Union, Tuple\n'''
 
 
 def make_ids():
@@ -98,6 +98,7 @@ def make_ids():
                         ('rid', 'Risk Factor ID'),
                         ('cid', 'Cause ID'),
                         ('sid', 'Sequela ID'),
+                        ('covid', 'Covariate ID'),
                         ('hid', 'Health State ID'))
     for k, v in id_docstring_map:
         out += f'class {k}(int):\n'
@@ -129,26 +130,39 @@ def make_unknown_flag():
 
 
 def make_gbd_record():
-    out = ''
-    out += 'class GbdRecord:\n'
-    out += TAB + '"""Base class for entities modeled in the GBD."""\n'
-    out += TAB + '__slots__ = ()\n\n'
-    out += TAB + 'def __contains__(self, item):\n'
-    out += 2*TAB + 'return item in self.__slots__\n\n'
-    out += TAB + 'def __getitem__(self, item):\n'
-    out += 2*TAB + 'if item in self:\n'
-    out += 3*TAB + 'return getattr(self, item)\n'
-    out += 2*TAB + 'else:\n'
-    out += 3*TAB + 'raise KeyError(item)\n\n'
-    out += TAB + 'def __iter__(self):\n'
-    out += 2*TAB + 'for item in self.__slots__:\n'
-    out += 3*TAB + 'yield getattr(self, item)\n\n'
-    out += TAB + 'def __repr__(self):\n'
-    out += 2*TAB + 'return "{}({})".format(self.__class__.__name__,\n'
-    indent = len('return "{}({})".format(') + 8  # + two tabs
-    out += ' '*indent + r'",\n".join(["{{}}={{}}".format(name, self[name])' + '\n'
-    indent += len(r'",\n".join(')
-    out += ' '*indent + 'for name in self.__slots__]))\n'
+    out = '''
+class GbdRecord:
+    """Base class for entities modeled in the GBD."""
+    __slots__ = ()
+    def __contains__(self, item):
+        return item in self.__slots__
+
+
+    def __getitem__(self, item):
+        if item in self:
+            return getattr(self, item)
+        else:
+            raise KeyError(item)
+
+
+    def __iter__(self):
+        for item in self.__slots__:
+            yield getattr(self, item)
+
+
+    def __repr__(self):
+        out = f'{self.__class__.__name__}('
+        for i, slot in enumerate(self.__slots__):
+            attr = self[slot]
+            if i != 0:
+              out += ','
+            out += f'\\n{slot}='
+            if isinstance(attr, tuple):
+                out += '['+','.join([entity.name for entity in attr]) + ']'
+            else:
+                out += repr(attr)
+        return out + ')'
+'''
     return out
 
 

@@ -29,16 +29,16 @@ class sid(int):
         return "sid({:d})".format(self)
 
 
-class hid(int):
-    """Health State ID"""
-    def __repr__(self):
-        return "hid({:d})".format(self)
-
-
 class covid(int):
     """Covariate ID"""
     def __repr__(self):
         return "covid({:d})".format(self)
+
+
+class hid(int):
+    """Health State ID"""
+    def __repr__(self):
+        return "hid({:d})".format(self)
 
 
 class scalar(float):
@@ -61,12 +61,13 @@ class UnknownEntityError(Exception):
     pass
 
 
+
 class GbdRecord:
     """Base class for entities modeled in the GBD."""
     __slots__ = ()
-
     def __contains__(self, item):
         return item in self.__slots__
+
 
     def __getitem__(self, item):
         if item in self:
@@ -74,14 +75,24 @@ class GbdRecord:
         else:
             raise KeyError(item)
 
+
     def __iter__(self):
         for item in self.__slots__:
             yield getattr(self, item)
 
+
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__,
-                               ",\n".join(["{{}}={{}}".format(name, self[name])
-                                          for name in self.__slots__]))
+        out = f'{self.__class__.__name__}('
+        for i, slot in enumerate(self.__slots__):
+            attr = self[slot]
+            if i != 0:
+              out += ','
+            out += f'\n{slot}='
+            if isinstance(attr, tuple):
+                out += '['+','.join([entity.name for entity in attr]) + ']'
+            else:
+                out += repr(attr)
+        return out + ')'
 
 
 class ModelableEntity(GbdRecord):
@@ -791,7 +802,6 @@ class Etiologies(GbdRecord):
         self.pneumococcal_pneumonia = pneumococcal_pneumonia
         self.h_influenzae_type_b_pneumonia = h_influenzae_type_b_pneumonia
         self.respiratory_syncytial_virus_pneumonia = respiratory_syncytial_virus_pneumonia
-
 
 
 class Sequelae(GbdRecord):
