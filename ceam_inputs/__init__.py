@@ -24,7 +24,6 @@ def get_prevalence(entity, override_config=None):
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'prevalence')
 
 
-
 def get_incidence(entity, override_config: ConfigTree=None):
     config = get_input_config(override_config)
     data = core.get_incidences([entity], [config.input_data.location_id])
@@ -67,7 +66,7 @@ def get_relative_risks(entity, cause, override_config=None):
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'relative_risk')
 
 
-def get_exposure_mean(risk, override_config=None):
+def get_exposure(risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_exposure_means([risk], [config.input_data.location_id])
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'exposure_mean')
