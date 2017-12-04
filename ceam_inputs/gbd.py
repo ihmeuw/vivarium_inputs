@@ -49,7 +49,7 @@ def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[i
     metadata_type_name = {
             'codcorrect': 'CoDCorrect Version',
             'burdenator': 'Burdenator Version',
-            'como': 'Como Version'.
+            'como': 'Como Version',
     }[source]
 
     version_ids = ezfuncs.query(f"""
