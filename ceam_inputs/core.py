@@ -8,7 +8,7 @@ import pandas as pd
 from ceam_inputs import gbd, risk_factor_correlation
 from ceam_inputs.gbd_mapping.templates import cid, sid, rid, UNKNOWN, Cause, Sequela, Etiology, Risk
 from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
-Entity = Union[Cause, Sequela, Etiology, Risk]
+GbdEntity = Union[Cause, Sequela, Etiology, Risk]
 
 # Define GBD sex ids for usage with central comp tools.
 MALE = [1]
@@ -28,27 +28,27 @@ name_measure_map = {'death': 1,
 gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
-class GbdDataError(Exception):
-    """Base exception for errors in GBD data."""
+class DataError(Exception):
+    """Base exception for errors in data loading."""
     pass
 
 
-class InvalidQueryError(GbdDataError):
+class InvalidQueryError(DataError):
     """Exception raised when the user makes an invalid request for data (e.g. exposures for a sequela)."""
     pass
 
 
-class DataMissingError(GbdDataError):
+class DataMissingError(DataError):
     """Exception raised when data has unhandled missing entries."""
     pass
 
 
-class DuplicateDataError(GbdDataError):
+class DuplicateDataError(DataError):
     """Exception raised when data has duplication in the index."""
     pass
 
 
-def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> DefaultDict[str, Set]:
+def get_ids_for_measure(entities: Sequence[GbdEntity], measures: Iterable[str]) -> DefaultDict[str, Set]:
     """Selects the appropriate gbd id type for each entity and measure pair.
 
     Parameters
@@ -73,49 +73,25 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
         raise InvalidQueryError("All entities must be of the same type")
 
     out = defaultdict(set)
-    if 'death' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, cid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'death'")
 
-            out['death'].add(entity.gbd_id)
-    if 'remission' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, cid) or entity.dismod_id is UNKNOWN:
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'remission'")
+    measure_types = {
+            'death': (cid, 'gbd_id'),
+            'remision': (cid, 'dismod_id'),
+            'prevalence': ((cid, sid), 'gbd_id'),
+            'incidence': ((cid, sid), 'gbd_id'),
+            'exposure_mean': (rid, 'gbd_id'),
+            'relative_risk': (rid, 'gbd_id'),
+            'population_attributable_fraction': (rid, 'gbd_id'),
+    }
 
-            out['remission'].add(entity.dismod_id)
-    if 'prevalence' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, (cid, sid)):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'prevalence'")
+    for measure in measures:
+        for entity, (types, attr) in entities.items():
+            if not isinstance(entity.gbd_id, types):
+                raise InvalidQueryError(f"Entity {entity.name} has no data for measure '{measure}'")
 
-            out['prevalence'].add(entity.gbd_id)
-    if 'incidence' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, (cid, sid)):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'incidence'")
+            out[measure].add(entity[attr])
 
-            out['incidence'].add(entity.gbd_id)
-    if 'exposure_mean' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'exposure_mean'")
 
-            out['exposure_mean'].add(entity.gbd_id)
-    if 'relative_risk' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'relative_risk'")
-
-            out['relative_risk'].add(entity.gbd_id)
-    if "population_attributable_fraction" in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(
-                    f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
-
-            out['population_attributable_fraction'].add(entity.gbd_id)
     if "annual_visits" in measures:
         for entity in entities:
             if not isinstance(entity, HealthcareEntity):
@@ -151,7 +127,7 @@ def validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
 
 
 # FIXME: This function is too big.  Split it up to ease testing.
-def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_ids: Iterable[int]) -> pd.DataFrame:
+def get_gbd_draws(entities: Sequence[GbdEntity], measures: Iterable[str], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level gbd data for each specified measure and entity.
 
     Parameters
@@ -278,7 +254,7 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
     elif 'sequela_id' in data.columns:
         id_cols = ['sequela_id']
     else:
-        raise GbdDataError('Stuff is broken')
+        raise DataError('Stuff is broken')
 
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'measure'] + id_cols
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
