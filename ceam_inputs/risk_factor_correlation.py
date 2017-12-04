@@ -30,7 +30,7 @@ def load_matrices(location_id, gbd_round):
         knot_ages, sexes = zip(*[re.match('corr_([0-9]+)_([A-Za-z]+).csv', path).groups()
                              for path in os.listdir(matrices_root)])
     except FileNotFoundError:
-        return None
+        raise ValueError(f"No risk correlation matrix available for the given location id: {location_id}")
     knot_ages = set(knot_ages)
     sexes = set(sexes)
 

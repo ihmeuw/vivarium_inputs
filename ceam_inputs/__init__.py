@@ -99,7 +99,9 @@ def get_mediation_factors(risk, cause, override_config=None):
 
 def get_risk_correlation_matrices(override_config=None):
     config = get_input_config(override_config)
-    return core.get_risk_correlation_matrices([config.input_data.location_id])
+    data = core.get_risk_correlation_matrices([config.input_data.location_id])
+    del data['location_id']
+    return data
 
 #######################
 # Other kinds of data #
