@@ -234,25 +234,6 @@ def get_subregions(location_ids: Iterable[int]) -> List[int]:
 #####################################
 
 
-# TODO: Either this function will be necessary with the 2016 update, or it should be removed.  I'm super hoping
-# for the latter.
-# def _get_draws_safely(draw_function: Callable, draw_options: Iterable[Iterable[int]],
-#                       *args: Any, **kwargs: Any) -> pd.DataFrame:
-#     """Allows for pulling draws with multiple draw options to overcome some common errors in central comp tools."""
-#     measure_draws = None
-#     for location_id, round_id in draw_options:
-#         try:
-#             measure_draws = draw_function(*args, location_ids=location_id, gbd_round_id=round_id, **kwargs)
-#             break
-#         except:  # FIXME: Figure out the pattern of errors we get back here and replace the bare except clause.
-#             pass
-#     if measure_draws is None:
-#         raise DataNotFoundError("Couldn't find draws for your requirements\n"
-#                                 f"function : {draw_function.__name__}\ndraw_options :  {draw_options}\n"
-#                                 f"args : {args}\nkwargs : {kwargs}.")
-#     return measure_draws
-
-
 @memory.cache
 def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular dismod model, location, and gbd round."""
