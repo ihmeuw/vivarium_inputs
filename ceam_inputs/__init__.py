@@ -69,13 +69,19 @@ def get_relative_risks(entity, cause, override_config=None):
 def get_exposure(risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_exposure_means([risk], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'mean')
+    data = _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'mean')
+    # FIXME: This is here because FPG puts zeros in its unmodelled age groups unlike most other gbd risks
+    data = data[data['mean'] != 0]
+    return data
 
 
 def get_exposure_standard_deviation(risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_exposure_standard_deviations([risk], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'standard_deviation')
+    data = _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'standard_deviation')
+    # FIXME: This is here because FPG puts zeros in its unmodelled age groups unlike most other gbd risks
+    data = data[data['standard_deviation'] != 0]
+    return data
 
 
 def get_population_attributable_fraction(entity, cause, override_config=None):
@@ -93,7 +99,10 @@ def get_ensemble_weights(risk, override_config=None):
 def get_mediation_factors(risk, cause, override_config=None):
     config = get_input_config(override_config)
     data = core.get_mediation_factors([risk], [config.input_data.location_id])
-    return data[data['cause_id'] == cause.gbd_id]
+    try:
+        return data[data['cause_id'] == cause.gbd_id] if cause.gbd_id in data['cause_id'] else 0
+    except TypeError:
+        return 0
 
 
 def get_risk_correlation_matrices(override_config=None):
