@@ -61,13 +61,12 @@ class UnknownEntityError(Exception):
     pass
 
 
-
 class GbdRecord:
     """Base class for entities modeled in the GBD."""
     __slots__ = ()
+    
     def __contains__(self, item):
         return item in self.__slots__
-
 
     def __getitem__(self, item):
         if item in self:
@@ -75,18 +74,16 @@ class GbdRecord:
         else:
             raise KeyError(item)
 
-
     def __iter__(self):
         for item in self.__slots__:
             yield getattr(self, item)
-
 
     def __repr__(self):
         out = f'{self.__class__.__name__}('
         for i, slot in enumerate(self.__slots__):
             attr = self[slot]
             if i != 0:
-              out += ','
+                out += ','
             out += f'\n{slot}='
             if isinstance(attr, tuple):
                 out += '['+','.join([entity.name for entity in attr]) + ']'
@@ -345,14 +342,16 @@ class Levels(GbdRecord):
 
 class ExposureParameters(GbdRecord):
     """Container for continuous risk exposure distribution parameters"""
-    __slots__ = ('scale', 'max_rr', 'max_val', 'min_val', )
+    __slots__ = ('dismod_id', 'scale', 'max_rr', 'max_val', 'min_val', )
 
     def __init__(self,
+                 dismod_id: meid = None,
                  scale: scalar = None,
                  max_rr: scalar = None,
                  max_val: scalar = None,
                  min_val: scalar = None, ):
         super().__init__()
+        self.dismod_id = dismod_id
         self.scale = scale
         self.max_rr = max_rr
         self.max_val = max_val

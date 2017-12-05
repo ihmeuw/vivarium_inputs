@@ -98,7 +98,7 @@ def get_cause_data():
     etiologies = gbd.get_rei_metadata(rei_set_id=ETIOLOGY_SET_ID)
     etiologies = etiologies[etiologies['most_detailed'] == 1].sort_values('rei_id')
 
-    cause_etiology_map = gbd.get_cause_etiology_mapping()
+    cause_etiology_map = gbd.get_cause_etiology_mapping(GBD_ROUND_ID)
     cause_me_map = gbd.get_cause_me_id_mapping()
     cause_me_map['cause_name'] = clean_entity_list(cause_me_map['modelable_entity_name'])
     cause_me_map = cause_me_map[['modelable_entity_id', 'cause_name']].set_index('cause_name')
@@ -167,7 +167,7 @@ def load_risk_params():
 
 
 def get_cause_risk_mapping():
-    cause_risk_mapping = gbd.get_cause_risk_mapping(gbd.get_cause_risk_set_version_id())
+    cause_risk_mapping = gbd.get_cause_risk_mapping(gbd.get_cause_risk_set_version_id(GBD_ROUND_ID))
     causes = get_causes()
     risks = get_risks()
 
@@ -180,6 +180,9 @@ def get_cause_risk_mapping():
 
 def get_risk_data():
     risks = load_risk_params()
+    # FIXME: This is here until exposure standard deviations are available by rei id instead of just meid -J.C.
+    exposure_sd_map = gbd.get_data_from_auxiliary_file(
+        'Risk Standard Deviation Meids').set_index('rei_id')['modelable_entity_id']
     cause_risk_mapping = get_cause_risk_mapping()
 
     out = []
@@ -210,7 +213,9 @@ def get_risk_data():
                      ('min', risk['tmred_para1']),
                      ('max', risk['tmred_para2']),
                      ('inverted', inv_exp))
-            exp_params = (('scale', risk['rr_scalar']),
+            dismod_id = exposure_sd_map[rid] if rid in exposure_sd_map.index else None
+            exp_params = (('dismod_id', dismod_id),
+                          ('scale', risk['rr_scalar']),
                           ('max_rr', risk['maxrr']),
                           ('max_val', risk['maxval']),
                           ('min_val', risk['minval']),)
@@ -230,12 +235,13 @@ def get_risk_data():
             if rid == 341:
                 params = params.set_index('me_id')
                 for cat, (me_id, me_name) in enumerate(zip([16442, 16443, 16444, 16445],
-                                                         ['albuminuria', 'stage_iii_chronic_kidney_disease',
-                                                          'stage_iv_chronic_kidney_disease',
-                                                          'stage_v_chronic_kidney_disease'])):
-                    params.set_value(index=me_id, col='draw_type', value='exposure')
-                    params.set_value(index=me_id, col='me_name', value=me_name)
-                    params.set_value(index=me_id, col='parameter', value='cat' + str(cat + 1))
+                                                           ['albuminuria', 'stage_iii_chronic_kidney_disease',
+                                                            'stage_iv_chronic_kidney_disease',
+                                                            'stage_v_chronic_kidney_disease'])):
+                    params.at[me_id, 'draw_type'] = 'exposure'
+                    params.at[me_id, 'me_name'] = me_name
+                    params.at[me_id, 'parameter'] = 'cat' + str(cat + 1)
+                params = params.loc[[16442, 16443, 16444, 16445], :]
             elif rid == 339:  # Some categories were combined near the end of the 2016 round.  Clean these up.
                 params = params[params.parameter.notnull()]
                 params.loc[:, 'cat'] = params.parameter.apply(lambda s: int(s.split('cat')[-1]))

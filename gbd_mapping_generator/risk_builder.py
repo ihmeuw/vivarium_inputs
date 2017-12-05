@@ -18,7 +18,7 @@ def make_module_docstring():
 def make_imports():
     out = ''
     out += 'from .templates import (Risk, Risks, Levels, Tmred, ExposureParameters, Restrictions,\n'
-    out += '                        rid, scalar, UNKNOWN)\n'
+    out += '                        rid, meid, scalar, UNKNOWN)\n'
     out += 'from .causes import causes'
     return out
 
@@ -45,7 +45,10 @@ def make_risk_factor(name, rid, distribution, restrictions, cause_list,
                 elif np.isnan(subfield):
                     out += 3 * TAB + f"{subfield_name}=UNKNOWN,\n"
                 else:
-                    out += 3 * TAB + f"{subfield_name}=scalar({subfield}),\n"
+                    if subfield_name == 'dismod_id':
+                        out += 3 * TAB + f"{subfield_name}=meid({subfield}),\n"
+                    else:
+                        out += 3 * TAB + f"{subfield_name}=scalar({subfield}),\n"
             out += 2*TAB + '),\n'
         elif field:
             out += 2*TAB + f"{field_name}={field},\n"

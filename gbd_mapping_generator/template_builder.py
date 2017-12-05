@@ -33,7 +33,8 @@ tmred_attrs = (('distribution', 'str'),
                ('max', 'scalar'),
                ('inverted', 'bool'),)
 levels_attrs = tuple([('cat1', 'str'), ('cat2', 'str')] + [(f'cat{i}', 'str = None') for i in range(3, 60)])
-exp_params_attrs = (('scale', 'scalar = None'),
+exp_params_attrs = (('dismod_id', 'meid = None'),
+                    ('scale', 'scalar = None'),
                     ('max_rr', 'scalar = None'),
                     ('max_val', 'scalar = None'),
                     ('min_val', 'scalar = None'),)
@@ -130,13 +131,12 @@ def make_unknown_flag():
 
 
 def make_gbd_record():
-    out = '''
-class GbdRecord:
+    out = '''class GbdRecord:
     """Base class for entities modeled in the GBD."""
     __slots__ = ()
+    
     def __contains__(self, item):
         return item in self.__slots__
-
 
     def __getitem__(self, item):
         if item in self:
@@ -144,18 +144,16 @@ class GbdRecord:
         else:
             raise KeyError(item)
 
-
     def __iter__(self):
         for item in self.__slots__:
             yield getattr(self, item)
-
 
     def __repr__(self):
         out = f'{self.__class__.__name__}('
         for i, slot in enumerate(self.__slots__):
             attr = self[slot]
             if i != 0:
-              out += ','
+                out += ','
             out += f'\\n{slot}='
             if isinstance(attr, tuple):
                 out += '['+','.join([entity.name for entity in attr]) + ']'
