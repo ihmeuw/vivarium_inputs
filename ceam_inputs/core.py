@@ -250,7 +250,7 @@ def get_gbd_draws(entities: Sequence[GbdEntity], measures: Iterable[str], locati
             id_cols.add('risk_id')
         else:
             id_cols.add('treatment_technology')
-    if 'eposure_mean' in data['measure'].values:
+    if 'exposure_mean' in data['measure'].values:
         id_cols.update(['risk_id', 'parameter'])
     if 'annual_visits' in data['measure'].values:
         id_cols.add('modelable_entity_id')
