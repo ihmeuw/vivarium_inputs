@@ -25,6 +25,10 @@ FILES = {
         'path': 'risk_factor_propensity_correlation_matricies/location_{location_id}',
         'owner': 'Reed Sorenson <rsoren@uw.edu>',
         },
+    'Risk Standard Deviation Meids': {
+       'path': 'risk_exposure_sd_mapping.csv',
+       'owner': 'Zane Rankin <zrankin@uw.edu>',
+    },
     'Inpatient Visit Costs': {
         'path': 'cost/healthcare_entity/inpatient.hdf',
         'owner': 'Mark Moses <mwm6@uw.edu>',
