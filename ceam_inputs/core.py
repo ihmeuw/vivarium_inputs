@@ -484,8 +484,17 @@ def get_exposure_means(risks, location_ids):
 
 
 def get_exposure_standard_deviations(risks, location_ids):
-    # TODO: This stuff.
-    pass
+    ids = {risk.exposure_parameters.dismod_id: risk.gbd_id for risk in risks}
+    df = gbd.get_modelable_entity_draws(list(ids.keys()), location_ids)
+
+    df = df.replace({'modelable_entity_id': ids})
+    df = df.rename(columns={'modelable_entity_id': 'risk_id'})
+
+    key_cols = ['age_group_id', 'location_id', 'sex_id', 'year_id', 'risk_id']
+    draw_cols = [f'draw_{i}' for i in range(1000)]
+    df = df[df['sex_id'] != 3]
+    return df[key_cols + draw_cols]
+
 
 
 def get_population_attributable_fractions(entities, location_ids):

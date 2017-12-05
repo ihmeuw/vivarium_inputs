@@ -69,14 +69,13 @@ def get_relative_risks(entity, cause, override_config=None):
 def get_exposure(risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_exposure_means([risk], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'exposure_mean')
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'mean')
 
 
 def get_exposure_standard_deviation(risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_exposure_standard_deviations([risk], [config.input_data.location_id])
-    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'exposure_standard_deviation')
-
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'standard_deviation')
 
 
 def get_population_attributable_fraction(entity, cause, override_config=None):
