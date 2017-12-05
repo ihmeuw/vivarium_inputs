@@ -8,7 +8,7 @@ import pandas as pd
 from ceam_inputs import gbd, risk_factor_correlation
 from ceam_inputs.gbd_mapping.templates import cid, sid, rid, UNKNOWN, Cause, Sequela, Etiology, Risk
 from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
-Entity = Union[Cause, Sequela, Etiology, Risk]
+GbdEntity = Union[Cause, Sequela, Etiology, Risk]
 
 # Define GBD sex ids for usage with central comp tools.
 MALE = [1]
@@ -28,27 +28,27 @@ name_measure_map = {'death': 1,
 gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
-class GbdDataError(Exception):
-    """Base exception for errors in GBD data."""
+class DataError(Exception):
+    """Base exception for errors in data loading."""
     pass
 
 
-class InvalidQueryError(GbdDataError):
+class InvalidQueryError(DataError):
     """Exception raised when the user makes an invalid request for data (e.g. exposures for a sequela)."""
     pass
 
 
-class DataMissingError(GbdDataError):
+class DataMissingError(DataError):
     """Exception raised when data has unhandled missing entries."""
     pass
 
 
-class DuplicateDataError(GbdDataError):
+class DuplicateDataError(DataError):
     """Exception raised when data has duplication in the index."""
     pass
 
 
-def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> DefaultDict[str, Set]:
+def get_ids_for_measure(entities: Sequence[GbdEntity], measures: Iterable[str]) -> DefaultDict[str, Set]:
     """Selects the appropriate gbd id type for each entity and measure pair.
 
     Parameters
@@ -73,55 +73,34 @@ def get_ids_for_measure(entities: Sequence[Entity], measures: Iterable[str]) -> 
         raise InvalidQueryError("All entities must be of the same type")
 
     out = defaultdict(set)
-    if 'death' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, cid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'death'")
 
-            out['death'].add(entity.gbd_id)
-    if 'remission' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, cid) or entity.dismod_id is UNKNOWN:
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'remission'")
+    measure_types = {
+            'death': (cid, 'gbd_id'),
+            'remision': (cid, 'dismod_id'),
+            'prevalence': ((cid, sid), 'gbd_id'),
+            'incidence': ((cid, sid), 'gbd_id'),
+            'exposure_mean': (rid, 'gbd_id'),
+            'relative_risk': (rid, 'gbd_id'),
+            'population_attributable_fraction': (rid, 'gbd_id'),
+    }
 
-            out['remission'].add(entity.dismod_id)
-    if 'prevalence' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, (cid, sid)):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'prevalence'")
+    for measure in measures:
+        if measure in measure_types:
+            valid_types, id_attr = measure_types[measure]
+            for entity in entities:
+                if not isinstance(entity.gbd_id, valid_types):
+                    raise InvalidQueryError(f"Entity {entity.name} has no data for measure '{measure}'")
 
-            out['prevalence'].add(entity.gbd_id)
-    if 'incidence' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, (cid, sid)):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'incidence'")
-
-            out['incidence'].add(entity.gbd_id)
-    if 'exposure_mean' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'exposure_mean'")
-
-            out['exposure_mean'].add(entity.gbd_id)
-    if 'relative_risk' in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'relative_risk'")
-
-            out['relative_risk'].add(entity.gbd_id)
-    if "population_attributable_fraction" in measures:
-        for entity in entities:
-            if not isinstance(entity.gbd_id, rid):
-                raise InvalidQueryError(
-                    f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
-
-            out['population_attributable_fraction'].add(entity.gbd_id)
-    if "annual_visits" in measures:
-        for entity in entities:
-            if not isinstance(entity, HealthcareEntity):
-                raise InvalidQueryError(
-                    f"Entity {entity.name} has no data for measure 'annual_visits'")
-            out['annual_visits'].add(entity.utilization)
+                out[measure].add(entity[id_attr])
+        elif "annual_visits" == measure:
+            # This one's a bit special
+            for entity in entities:
+                if not isinstance(entity, HealthcareEntity):
+                    raise InvalidQueryError(
+                        f"Entity {entity.name} has no data for measure 'annual_visits'")
+                out['annual_visits'].add(entity.utilization)
+        else:
+            raise DataError('Stuff is broken')
 
     return out
 
@@ -146,12 +125,85 @@ def validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
     if np.any(data.isnull()):
         raise DataMissingError()
 
-    if key_columns and data.duplicated(key_columns).sum():
+    if key_columns and np.any(data.duplicated(key_columns)):
         raise DuplicateDataError()
 
 
-# FIXME: This function is too big.  Split it up to ease testing.
-def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_ids: Iterable[int]) -> pd.DataFrame:
+def _get_death(measure_name, measure_ids, entities, location_ids):
+    death_data = gbd.get_codcorrect_draws(cause_ids=measure_ids,
+                                          location_ids=location_ids)
+    death_data = death_data[death_data['measure_id'] == name_measure_map[measure_name]]
+    return death_data
+
+def _get_remission(measure_name, measure_ids, entities, location_ids):
+    remission_data = gbd.get_modelable_entity_draws(me_ids=measure_ids,
+                                                    location_ids=location_ids)
+    remission_data = remission_data[remission_data['measure_id'] == name_measure_map['remission']]
+    id_map = {entity.dismod_id: entity.gbd_id for entity in entities}
+    remission_data['cause_id'] = remission_data['modelable_entity_id'].replace(id_map)
+    remission_data = remission_data[remission_data['sex_id'] != COMBINED]
+    return remission_data
+
+def _get_prevalence_or_prevalence(measure_name, measure_ids, entities, location_ids):
+    measure_data = gbd.get_como_draws(entity_ids=measure_ids,
+                                      location_ids=location_ids)
+
+    estimation_years = gbd.get_estimation_years(gbd.GBD_ROUND_ID)
+    measure_data = measure_data.query('year_id in @estimation_years')
+
+    measure_data = measure_data[measure_data['measure_id'] == name_measure_map[measure_name]]
+
+    return measure_data
+
+def _get_relative_risk(measure_name, measure_ids, entities, location_ids):
+    measure_data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
+    err_msg = ("Not all relative risk data has both the 'mortality' and 'morbidity' flag "
+               + "set. This may not indicate an error but it is a case we don't explicitly handle. "
+               + "If you need this risk, come talk to one of the programmers.")
+    assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), err_msg
+
+    del measure_data['mortality']
+    del measure_data['morbidity']
+
+    measure_data = measure_data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
+
+    return measure_data
+
+
+def _get_population_attributable_fraction(measure_name, measure_ids, entities, location_ids):
+    measure_data = gbd.get_pafs(risk_ids=measure_ids, location_ids=location_ids)
+
+    key_columns = ['sex_id', 'risk_id', 'year_id', 'cause_id', 'age_group_id', 'location_id']
+    measure_ids = {name_measure_map['death'], name_measure_map['DALY'],
+                   name_measure_map['YLD'], name_measure_map['YLL']}
+    err_msg = ("Not all PAF data has values for deaths, DALYs, YLDs and YLLs. "
+               + "This may not indicate an error but it is a case we don't explicitly handle. "
+               + "If you need this PAF, come talk to one of the programmers.")
+    assert np.all(
+        measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
+
+    # TODO: figure out if we need to assert some property of the different PAF measures
+    yld_id = name_measure_map['YLD']
+    measure_data = measure_data.query('measure_id == @yld_id').copy()
+    del measure_data['measure_id']
+    return measure_data
+
+
+def _get_exposure_mean(measure_name, measure_ids, entities, location_ids):
+    measure_data = gbd.get_exposures(risk_ids=measure_ids, location_ids=location_ids)
+    measure_data = measure_data[measure_data.measure_id == name_measure_map['proportion']]
+    del measure_data['measure_id']
+    return measure_data
+
+
+def _get_annual_visits(measure_name, measure_ids, entities, location_ids):
+    measure_data = gbd.get_modelable_entity_draws(me_ids=measure_ids, location_ids=location_ids)
+    measure_data = measure_data[measure_data['measure_id'] == name_measure_map['continuous']]
+    measure_data = measure_data[measure_data['sex_id'] != COMBINED]
+    return measure_data
+
+
+def get_gbd_draws(entities: Sequence[GbdEntity], measures: Iterable[str], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level gbd data for each specified measure and entity.
 
     Parameters
@@ -171,116 +223,41 @@ def get_gbd_draws(entities: Sequence[Entity], measures: Iterable[str], location_
     """
     measure_entity_map = get_ids_for_measure(entities, measures)
 
+    measure_handlers = {
+            'death': _get_death,
+            'remission': _get_remission,
+            'prevalence': _get_prevalence_or_prevalence,
+            'incidence': _get_prevalence_or_prevalence,
+            'relative_risk': _get_relative_risk,
+            'population_attributable_fraction': _get_population_attributable_fraction,
+            'exposure_mean': _get_exposure_mean,
+            'annual_visits': _get_annual_visits,
+    }
+
     data = []
-    if 'death' in measure_entity_map:
-        death_data = gbd.get_codcorrect_draws(cause_ids=list(measure_entity_map['death']),
-                                              location_ids=location_ids)
-        death_data = death_data[death_data['measure_id'] == name_measure_map['death']]
-        death_data['measure'] = 'death'
-        data.append(death_data)
-
-    if 'remission' in measures:
-        remission_data = gbd.get_modelable_entity_draws(me_ids=list(measure_entity_map['remission']),
-                                                        location_ids=location_ids)
-        remission_data = remission_data[remission_data['measure_id'] == name_measure_map['remission']]
-        id_map = {entity.dismod_id: entity.gbd_id for entity in entities}
-        remission_data['cause_id'] = remission_data['modelable_entity_id'].replace(id_map)
-        remission_data['measure'] = 'remission'
-        remission_data = remission_data[remission_data['sex_id'] != COMBINED]
-        data.append(remission_data)
-
-    if 'prevalence' in measures or 'incidence' in measures:
-        ids = measure_entity_map['prevalence'].union(measure_entity_map['incidence'])
-        measure_data = gbd.get_como_draws(entity_ids=list(ids),
-                                          location_ids=location_ids)
-
-        estimation_years = gbd.get_estimation_years(gbd.GBD_ROUND_ID)
-        measure_data = measure_data.query('year_id in @estimation_years')
-
-        if 'prevalence' not in measures:
-            measure_data = measure_data[measure_data['measure_id'] == name_measure_map['incidence']]
-            measure_data['measure'] = 'incidence'
-        elif 'incidence' not in measures:
-            measure_data = measure_data[measure_data['measure_id'] == name_measure_map['prevalence']]
-            measure_data['measure'] = 'prevalence'
-        else:
-            measure_data['measure'] = 'temp'
-            measure_data.loc[measure_data['measure_id'] == name_measure_map['prevalence'], 'measure'] = 'prevalence'
-            measure_data.loc[measure_data['measure_id'] == name_measure_map['incidence'], 'measure'] = 'incidence'
-
+    for measure_name, measure_ids in measure_entity_map.items():
+        measure_data = measure_handlers[measure_name](measure_name, list(measure_ids), entities, location_ids)
+        measure_data['measure'] = measure_name
         data.append(measure_data)
-
-    if 'relative_risk' in measures:
-        ids = measure_entity_map['relative_risk']
-        measure_data = gbd.get_relative_risks(risk_ids=list(ids), location_ids=location_ids)
-        err_msg = ("Not all relative risk data has both the 'mortality' and 'morbidity' flag "
-                   + "set. This may not indicate an error but it is a case we don't explicitly handle. "
-                   + "If you need this risk, come talk to one of the programmers.")
-        assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), err_msg
-
-        del measure_data['mortality']
-        del measure_data['morbidity']
-
-        measure_data['measure'] = 'relative_risk'
-        measure_data = measure_data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
-
-        data.append(measure_data)
-
-    if 'population_attributable_fraction' in measures:
-        ids = measure_entity_map['population_attributable_fraction']
-        measure_data = gbd.get_pafs(risk_ids=list(ids), location_ids=location_ids)
-
-        key_columns = ['sex_id', 'risk_id', 'year_id', 'cause_id', 'age_group_id', 'location_id']
-        measure_ids = {name_measure_map['death'], name_measure_map['DALY'],
-                       name_measure_map['YLD'], name_measure_map['YLL']}
-        err_msg = ("Not all PAF data has values for deaths, DALYs, YLDs and YLLs. "
-                   + "This may not indicate an error but it is a case we don't explicitly handle. "
-                   + "If you need this PAF, come talk to one of the programmers.")
-        assert np.all(
-            measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
-
-        # TODO: figure out if we need to assert some property of the different PAF measures
-        yld_id = name_measure_map['YLD']
-        measure_data = measure_data.query('measure_id == @yld_id').copy()
-        del measure_data['measure_id']
-        measure_data['measure'] = 'population_attributable_fraction'
-        data.append(measure_data)
-
-    if 'exposure_mean' in measures:
-        ids = measure_entity_map['exposure_mean']
-        measure_data = gbd.get_exposures(risk_ids=list(ids), location_ids=location_ids)
-        measure_data = measure_data[measure_data.measure_id == name_measure_map['proportion']]
-        del measure_data['measure_id']
-        measure_data['measure'] = 'exposure_mean'
-        data.append(measure_data)
-
-    if 'annual_visits' in measures:
-        ids = measure_entity_map['annual_visits']
-        measure_data = gbd.get_modelable_entity_draws(me_ids=list(ids), location_ids=location_ids)
-        measure_data = measure_data[measure_data['measure_id'] == name_measure_map['continuous']]
-        measure_data = measure_data[measure_data['sex_id'] != COMBINED]
-        measure_data['measure'] = 'annual_visits'
-        data.append(measure_data)
-
-
     data = pd.concat(data)
 
+    id_cols = set()
     if np.any(data['measure'].str.contains('population_attributable_fraction')):
-        id_cols = ['cause_id', 'risk_id']
-    elif np.any(data['measure'].str.contains('relative_risk')):
-        id_cols = ['cause_id', 'risk_id', 'parameter']
-    elif np.any(data['measure'].str.contains('exposure_mean')):
-        id_cols = ['risk_id', 'parameter']
-    elif np.any(data['measure'].str.contains('annual_visits')):
-        id_cols = ['modelable_entity_id']
-    elif 'cause_id' in data.columns:
-        id_cols = ['cause_id']
-    elif 'sequela_id' in data.columns:
-        id_cols = ['sequela_id']
-    else:
-        raise GbdDataError('Stuff is broken')
+        id_cols.update(['cause_id', 'risk_id'])
+    if np.any(data['measure'].str.contains('relative_risk')):
+        id_cols.update(['cause_id', 'risk_id', 'parameter'])
+    if np.any(data['measure'].str.contains('exposure_mean')):
+        id_cols.update(['risk_id', 'parameter'])
+    if np.any(data['measure'].str.contains('annual_visits')):
+        id_cols.add('modelable_entity_id')
+    if 'cause_id' in data.columns:
+        id_cols.add('cause_id')
+    if 'sequela_id' in data.columns:
+        id_cols.add('sequela_id')
+    if not id_cols:
+        raise DataError('Stuff is broken')
 
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'measure'] + id_cols
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'measure'] + list(id_cols)
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
 
     data = data[key_columns + draw_columns]

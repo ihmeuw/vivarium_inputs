@@ -20,12 +20,12 @@ COMBINED = [3]
 GBD_ROUND_ID = 4
 
 
-class CentralCompError(Exception):
-    """Error for failures in central-comp tooling."""
+class GbdError(Exception):
+    """Error for failures accessing GBD data."""
     pass
 
 
-class DataNotFoundError(CentralCompError):
+class DataNotFoundError(GbdError):
     """Raised when the set of parameters passed to central comp functions fails due to lack of data."""
     pass
 
@@ -46,20 +46,18 @@ def get_publication_ids_for_round(gbd_round_id: int) -> Iterable[int]:
 def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[int, None]:
     """Grabs the version id for codcorrect, burdenator, and como draws."""
     from db_tools import ezfuncs
-    # NOTE: this mapping comes from the gbd.metadata_type table but in that
-    #       database it isn't in a form that's convenient to query and these
-    #       ids should be stable so I'm sticking it here -Alec
-    metadata_type_id = {
-            'codcorrect': 1,
-            'burdenator': 11,
-            'como': 4
+    metadata_type_name = {
+            'codcorrect': 'CoDCorrect Version',
+            'burdenator': 'Burdenator Version',
+            'como': 'Como Version',
     }[source]
 
     version_ids = ezfuncs.query(f"""
         SELECT distinct val
         FROM gbd.gbd_process_version_metadata
         JOIN gbd.gbd_process_version_publication USING (gbd_process_version_id)
-        WHERE metadata_type_id = {metadata_type_id} 
+        JOIN gbd.metadata_type using (metadata_type_id)
+        WHERE metadata_type = '{metadata_type_name}'
               and publication_id in ({','.join([str(pid) for pid in publication_ids])})
         """, conn_def='gbd')
     if version_ids.empty:
@@ -234,25 +232,6 @@ def get_subregions(location_ids: Iterable[int]) -> List[int]:
 #####################################
 # Tools for pulling draw level data #
 #####################################
-
-
-# TODO: Either this function will be necessary with the 2016 update, or it should be removed.  I'm super hoping
-# for the latter.
-# def _get_draws_safely(draw_function: Callable, draw_options: Iterable[Iterable[int]],
-#                       *args: Any, **kwargs: Any) -> pd.DataFrame:
-#     """Allows for pulling draws with multiple draw options to overcome some common errors in central comp tools."""
-#     measure_draws = None
-#     for location_id, round_id in draw_options:
-#         try:
-#             measure_draws = draw_function(*args, location_ids=location_id, gbd_round_id=round_id, **kwargs)
-#             break
-#         except:  # FIXME: Figure out the pattern of errors we get back here and replace the bare except clause.
-#             pass
-#     if measure_draws is None:
-#         raise DataNotFoundError("Couldn't find draws for your requirements\n"
-#                                 f"function : {draw_function.__name__}\ndraw_options :  {draw_options}\n"
-#                                 f"args : {args}\nkwargs : {kwargs}.")
-#     return measure_draws
 
 
 @memory.cache
