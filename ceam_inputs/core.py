@@ -195,10 +195,13 @@ def _get_population_attributable_fraction(measure_name, measure_ids, entities, l
 
 def _get_exposure_mean(measure_name, measure_ids, entities, location_ids):
     measure_data = gbd.get_exposures(risk_ids=measure_ids, location_ids=location_ids)
+
     is_categorical_exposure = measure_data.measure_id == name_measure_map['proportion']
     is_continuous_exposure = measure_data.measure_id == name_measure_map['continuous']
     measure_data = measure_data[is_categorical_exposure | is_continuous_exposure]
     del measure_data['measure_id']
+    measure_data = measure_data[measure_data['sex_id'] != COMBINED]
+
     return measure_data
 
 
@@ -451,7 +454,6 @@ def get_relative_risks(entities, location_ids):
                                                          gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID]))
         df = pd.concat(data)
     del df['measure']
-    del df['parameter']
     return df
 
 
