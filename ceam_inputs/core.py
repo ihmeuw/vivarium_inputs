@@ -242,13 +242,17 @@ def get_gbd_draws(entities: Sequence[GbdEntity], measures: Iterable[str], locati
     data = pd.concat(data)
 
     id_cols = set()
-    if np.any(data['measure'].str.contains('population_attributable_fraction')):
+    if 'population_attributable_fraction' in data['measure'].values:
         id_cols.update(['cause_id', 'risk_id'])
-    if np.any(data['measure'].str.contains('relative_risk')):
-        id_cols.update(['cause_id', 'risk_id', 'parameter'])
-    if np.any(data['measure'].str.contains('exposure_mean')):
+    if 'relative_risk' in data['measure'].values:
+        id_cols.update(['cause_id', 'parameter'])
+        if isinstance(entities[0].gbd_id, rid):
+            id_cols.add('risk_id')
+        else:
+            id_cols.add('treatment_technology')
+    if 'eposure_mean' in data['measure'].values:
         id_cols.update(['risk_id', 'parameter'])
-    if np.any(data['measure'].str.contains('annual_visits')):
+    if 'annual_visits' in data['measure'].values:
         id_cols.add('modelable_entity_id')
     if 'cause_id' in data.columns:
         id_cols.add('cause_id')
@@ -287,10 +291,7 @@ def get_prevalences(entities: Union[Sequence[Cause], Sequence[Sequela]], locatio
     A table of prevalence data for indexed by the given entity ids and location ids
     as well as by demographic data (year_id, sex_id, and age_group_id).
     """
-    id_type = 'cause_id' if isinstance(entities[0], Cause) else 'sequela_id'
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_type]
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    return get_gbd_draws(entities, ['prevalence'], location_ids)[key_columns + draw_columns]
+    return get_gbd_draws(entities, ['prevalence'], location_ids).drop('measure', 'columns')
 
 
 def get_incidences(entities: Union[Sequence[Cause], Sequence[Sequela]], location_ids: Sequence[int]) -> pd.DataFrame:
@@ -309,10 +310,7 @@ def get_incidences(entities: Union[Sequence[Cause], Sequence[Sequela]], location
     A table of incidence data for indexed by the given entity ids and location ids
     as well as by demographic data (year_id, sex_id, and age_group_id).
     """
-    id_type = 'cause_id' if isinstance(entities[0], Cause) else 'sequela_id'
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_type]
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    return get_gbd_draws(entities, ['incidence'], location_ids)[key_columns + draw_columns]
+    return get_gbd_draws(entities, ['incidence'], location_ids).drop('measure', 'columns')
 
 
 def get_remissions(causes: Sequence[Cause], location_ids: Sequence[int]) -> pd.DataFrame:
@@ -330,9 +328,7 @@ def get_remissions(causes: Sequence[Cause], location_ids: Sequence[int]) -> pd.D
     A table of incidence data for indexed by the given cause ids and location ids
     as well as by demographic data (year_id, sex_id, and age_group_id).
     """
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'cause_id']
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    return get_gbd_draws(causes, ['remission'], location_ids)[key_columns + draw_columns]
+    return get_gbd_draws(causes, ['remission'], location_ids).drop('measure', 'columns')
 
 
 def get_cause_specific_mortalities(causes: Sequence[Cause], location_ids: Sequence[int]) -> pd.DataFrame:
@@ -440,9 +436,6 @@ def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.
 
 
 def get_relative_risks(entities, location_ids):
-    id_col = 'risk_id' if isinstance(entities[0].gbd_id, rid) else 'treatment_technology'
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_col, 'cause_id', 'parameter']
-    draw_columns = [f'draw_{i}' for i in range(1000)]
     if isinstance(entities[0].gbd_id, rid):
         df = get_gbd_draws(entities, ['relative_risk'], location_ids)
     else:
@@ -451,13 +444,11 @@ def get_relative_risks(entities, location_ids):
             data.append(gbd.get_data_from_auxiliary_file(entity.relative_risk,
                                                          gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID]))
         df = pd.concat(data)
-    return df[key_columns + draw_columns]
+    return df.drop('measure', 'columns')
 
 
 def get_exposure_means(risks, location_ids):
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'risk_id', 'parameter']
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    return get_gbd_draws(risks, ['exposure_mean'], location_ids)[key_columns + draw_columns]
+    return get_gbd_draws(risks, ['exposure_mean'], location_ids).drop('measure', 'columns')
 
 
 def get_exposure_standard_deviations(risks, location_ids):
@@ -475,9 +466,6 @@ def get_exposure_standard_deviations(risks, location_ids):
 
 
 def get_population_attributable_fractions(entities, location_ids):
-    id_col = 'risk_id' if isinstance(entities[0].gbd_id, rid) else 'treatment_technology'
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', id_col, 'cause_id']
-    draw_columns = [f'draw_{i}' for i in range(1000)]
     if isinstance(entities[0].gbd_id, rid):
         df = get_gbd_draws(entities, ['population_attributable_fraction'], location_ids)
     else:
@@ -488,7 +476,7 @@ def get_population_attributable_fractions(entities, location_ids):
             temp = temp[temp['location_id'].isin(location_ids)]
             data.append(temp)
         df = pd.concat(data)
-    return df[key_columns + draw_columns]
+    return df.drop('measure', 'columns')
 
 
 def get_ensemble_weights(risks, location_ids):
@@ -567,10 +555,7 @@ def get_costs(entities, location_ids):
     return pd.concat(data)
 
 def get_healthcare_annual_visits(entities, location_ids):
-    key_columns = ['age_group_id', 'location_id', 'modelable_entity_id', 'sex_id', 'year_id']
-    draw_columns = [f'draw_{i}' for i in range(1000)]
-    df = get_gbd_draws(entities, ['annual_visits'], location_ids)[key_columns + draw_columns]
-    return df
+    return get_gbd_draws(entities, ['annual_visits'], location_ids).drop('measure', 'columns')
 
 def get_covariate_estimates(covariates, location_ids):
     return gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)
