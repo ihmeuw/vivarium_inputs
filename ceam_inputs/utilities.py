@@ -2,6 +2,8 @@ from typing import Mapping, Iterable
 from scipy import interpolate
 import pandas as pd
 
+from ceam_inputs.gbd import get_age_bins
+
 
 def standardize_data_shape(data: pd.DataFrame, fill_na_value: float,
                            extent_mapping: Mapping[str, Iterable[int]]) -> pd.DataFrame:
@@ -253,3 +255,94 @@ def standardize_data_for_year(data: pd.DataFrame, fill_na_value: float, extent: 
         return data  # or data[data['year_id'].isin(extent)]
 
 ### END OF PAOLA'S CODE ###
+
+def select_draw_data(data, draw, column_name, src_column=None):
+    if column_name:
+        if src_column is not None:
+            if isinstance(src_column, str):
+                column_map = {src_column.format(draw=draw): column_name}
+            else:
+                column_map = {src.format(draw=draw): dest for src, dest in zip(src_column, column_name)}
+        else:
+            column_map = {'draw_{draw}'.format(draw=draw): column_name}
+
+        # if 'parameter' is in columns, then keep it, else do
+        # not keep it (need parameter for the relative risk estimations)
+        if 'parameter' in data.columns:
+            keep_columns = ['year_id', 'age', 'sex_id', 'parameter'] + list(column_map.keys())
+        else:
+            keep_columns = ['year_id', 'age', 'sex_id'] + list(column_map.keys())
+
+        data = data[keep_columns]
+        data = data.rename(columns=column_map)
+
+        return normalize_for_simulation(data)
+    return data
+
+def normalize_for_simulation(df):
+    """
+    Parameters
+    ----------
+    df : DataFrame
+        dataframe to change
+
+    Returns
+    -------
+    Returns a df with column year_id changed to year,
+    sex_id changed to sex, and sex values changed from 1 and 2 to Male and Female
+
+    Notes
+    -----
+    Used by -- load_data_from_cache
+
+    Assumptions -- None
+
+    Questions -- None
+
+    Unit test in place? -- Yes
+    """
+    df['sex'] = df.sex_id.map({1: 'Male', 2: 'Female', 3: 'Both'}).astype(
+        pd.api.types.CategoricalDtype(categories=['Male', 'Female', 'Both'], ordered=False))
+    df = df.drop('sex_id', axis=1)
+    df = df.rename(columns={'year_id': 'year'})
+    return df
+
+
+def get_age_group_midpoint_from_age_group_id(df):
+    """Creates an "age" column from the "age_group_id" column
+
+    Parameters
+    ----------
+    df: df for which you want an age column that has an age_group_id column
+
+    Returns
+    -------
+    df with an age column
+
+    Notes
+    -----
+    Assumptions -- We assume that using a midpoint of age 82.5 for the 80+ year old age group is
+    ok for the purposes of CEAM. Everett proposed that we could get the life expectancy at age 80
+    for each location and use that as the midpoint for the 80+ group, but Abie suggested that we
+    keep the midpoint as 82.5 for now. GBD populations have data for each age group up until the
+    age 95+ age group, at which point I'm assuming we can use 97.5 as the midpoint.
+    """
+    if df.empty:
+        df['age'] = 0
+        return df
+
+    df = df.copy()
+    idx = df.index
+    mapping = get_age_bins()
+    mapping = mapping.set_index('age_group_id')
+    mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
+
+    df = df.set_index('age_group_id')
+    df[['age', 'age_group_start', 'age_group_end']] = mapping[['age', 'age_group_years_start', 'age_group_years_end']]
+
+    # Assumption: We're using 82.5 as the midpoint for the age 80+ age group. May want to change in the future.
+    df.loc[df.age == 102.5, 'age'] = 82.5
+
+    df = df.set_index(idx)
+
+    return df

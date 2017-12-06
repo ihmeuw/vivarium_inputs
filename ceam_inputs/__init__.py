@@ -3,15 +3,16 @@ from vivarium.config_tree import ConfigTree  # Just for typing info.
 # Make these top level imports until external references can be removed.
 from ceam_inputs.gbd_mapping import *
 
-from ceam_inputs import core, gbd_ms_auxiliary_functions as aux, gbd_ms_functions as functions
+from ceam_inputs import core, gbd
 from ceam_inputs.util import get_input_config
+from ceam_inputs.utilities import select_draw_data, get_age_group_midpoint_from_age_group_id, normalize_for_simulation
 
 
 def _clean_and_filter_data(data, draw_number, column_name):
     key_cols = [c for c in data.columns if 'draw' not in c]
     data = data[key_cols + [f'draw_{draw_number}']]
-    data = aux.get_age_group_midpoint_from_age_group_id(data)
-    return functions.select_draw_data(data, draw_number, column_name)
+    data = get_age_group_midpoint_from_age_group_id(data)
+    return select_draw_data(data, draw_number, column_name)
 
 
 ####################################
@@ -122,8 +123,8 @@ def get_populations(override_config=None, location=None):
         data = core.get_populations([location])
     else:
         data = core.get_populations([config.input_data.location_id])
-    data = aux.get_age_group_midpoint_from_age_group_id(data)
-    data = aux.normalize_for_simulation(data)
+    data = get_age_group_midpoint_from_age_group_id(data)
+    data = normalize_for_simulation(data)
     return data
 
 
@@ -162,8 +163,8 @@ def get_hypertension_drug_costs(override_config=None):
 def get_age_specific_fertility_rates(override_config=None):
     config = get_input_config(override_config)
     data = core.get_covariate_estimates([covariates.age_specific_fertility_rate], [config.input_data.location_id])
-    data = aux.get_age_group_midpoint_from_age_group_id(data)
-    data = aux.normalize_for_simulation(data)
+    data = get_age_group_midpoint_from_age_group_id(data)
+    data = normalize_for_simulation(data)
     return data.loc[data.sex == 'Female', ['age', 'year', 'mean_value']].rename(columns={'mean_value': 'rate'})
 
 
@@ -171,13 +172,13 @@ def get_live_births_by_sex(override_config=None):
     config = get_input_config(override_config)
     data = core.get_covariate_estimates([covariates.live_births_by_sex], [config.input_data.location_id])
     data = data[['sex_id', 'year_id', 'mean_value', 'lower_value', 'upper_value']]
-    return aux.normalize_for_simulation(data)
+    return normalize_for_simulation(data)
 
 
 def get_dtp3_coverage(override_config=None):
     config = get_input_config(override_config)
     data = core.get_covariate_estimates([covariates.dtp3_coverage_proportion], [config.input_data.location_id])
-    data = aux.normalize_for_simulation(data)
+    data = normalize_for_simulation(data)
     return data[['mean_value', 'lower_value', 'upper_value', 'year']]
 
 
