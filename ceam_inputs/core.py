@@ -76,7 +76,6 @@ def get_ids_for_measure(entities: Sequence[GbdEntity], measures: Iterable[str]) 
 
     measure_types = {
             'death': (cid, 'gbd_id'),
-            'remision': (cid, 'dismod_id'),
             'prevalence': ((cid, sid), 'gbd_id'),
             'incidence': ((cid, sid), 'gbd_id'),
             'exposure_mean': (rid, 'gbd_id'),
@@ -99,6 +98,13 @@ def get_ids_for_measure(entities: Sequence[GbdEntity], measures: Iterable[str]) 
                     raise InvalidQueryError(
                         f"Entity {entity.name} has no data for measure 'annual_visits'")
                 out['annual_visits'].add(entity.utilization)
+        elif "remission" == measure:
+            # This one too
+            for entity in entities:
+                if not isinstance(entity.gbd_id, cid) or entity.dismod_id is UNKNOWN:
+                    raise InvalidQueryError(
+                        f"Entity {entity.name} has no data for measure 'remission'")
+                out['remission'].add(entity.dismod_id)
         else:
             raise DataError('Stuff is broken')
 
