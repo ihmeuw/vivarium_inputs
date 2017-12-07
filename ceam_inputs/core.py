@@ -401,9 +401,16 @@ def get_excess_mortalities(causes: Sequence[Cause], location_ids: Sequence[int])
     prevalences = prevalences.set_index(key_columns)
     csmrs = csmrs.set_index(key_columns)
 
-    em = csmrs.divide(prevalences, axis='index')
+    # In some cases CSMR is not zero for age groups where prevalence is, which leads to
+    # crazy outputs. So enforce that constraint.
+    # TODO: But is this the right place to do that?
+    draw_columns = [f'draw_{i}' for i in range(1000)]
+    csmrs[draw_columns] = csmrs[draw_columns].where(prevalences[draw_columns] != 0, 0)
 
-    return em.reset_index().dropna()
+    em = csmrs.divide(prevalences, axis='index').reset_index()
+    em = em[em['sex_id'] != COMBINED]
+
+    return em.dropna()
 
 
 def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.DataFrame:
