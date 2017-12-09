@@ -42,6 +42,11 @@ FILES = {
         'path': 'cost/treatment_technology/hypertension_drugs.hdf',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
+    'HIV Positive Antiretroviral Therapy Exposure': {
+        'path': 'exposure/treatment_technology/art/{location_id}.hdf',
+        'source': '/share/gbd/WORK/02_mortality/03_models/hiv/spectrum_prepped/art_draws/170617_hotsauce_high/{ihme_loc_id}_ART_data.csv',
+        'owner': 'Austin Carter <aucarter@uw.edu',
+    },
     'Ors Relative Risks': {
         'path': 'relative_risk/treatment_technology/ors.hdf',
         'source': '/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv',

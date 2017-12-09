@@ -6,7 +6,7 @@ from .templates import ModelableEntity, GbdRecord, meid
 class TreatmentTechnology(ModelableEntity):
     """Container for treatment technology GBD ids and data."""
     __slots__ = ('name', 'unit_cost', 'cost', 'coverage', 'protection',
-                 'efficacy_mean', 'efficacy_sd', 'population_attributable_fraction', 'relative_risk', 'exposures', )
+                 'efficacy_mean', 'efficacy_sd', 'population_attributable_fraction', 'relative_risk', 'exposure', )
 
     def __init__(self,
                  name: str,
@@ -19,7 +19,7 @@ class TreatmentTechnology(ModelableEntity):
                  efficacy_sd: float = None,
                  population_attributable_fraction: str = None,
                  relative_risk: str = None,
-                 exposures: str = None,):
+                 exposure: str = None,):
         super().__init__(name=name, gbd_id=gbd_id)
         self.unit_cost = unit_cost
         self.cost = cost
@@ -29,20 +29,22 @@ class TreatmentTechnology(ModelableEntity):
         self.efficacy_sd = efficacy_sd
         self.population_attributable_fraction = population_attributable_fraction
         self.relative_risk = relative_risk
-        self.exposures = exposures
+        self.exposure = exposure
 
 
 class TreatmentTechnologies(GbdRecord):
     """Holder for treatment technology records."""
-    __slots__ = ('ors', 'rota_vaccine', 'hypertension_drugs', )
+    __slots__ = ('ors', 'rota_vaccine', 'hypertension_drugs', 'hiv_positive_antiretroviral_treatment')
 
     def __init__(self,
                  ors: TreatmentTechnology,
                  rota_vaccine: TreatmentTechnology,
-                 hypertension_drugs: TreatmentTechnology, ):
+                 hypertension_drugs: TreatmentTechnology,
+                 hiv_positive_antiretroviral_treatment: TreatmentTechnology):
         self.ors = ors
         self.rota_vaccine = rota_vaccine
         self.hypertension_drugs = hypertension_drugs
+        self.hiv_positive_antiretroviral_treatment = hiv_positive_antiretroviral_treatment
 
 
 treatment_technologies = TreatmentTechnologies(
@@ -65,5 +67,10 @@ treatment_technologies = TreatmentTechnologies(
         name='hypertension_drugs',
         gbd_id=None,
         cost='Hypertension Drug Costs',
+    ),
+    hiv_positive_antiretroviral_treatment=TreatmentTechnology(
+        name='hiv_positive_antiretroviral_treatment',
+        gbd_id=None,
+        exposure='HIV Positive Antiretroviral Therapy Exposure',
     )
 )

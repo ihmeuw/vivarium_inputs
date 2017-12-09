@@ -1,6 +1,7 @@
 """This module performs the core data transformations on GBD data and provides a basic API for data access."""
 from collections import defaultdict
 from typing import Iterable, Sequence, Union, DefaultDict, Set, List
+from itertools import product
 
 import numpy as np
 import pandas as pd
@@ -470,8 +471,14 @@ def get_relative_risks(entities, location_ids):
     return df
 
 
-def get_exposure_means(risks, location_ids):
-    return get_gbd_draws(risks, ['exposure_mean'], location_ids).drop('measure', 'columns')
+def get_exposure_means(entities, location_ids):
+    if isinstance(entities[0], Risk):
+        return get_gbd_draws(entities, ['exposure_mean'], location_ids).drop('measure', 'columns')
+    else:  # We have a treatment technology
+        data = []
+        for treatment_technology, location_id in product(entities, location_ids):
+            data.append(gbd.get_data_from_auxiliary_file(treatment_technology.exposure, location_id=location_id))
+        return pd.concat(data)
 
 
 def get_exposure_standard_deviations(risks, location_ids):
@@ -485,7 +492,6 @@ def get_exposure_standard_deviations(risks, location_ids):
     draw_cols = [f'draw_{i}' for i in range(1000)]
     df = df[df['sex_id'] != 3]
     return df[key_cols + draw_cols]
-
 
 
 def get_population_attributable_fractions(entities, location_ids):
