@@ -461,13 +461,13 @@ def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.
 def get_relative_risks(entities, location_ids):
     if isinstance(entities[0].gbd_id, rid):
         df = get_gbd_draws(entities, ['relative_risk'], location_ids)
+        del df['measure']
     else:
         data = []
         for entity in entities:
             data.append(gbd.get_data_from_auxiliary_file(entity.relative_risk,
                                                          gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID]))
         df = pd.concat(data)
-    del df['measure']
     return df
 
 
@@ -497,6 +497,7 @@ def get_exposure_standard_deviations(risks, location_ids):
 def get_population_attributable_fractions(entities, location_ids):
     if isinstance(entities[0].gbd_id, rid):
         df = get_gbd_draws(entities, ['population_attributable_fraction'], location_ids)
+        df = df.drop('measure', 'columns')
     else:
         data = []
         for entity in entities:
@@ -505,7 +506,7 @@ def get_population_attributable_fractions(entities, location_ids):
             temp = temp[temp['location_id'].isin(location_ids)]
             data.append(temp)
         df = pd.concat(data)
-    return df.drop('measure', 'columns')
+    return df
 
 
 def get_ensemble_weights(risks, location_ids):
