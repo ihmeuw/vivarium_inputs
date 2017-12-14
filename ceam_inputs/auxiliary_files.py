@@ -47,13 +47,23 @@ FILES = {
         'source': '/share/gbd/WORK/02_mortality/03_models/hiv/spectrum_prepped/art_draws/170617_hotsauce_high/{ihme_loc_id}_ART_data.csv',
         'owner': 'Austin Carter <aucarter@uw.edu',
     },
+    'HIV Positive Antiretroviral Therapy Relative Risk': {
+        'path': 'relative_risk/treatment_technology/art.hdf',
+        'source': 'Zane made up data',
+        'owner': 'Zane made up data',
+    },
+    'HIV Positive Antiretroviral Therapy PAF': {
+        'path': 'population_attributable_fraction/treatment_technology/art/{location_id}.hdf',
+        'source': 'Zane made up data',
+        'owner': 'Zane made up data',
+    },
     'Ors Relative Risks': {
         'path': 'relative_risk/treatment_technology/ors.hdf',
         'source': '/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
     'Ors Pafs': {
-        'path': 'population_attributable_fraction/treatment_technology/ors.hdf',
+        'path': 'population_attributable_fraction/treatment_technology/ors/{location_id}.hdf',
         'source': '/share/epi/risk/bmgf/paf/diarrhea_ors/paf_yll_{location_id}.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },

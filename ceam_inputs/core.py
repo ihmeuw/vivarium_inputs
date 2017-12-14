@@ -501,7 +501,7 @@ def get_population_attributable_fractions(entities, location_ids):
     else:
         data = []
         for entity in entities:
-            temp = gbd.get_data_from_auxiliary_file(entity.population_attributable_fraction,
+            temp = gbd.get_data_from_auxiliary_file(entity.population_attributable_fraction, location_id=location_id,
                                                     gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
             temp = temp[temp['location_id'].isin(location_ids)]
             data.append(temp)
