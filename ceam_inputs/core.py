@@ -459,7 +459,7 @@ def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.
 
 
 def get_relative_risks(entities, location_ids):
-    if isinstance(entities[0], Risk):
+    if isinstance(entities[0], (Risk, Etiology)):
         df = get_gbd_draws(entities, ['relative_risk'], location_ids)
         del df['measure']
     else:
@@ -472,7 +472,7 @@ def get_relative_risks(entities, location_ids):
 
 
 def get_exposure_means(entities, location_ids):
-    if isinstance(entities[0], Risk):
+    if isinstance(entities[0], (Risk, Etiology)):
         return get_gbd_draws(entities, ['exposure_mean'], location_ids).drop('measure', 'columns')
     else:  # We have a treatment technology
         data = []
@@ -495,13 +495,14 @@ def get_exposure_standard_deviations(risks, location_ids):
 
 
 def get_population_attributable_fractions(entities, location_ids):
-    if isinstance(entities[0], Risk):
+    if isinstance(entities[0], (Risk, Etiology)):
         df = get_gbd_draws(entities, ['population_attributable_fraction'], location_ids)
         df = df.drop('measure', 'columns')
     else:
         data = []
         for entity, location_id in product(entities, location_ids):
-            data.append(gbd.get_data_from_auxiliary_file(entity.exposure, location_id=location_id))
+            data.append(gbd.get_data_from_auxiliary_file(entity.population_attributable_fraction,
+                                                         location_id=location_id))
         df = pd.concat(data)
     return df
 
@@ -579,8 +580,10 @@ def get_costs(entities, location_ids):
         data.append(df)
     return pd.concat(data)
 
+
 def get_healthcare_annual_visits(entities, location_ids):
     return get_gbd_draws(entities, ['annual_visits'], location_ids).drop('measure', 'columns')
+
 
 def get_covariate_estimates(covariates, location_ids):
     return gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)
