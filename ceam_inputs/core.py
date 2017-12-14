@@ -459,7 +459,7 @@ def get_disability_weights(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.
 
 
 def get_relative_risks(entities, location_ids):
-    if isinstance(entities[0].gbd_id, rid):
+    if isinstance(entities[0], Risk):
         df = get_gbd_draws(entities, ['relative_risk'], location_ids)
         del df['measure']
     else:
@@ -476,8 +476,8 @@ def get_exposure_means(entities, location_ids):
         return get_gbd_draws(entities, ['exposure_mean'], location_ids).drop('measure', 'columns')
     else:  # We have a treatment technology
         data = []
-        for treatment_technology, location_id in product(entities, location_ids):
-            data.append(gbd.get_data_from_auxiliary_file(treatment_technology.exposure, location_id=location_id))
+        for entity, location_id in product(entities, location_ids):
+            data.append(gbd.get_data_from_auxiliary_file(entity.exposure, location_id=location_id))
         return pd.concat(data)
 
 
@@ -495,16 +495,13 @@ def get_exposure_standard_deviations(risks, location_ids):
 
 
 def get_population_attributable_fractions(entities, location_ids):
-    if isinstance(entities[0].gbd_id, rid):
+    if isinstance(entities[0], Risk):
         df = get_gbd_draws(entities, ['population_attributable_fraction'], location_ids)
         df = df.drop('measure', 'columns')
     else:
         data = []
-        for entity in entities:
-            temp = gbd.get_data_from_auxiliary_file(entity.population_attributable_fraction, location_id=location_id,
-                                                    gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
-            temp = temp[temp['location_id'].isin(location_ids)]
-            data.append(temp)
+        for entity, location_id in product(entities, location_ids):
+            data.append(gbd.get_data_from_auxiliary_file(entity.exposure, location_id=location_id))
         df = pd.concat(data)
     return df
 
