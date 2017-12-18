@@ -92,7 +92,10 @@ def get_gbd_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
     data = []
     id_cols = set()
     for measure in measures:
-        handler, id_columns = measure_handlers[measure]
+        try:
+            handler, id_columns = measure_handlers[measure]
+        except KeyError:
+            raise InvalidQueryError(f'No functions are available to pull data for measure {measure}')
         measure_data = handler(entities, location_ids)
         measure_data['measure'] = measure
         id_cols |= id_columns
