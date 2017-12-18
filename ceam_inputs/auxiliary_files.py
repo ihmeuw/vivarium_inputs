@@ -8,17 +8,6 @@ from os.path import join
 AUXILIARY_DATA_FOLDER = "{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/{gbd_round}"
 
 FILES = {
-    'Angina Proportions' : {
-        'path': 'angina_prop_postMI.csv',
-        'source': '/snfs1/WORK/04_epi/01_database/02_data/cvd_ihd/04_models/02_misc_data/angina_prop_postMI.csv',
-        'owner': 'Catherine O. Johnson <johnsoco@uw.edu>',
-        },
-    'Age-Specific Fertility Rates': {
-        'path': 'ASFR.csv',
-        'encoding': 'latin1',
-        'source': 'covariate_short_name: Age-Specific Fertility Rate; model_version: 9065',
-        'owner': 'HAIDONG WANG <haidong@uw.edu>',
-        },
     'Disability Weights': {
         'path': 'dw.csv',
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/02_standard/dw.csv',
@@ -27,101 +16,73 @@ FILES = {
         'path': 'combined_dws.csv',
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv',
         },
-    'Systolic Blood Pressure Distributions': {
-        'path': 'systolic_blood_pressure/exp_{location_id}_{sex_id}.dta',
-        'source': '/share/epi/risk/paf/metab_sbp/exposures',
-        'encoding': 'latin1',
-        'owner': 'Stan Biryukov <stan0625@uw.edu>',
-        },
-    'Body Mass Index Distributions': {
-        'path': 'bmi/{parameter}/19_{location_id}_{year_id}_{sex_id}.csv',
-        'source': '/share/covariates/ubcov/04_model/beta_parameters/8',
-        'owner': 'Marissa B. Reitsma <mreitsma@uw.edu>',
-        },
-    'Fasting Plasma Glucose Distributions': {
-        'path': 'fpg/FILE_{location_id}_{year_id}_{sex_id}_OUT.csv',
-        'source': '/share/epi/risk/paf/metab_fpg_cont_sll/FILE_[location_id]_[year_id]_[sex_id]_OUT.csv',
-        'owner': 'Stan Biryukov <stan0625@uw.edu>',
-        },
-    'Life Table': {
-        'path': 'FINAL_min_pred_ex.csv',
-        'source': '/home/j/WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv',
+    'Ensemble Distribution Weights': {
+        'path': 'ensemble_weight/risk/{rei_id}.csv',
+        'source': '/home/j/WORK/05_risk/ensemble/weights',
+        'owner': 'Patrick J Sur <psur2417@uw.edu>, Stan Biryukov <stan0625@uw.edu>',
         },
     'Risk Factor Propensity Correlation Matrices': {
         'path': 'risk_factor_propensity_correlation_matricies/location_{location_id}',
         'owner': 'Reed Sorenson <rsoren@uw.edu>',
         },
-    'Inpatient Visit Costs': {
-        'path': 'ip_cost.csv',
-        'owner': 'Mark Moses <mwm6@uw.edu>',
+    'Risk Standard Deviation Meids': {
+       'path': 'risk_exposure_sd_mapping.csv',
+       'owner': 'Zane Rankin <zrankin@uw.edu>',
     },
-    'Hypertension Drug Costs': {
-        'path': 'higashi_drug_costs_20160804.csv',
+    'Inpatient Visit Costs': {
+        'path': 'cost/healthcare_entity/inpatient.hdf',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
     'Outpatient Visit Costs': {
-        'path': 'op_cost.csv',
+        'path': 'cost/healthcare_entity/outpatient.hdf',
         'source': "/snfs1/Project/Cost_Effectiveness/Access_to_care/02_analysis/01_data/op_unit_cost.csv",
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
-    'Diarrhea Visit Costs': {
-        'path': 'op_ip_weighted_cost.csv',
-        'source': "/snfs1/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_weighted_cost.csv",
+    'Hypertension Drug Costs': {
+        'path': 'cost/treatment_technology/hypertension_drugs.hdf',
         'owner': 'Mark Moses <mwm6@uw.edu>',
     },
-    'Ors Exposure': {
-        'path': 'diarrhea_ors/exposure/{location_id}.csv',
-        'source': '/share/epi/risk/bmgf/exp/diarrhea_ors/{location_id}.csv',
-        'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
+    'HIV Positive Antiretroviral Therapy Exposure': {
+        'path': 'exposure/treatment_technology/art/{location_id}.hdf',
+        'source': '/share/gbd/WORK/02_mortality/03_models/hiv/spectrum_prepped/art_draws/170617_hotsauce_high/{ihme_loc_id}_ART_data.csv',
+        'owner': 'Austin Carter <aucarter@uw.edu',
+    },
+    'HIV Positive Antiretroviral Therapy Relative Risk': {
+        'path': 'relative_risk/treatment_technology/art.hdf',
+        'source': 'Zane made up data',
+        'owner': 'Zane made up data',
+    },
+    'HIV Positive Antiretroviral Therapy PAF': {
+        'path': 'population_attributable_fraction/treatment_technology/art/{location_id}.hdf',
+        'source': 'Zane made up data',
+        'owner': 'Zane made up data',
     },
     'Ors Relative Risks': {
-        'path': 'diarrhea_ors/diarrhea_ors_rrs.csv',
+        'path': 'relative_risk/treatment_technology/ors.hdf',
         'source': '/share/epi/risk/bmgf/rr/diarrhea_ors/1.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
     'Ors Pafs': {
-        'path': 'diarrhea_ors/pafs/paf_yll_{location_id}.csv',
+        'path': 'population_attributable_fraction/treatment_technology/ors/{location_id}.hdf',
         'source': '/share/epi/risk/bmgf/paf/diarrhea_ors/paf_yll_{location_id}.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
-    },
-    'Severity Splits': {
-        'path': 'severity_splits/{parent_meid}/prop_draws.h5',
-        'source': '/share/epi/split_prop_draws_2016/{parent_meid}/prop_draws.h5',
-        'owner': 'Ben Miltz <benmiltz@uw.edu>'
     },
     'Mediation Factors': {
         'path': 'mediation_matrix_corrected.csv',
         'source': '/home/j/WORK/05_risk/mediation/mediation_matrix_corrected.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
-    'DTP3 Coverage': {
-        'path': 'vacc_dtp3/exp/{location_id}.csv',
-        # This filepath will change at some point in the future (not sure when though) -- EM 6.22.2017
-        'source': '/snfs1/temp/pyliu/scratch/draws/exp/vacc_dpt3/{location_id}.csv',
-        'owner': 'Patrick Liu <pyliu@uw.edu>; GBD Vaccine Coverage Team',
-    },
     'Rota Vaccine Protection': {
-        'path': 'rota_protection_draws.csv',
+        'path': 'protection/treatment_technology/rotaviral_entiritis_vaccines.hdf',
         # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
         'source': '',
         'owner': 'Everett Mumford <emumford@uw.edu>',
     },
-    'Rota Vaccine RRs': {
-        'path': 'rota_vaccine_rrs.csv',
-        # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM
-        'source': '',
-        'owner': 'Everett Mumford <emumford@uw.edu>',
-    },
-    'Diarrhea Costs': {
-        'path':  'op_ip_diarrhea_cost_all_country_years.csv',
-        'source':  '/home/j/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_diarrhea_cost_all_country_years.csv',
-        'owner': 'Mark Moses <mwm6@uw.edu>',
-    },
-    'ORS Costs': {
-        'path': 'healthcare_access/ors_cost/{location_id}.csv',
-        'source':  '/home/j/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/GBD_2015/op_ip_diarrhea_cost_all_country_years.csv',
-        'owner': 'Mark Moses <mwm6@uw.edu>',
-    },
+    'Risk Data': {
+        'path': 'risk_variables.xlsx',
+        'source': '/home/j/WORK/05_risk/central/documentation/GBD\ 2016/risk_variables.xlsx',
+        'owner': 'Kelly Cercy <kcercy@uw.edu>'
+    }
 }
 
 

@@ -14,9 +14,9 @@ COLUMN_NORMALIZATION = {
         'fpg2': risk_factors.high_fasting_plasma_glucose_continuous.name,
         'watcat': risk_factors.unsafe_water_source.name,
         'sancat': risk_factors.unsafe_sanitation.name,
-        'handcat': risk_factors.no_handwashing_with_soap.name,
-        'stunted': risk_factors.childhood_stunting.name,
-        'wasted': risk_factors.childhood_wasting.name,
+        'handcat': risk_factors.no_access_to_handwashing_facility.name,
+        'stunted': risk_factors.child_stunting.name,
+        'wasted': risk_factors.child_wasting.name,
         'no_bfeeding': risk_factors.non_exclusive_breastfeeding.name,
 }
 
@@ -30,7 +30,7 @@ def load_matrices(location_id, gbd_round):
         knot_ages, sexes = zip(*[re.match('corr_([0-9]+)_([A-Za-z]+).csv', path).groups()
                              for path in os.listdir(matrices_root)])
     except FileNotFoundError:
-        return None
+        raise ValueError(f"No risk correlation matrix available for the given location id: {location_id}")
     knot_ages = set(knot_ages)
     sexes = set(sexes)
 

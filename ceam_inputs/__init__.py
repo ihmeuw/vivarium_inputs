@@ -1,819 +1,195 @@
-import pandas as pd
-
 from vivarium.config_tree import ConfigTree  # Just for typing info.
 
 # Make these top level imports until external references can be removed.
 from ceam_inputs.gbd_mapping import *
 
-from ceam_inputs import gbd, gbd_ms_functions as functions
+from ceam_inputs import core, gbd
 from ceam_inputs.util import get_input_config
+from ceam_inputs.utilities import select_draw_data, get_age_group_midpoint_from_age_group_id, normalize_for_simulation
 
 
-def _get_gbd_draws(modelable_entity, measure, column_name, config: ConfigTree):
-    """
-    Parameters
-    ----------
-    modelable_entity : ceam_inputs.gbd_mapping.CauseLike
-        A mapping of the GBD ids for a modelable entity onto its various measures.
-    measure : str
-        The name of the requested measure.
-    column_name: str
-        The name of the column with the measure data in the output data table.
-    config:
-        The input data configuration
-
-    Returns
-    -------
-    pandas.DataFrame :
-        Table with columns 'age', 'sex', 'year' and `column_name`
-    """
-    gbd_id = modelable_entity[measure]
-    if gbd_id is UNKNOWN:
-        if modelable_entity.gbd_id is not None:
-            import warnings
-            warnings.warn('The mapping between {} and {} '.format(modelable_entity.name, measure)
-                          + 'has not been verified.  We are using {} '.format(repr(modelable_entity.gbd_id))
-                          + 'but you should verify that this is the correct id and update the gbd mapping.')
-            gbd_id = modelable_entity.gbd_id
-        else:
-            raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(
-                modelable_entity.name, measure))
-    elif isinstance(gbd_id, scalar):  # We have a scalar value rather than an actual id.
-        return gbd_id
-
-    return functions.get_gbd_draws(location_id=config.input_data.location_id,
-                                   measure=measure,
-                                   gbd_id=gbd_id,
-                                   gbd_round_id=config.input_data.gbd_round_id,
-                                   draw_number=config.run_configuration.input_draw_number,
-                                   column_name=column_name)
+def _clean_and_filter_data(data, draw_number, column_name):
+    key_cols = [c for c in data.columns if 'draw' not in c]
+    data = data[key_cols + [f'draw_{draw_number}']]
+    data = get_age_group_midpoint_from_age_group_id(data)
+    return select_draw_data(data, draw_number, column_name)
 
 
-def get_excess_mortality(cause, override_config: ConfigTree=None):
-    """Get excess mortality associated with a modelable entity.
+####################################
+# Measures for cause like entities #
+####################################
 
-    Parameters
-    ----------
-    cause :  ceam_inputs.gbd_mapping.Sequela or ceam_inputs.gbd_mapping.SeveritySplit
-        A mapping of the GBD ids for a modelable entity onto its various measures.
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame or float
-        Table with 'age', 'sex', 'year' and 'rate' columns
-    """
-    if isinstance(cause.excess_mortality, cid):
-        csmr = get_cause_specific_mortality(cause, override_config).set_index(['age', 'sex', 'year'])
-        prevalence = get_prevalence(cause, override_config).set_index(['age', 'sex', 'year'])
-        prevalence.columns = ['rate']
-        df = (csmr/prevalence).dropna()
-        df[prevalence == 0] = 0
-        return df.reset_index()
-    else:
-        config = get_input_config(override_config)
-        return _get_gbd_draws(modelable_entity=cause, measure='excess_mortality', column_name='rate', config=config)
-
-
-def get_incidence(cause, override_config: ConfigTree=None):
-    """Get incidence rates for a modelable entity.
-
-    Parameters
-    ----------
-    cause :  ceam_inputs.gbd_mapping.CauseLike
-        A mapping of the GBD ids for a modelable entity onto its various measures.
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'rate' columns
-    """
+def get_prevalence(entity, override_config=None):
     config = get_input_config(override_config)
-    return _get_gbd_draws(modelable_entity=cause, measure='incidence', column_name='rate', config=config)
+    data = core.get_prevalence([entity], [config.input_data.location_id])
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'prevalence')
 
 
-def get_cause_specific_mortality(cause, override_config=None):
-    """Get excess mortality associated with a modelable entity.
-
-    Parameters
-    ----------
-    cause : ceam_inputs.gbd_mapping.CauseLike
-        A mapping of the GBD ids for a modelable entity onto its various measures.
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'rate' columns
-    """
+def get_incidence(entity, override_config: ConfigTree=None):
     config = get_input_config(override_config)
-    return functions.get_cause_specific_mortality(cause_id=cause.gbd_id,
-                                                  location_id=config.input_data.location_id,
-                                                  gbd_round_id=config.input_data.gbd_round_id,
-                                                  draw_number=config.run_configuration.input_draw_number)
+    data = core.get_incidence([entity], [config.input_data.location_id])
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
 
 def get_remission(cause, override_config=None):
-    """Get remission rates for a modelable entity.
-
-    Parameters
-    ----------
-    cause :  ceam_inputs.gbd_mapping.CauseLike
-        A mapping of the GBD ids for a modelable entity onto its various measures.
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'rate' columns
-    """
     config = get_input_config(override_config)
-    return _get_gbd_draws(modelable_entity=cause, measure='remission', column_name='remission', config=config)
+    data = core.get_remission([cause], [config.input_data.location_id])
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
 
-# FIXME: Duration is not an actual gbd parameter, it's computed from remission.
-# We should probably actually use the remission data.
-def get_duration(cause, override_config=None):
-    """Get duration times for a modelable entity.
+def get_cause_specific_mortality(cause, override_config=None):
+    config = get_input_config(override_config)
+    data = core.get_cause_specific_mortality([cause], [config.input_data.location_id])
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
-    Parameters
-    ----------
-    cause :  ceam_inputs.gbd_mapping.CauseLike
-        A mapping of the GBD ids for a modelable entity onto its various measures.
-    override_config :
-        Any overrides to the input data configuration.
 
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'duration' columns
-    """
-    _ = get_input_config(override_config)
-    if cause.duration is UNKNOWN:
-        raise UnknownEntityError('No mapping exists for cause {} and measure {}'.format(cause.name, 'duration'))
+def get_excess_mortality(cause, override_config: ConfigTree=None):
+    config = get_input_config(override_config)
+    data = core.get_excess_mortality([cause], [config.input_data.location_id])
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
+
+
+def get_disability_weight(sequela, override_config=None):
+    config = get_input_config(override_config)
+    data = core.get_disability_weight([sequela], [config.input_data.location_id])
+    return float(data[f'draw_{config.run_configuration.input_draw_number}'])
+
+
+####################################
+# Measures for risk like entities  #
+####################################
+
+
+def get_relative_risk(entity, cause, override_config=None):
+    config = get_input_config(override_config)
+    data = core.get_relative_risk([entity], [config.input_data.location_id])
+    data = data[data['cause_id'] == cause.gbd_id]
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'relative_risk')
+
+
+def get_exposure(risk, override_config=None):
+    config = get_input_config(override_config)
+    data = core.get_exposure([risk], [config.input_data.location_id])
+    data = _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'mean')
+    # FIXME: This is here because FPG puts zeros in its unmodelled age groups unlike most other gbd risks
+    data = data[data['mean'] != 0]
+    return data
+
+
+def get_exposure_standard_deviation(risk, override_config=None):
+    config = get_input_config(override_config)
+    data = core.get_exposure_standard_deviation([risk], [config.input_data.location_id])
+    data = _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'standard_deviation')
+    # FIXME: This is here because FPG puts zeros in its unmodelled age groups unlike most other gbd risks
+    data = data[data['standard_deviation'] != 0]
+    return data
+
+
+def get_population_attributable_fraction(entity, cause, override_config=None):
+    config = get_input_config(override_config)
+    data = core.get_population_attributable_fraction([entity], [config.input_data.location_id])
+    data = data[data['cause_id'] == cause.gbd_id]
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'population_attributable_fraction')
+
+
+def get_ensemble_weights(risk, override_config=None):
+    config = get_input_config(override_config)
+    return core.get_ensemble_weights([risk], [config.input_data.location_id])
+
+
+def get_mediation_factor(risk, cause, override_config=None):
+    config = get_input_config(override_config)
+    data = core.get_mediation_factor([risk], [config.input_data.location_id])
+    try:
+        return data[data['cause_id'] == cause.gbd_id] if cause.gbd_id in data['cause_id'] else 0
+    except TypeError:
+        return 0
+
+
+def get_risk_correlation_matrix(override_config=None):
+    config = get_input_config(override_config)
+    data = core.get_risk_correlation_matrix([config.input_data.location_id])
+    del data['location_id']
+    return data
+
+#######################
+# Other kinds of data #
+#######################
+
+
+def get_populations(override_config=None, location=None):
+    config = get_input_config(override_config)
+    if location:
+        data = core.get_populations([location])
     else:
-        return pd.Timedelta(days=cause.duration)
+        data = core.get_populations([config.input_data.location_id])
+    data = get_age_group_midpoint_from_age_group_id(data)
+    data = normalize_for_simulation(data)
+    return data
 
 
-def get_proportion(modelable_entity, override_config=None):
-    """Get proportion data for a modelable entity. This is used for entities that represent
-    outcome splits like severities of heart failure after an infarction.
+def get_age_bins():
+    return core.get_age_bins()
 
-    Parameters
-    ----------
-    modelable_entity : ceam_inputs.gbd_mapping.CauseLike
-        A mapping of the GBD ids for a modelable entity onto its various measures.
-    override_config :
-        Any overrides to the input data configuration.
 
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'proportion' columns
-    """
+def get_theoretical_minimum_risk_life_expectancy():
+    return core.get_theoretical_minimum_risk_life_expectancy()
+
+
+def get_subregions(override_config=None):
     config = get_input_config(override_config)
-    return _get_gbd_draws(modelable_entity=modelable_entity,  measure='proportion',
-                          column_name='proportion', config=config)
-
-
-def get_age_bins(override_config=None):
-    """Retrieves the age bin structure the GBD uses for demographic classification.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-    """
-    config = get_input_config(override_config)
-    return gbd.get_age_bins(gbd_round_id=config.input_data.gbd_round_id)
-
-
-def get_prevalence(cause, override_config=None):
-    """Get prevalence data for a modelable entity.
-
-    Parameters
-    ----------
-    cause : ceam_inputs.gbd_mapping.CauseLike
-        A mapping of the GBD ids for a modelable entity onto its various measures.
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Table with 'age', 'sex', 'year' and 'prevalence' columns
-    """
-    config = get_input_config(override_config)
-    return _get_gbd_draws(modelable_entity=cause,  measure='prevalence', column_name='prevalence', config=config)
-
-
-def get_relative_risks(risk, cause, override_config=None, rr_type='morbidity'):
-    """Get the relative risk for a cause risk pair
-
-    Parameters
-    ----------
-    risk: ceam_inputs.gbd_mapping.Risk
-    cause: ceam_inputs.gbd_mapping.Cause
-    rr_type: {'morbidity', 'mortality'}
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_relative_risks(location_id=config.input_data.location_id,
-                                        risk_id=risk.gbd_id,
-                                        cause_id=cause.gbd_id,
-                                        gbd_round_id=config.input_data.gbd_round_id,
-                                        rr_type=rr_type,
-                                        draw_number=config.run_configuration.input_draw_number)
-
-
-def get_pafs(risk, cause, override_config=None, paf_type='morbidity'):
-    """Get the population attributable fraction for a cause risk pair.
-
-    Parameters
-    ----------
-    risk: ceam_inputs.gbd_mapping.Risk or ceam_inputs.gbd_mapping.Etiology
-    cause: ceam_inputs.gbd_mapping.Cause
-    paf_type: {'morbidity', 'mortality'}
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_pafs(location_id=config.input_data.location_id,
-                              risk_id=risk.gbd_id,
-                              cause_id=cause.gbd_id,
-                              gbd_round_id=config.input_data.gbd_round_id,
-                              paf_type=paf_type,
-                              draw_number=config.run_configuration.input_draw_number)
-
-
-def get_exposure_means(risk, override_config=None):
-    """Gets the exposure distribution mean for a given risk.
-
-    Parameters
-    ----------
-    risk: ceam_inputs.gbd_mapping.Risk
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_exposures(location_id=config.input_data.location_id,
-                                   risk_id=risk.gbd_id,
-                                   gbd_round_id=config.input_data.gbd_round_id,
-                                   draw_number=config.run_configuration.input_draw_number)
-
-
-def get_exposure_standard_errors(risk, override_config=None):
-    """Gets the exposure distribution standard error for a given risk.
-
-    Parameters
-    ----------
-    risk: ceam_inputs.gbd_mapping.Risk
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    # TODO : I still need to generate the standard deviations for the continuous risks.  So stub here for now. J.C.
-    pass
-
-
-# FIXME: The access pattern is incorrect here.  No one should be explicitly passing in location ids/sex_ids/years.
-# It's a bit bigger to fix than I want to deal with right now.  -J.C. 09/20/17
-def get_populations(location_id, year=-1, sex='All', override_config=None):
-    """Gets the demographic structure for a population.
-
-    Parameters
-    ----------
-    location_id: int
-    year: int
-    sex: {'All', 'Male', 'Female', 'Both'}
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_populations(location_id=location_id,
-                                     year=year,
-                                     sex=sex,
-                                     gbd_round_id=config.input_data.gbd_round_id)
-
-
-def get_age_specific_fertility_rates(override_config=None):
-    """Gets fertility rates broken down by age.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_age_specific_fertility_rates(location_id=config.input_data.location_id,
-                                                      gbd_round_id=config.input_data.gbd_round_id)
-
-
-def get_bmi_distribution_parameters(override_config=None):
-    """Gets the parameters for the body mass index exposure distribution (a 4-parameter beta distribution).
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_bmi_distribution_parameters(location_id=config.input_data.location_id,
-                                                     gbd_round_id=config.input_data.gbd_round_id,
-                                                     draw_number=config.run_configuration.input_draw_number)
-
-
-def get_fpg_distribution_parameters(override_config=None):
-    """Gets the parameters for the fasting plasma glucose exposure distribution.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_fpg_distribution_parameters(location_id=config.input_data.location_id,
-                                                     gbd_round_id=config.input_data.gbd_round_id,
-                                                     draw_number=config.run_configuration.input_draw_number,
-                                                     use_subregions=config.input_data.use_subregions)
-
-
-def get_annual_live_births(override_config=None):
-    """Gets the live births in a given location and year.
-
-    Parameters
-    ----------
-    location_id: int
-    year: int
-    sex_id: {1, 2, 3}
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Average live births.
-    """
-    config = get_input_config(override_config)
-    return functions.get_annual_live_births(location_id=config.input_data.location_id)
-
-
-def get_sbp_distribution(override_config=None):
-    """Gets the parameters for the high systolic blood pressure exposure distribution.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_sbp_mean_sd(location_id=config.input_data.location_id,
-                                     gbd_round_id=config.input_data.gbd_round_id,
-                                     draw_number=config.run_configuration.input_draw_number)
-
-
-def get_post_mi_heart_failure_proportion_draws(override_config=None):
-    """Gets the proportion of heart failure following myocardial infarction.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_post_mi_heart_failure_proportion_draws(location_id=config.input_data.location_id,
-                                                                gbd_round_id=config.input_data.gbd_round_id,
-                                                                draw_number=config.run_configuration.input_draw_number)
-
-
-def get_angina_proportions(override_config=None):
-    """Gets the proportion of angina following myocardial infarction.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_angina_proportions(gbd_round_id=config.input_data.gbd_round_id,
-                                            draw_number=config.run_configuration.input_draw_number)
-
-
-def get_asympt_ihd_proportions(override_config=None):
-    """Gets the proportion of asymptomatic ischemic heart disease following myocardial infarction.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_asympt_ihd_proportions(location_id=config.input_data.location_id,
-                                                gbd_round_id=config.input_data.gbd_round_id,
-                                                draw_number=config.run_configuration.input_draw_number)
-
-
-# FIXME: The access pattern is incorrect here.  No one should be explicitly passing in location ids.
-# It's a bit bigger to fix than I want to deal with right now.  -J.C. 09/20/17
-def get_subregions(location_id, override_config=None):
-    """Gets a list of subregions associated with the given location.
-
-    Parameters
-    ----------
-    location_id: int
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    [int]
-        Subregions of the given location.
-    """
-    _ = get_input_config(override_config)
-    return gbd.get_subregions(location_id)
-
-
-def get_severity_splits(parent, child, override_config=None):
-    """Gets the proportion of the parent cause cases represented by the child cause.
-
-    Parameters
-    ----------
-    parent: ceam_inputs.gbd_mapping.Cause
-    child: ceam_inputs.gbd_mapping.CauseLike
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_severity_splits(parent_meid=parent.incidence,
-                                         child_meid=child.proportion,
-                                         gbd_round_id=config.input_data.gbd_round_id,
-                                         draw_number=config.run_configuration.input_draw_number)
-
-
-def get_disability_weight(cause, override_config=None):
-    """Gets the disability weight associated with the given cause-like entity.
-
-    Parameters
-    ----------
-    cause: ceam_inputs.gbd_mapping.Sequela or ceam_inputs.gbd_mapping.SeveritySplit
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    float or pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    if cause.disability_weight is UNKNOWN:
-        if isinstance(cause, Cause):
-            import warnings
-            warnings.warn('Cause-level disability weights are not implemented. '
-                          'Disability is specified at the sequela level. You can specify a '
-                          'scalar value to use in ceam_inputs.gbd_mapping.causes.  Returning 0.')
-            return 0
-        raise UnknownEntityError('No mapping exists between cause {} and measure disability weight'.format(cause.name))
-    elif isinstance(cause.disability_weight, scalar):
-        return cause.disability_weight
-    else:
-        return functions.get_disability_weight(cause,
-                                               gbd_round_id=config.input_data.gbd_round_id,
-                                               draw_number=config.run_configuration.input_draw_number)
-
-
-def get_rota_vaccine_coverage(override_config=None):
-    """Gets the background amount of rota vaccine coverage.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame"""
-    config = get_input_config(override_config)
-    return functions.get_rota_vaccine_coverage(location_id=config.input_data.location_id,
-                                               gbd_round_id=config.input_data.gbd_round_id,
-                                               draw_number=config.run_configuration.input_draw_number)
-
-
-def get_ors_pafs(override_config=None):
-    """Gets the population attributable fraction of diarrhea deaths due to lack of oral rehydration salts solution.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_ors_pafs(location_id=config.input_data.location_id,
-                                  gbd_round_id=config.input_data.gbd_round_id,
-                                  draw_number=config.run_configuration.input_draw_number)
-
-
-def get_ors_relative_risks(override_config=None):
-    """Gets the relative risk of lack of oral rehydration salts solution on diarrhea excess mortality.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    float
-    """
-    config = get_input_config(override_config)
-    return functions.get_ors_relative_risks(gbd_round_id=config.input_data.gbd_round_id,
-                                            draw_number=config.run_configuration.input_draw_number)
-
-
-def get_ors_exposures(override_config=None):
-    """Get the exposure to lack of oral rehydration salts solution (1 - ORS coverage).
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_ors_exposures(location_id=config.input_data.location_id,
-                                       gbd_round_id=config.input_data.gbd_round_id,
-                                       draw_number=config.run_configuration.input_draw_number)
-
-
-def get_life_table(override_config=None):
-    """Gets the life expectancy table.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_life_table(gbd_round_id=config.input_data.gbd_round_id)
+    return core.get_subregions([config.input_data.location_id])
 
 
 def get_outpatient_visit_costs(override_config=None):
-    """Gets the cost table for outpatient visits.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
     config = get_input_config(override_config)
-    return functions.get_outpatient_visit_costs(gbd_round_id=config.input_data.gbd_round_id)
+    data = core.get_cost([healthcare_entities.outpatient_visits], [config.input_data.location_id])
+    data = data[['year_id', f'draw_{config.run_configuration.input_draw_number}']]
+    return data.rename(columns={'year_id':'year', f'draw_{config.run_configuration.input_draw_number}': 'cost'})
 
 
 def get_inpatient_visit_costs(override_config=None):
-    """Gets the cost table for outpatient visits.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
     config = get_input_config(override_config)
-    return functions.get_inpatient_visit_costs(gbd_round_id=config.input_data.gbd_round_id)
+    data = core.get_cost([healthcare_entities.inpatient_visits], [config.input_data.location_id])
+    data = data[['year_id', f'draw_{config.run_configuration.input_draw_number}']]
+    return data.rename(columns={'year_id':'year', f'draw_{config.run_configuration.input_draw_number}': 'cost'})
 
 
 def get_hypertension_drug_costs(override_config=None):
-    """Gets a table of the daily costs for several common hypertension drugs.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
     config = get_input_config(override_config)
-    return functions.get_hypertension_drug_costs(gbd_round_id=config.input_data.gbd_round_id)
+    return core.get_cost([treatment_technologies.hypertension_drugs], [config.input_data.location_id])
 
 
-def load_risk_correlation_matrices(override_config=None):
-    """Gets the matrix of correlation coefficients for risk factors.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
+def get_age_specific_fertility_rates(override_config=None):
     config = get_input_config(override_config)
-    return functions.load_risk_correlation_matrices(location_id=config.input_data.location_id,
-                                                    gbd_round_id=config.input_data.gbd_round_id)
+    data = core.get_covariate_estimates([covariates.age_specific_fertility_rate], [config.input_data.location_id])
+    data = get_age_group_midpoint_from_age_group_id(data)
+    data = normalize_for_simulation(data)
+    return data.loc[data.sex == 'Female', ['age', 'year', 'mean_value']].rename(columns={'mean_value': 'rate'})
 
 
-def get_mediation_factors(risk, cause, override_config=None):
-    """Gets the total mediation factor for the given risk cause pair.
-
-    Parameters
-    ----------
-    risk: ceam_inputs.gbd_mapping.Risk
-    cause: ceam_inputs.gbd_mapping.CauseLike
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    float or pandas.DataFrame
-    """
+def get_live_births_by_sex(override_config=None):
     config = get_input_config(override_config)
-    return functions.get_mediation_factors(risk_id=risk.gbd_id,
-                                           cause_id=cause.gbd_id,
-                                           gbd_round_id=config.input_data.gbd_round_id,
-                                           draw_number=config.run_configuration.input_draw_number)
+    data = core.get_covariate_estimates([covariates.live_births_by_sex], [config.input_data.location_id])
+    data = data[['sex_id', 'year_id', 'mean_value', 'lower_value', 'upper_value']]
+    return normalize_for_simulation(data)
 
 
 def get_dtp3_coverage(override_config=None):
-    """Gets the Diphtheria-tetanus-pertussis immunization coverage.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
     config = get_input_config(override_config)
-    return functions.get_dtp3_coverage(location_id=config.input_data.location_id,
-                                       gbd_round_id=config.input_data.gbd_round_id,
-                                       draw_number=config.run_configuration.input_draw_number)
+    data = core.get_covariate_estimates([covariates.dtp3_coverage_proportion], [config.input_data.location_id])
+    data = normalize_for_simulation(data)
+    return data[['mean_value', 'lower_value', 'upper_value', 'year']]
 
 
-def get_rota_vaccine_protection(override_config=None):
-    """Gets rota vaccine protection estimates.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
+def get_protection(treatment_technology, override_config=None):
     config = get_input_config(override_config)
-    return functions.get_rota_vaccine_protection(location_id=config.input_data.location_id,
-                                                 gbd_round_id=config.input_data.gbd_round_id,
-                                                 draw_number=config.run_configuration.input_draw_number)
+    data = core.get_protection([treatment_technology], [config.input_data.location_id])
+    data = data[['location_id', 'measure', 'treatment_technology', f'draw_{config.run_configuration.input_draw_number}']]
+    return data.rename(columns={f'draw_{config.run_configuration.input_draw_number}': 'protection'})
 
 
-def get_rota_vaccine_rrs(override_config=None):
-    """Gets the relative risk of lack of rota vaccine on rotaviral entiritis incidence.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
+def get_healthcare_annual_visits(healthcare_entity, override_config=None):
     config = get_input_config(override_config)
-    return functions.get_rota_vaccine_rrs(location_id=config.input_data.location_id,
-                                          gbd_round_id=config.input_data.gbd_round_id,
-                                          draw_number=config.run_configuration.input_draw_number)
-
-
-# FIXME: Why are there two of these?
-def get_diarrhea_visit_costs(override_config=None):
-    """Gets the cost of a healthcare visit due to diarrhea.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_diarrhea_visit_costs(location_id=config.input_data.location_id,
-                                              gbd_round_id=config.input_data.gbd_round_id,
-                                              draw_number=config.run_configuration.input_draw_number)
-
-
-def get_diarrhea_costs(override_config=None):
-    """Gets the cost of a healthcare visit due to diarrhea.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_diarrhea_costs(location_id=config.input_data.location_id,
-                                        gbd_round_id=config.input_data.gbd_round_id,
-                                        draw_number=config.run_configuration.input_draw_number)
-
-
-def get_ors_costs(override_config=None):
-    """Gets the daily cost associated with oral rehydration salt solution treatment.
-
-    Parameters
-    ----------
-    override_config :
-        Any overrides to the input data configuration.
-
-    Returns
-    -------
-    pandas.DataFrame
-    """
-    config = get_input_config(override_config)
-    return functions.get_ors_costs(location_id=config.input_data.location_id,
-                                   gbd_round_id=config.input_data.gbd_round_id,
-                                   draw_number=config.run_configuration.input_draw_number)
+    data = core.get_healthcare_annual_visit_count([healthcare_entity], [config.input_data.location_id])
+    return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'annual_visits')
