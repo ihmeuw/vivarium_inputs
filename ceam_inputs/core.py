@@ -83,10 +83,10 @@ def get_gbd_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'remission': (_get_remission, set()),
         'prevalence': (_get_prevalence, set()),
         'incidence': (_get_incidence, set()),
-        'relative_risk': (_get_relative_risk, {'cause_id', 'parameter'}),
-        'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id', 'risk_id'}),
-        'exposure': (_get_exposure, {'risk_id', 'parameter'}),
-        'annual_visits': (_get_annual_visits, {'modelable_entity_id',}),
+        'relative_risk': (_get_relative_risk, {'cause_id', 'parameter', }),
+        'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id', }),
+        'exposure': (_get_exposure, {'risk_id', 'parameter', }),
+        'annual_visits': (_get_annual_visits, {'modelable_entity_id', }),
     }
 
     data = []
@@ -141,7 +141,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'incidence': ((Cause, Sequela), 'gbd_id'),
         'exposure': ((Risk, CoverageGap), 'gbd_id'),
         'relative_risk': ((Risk, CoverageGap), 'gbd_id'),
-        'population_attributable_fraction': ((Risk, CoverageGap), 'gbd_id'),
+        'population_attributable_fraction': ((Risk, Etiology, CoverageGap), 'gbd_id'),
         'annual_visits': (HealthcareEntity, 'utilization'),
         'remission': (Cause, 'dismod_id'),
     }
@@ -284,10 +284,11 @@ def _get_population_attributable_fraction(entities, location_ids):
     #    measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
 
     # TODO: figure out if we need to assert some property of the different PAF measures
-
     measure_data = measure_data[measure_data['measure_id'] == name_measure_map['YLD']]
     # FIXME: Is this the only data we need to delete measure id for?
     del measure_data['measure_id']
+    if isinstance(entities[0], Etiology):
+        measure_data = measure_data.rename(columns={'risk_id': 'etiology_id'})
     return measure_data
 
 
@@ -531,7 +532,6 @@ def get_disability_weight(sequelae: Sequence[Sequela], _: Sequence[int]) -> pd.D
 # Measures for risk like entities  #
 ####################################
 
-# FIXME: Something is broken here for ORS.
 def get_relative_risk(entities, location_ids):
     if isinstance(entities[0], (Risk, Etiology)):
         df = get_gbd_draws(entities, ['relative_risk'], location_ids)
@@ -539,10 +539,15 @@ def get_relative_risk(entities, location_ids):
     else:
         data = []
         for entity in entities:
-            data.append(gbd.get_data_from_auxiliary_file(entity.relative_risk,
-                                                         gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID]))
+            entity_data = gbd.get_data_from_auxiliary_file(entity.relative_risk,
+                                                           gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
+            if len(entity_data.sex_id) == 3:
+                entity_data = entity_data[entity_data['sex_id'] != COMBINED]
+
+            data.append(entity_data)
+
         df = pd.concat(data)
-    return df[df['sex_id'] != COMBINED]
+    return df
 
 
 def get_exposure(entities, location_ids):
