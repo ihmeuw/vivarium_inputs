@@ -86,6 +86,7 @@ def get_gbd_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'relative_risk': (_get_relative_risk, {'cause_id', 'parameter', }),
         'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id', }),
         'exposure': (_get_exposure, {'risk_id', 'parameter', }),
+        'exposure_standard_deviation': (_get_exposure_standard_deviation, {'risk_id', }),
         'annual_visits': (_get_annual_visits, {'modelable_entity_id', }),
     }
 
@@ -140,6 +141,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'prevalence': ((Cause, Sequela), 'gbd_id'),
         'incidence': ((Cause, Sequela), 'gbd_id'),
         'exposure': ((Risk, CoverageGap), 'gbd_id'),
+        'exposure_standard_deviation': ((Risk, CoverageGap), 'exposure_parameters.dismod_id'),
         'relative_risk': ((Risk, CoverageGap), 'gbd_id'),
         'population_attributable_fraction': ((Risk, Etiology, CoverageGap), 'gbd_id'),
         'annual_visits': (HealthcareEntity, 'utilization'),
@@ -344,6 +346,19 @@ def _handle_weird_exposure_measures(measure_data):
             measure_data.loc[correct_risk, 'measure_id'] = name_measure_map['proportion']
 
     return measure_data.reset_index()
+
+
+def _get_exposure_standard_deviation(entities, location_ids):
+    ids = {risk.exposure_parameters.dismod_id: risk.gbd_id for risk in entities}
+    df = gbd.get_modelable_entity_draws(list(ids.keys()), location_ids)
+
+    df = df.replace({'modelable_entity_id': ids})
+    df = df.rename(columns={'modelable_entity_id': 'risk_id'})
+
+    key_cols = ['age_group_id', 'location_id', 'sex_id', 'year_id', 'risk_id']
+    draw_cols = [f'draw_{i}' for i in range(1000)]
+    df = df[df['sex_id'] != 3]
+    return df[key_cols + draw_cols]
 
 
 def _get_annual_visits(entities, location_ids):
@@ -560,17 +575,8 @@ def get_exposure(entities, location_ids):
         return pd.concat(data)
 
 
-def get_exposure_standard_deviation(risks, location_ids):
-    ids = {risk.exposure_parameters.dismod_id: risk.gbd_id for risk in risks}
-    df = gbd.get_modelable_entity_draws(list(ids.keys()), location_ids)
-
-    df = df.replace({'modelable_entity_id': ids})
-    df = df.rename(columns={'modelable_entity_id': 'risk_id'})
-
-    key_cols = ['age_group_id', 'location_id', 'sex_id', 'year_id', 'risk_id']
-    draw_cols = [f'draw_{i}' for i in range(1000)]
-    df = df[df['sex_id'] != 3]
-    return df[key_cols + draw_cols]
+def get_exposure_standard_deviation(entities, location_ids):
+    return get_gbd_draws(entities, ['exposure_standard_deviation'], location_ids).drop('measure', 'columns')
 
 
 def get_population_attributable_fraction(entities, location_ids):
