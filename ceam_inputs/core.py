@@ -88,6 +88,7 @@ def get_gbd_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'exposure': (_get_exposure, {'risk_id', 'parameter', }),
         'exposure_standard_deviation': (_get_exposure_standard_deviation, {'risk_id', }),
         'annual_visits': (_get_annual_visits, {'modelable_entity_id', }),
+        'protection': (_get_protection, set()),
     }
 
     data = []
@@ -105,7 +106,12 @@ def get_gbd_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
 
     id_cols |= _get_additional_id_columns(data, entities)
 
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'measure'] + list(id_cols)
+    key_columns = ['measure']
+    for column in ['year_id', 'sex_id', 'age_group_id', 'location_id']:
+        if column in data:
+            key_columns.append(column)
+
+    key_columns += list(id_cols)
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
 
     data = data[key_columns + draw_columns].reset_index(drop=True)
@@ -146,6 +152,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'population_attributable_fraction': ((Risk, Etiology, CoverageGap), 'gbd_id'),
         'annual_visits': (HealthcareEntity, 'utilization'),
         'remission': (Cause, 'dismod_id'),
+        'protection': (TreatmentTechnology, 'protection'),
     }
 
     if not all([isinstance(e, type(entities[0])) for e in entities]):
@@ -374,6 +381,20 @@ def _get_annual_visits(entities, location_ids):
     correct_sex = measure_data['sex_id'] != COMBINED
 
     return measure_data[correct_measure & correct_sex]
+
+
+def _get_protection(entities, location_ids):
+    data = []
+    for tt in entities:
+        df = gbd.get_data_from_auxiliary_file(tt.protection)
+        if not set(location_ids).issubset(set(df['location_id'].unique())):
+
+            raise DataMissingError(f'Protection data for {tt.name} is not available for locations '
+                                   f'{set(location_ids) - set(df["location_id"].unique())}')
+        df = df[df['location_id'].isin(location_ids)]
+        data.append(df)
+    return pd.concat(data)
+
 
 
 ####################################
@@ -675,14 +696,4 @@ def get_covariate_estimates(covariates, location_ids):
 
 
 def get_protection(treatment_technologies, location_ids):
-    data = []
-    for tt in treatment_technologies:
-        df = gbd.get_data_from_auxiliary_file(tt.protection)
-        if not set(location_ids).issubset(set(df['location_id'].unique())):
-
-            raise DataMissingError(f'Protection data for {tt.name} is not available for locations '
-                                   f'{set(location_ids) - set(df["location_id"].unique())}')
-        df = df[df['location_id'].isin(location_ids)]
-        data.append(df)
-    return pd.concat(data)
-
+    return get_gbd_draws(treatment_technologies, ['protection'], location_ids).drop('measure', 'columns')

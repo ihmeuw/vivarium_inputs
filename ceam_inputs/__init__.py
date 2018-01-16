@@ -185,7 +185,7 @@ def get_dtp3_coverage(override_config=None):
 def get_protection(treatment_technology, override_config=None):
     config = get_input_config(override_config)
     data = core.get_protection([treatment_technology], [config.input_data.location_id])
-    data = data[['location_id', 'measure', 'treatment_technology', f'draw_{config.run_configuration.input_draw_number}']]
+    data = data[['location_id', 'treatment_technology', f'draw_{config.run_configuration.input_draw_number}']]
     return data.rename(columns={f'draw_{config.run_configuration.input_draw_number}': 'protection'})
 
 
