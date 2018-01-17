@@ -67,14 +67,14 @@ def test_get_ids_for_population_attributable_fraction(cause_list, risk_list):
         core._get_ids_for_measure(cause_list, 'population_attributable_fraction')
 
 
-def test_get_gbd_draws_bad_args(cause_list, risk_list, locations):
+def test_get_draws_bad_args(cause_list, risk_list, locations):
     with pytest.raises(core.InvalidQueryError):
-        core.get_gbd_draws(cause_list + risk_list, ['test'], locations)
+        core.get_draws(cause_list + risk_list, ['test'], locations)
 
     for measure in ['death', 'remission', 'prevalence', 'incidence']:
         with pytest.raises(core.InvalidQueryError):
-            core.get_gbd_draws(risk_list, [measure], locations)
+            core.get_draws(risk_list, [measure], locations)
 
     for measure in ['exposure', 'relative_risk', 'population_attributable_fraction']:
         with pytest.raises(core.InvalidQueryError):
-            core.get_gbd_draws(cause_list, [measure], locations)
+            core.get_draws(cause_list, [measure], locations)

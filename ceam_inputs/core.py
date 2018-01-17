@@ -56,7 +56,7 @@ class DuplicateDataError(DataError):
     pass
 
 
-def get_gbd_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
+def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
                   location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level gbd data for each specified measure and entity.
 
@@ -222,7 +222,7 @@ def _validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
 
 
 #########################
-# get_gbd_draws helpers #
+# get_draws helpers #
 #########################
 #
 # These functions filter out erroneous measures and deal with special cases.
@@ -330,7 +330,7 @@ def _get_population_attributable_fraction(entities, location_ids):
 
 
 def _get_cause_specific_mortality(entities, location_ids):
-    deaths = get_gbd_draws(entities, ["death"], location_ids)
+    deaths = get_draws(entities, ["death"], location_ids)
 
     populations = get_populations(location_ids)
     populations = populations[populations['year_id'] >= deaths.year_id.min()]
@@ -349,8 +349,8 @@ def _get_cause_specific_mortality(entities, location_ids):
 
 
 def _get_excess_mortality(entities, location_ids):
-    prevalences = get_gbd_draws(entities, ['prevalence'], location_ids).drop('measure', 'columns')
-    csmrs = get_gbd_draws(entities, ['cause_specific_mortality'], location_ids).drop('measure', 'columns')
+    prevalences = get_draws(entities, ['prevalence'], location_ids).drop('measure', 'columns')
+    csmrs = get_draws(entities, ['cause_specific_mortality'], location_ids).drop('measure', 'columns')
 
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'cause_id']
     prevalences = prevalences.set_index(key_columns)
