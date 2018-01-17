@@ -150,7 +150,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'incidence': ((Cause, Sequela), 'gbd_id'),
         'exposure': ((Risk, CoverageGap, TreatmentTechnology), 'gbd_id'),
         'exposure_standard_deviation': ((Risk, CoverageGap), 'exposure_parameters.dismod_id'),
-        'relative_risk': ((Risk, CoverageGap, Etiology), 'gbd_id'),
+        'relative_risk': ((Risk, CoverageGap, Etiology, TreatmentTechnology), 'gbd_id'),
         'population_attributable_fraction': ((Risk, Etiology, CoverageGap), 'gbd_id'),
         'cause_specific_mortality': ((Cause,), 'gbd_id'),
         'excess_mortality': ((Cause,), 'gbd_id'),
@@ -170,8 +170,14 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
     valid_types, id_attr = measure_types[measure]
     out = []
     for entity in entities:
-        if isinstance(entity, valid_types) and entity[id_attr] is not UNKNOWN:
-            out.append(entity[id_attr])
+        if isinstance(entity, valid_types):
+            value = entity
+            for sub_id in id_attr.split('.'):
+                if value[sub_id] is not UNKNOWN:
+                    value = value[sub_id]
+                else:
+                    raise InvalidQueryError(f"Entity {entity.name} has no data for measure '{measure}'")
+            out.append(value)
         else:
             raise InvalidQueryError(f"Entity {entity.name} has no data for measure '{measure}'")
 
@@ -236,29 +242,16 @@ def _get_death(entities, location_ids):
 
 
 def _get_remission(entities, location_ids):
-    if isinstance(entities[0], (Risk, Etiology)):
-        measure_ids = _get_ids_for_measure(entities, 'remission')
-        remission_data = gbd.get_modelable_entity_draws(me_ids=measure_ids, location_ids=location_ids)
+    measure_ids = _get_ids_for_measure(entities, 'remission')
+    remission_data = gbd.get_modelable_entity_draws(me_ids=measure_ids, location_ids=location_ids)
 
-        id_map = {entity.dismod_id: entity.gbd_id for entity in entities}
-        remission_data['cause_id'] = remission_data['modelable_entity_id'].replace(id_map)
+    id_map = {entity.dismod_id: entity.gbd_id for entity in entities}
+    remission_data['cause_id'] = remission_data['modelable_entity_id'].replace(id_map)
 
-        # FIXME: The sex filtering should happen in the reshaping step.
-        correct_measure = remission_data['measure_id'] == name_measure_map['remission']
-        correct_sex = remission_data['sex_id'] != COMBINED
-        return remission_data[correct_measure & correct_sex]
-    else:
-        data = []
-        for entity in entities:
-            entity_data = gbd.get_data_from_auxiliary_file(entity.relative_risk,
-                                                           gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
-            if len(entity_data.sex_id) == 3:
-                entity_data = entity_data[entity_data['sex_id'] != COMBINED]
-
-            data.append(entity_data)
-
-        df = pd.concat(data)
-    return df
+    # FIXME: The sex filtering should happen in the reshaping step.
+    correct_measure = remission_data['measure_id'] == name_measure_map['remission']
+    correct_sex = remission_data['sex_id'] != COMBINED
+    return remission_data[correct_measure & correct_sex]
 
 
 def _get_prevalence(entities, location_ids):
@@ -282,7 +275,20 @@ def _get_incidence(entities, location_ids):
 
 
 def _get_relative_risk(entities, location_ids):
-    measure_ids = _get_ids_for_measure(entities, 'relative_risk')
+    if isinstance(entities[0], TreatmentTechnology):
+        data = []
+        for entity in entities:
+            entity_data = gbd.get_data_from_auxiliary_file(entity.relative_risk,
+                                                           gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
+            if len(entity_data.sex_id) == 3:
+                entity_data = entity_data[entity_data['sex_id'] != COMBINED]
+
+            data.append(entity_data)
+
+        df = pd.concat(data)
+        return df
+    else:
+        measure_ids = _get_ids_for_measure(entities, 'relative_risk')
     measure_data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
 
     # FIXME: I'm passing because this is broken for zinc_deficiency, and I don't have time to investigate -J.C.
@@ -320,13 +326,15 @@ def _get_population_attributable_fraction(entities, location_ids):
         if isinstance(entities[0], Etiology):
             measure_data = measure_data.rename(columns={'risk_id': 'etiology_id'})
         return measure_data
-    else:
+    elif isinstance(entities[0], TreatmentTechnology):
         data = []
         for entity, location_id in product(entities, location_ids):
             data.append(gbd.get_data_from_auxiliary_file(entity.population_attributable_fraction,
                                                          location_id=location_id))
         df = pd.concat(data)
         return df
+    else:
+        raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'population_attributable_fraction'")
 
 
 def _get_cause_specific_mortality(entities, location_ids):
@@ -384,11 +392,14 @@ def _get_exposure(entities, location_ids):
         # FIXME: Is this the only data we need to delete measure id for?
         del measure_data['measure_id']
         return measure_data
-    else:  # We have a treatment technology
+    elif isinstance(entities[0], TreatmentTechnology):  # We have a treatment technology
         data = []
         for entity, location_id in product(entities, location_ids):
             data.append(gbd.get_data_from_auxiliary_file(entity.exposure, location_id=location_id))
         return pd.concat(data)
+    else:
+        raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'exposure'")
+
 
 
 def _handle_weird_exposure_measures(measure_data):
@@ -429,7 +440,7 @@ def _handle_weird_exposure_measures(measure_data):
 
 
 def _get_exposure_standard_deviation(entities, location_ids):
-    ids = {risk.exposure_parameters.dismod_id: risk.gbd_id for risk in entities}
+    ids = dict(zip(_get_ids_for_measure(entities, 'exposure_standard_deviation'), [e.gbd_id for e in entities]))
     df = gbd.get_modelable_entity_draws(list(ids.keys()), location_ids)
 
     df = df.replace({'modelable_entity_id': ids})
@@ -441,6 +452,7 @@ def _get_exposure_standard_deviation(entities, location_ids):
     return df[key_cols + draw_cols]
 
 
+#TODO This should probably use the _get_ids_for_measure function but it doesn't quite fit
 def _get_disability_weight(entities, _):
     gbd_round = gbd_round_id_map[gbd.GBD_ROUND_ID]
     disability_weights = gbd.get_data_from_auxiliary_file('Disability Weights', gbd_round=gbd_round)
@@ -494,7 +506,7 @@ def _get_protection(entities, location_ids):
 
 
 def _get_mediation_factor(entities, location_ids):
-    risk_ids = [risk.gbd_id for risk in entities]
+    risk_ids = _get_ids_for_measure(entities, 'mediation_factor')
     _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
     data = gbd.get_data_from_auxiliary_file("Mediation Factors", gbd_round=_gbd_round_id_map[gbd.GBD_ROUND_ID])
     data = data.rename(columns={'rei_id': 'risk_id'})
