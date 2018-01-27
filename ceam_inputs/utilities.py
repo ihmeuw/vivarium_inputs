@@ -4,6 +4,57 @@ import pandas as pd
 
 from ceam_inputs.gbd import get_age_bins
 
+def standardize_dimensions(data: pd.DataFrame, fill_na_value: Mapping[str, float], dimensions: pd.MultiIndex):
+    """
+    Cases:
+    1) dimension missing - nothing needed
+    2) fully dense in the expected range - nothing needed
+    3) dimension dense for a contiguous subset of the exected range and missing elsewhere - fill
+    4) all others - panic
+    """
+    # fills:
+    # rrs: 1
+    # pafs: 0
+    # incidence: 0
+    # exposure dist: tmrel
+    data = data.reset_index()
+    dimensions = dimensions.to_frame().reset_index(drop=True)
+    applicable_dimensions = dimensions.copy()
+
+    for dimension in dimensions.columns:
+        if dimension not in data:
+            # Case 1: completely missing
+            del applicable_dimensions[dimension]
+            continue
+
+        existing_extent = data[dimension].sort_values().drop_duplicates()
+        extent = dimensions[dimension].sort_values().drop_duplicates()
+
+        if existing_extent.equals(extent):
+            # Case 2: fully dense
+            continue
+
+        min_existing = existing_extent.min()
+        max_existing = existing_extent.max()
+
+        overlap = (extent >= min_existing) & (extent <= max_existing)
+
+        if not existing_extent.reset_index(drop=True).equals(extent[overlap].reset_index(drop=True)):
+            # Case 4: the data is somehow malformed
+            raise ValueError()
+
+    # Case 3: fill
+    dimension_columns, extents = zip(*applicable_dimensions.items())
+    expected_index = pd.MultiIndex.from_arrays(extents, names=dimension_columns)
+    data = data.set_index(list(dimension_columns))
+
+    missing = expected_index.difference(data.index)
+    to_add = pd.DataFrame(index=missing)
+    for column, fill in fill_na_value.items():
+        to_add[column] = fill
+
+    return data.append(to_add).reset_index()
+
 
 def standardize_data_shape(data: pd.DataFrame, fill_na_value: float,
                            extent_mapping: Mapping[str, Iterable[int]]) -> pd.DataFrame:
