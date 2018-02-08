@@ -10,7 +10,7 @@ from ceam_inputs.gbd import get_age_bins
 
 def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_na_value: Mapping[str, float]=None) -> pd.DataFrame:
     """
-    Take input data and make it dense over the specified dimensions. The dimensions must be some subset of ['age', 'sex', 'year'].
+    Take draw data and make it dense over the specified dimensions. The dimensions must be some subset of ['age_group_id', 'sex', 'year'].
 
     The behavior of the function depends on which dimension is being considered and the nature of the sparcity:
 
@@ -27,7 +27,13 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
         fill_na_value = {}
 
     dimensions = dimensions.to_frame().reset_index(drop=True)
-    assert not set(dimensions.columns).difference(['age', 'sex', 'year']), "We only know how to standardize 'age', 'sex' and 'year'"
+    with_parameter = pd.DataFrame()
+    for parameter in data.parameter.unique():
+        with_parameter = with_parameter.append(dimensions.assign(parameter= parameter))
+    dimensions = with_parameter
+    assert not set(dimensions.columns).difference(['age_group_id', 'sex', 'year', 'parameter']), "We only know how to standardize 'age_group_id', 'sex' and 'year'"
+    draw_columns = {c for c in data.columns if 'draw_' in c}
+    assert not set(data.columns).difference(set(dimensions.columns) | {'parameter'} | draw_columns), "We only support standardizing draw data"
 
     applicable_dimensions = dimensions.copy()
 
@@ -44,7 +50,7 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
             # Case 2: fully dense
             continue
 
-        if dimension in ('age', 'sex'):
+        if dimension in ('age_group_id', 'sex'):
             min_existing = existing_extent.min()
             max_existing = existing_extent.max()
 
@@ -76,7 +82,7 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
                     end = data.query('year == @end_year').sort_values(list(data.columns)).reset_index(drop=True)
 
                     index_columns = list(dimensions.columns)
-                    value_columns = list(data.columns.difference(index_columns))
+                    value_columns = list(draw_columns)
                     interpolated = interpolate(start, end, index_columns, 'year', value_columns, year, end_year)
                     interpolated = interpolated.query('year != @year and year != @end_year and year in @extent')
                     data = data.append(interpolated)
@@ -89,11 +95,15 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
     data = data.set_index(list(dimension_columns))
 
     missing = expected_index.difference(data.index)
-    to_add = pd.DataFrame(index=missing)
-    for column, fill in fill_na_value.items():
-        to_add[column] = fill
+    if not missing.empty:
+        to_add = pd.DataFrame(columns=list(draw_columns), index=missing)
+        to_add = to_add.reset_index().set_index(list(set(dimension_columns) - {'parameter'}))
+        data = data.reset_index().set_index(list(set(dimension_columns) - {'parameter'}))
+        for parameter, fill in fill_na_value.items():
+            to_add.loc[to_add['parameter'] == parameter, draw_columns] = fill
+        data = data.append(to_add)
 
-    return data.append(to_add).reset_index()
+    return data.reset_index()
 
 
 def select_draw_data(data, draw, column_name, src_column=None):

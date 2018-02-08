@@ -11,33 +11,39 @@ from ceam_inputs.utilities import standardize_dimensions
 
 
 def test_standardize_dimensions__fill():
-    expected = pd.MultiIndex.from_product([range(100), ['Male', 'Female'], [1990, 1995, 2000, 2005]], names=['age', 'sex', 'year'])
+    expected = pd.MultiIndex.from_product([range(22), ['Male', 'Female'], [1990, 1995, 2000, 2005]], names=['age_group_id', 'sex', 'year'])
 
-    actual = list(product([80,81,82], ['Male'], [1990, 1995, 2000, 2005]))
-    actual = pd.DataFrame(actual, columns=['age', 'sex', 'year'])
+    actual = list(product([12, 13, 14], ['Male'], [1990, 1995, 2000, 2005], ['value', 'other_value']))
+    actual = pd.DataFrame(actual, columns=['age_group_id', 'sex', 'year', 'parameter'])
 
-    actual['value'] = 10.0
-    actual['other_value'] = "thing"
-    actual = actual.set_index(['age', 'sex', 'year'])
+    draws = [f'draw_{i}' for i in range(1000)]
+    actual = actual.assign(**{d:0.0 for d in draws})
+    actual.loc[actual['parameter'] == 'value'] = actual.loc[actual['parameter'] == 'value'].assign(**{d:10.0 for d in draws})
+    actual.loc[actual['parameter'] == 'other_value'] = actual.loc[actual['parameter'] == 'other_value'].assign(**{d:1.5 for d in draws})
+    actual = actual.set_index(['age_group_id', 'sex', 'year', 'parameter'])
 
-    fills = {'value': -1, 'other_value': 'something else'}
+    fills = {'value': -1, 'other_value': -2}
 
     new_actual = standardize_dimensions(actual.reset_index(), expected, fills)
-    new_actual = new_actual.set_index(['age', 'sex', 'year'])
+    new_actual = new_actual.set_index(['age_group_id', 'sex', 'year'])
+    actual_index = actual.reset_index().set_index(['age_group_id', 'sex', 'year']).index
     assert new_actual.index.symmetric_difference(expected).empty
-    assert np.all(new_actual.loc[expected.difference(actual.index)].value == -1)
-    assert np.all(new_actual.loc[expected.difference(actual.index)].other_value == 'something else')
-    assert np.all(new_actual.loc[actual.index] == actual)
+    assert np.all(new_actual.loc[expected.difference(actual_index)].query('parameter == "value"')[draws] == -1)
+    assert np.all(new_actual.loc[expected.difference(actual_index)].query('parameter == "other_value"')[draws] == -2)
+    new_actual = new_actual.reset_index().set_index(['age_group_id', 'sex', 'year', 'parameter'])
+    assert np.all(new_actual.loc[actual.index].reindex(sorted(new_actual.columns), axis=1) == actual.reindex(sorted(actual.columns), axis=1))
 
 def test_standardize_dimensions__interpolate():
-    expected = pd.MultiIndex.from_product([range(100), ['Male', 'Female'], [1990, 1995, 2000, 2005]], names=['age', 'sex', 'year'])
+    expected = pd.MultiIndex.from_product([range(22), ['Male'], [1990, 1995, 2000, 2005]], names=['age_group_id', 'sex', 'year'])
 
-    actual = list(product(range(100), ['Male', 'Female'], [1990, 2005]))
-    actual = pd.DataFrame(actual, columns=['age', 'sex', 'year'])
+    actual = list(product(range(22), ['Male'], [1990, 2005], ['value']))
+    actual = pd.DataFrame(actual, columns=['age_group_id', 'sex', 'year', 'parameter'])
 
-    actual.loc[actual.year==1990, 'value'] = 10.0
-    actual.loc[actual.year==2005, 'value'] = 100.0
-    actual = actual.set_index(['age', 'sex', 'year'])
+    draws = [f'draw_{i}' for i in range(1000)]
+    actual = actual.assign(**{d:0.0 for d in draws})
+    actual.loc[actual['year'] == 1990] = actual.loc[actual['year'] == 1990].assign(**{d:10.0 for d in draws})
+    actual.loc[actual['year'] == 2005] = actual.loc[actual['year'] == 2005].assign(**{d:100.0 for d in draws})
+    actual = actual.set_index(['age_group_id', 'sex', 'year', 'parameter'])
 
     fills = {'value': -1}
 
@@ -46,19 +52,20 @@ def test_standardize_dimensions__interpolate():
     interpolated = interpolated.query('year in [1990, 1995, 2000, 2005]')
 
     new_actual = standardize_dimensions(actual.reset_index(), expected, fills)
-    new_actual = new_actual.set_index(['age', 'sex', 'year'])
+    new_actual = new_actual.set_index(['age_group_id', 'sex', 'year'])
     assert new_actual.index.symmetric_difference(expected).empty
-    assert np.allclose(new_actual.reset_index()[['year', 'value']].set_index('year').drop_duplicates().sort_index(),   interpolated[['year', 'value']].set_index('year').sort_index())
-    assert np.all(new_actual.loc[actual.index] == actual)
+    assert np.allclose(new_actual.reset_index()[['year', 'draw_0']].drop_duplicates('year').set_index('year').sort_index(),   interpolated[['year', 'value']].set_index('year').sort_index())
+    new_actual = new_actual.reset_index().set_index(['age_group_id', 'sex', 'year', 'parameter'])
+    assert np.all(new_actual.loc[actual.index].reindex(sorted(new_actual.columns), axis=1) == actual.reindex(sorted(actual.columns), axis=1))
 
 def test_standardize_dimensions__missing_dimensions():
-    expected = pd.MultiIndex.from_product([range(100), ['Male', 'Female'], [1990, 1995, 2000, 2005]], names=['age', 'sex', 'year'])
+    expected = pd.MultiIndex.from_product([range(100), ['Male', 'Female'], [1990, 1995, 2000, 2005]], names=['age_group_id', 'sex', 'year'])
 
-    actual = list(product([80,81,82], [1990, 1995, 2000, 2005]))
-    actual = pd.DataFrame(actual, columns=['age', 'year'])
+    actual = list(product([80,81,82], [1990, 1995, 2000, 2005], ['value']))
+    actual = pd.DataFrame(actual, columns=['age_group_id', 'year', 'parameter'])
 
-    actual['value'] = 10.0
-    actual = actual.set_index(['age', 'year'])
+    actual['draw_0'] = 10.0
+    actual = actual.set_index(['age_group_id', 'year'])
     fills = {'value': -1}
 
 
@@ -66,23 +73,22 @@ def test_standardize_dimensions__missing_dimensions():
 
     expected = expected.droplevel('sex')
     assert 'sex' not in new_actual
-    new_actual = new_actual.set_index(['age', 'year'])
+    new_actual = new_actual.set_index(['age_group_id', 'year'])
     assert new_actual.index.symmetric_difference(expected).empty
-    assert np.all(new_actual.loc[expected.difference(actual.index)].value == -1)
+    assert np.all(new_actual.loc[expected.difference(actual.index)].draw_0 == -1)
     assert np.all(new_actual.loc[actual.index] == actual)
 
 
 def test_standardize_dimensions__malformed():
-    expected = pd.MultiIndex.from_product([range(100), ['Male', 'Female'], [1990, 1995, 2000, 2005]], names=['age', 'sex', 'year'])
+    expected = pd.MultiIndex.from_product([range(100), ['Male', 'Female'], [1990, 1995, 2000, 2005]], names=['age_group_id', 'sex', 'year'])
 
-    actual = list(product([10, 12, 11, 80,81,82], ['Male'], [1990, 2005]))
-    actual = pd.DataFrame(actual, columns=['age', 'sex', 'year'])
+    actual = list(product([10, 12, 11, 80,81,82], ['Male'], [1990, 2005], ['value']))
+    actual = pd.DataFrame(actual, columns=['age_group_id', 'sex', 'year', 'parameter'])
 
-    actual['value'] = 10.0
-    actual['other_value'] = "thing"
-    actual = actual.set_index(['age', 'sex', 'year'])
+    actual['draw_0'] = 10.0
+    actual = actual.set_index(['age_group_id', 'sex', 'year'])
 
-    fills = {'value': -1, 'other_value': 'something else'}
+    fills = {'value': -1}
 
     with pytest.raises(ValueError):
         new_actual = standardize_dimensions(actual.reset_index(), expected, fills)
