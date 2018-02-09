@@ -34,6 +34,7 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
     assert not set(dimensions.columns).difference(['age_group_id', 'sex', 'year', 'parameter']), "We only know how to standardize 'age_group_id', 'sex' and 'year'"
     draw_columns = {c for c in data.columns if 'draw_' in c}
     assert not set(data.columns).difference(set(dimensions.columns) | {'parameter'} | draw_columns), "We only support standardizing draw data"
+    assert not set(data.parameter.unique()).difference(fill_na_value.keys()), f'Missing fill values for these parameters: "{set(data.parameter.unique()).difference(fill_na_value.keys())}"'
 
     applicable_dimensions = dimensions.copy()
 

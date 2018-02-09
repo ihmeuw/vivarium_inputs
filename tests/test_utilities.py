@@ -92,3 +92,18 @@ def test_standardize_dimensions__malformed():
 
     with pytest.raises(ValueError):
         new_actual = standardize_dimensions(actual.reset_index(), expected, fills)
+
+
+def test_standardize_dimensions__missing_fills():
+    expected = pd.MultiIndex.from_product([range(100), ['Male', 'Female'], [1990, 1995, 2000, 2005]], names=['age_group_id', 'sex', 'year'])
+
+    actual = list(product([10, 12, 11, 80,81,82], ['Male'], [1990, 2005], ['value', 'other_value']))
+    actual = pd.DataFrame(actual, columns=['age_group_id', 'sex', 'year', 'parameter'])
+
+    actual['draw_0'] = 10.0
+    actual = actual.set_index(['age_group_id', 'sex', 'year'])
+
+    fills = {'value': -1}
+
+    with pytest.raises(AssertionError):
+        new_actual = standardize_dimensions(actual.reset_index(), expected, fills)
