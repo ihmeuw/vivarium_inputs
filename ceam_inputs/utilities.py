@@ -8,7 +8,7 @@ from core_maths.interpolate import interpolate
 
 from ceam_inputs.gbd import get_age_bins
 
-def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_na_value: Mapping[str, float]=None) -> pd.DataFrame:
+def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_na_value: Mapping[str, float]) -> pd.DataFrame:
     """
     Take draw data and make it dense over the specified dimensions. The dimensions must be some subset of ['age_group_id', 'sex', 'year'].
 
@@ -23,18 +23,15 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
     4) all others - panic
     """
 
-    if fill_na_value is None:
-        fill_na_value = {}
-
     dimensions = dimensions.to_frame().reset_index(drop=True)
-    with_parameter = pd.DataFrame()
-    for parameter in data.parameter.unique():
-        with_parameter = with_parameter.append(dimensions.assign(parameter= parameter))
-    dimensions = with_parameter
-    assert not set(dimensions.columns).difference(['age_group_id', 'sex', 'year', 'parameter']), "We only know how to standardize 'age_group_id', 'sex' and 'year'"
+    with_measure = pd.DataFrame()
+    for measure in data.measure.unique():
+        with_measure = with_measure.append(dimensions.assign(measure= measure))
+    dimensions = with_measure
+    assert not set(dimensions.columns).difference(['age_group_id', 'sex', 'year', 'measure']), "We only know how to standardize 'age_group_id', 'sex' and 'year'"
     draw_columns = {c for c in data.columns if 'draw_' in c}
-    assert not set(data.columns).difference(set(dimensions.columns) | {'parameter'} | draw_columns), "We only support standardizing draw data"
-    assert not set(data.parameter.unique()).difference(fill_na_value.keys()), f'Missing fill values for these parameters: "{set(data.parameter.unique()).difference(fill_na_value.keys())}"'
+    assert not set(data.columns).difference(set(dimensions.columns) | {'measure'} | draw_columns), "We only support standardizing draw data"
+    assert not set(data.measure.unique()).difference(fill_na_value.keys()), f'Missing fill values for these measures: "{set(data.measure.unique()).difference(fill_na_value.keys())}"'
 
     applicable_dimensions = dimensions.copy()
 
@@ -98,10 +95,10 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
     missing = expected_index.difference(data.index)
     if not missing.empty:
         to_add = pd.DataFrame(columns=list(draw_columns), index=missing)
-        to_add = to_add.reset_index().set_index(list(set(dimension_columns) - {'parameter'}))
-        data = data.reset_index().set_index(list(set(dimension_columns) - {'parameter'}))
-        for parameter, fill in fill_na_value.items():
-            to_add.loc[to_add['parameter'] == parameter, draw_columns] = fill
+        to_add = to_add.reset_index().set_index(list(set(dimension_columns) - {'measure'}))
+        data = data.reset_index().set_index(list(set(dimension_columns) - {'measure'}))
+        for measure, fill in fill_na_value.items():
+            to_add.loc[to_add['measure'] == measure, draw_columns] = fill
         data = data.append(to_add)
 
     return data.reset_index()
@@ -117,10 +114,10 @@ def select_draw_data(data, draw, column_name, src_column=None):
         else:
             column_map = {'draw_{draw}'.format(draw=draw): column_name}
 
-        # if 'parameter' is in columns, then keep it, else do
-        # not keep it (need parameter for the relative risk estimations)
-        if 'parameter' in data.columns:
-            keep_columns = ['year_id', 'age', 'sex_id', 'parameter'] + list(column_map.keys())
+        # if 'measure' is in columns, then keep it, else do
+        # not keep it (need measure for the relative risk estimations)
+        if 'measure' in data.columns:
+            keep_columns = ['year_id', 'age', 'sex_id', 'measure'] + list(column_map.keys())
         else:
             keep_columns = ['year_id', 'age', 'sex_id'] + list(column_map.keys())
 
