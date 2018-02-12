@@ -1,12 +1,12 @@
 """This module performs the core data transformations on GBD data and provides a basic API for data access."""
-from typing import Iterable, Sequence, Union, Set, List
+from typing import Iterable, Sequence, List
 from itertools import product
 
 import numpy as np
 import pandas as pd
 
 from ceam_inputs import gbd, risk_factor_correlation
-from ceam_inputs.gbd_mapping.templates import sid, UNKNOWN, Cause, Sequela, Etiology, Risk, ModelableEntity
+from ceam_inputs.gbd_mapping.templates import sid, UNKNOWN, Cause, Sequela, Etiology, Risk, ModelableEntity, scalar
 from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
 from ceam_inputs.gbd_mapping.coverage_gaps import CoverageGap
 from ceam_inputs.gbd_mapping.covariates import Covariate
@@ -27,8 +27,23 @@ name_measure_map = {'death': 1,
                     'remission': 7,
                     'excess_mortality': 9,
                     'proportion': 18,
-                    'continuous': 19,}
+                    'continuous': 19, }
 gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
+age_restriction_map = {scalar(0.0): [2, None],
+                       scalar(0.01): [3, 2],
+                       scalar(0.10): [4, 3],
+                       scalar(1.0): [5, 4],
+                       scalar(5.0): [6, 5],
+                       scalar(10.0): [7, 6],
+                       scalar(15.0): [8, 7],
+                       scalar(20.0): [9, 8],
+                       scalar(30.0): [11, 10],
+                       scalar(40.0): [13, 12],
+                       scalar(45.0): [14, 13],
+                       scalar(50.0): [15, 14],
+                       scalar(55.0): [16, 15],
+                       scalar(65.0): [18, 17],
+                       scalar(95.0): [235, 32], }
 
 
 class DataError(Exception):
@@ -57,7 +72,7 @@ class DuplicateDataError(DataError):
 
 
 def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
-                  location_ids: Iterable[int]) -> pd.DataFrame:
+              location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level gbd data for each specified measure and entity.
 
     Parameters
@@ -128,10 +143,10 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
 
     Parameters
     ----------
-    entities:
+    entities :
         A list of data containers from the `gbd_mapping` package. The entities must all be the same
         type (e.g. all `gbd_mapping.Cause` objects or all `gbd_mapping.Risk` objects, etc.
-    measures:
+    measure :
         A list of the GBD measures requested for the provided entities.
 
     Returns
@@ -158,7 +173,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'disability_weight': (Sequela, 'gbd_id'),
         'remission': (Cause, 'dismod_id'),
         'protection': (TreatmentTechnology, 'protection'),
-        'mediation_factor': (Risk, 'gbd_id'),
+        'mediation_factor': ((Risk, CoverageGap), 'gbd_id'),
         'cost': (HealthcareEntity, 'cost'),
     }
 
@@ -362,14 +377,11 @@ def _get_relative_risk(entities, location_ids):
     else:
         measure_ids = _get_ids_for_measure(entities, 'relative_risk')
     measure_data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
+    measure_data = measure_data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
     if isinstance(entities[0], CoverageGap):
-        rr_cols = [f'rr_{i}' for i in range(1000)]
-        measure_data.loc[:, rr_cols] = 1/measure_data.loc[:, rr_cols]
-        coverage = measure_data['parameter'] == 'cat1'
-        exposure = measure_data['parameter'] == 'cat2'
-        measure_data.loc[coverage, 'parameter'] = 'cat2'
-        measure_data.loc[exposure, 'parameter'] = 'cat1'
-        measure_data = measure_data.rename(columns={'risk_id': 'coverage_gap_id'})
+        draw_cols = [f'draw_{i}' for i in range(1000)]
+        measure_data.loc[:, draw_cols] = 1/measure_data.loc[:, draw_cols]
+        measure_data = _handle_coverage_gap_data(entities, measure_data, 1)
 
     # FIXME: I'm passing because this is broken for zinc_deficiency, and I don't have time to investigate -J.C.
     # err_msg = ("Not all relative risk data has both the 'mortality' and 'morbidity' flag "
@@ -380,8 +392,6 @@ def _get_relative_risk(entities, location_ids):
     measure_data = measure_data[measure_data['morbidity'] == 1]  # FIXME: HACK
     del measure_data['mortality']
     del measure_data['morbidity']
-
-    measure_data = measure_data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
 
     return measure_data
 
@@ -423,15 +433,12 @@ def _get_exposure(entities, location_ids):
     if isinstance(entities[0], (Risk, Etiology, CoverageGap)):
         measure_ids = _get_ids_for_measure(entities, 'exposure')
         measure_data = gbd.get_exposures(risk_ids=measure_ids, location_ids=location_ids)
-        measure_data = _handle_weird_exposure_measures(measure_data)
+
+        if isinstance(entities[0], (Risk, Etiology)):
+            measure_data = _handle_weird_exposure_measures(measure_data)
 
         if isinstance(entities[0], CoverageGap):
-            # We pulled coverage, not exposure, so invert the categories.
-            coverage = measure_data['parameter'] == 'cat1'
-            exposure = measure_data['parameter'] == 'cat2'
-            measure_data.loc[coverage, 'parameter'] = 'cat2'
-            measure_data.loc[exposure, 'parameter'] = 'cat1'
-            measure_data = measure_data.rename(columns={'risk_id': 'coverage_gap_id'})
+            measure_data = _handle_coverage_gap_data(entities, measure_data, 0)
 
         # FIXME: The sex filtering should happen in the reshaping step.
         is_categorical_exposure = measure_data.measure_id == name_measure_map['proportion']
@@ -449,6 +456,40 @@ def _get_exposure(entities, location_ids):
         return pd.concat(data)
     else:
         raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'exposure'")
+
+
+def _handle_coverage_gap_data(entities, measure_data, fill_value):
+    # We pulled coverage, not exposure, so invert the categories.
+    coverage = measure_data['parameter'] == 'cat1'
+    exposure = measure_data['parameter'] == 'cat2'
+    measure_data.loc[coverage, 'parameter'] = 'cat2'
+    measure_data.loc[exposure, 'parameter'] = 'cat1'
+    measure_data = measure_data.rename(columns={'risk_id': 'coverage_gap_id'})
+
+    for coverage_gap in entities:
+        affected_causes = coverage_gap.affected_causes
+        if len(affected_causes) != 1:
+            raise UnhandledDataError("We only handle coverage gaps affecting a single cause. "
+                                     "Tell James if you see this error.")
+        restrictions = affected_causes[0].restrictions
+        if restrictions.yld_only:
+            age_start, age_end = restrictions.yld_age_start, restrictions.yld_age_end
+        elif restrictions.yll_only:
+            age_start, age_end = restrictions.yll_age_start, restrictions.yll_age_end
+        else:
+            age_start = min(restrictions.yld_age_start, restrictions.yll_age_start)
+            age_end = max(restrictions.yll_age_end, restrictions.yll_age_end)
+        min_age_group = age_restriction_map[age_start][0]
+        max_age_group = age_restriction_map[age_end][1]
+
+        good_age_groups = range(min_age_group, max_age_group+1)
+
+        coverage_gap_data = measure_data['coverage_gap_id'] == coverage_gap.gbd_id
+        correct_age_groups = measure_data['age_group_id'].isin(good_age_groups)
+        draw_cols = [f'draw_{i}' for i in range(1000)]
+        measure_data.loc[coverage_gap_data & ~correct_age_groups, draw_cols] = fill_value
+
+    return measure_data
 
 
 def _handle_weird_exposure_measures(measure_data):
@@ -505,14 +546,15 @@ def _get_mediation_factor(entities, location_ids):
     risk_ids = _get_ids_for_measure(entities, 'mediation_factor')
     _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
     data = gbd.get_data_from_auxiliary_file("Mediation Factors", gbd_round=_gbd_round_id_map[gbd.GBD_ROUND_ID])
-    data = data.rename(columns={'rei_id': 'risk_id'})
+    id_col = 'risk_id' if isinstance(entities[0], Risk) else 'coverage_gap_id'
+    data = data.rename(columns={'rei_id': id_col})
 
-    data = data.query('risk_id in @risk_ids').copy()
+    data = data[data[id_col].isin(risk_ids)]
 
     if not data.empty:
         draw_columns = [f'draw_{i}' for i in range(0, 1000)]
         data[draw_columns] = 1 - (data[draw_columns])
-        data = data.groupby(['cause_id', 'risk_id'])[draw_columns].prod()
+        data = data.groupby(['cause_id', id_col])[draw_columns].prod()
     return data.reset_index()
     # else:
     #    columns = list(product(location_ids, risk_ids))
