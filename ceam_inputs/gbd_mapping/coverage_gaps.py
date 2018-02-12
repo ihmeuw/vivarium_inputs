@@ -1,7 +1,8 @@
 from typing import Tuple, Union
 
-from .templates import meid, rid, Cause, Restrictions, Levels, Tmred, ExposureParameters, GbdRecord
+from .templates import meid, rid, Cause, Restrictions, Levels, GbdRecord
 from .causes import causes
+
 
 class CoverageGap(GbdRecord):
     """Container for coverage gap GBD ids and metadata."""
@@ -46,7 +47,7 @@ coverage_gaps = CoverageGaps(
     lack_of_exposure_to_antiretroviral_therapy=CoverageGap(
         name='lack_of_exposure_to_antiretroviral_therapy',
         gbd_id=None,
-        distribution='categorical',
+        distribution='dichotomous',
         affected_causes=(causes.hiv_aids_resulting_in_other_diseases, ),
         restrictions=Restrictions(
             male_only=False,
@@ -65,7 +66,7 @@ coverage_gaps = CoverageGaps(
     low_measles_vaccine_coverage_first_dose=CoverageGap(
         name='low_measles_vaccine_coverage_first_dose',
         gbd_id=rid(318),
-        distribution='categorical',
+        distribution='dichotomous',
         affected_causes=(causes.measles, ),
         restrictions=Restrictions(
             male_only=False,
