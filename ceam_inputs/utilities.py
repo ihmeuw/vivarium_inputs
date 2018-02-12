@@ -1,100 +1,74 @@
-from typing import Mapping, Iterable
-
+"""Module containing functions that standardize the format of GBD outputs."""
+from typing import Mapping
 
 import pandas as pd
-
 
 from core_maths.interpolate import interpolate
 
 from ceam_inputs.gbd import get_age_bins
+from ceam_inputs.core import UnhandledDataError
 
-def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_na_value: Mapping[str, float]) -> pd.DataFrame:
-    """
-    Take draw data and make it dense over the specified dimensions. The dimensions must be some subset of ['age_group_id', 'sex', 'year'].
 
-    The behavior of the function depends on which dimension is being considered and the nature of the sparcity:
+def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex,
+                           fill_na_value: Mapping[str, float]=None) -> pd.DataFrame:
+    """Take input data and make it dense over the specified dimensions.
+
+    The behavior of the function depends on which dimension is being considered and the nature of the sparsity:
 
     Cases:
     1) dimension missing - nothing needed
     2) fully dense in the expected range - nothing needed
-    3) some spacity:
-       in the year dimension: interpolate
-       in age/sex dimension and dense for a contiguous subset of the exected range and missing elsewhere: fill
+    3) some sparsity:
+       a) in the year dimension: interpolate
+       b) in age/sex dimension and dense for a contiguous subset of the expected range and missing elsewhere: fill
     4) all others - panic
+
+    Parameters
+    ----------
+    data :
+        The data to standardize
+    dimensions :
+        A multi index whose individual index columns must be some subset of {'age', 'sex', 'year'}
+        which represent dimensions of the data; and whose levels provide the expected extent of
+        the data in those dimensions.
+    fill_na_value :
+        A mapping between
+
+    Returns
+    -------
+        A dataframe with either full extent or no extent in all of the given dimensions.
+
+    Raises
+    ------
+    UnhandledDataError :
+        If the data is somehow malformed in a manner we don't deal with.
     """
-
     dimensions = dimensions.to_frame().reset_index(drop=True)
-    with_measure = pd.DataFrame()
-    for measure in data.measure.unique():
-        with_measure = with_measure.append(dimensions.assign(measure= measure))
-    dimensions = with_measure
-    assert not set(dimensions.columns).difference(['age_group_id', 'sex', 'year', 'measure']), "We only know how to standardize 'age_group_id', 'sex' and 'year'"
-    draw_columns = {c for c in data.columns if 'draw_' in c}
-    assert not set(data.columns).difference(set(dimensions.columns) | {'measure'} | draw_columns), "We only support standardizing draw data"
-    assert not set(data.measure.unique()).difference(fill_na_value.keys()), f'Missing fill values for these measures: "{set(data.measure.unique()).difference(fill_na_value.keys())}"'
+    dimensions = pd.concat([dimensions.assign(measure=measure) for measure in data.measure.unique()], ignore_index=True)
 
-    applicable_dimensions = dimensions.copy()
+    draw_columns = [c for c in data.columns if 'draw_' in c]
 
-    for dimension in dimensions.columns:
-        if dimension not in data:
-            # Case 1: completely missing
-            del applicable_dimensions[dimension]
-            continue
+    assert set(dimensions.columns) <= {'age_group_id', 'sex', 'year', 'measure'}
+    assert set(data.columns) <= set(dimensions.columns.tolist() + draw_columns)
+    assert set(data.measure.unique()) <= fill_na_value.keys()
 
-        existing_extent = data[dimension].sort_values().drop_duplicates()
-        extent = dimensions[dimension].sort_values().drop_duplicates()
+    # Case 1: Remove any dimensions not present in the data.
+    applicable_dimensions = dimensions[[c for c in dimensions.columns if c in data]].copy()
+    # Case 4: Check preconditions and panic if it's an unhandled case.
+    verify_well_formed(data, applicable_dimensions)
 
-        if existing_extent.equals(extent):
-            # Case 2: fully dense
-            continue
+    # Case 3a: Interpolate over year.
+    if 'year' in applicable_dimensions:
+        interpolate_years(data, applicable_dimensions)
 
-        if dimension in ('age_group_id', 'sex'):
-            min_existing = existing_extent.min()
-            max_existing = existing_extent.max()
-
-            overlap = (extent >= min_existing) & (extent <= max_existing)
-
-            if not existing_extent.reset_index(drop=True).equals(extent[overlap].reset_index(drop=True)):
-                # Case 4: the data is somehow malformed
-                raise ValueError()
-        elif dimension == 'year':
-            # This one is different because we want to interpolate rather than fill.
-            if existing_extent.min() > extent.min() or existing_extent.max() < extent.max():
-                raise ValueError("Cannot interpolate years without data on both edges")
-
-            i = 0
-            while i < len(extent):
-                year = extent.iloc[i]
-                if year not in existing_extent.values:
-                    j = i
-                    while j < len(extent):
-                        check_year = extent.iloc[j]
-                        if check_year in existing_extent.values:
-                            break
-                        else:
-                            j += 1
-                    #TODO does this work if i is the end of the list?
-                    year = extent.iloc[i-1]
-                    end_year = extent.iloc[j]
-                    start = data.query('year == @year').sort_values(list(data.columns)).reset_index(drop=True)
-                    end = data.query('year == @end_year').sort_values(list(data.columns)).reset_index(drop=True)
-
-                    index_columns = list(dimensions.columns)
-                    value_columns = list(draw_columns)
-                    interpolated = interpolate(start, end, index_columns, 'year', value_columns, year, end_year)
-                    interpolated = interpolated.query('year != @year and year != @end_year and year in @extent')
-                    data = data.append(interpolated)
-                i += 1
-
-
-    # Case 3: fill
+    # Case 3b: fill
     dimension_columns, extents = zip(*applicable_dimensions.items())
     expected_index = pd.MultiIndex.from_arrays(extents, names=dimension_columns)
     data = data.set_index(list(dimension_columns))
 
     missing = expected_index.difference(data.index)
     if not missing.empty:
-        to_add = pd.DataFrame(columns=list(draw_columns), index=missing)
+        to_add = pd.DataFrame(columns=draw_columns, index=missing)
         to_add = to_add.reset_index().set_index(list(set(dimension_columns) - {'measure'}))
         data = data.reset_index().set_index(list(set(dimension_columns) - {'measure'}))
         for measure, fill in fill_na_value.items():
@@ -102,6 +76,48 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
         data = data.append(to_add)
 
     return data.reset_index()
+
+
+def verify_well_formed(data: pd.DataFrame, dimensions: pd.DataFrame):
+    for dimension in dimensions.columns:
+        existing = data[dimension].sort_values().drop_duplicates()
+        expected = dimensions[dimension].sort_values().drop_duplicates()
+
+        contiguous_overlap = ((expected >= existing.min()) & (expected <= existing.max()))
+        if dimension in ('age', 'sex') and not set(existing) == set(expected[contiguous_overlap]):
+            raise UnhandledDataError(f'The data is malformed in the {dimension} dimension.')
+
+        if dimension == 'year' and (existing.min() > expected.min() or existing.max() < expected.max()):
+            raise UnhandledDataError("Cannot interpolate years without data on both edges")
+
+
+def interpolate_years(data: pd.DataFrame, dimensions: pd.DataFrame) -> pd.DataFrame:
+    existing_extent = data['year'].sort_values().drop_duplicates()
+    expected_extent = dimensions['year'].sort_values().drop_duplicates()
+
+    i = 0
+    while i < len(expected_extent):
+        year = expected_extent.iloc[i]
+        if year not in existing_extent.values:
+            j = i
+            while j < len(expected_extent):
+                check_year = expected_extent.iloc[j]
+                if check_year in existing_extent.values:
+                    break
+                else:
+                    j += 1
+            # TODO does this work if i is the end of the list?
+            year = expected_extent.iloc[i - 1]
+            end_year = expected_extent.iloc[j]
+            start = data.query('year == @year').sort_values(list(data.columns)).reset_index(drop=True)
+            end = data.query('year == @end_year').sort_values(list(data.columns)).reset_index(drop=True)
+
+            index_columns = list(dimensions.columns)
+            value_columns = list(data.columns.difference(index_columns))
+            interpolated = interpolate(start, end, index_columns, 'year', value_columns, year, end_year)
+            interpolated = interpolated.query('year != @year and year != @end_year and year in @expected_extent')
+            data = data.append(interpolated)
+        i += 1
 
 
 def select_draw_data(data, draw, column_name, src_column=None):
@@ -126,6 +142,7 @@ def select_draw_data(data, draw, column_name, src_column=None):
 
         return normalize_for_simulation(data)
     return data
+
 
 def normalize_for_simulation(df):
     """
