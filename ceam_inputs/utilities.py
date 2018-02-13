@@ -58,10 +58,10 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex,
     verify_well_formed(data, applicable_dimensions)
 
     # Case 3a: Interpolate over year.
-    if 'year' in applicable_dimensions:
-        interpolate_years(data, applicable_dimensions)
+    if 'year' in applicable_dimensions.columns:
+        data = interpolate_years(data, applicable_dimensions)
 
-    # Case 3b: fill
+    # Case 3b: Fill in missing data
     dimension_columns, extents = zip(*applicable_dimensions.items())
     expected_index = pd.MultiIndex.from_arrays(extents, names=dimension_columns)
     data = data.set_index(list(dimension_columns))
@@ -84,7 +84,7 @@ def verify_well_formed(data: pd.DataFrame, dimensions: pd.DataFrame):
         expected = dimensions[dimension].sort_values().drop_duplicates()
 
         contiguous_overlap = ((expected >= existing.min()) & (expected <= existing.max()))
-        if dimension in ('age', 'sex') and not set(existing) == set(expected[contiguous_overlap]):
+        if dimension in ('age_group_id', 'sex') and not set(existing) == set(expected[contiguous_overlap]):
             raise UnhandledDataError(f'The data is malformed in the {dimension} dimension.')
 
         if dimension == 'year' and (existing.min() > expected.min() or existing.max() < expected.max()):
@@ -95,29 +95,24 @@ def interpolate_years(data: pd.DataFrame, dimensions: pd.DataFrame) -> pd.DataFr
     existing_extent = data['year'].sort_values().drop_duplicates()
     expected_extent = dimensions['year'].sort_values().drop_duplicates()
 
-    i = 0
-    while i < len(expected_extent):
-        year = expected_extent.iloc[i]
-        if year not in existing_extent.values:
-            j = i
-            while j < len(expected_extent):
-                check_year = expected_extent.iloc[j]
-                if check_year in existing_extent.values:
-                    break
-                else:
-                    j += 1
-            # TODO does this work if i is the end of the list?
-            year = expected_extent.iloc[i - 1]
-            end_year = expected_extent.iloc[j]
-            start = data.query('year == @year').sort_values(list(data.columns)).reset_index(drop=True)
-            end = data.query('year == @end_year').sort_values(list(data.columns)).reset_index(drop=True)
+    out = []
+    for year in expected_extent:
+        if year in existing_extent.values:
+            out.append(data[data['year'] == year])
+        else:
+            previous_year = existing_extent[existing_extent < year].iloc[-1]
+            next_year = existing_extent[existing_extent > year].iloc[0]
+            start = data[data['year'] == previous_year].sort_values(list(data.columns)).reset_index(drop=True)
+            end = data[data['year'] == next_year].sort_values(list(data.columns)).reset_index(drop=True)
 
             index_columns = list(dimensions.columns)
             value_columns = list(data.columns.difference(index_columns))
-            interpolated = interpolate(start, end, index_columns, 'year', value_columns, year, end_year)
-            interpolated = interpolated.query('year != @year and year != @end_year and year in @expected_extent')
-            data = data.append(interpolated)
-        i += 1
+
+            interpolated = interpolate(start, end, index_columns, 'year', value_columns, previous_year, next_year)
+            interpolated = interpolated[interpolated['year'] == year]
+            out.append(interpolated)
+
+    return pd.concat(out, ignore_index=True)
 
 
 def select_draw_data(data, draw, column_name, src_column=None):
