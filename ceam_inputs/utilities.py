@@ -44,11 +44,11 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex,
         If the data is somehow malformed in a manner we don't deal with.
     """
     dimensions = dimensions.to_frame().reset_index(drop=True)
-    dimensions = pd.concat([dimensions.assign(measure=measure) for measure in data.measure.unique()], ignore_index=True)
 
+    dimensions = pd.concat([dimensions.assign(measure=measure) for measure in data.measure.unique()], ignore_index=True)
     draw_columns = [c for c in data.columns if 'draw_' in c]
 
-    assert set(dimensions.columns) <= {'age_group_id', 'sex', 'year', 'measure'}
+    assert set(dimensions.columns) <= {'age_group_id', 'sex', 'year', 'measure', 'location_id'}
     assert set(data.columns) <= set(dimensions.columns.tolist() + draw_columns)
     assert set(data.measure.unique()) <= fill_na_value.keys()
 
@@ -84,7 +84,7 @@ def verify_well_formed(data: pd.DataFrame, dimensions: pd.DataFrame):
         expected = dimensions[dimension].sort_values().drop_duplicates()
 
         contiguous_overlap = ((expected >= existing.min()) & (expected <= existing.max()))
-        if dimension in ('age_group_id', 'sex') and not set(existing) == set(expected[contiguous_overlap]):
+        if dimension in 'age_group_id' and not set(existing) == set(expected[contiguous_overlap]):
             raise UnhandledDataError(f'The data is malformed in the {dimension} dimension.')
 
         if dimension == 'year' and (existing.min() > expected.min() or existing.max() < expected.max()):
