@@ -10,7 +10,7 @@ from ceam_inputs.gbd import get_age_bins
 
 def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_na_value: Mapping[str, float]) -> pd.DataFrame:
     """
-    Take draw data and make it dense over the specified dimensions. The dimensions must be some subset of ['age_group_id', 'sex', 'year'].
+    Take draw data and make it dense over the specified dimensions. The dimensions must be some subset of ['age_group_id', 'sex', 'year', 'location_id'].
 
     The behavior of the function depends on which dimension is being considered and the nature of the sparcity:
 
@@ -28,7 +28,7 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
     for measure in data.measure.unique():
         with_measure = with_measure.append(dimensions.assign(measure= measure))
     dimensions = with_measure
-    assert not set(dimensions.columns).difference(['age_group_id', 'sex', 'year', 'measure']), "We only know how to standardize 'age_group_id', 'sex' and 'year'"
+    assert not set(dimensions.columns).difference(['age_group_id', 'sex', 'year', 'measure', 'location_id']), "We only know how to standardize 'age_group_id', 'sex', 'location_id' and 'year'"
     draw_columns = {c for c in data.columns if 'draw_' in c}
     assert not set(data.columns).difference(set(dimensions.columns) | {'measure'} | draw_columns), "We only support standardizing draw data"
     assert not set(data.measure.unique()).difference(fill_na_value.keys()), f'Missing fill values for these measures: "{set(data.measure.unique()).difference(fill_na_value.keys())}"'
@@ -48,7 +48,7 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex, fill_n
             # Case 2: fully dense
             continue
 
-        if dimension in ('age_group_id', 'sex'):
+        if dimension == 'age_group_id':
             min_existing = existing_extent.min()
             max_existing = existing_extent.max()
 
