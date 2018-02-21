@@ -472,13 +472,10 @@ def _handle_coverage_gap_data(entities, measure_data, fill_value):
             raise UnhandledDataError("We only handle coverage gaps affecting a single cause. "
                                      "Tell James if you see this error.")
         restrictions = affected_causes[0].restrictions
-        if restrictions.yld_only:
-            age_start, age_end = restrictions.yld_age_start, restrictions.yld_age_end
-        elif restrictions.yll_only:
-            age_start, age_end = restrictions.yll_age_start, restrictions.yll_age_end
-        else:
-            age_start = min(restrictions.yld_age_start, restrictions.yll_age_start)
-            age_end = max(restrictions.yll_age_end, restrictions.yll_age_end)
+        if restrictions.yll_only:
+            raise UnhandledDataError("The PAFs we use are for YLDs, so causes with no attributable YLDs should not"
+                                     "have associated exposures or RRs.")
+        age_start, age_end = restrictions.yld_age_start, restrictions.yld_age_end
         min_age_group = age_restriction_map[age_start][0]
         max_age_group = age_restriction_map[age_end][1]
 
