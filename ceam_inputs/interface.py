@@ -1,19 +1,19 @@
 from vivarium.config_tree import ConfigTree  # Just for typing info.
 
 from ceam_inputs.gbd_mapping import *
-from ceam_inputs import gbd, core
+from ceam_inputs import core
 from ceam_inputs.util import get_input_config
 from ceam_inputs.utilities import select_draw_data, get_age_group_midpoint_from_age_group_id, normalize_for_simulation
 
 __all__ = [
-       "get_prevalence", "get_incidence", "get_remission", "get_cause_specific_mortality", "get_excess_mortality",
-       "get_disability_weight", "get_relative_risk", "get_exposure", "get_exposure_standard_deviation",
-       "get_population_attributable_fraction", "get_ensemble_weights", "get_mediation_factor", "get_risk_correlation_matrix",
-       "get_populations", "get_age_bins", "get_theoretical_minimum_risk_life_expectancy", "get_subregions",
-       "get_outpatient_visit_costs", "get_inpatient_visit_costs", "get_inpatient_visit_costs", "get_hypertension_drug_costs",
-       "get_age_specific_fertility_rates", "get_live_births_by_sex", "get_dtp3_coverage", "get_protection",
-       "get_healthcare_annual_visits",
-        ]
+    "get_prevalence", "get_incidence", "get_remission", "get_cause_specific_mortality", "get_excess_mortality",
+    "get_disability_weight", "get_relative_risk", "get_exposure", "get_exposure_standard_deviation",
+    "get_population_attributable_fraction", "get_ensemble_weights", "get_mediation_factor",
+    "get_risk_correlation_matrix", "get_populations", "get_age_bins", "get_theoretical_minimum_risk_life_expectancy",
+    "get_subregions", "get_outpatient_visit_costs", "get_inpatient_visit_costs", "get_inpatient_visit_costs",
+    "get_hypertension_drug_costs", "get_age_specific_fertility_rates", "get_live_births_by_sex", "get_dtp3_coverage",
+    "get_protection", "get_healthcare_annual_visits",
+]
 
 
 def _clean_and_filter_data(data, draw_number, column_name):
@@ -47,7 +47,8 @@ def get_remission(cause, override_config=None):
 
 def get_cause_specific_mortality(cause, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_draws([cause], ['cause_specific_mortality'], [config.input_data.location_id]).drop('measure', 'columns')
+    data = core.get_draws([cause], ['cause_specific_mortality'],
+                          [config.input_data.location_id]).drop('measure', 'columns')
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'rate')
 
 
@@ -83,9 +84,11 @@ def get_exposure(risk, override_config=None):
     data = data[data['mean'] != 0]
     return data
 
+
 def get_exposure_standard_deviation(risk, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_draws([risk], ['exposure_standard_deviation'], [config.input_data.location_id]).drop('measure', 'columns')
+    data = core.get_draws([risk], ['exposure_standard_deviation'],
+                          [config.input_data.location_id]).drop('measure', 'columns')
     data = _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'standard_deviation')
     # FIXME: This is here because FPG puts zeros in its unmodelled age groups unlike most other gbd risks
     data = data[data['standard_deviation'] != 0]
@@ -94,7 +97,8 @@ def get_exposure_standard_deviation(risk, override_config=None):
 
 def get_population_attributable_fraction(entity, cause, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_draws([entity], ['population_attributable_fraction'], [config.input_data.location_id]).drop('measure', 'columns')
+    data = core.get_draws([entity], ['population_attributable_fraction'],
+                          [config.input_data.location_id]).drop('measure', 'columns')
     data = data[data['cause_id'] == cause.gbd_id]
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'population_attributable_fraction')
 
@@ -150,21 +154,24 @@ def get_subregions(override_config=None):
 
 def get_outpatient_visit_costs(override_config=None):
     config = get_input_config(override_config)
-    data = core.get_draws([healthcare_entities.outpatient_visits], ['cost'], [config.input_data.location_id]).drop('measure', 'columns')
+    data = core.get_draws([healthcare_entities.outpatient_visits],
+                          ['cost'], [config.input_data.location_id]).drop('measure', 'columns')
     data = data[['year_id', f'draw_{config.run_configuration.input_draw_number}']]
     return data.rename(columns={'year_id':'year', f'draw_{config.run_configuration.input_draw_number}': 'cost'})
 
 
 def get_inpatient_visit_costs(override_config=None):
     config = get_input_config(override_config)
-    data = core.get_draws([healthcare_entities.inpatient_visits], ['cost'], [config.input_data.location_id]).drop('measure', 'columns')
+    data = core.get_draws([healthcare_entities.inpatient_visits],
+                          ['cost'], [config.input_data.location_id]).drop('measure', 'columns')
     data = data[['year_id', f'draw_{config.run_configuration.input_draw_number}']]
     return data.rename(columns={'year_id':'year', f'draw_{config.run_configuration.input_draw_number}': 'cost'})
 
 
 def get_hypertension_drug_costs(override_config=None):
     config = get_input_config(override_config)
-    return core.get_draws([treatment_technologies.hypertension_drugs], ['cost'], [config.input_data.location_id]).drop('measure', 'columns')
+    return core.get_draws([treatment_technologies.hypertension_drugs],
+                          ['cost'], [config.input_data.location_id]).drop('measure', 'columns')
 
 
 def get_age_specific_fertility_rates(override_config=None):
@@ -191,12 +198,14 @@ def get_dtp3_coverage(override_config=None):
 
 def get_protection(treatment_technology, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_draws([treatment_technology], ['protection'], [config.input_data.location_id]).drop('measure', 'columns')
+    data = core.get_draws([treatment_technology],
+                          ['protection'], [config.input_data.location_id]).drop('measure', 'columns')
     data = data[['location_id', 'treatment_technology', f'draw_{config.run_configuration.input_draw_number}']]
     return data.rename(columns={f'draw_{config.run_configuration.input_draw_number}': 'protection'})
 
 
 def get_healthcare_annual_visits(healthcare_entity, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_draws([healthcare_entity], ['annual_visits'], [config.input_data.location_id]).drop('measure', 'columns')
+    data = core.get_draws([healthcare_entity],
+                          ['annual_visits'], [config.input_data.location_id]).drop('measure', 'columns')
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'annual_visits')
