@@ -69,8 +69,8 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex,
     missing = expected_index.difference(data.index)
     if not missing.empty:
         to_add = pd.DataFrame(columns=draw_columns, index=missing)
-        to_add = to_add.reset_index().set_index(list(set(dimension_columns) - {'measure'}))
-        data = data.reset_index().set_index(list(set(dimension_columns) - {'measure'}))
+        to_add = to_add.reset_index().set_index(list(set(dimension_columns) - {'measure'})).sort_index()
+        data = data.reset_index().set_index(list(set(dimension_columns) - {'measure'})).sort_index()
         for measure, fill in fill_na_value.items():
             to_add.loc[to_add['measure'] == measure, draw_columns] = fill
         data = data.append(to_add)
@@ -80,11 +80,13 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex,
 
 def verify_well_formed(data: pd.DataFrame, dimensions: pd.DataFrame):
     for dimension in dimensions.columns:
+        if dimension == 'sex':
+            continue
         existing = data[dimension].sort_values().drop_duplicates()
         expected = dimensions[dimension].sort_values().drop_duplicates()
 
         contiguous_overlap = ((expected >= existing.min()) & (expected <= existing.max()))
-        if dimension in 'age_group_id' and not set(existing) == set(expected[contiguous_overlap]):
+        if dimension == 'age_group_id' and not set(existing) == set(expected[contiguous_overlap]):
             raise UnhandledDataError(f'The data is malformed in the {dimension} dimension.')
 
         if dimension == 'year' and (existing.min() > expected.min() or existing.max() < expected.max()):
@@ -100,13 +102,14 @@ def interpolate_years(data: pd.DataFrame, dimensions: pd.DataFrame) -> pd.DataFr
         if year in existing_extent.values:
             out.append(data[data['year'] == year])
         else:
-            previous_year = existing_extent[existing_extent < year].iloc[-1]
-            next_year = existing_extent[existing_extent > year].iloc[0]
-            start = data[data['year'] == previous_year].sort_values(list(data.columns)).reset_index(drop=True)
-            end = data[data['year'] == next_year].sort_values(list(data.columns)).reset_index(drop=True)
-
             index_columns = list(dimensions.columns)
             value_columns = list(data.columns.difference(index_columns))
+
+            previous_year = int(existing_extent[existing_extent < year].iloc[-1])
+            next_year = int(existing_extent[existing_extent > year].iloc[0])
+            start = data[data['year'] == previous_year].sort_values(index_columns).reset_index(drop=True)
+            end = data[data['year'] == next_year].sort_values(index_columns).reset_index(drop=True)
+
 
             interpolated = interpolate(start, end, index_columns, 'year', value_columns, previous_year, next_year)
             interpolated = interpolated[interpolated['year'] == year]
@@ -161,9 +164,10 @@ def normalize_for_simulation(df):
 
     Unit test in place? -- Yes
     """
-    df['sex'] = df.sex_id.map({1: 'Male', 2: 'Female', 3: 'Both'}).astype(
-        pd.api.types.CategoricalDtype(categories=['Male', 'Female', 'Both'], ordered=False))
-    df = df.drop('sex_id', axis=1)
+    if 'sex_id' in df:
+        df['sex'] = df.sex_id.map({1: 'Male', 2: 'Female', 3: 'Both'}).astype(
+            pd.api.types.CategoricalDtype(categories=['Male', 'Female', 'Both'], ordered=False))
+        df = df.drop('sex_id', axis=1)
     df = df.rename(columns={'year_id': 'year'})
     return df
 

@@ -5,7 +5,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from ceam_inputs import gbd, risk_factor_correlation
+from ceam_inputs import gbd, risk_factor_correlation, causes
 from ceam_inputs.gbd_mapping.templates import sid, UNKNOWN, Cause, Sequela, Etiology, Risk, ModelableEntity
 from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
 from ceam_inputs.gbd_mapping.coverage_gaps import CoverageGap
@@ -290,6 +290,7 @@ def _get_relative_risk(entities, location_ids):
     else:
         measure_ids = _get_ids_for_measure(entities, 'relative_risk')
     measure_data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
+    measure_data = _filter_to_most_detailed(measure_data)
 
     # FIXME: I'm passing because this is broken for zinc_deficiency, and I don't have time to investigate -J.C.
     # err_msg = ("Not all relative risk data has both the 'mortality' and 'morbidity' flag "
@@ -306,10 +307,19 @@ def _get_relative_risk(entities, location_ids):
     return measure_data
 
 
+def _filter_to_most_detailed(data):
+    most_detailed_causes = {c.gbd_id for c in causes if c is not None and c.gbd_id != 294}
+    return data.query('cause_id in @most_detailed_causes')
+
 def _get_population_attributable_fraction(entities, location_ids):
     if isinstance(entities[0], (Risk, Etiology)):
         measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
         measure_data = gbd.get_pafs(risk_ids=measure_ids, location_ids=location_ids)
+        measure_data = _filter_to_most_detailed(measure_data)
+
+        # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows. Eventually we should fix it for real
+        draws = [c for c in measure_data.columns if 'draw_' in c]
+        measure_data = measure_data.loc[~(measure_data[draws] == 1).any(axis=1)]
 
         # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
         # measure_ids = {name_measure_map[m] for m in ['death', 'DALY', 'YLD', 'YLL']}
@@ -453,6 +463,7 @@ def _get_exposure_standard_deviation(entities, location_ids):
 
 
 #TODO This should probably use the _get_ids_for_measure function but it doesn't quite fit
+#TODO Because this is not indexed by age/sex/year/location it can't be merged with other measures so it should be removed from the get_draws flow
 def _get_disability_weight(entities, _):
     gbd_round = gbd_round_id_map[gbd.GBD_ROUND_ID]
     disability_weights = gbd.get_data_from_auxiliary_file('Disability Weights', gbd_round=gbd_round)
@@ -468,6 +479,7 @@ def _get_disability_weight(entities, _):
             df = disability_weights.loc[disability_weights.healthstate_id == s.healthstate.gbd_id].copy()
         else:
             raise DataMissingError(f"No disability weight available for the sequela {s.name}")
+        df = df.drop(['hhseqid', 'healthstate_id', 'healthstate'], axis=1)
         df['sequela_id'] = s.gbd_id
         df['measure'] = 'disability_weight'
         data.append(df)
