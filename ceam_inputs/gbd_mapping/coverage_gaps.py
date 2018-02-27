@@ -33,14 +33,16 @@ class CoverageGap(GbdRecord):
 
 class CoverageGaps(GbdRecord):
     """Container for coverage gaps."""
-    __slots__ = ('lack_of_exposure_to_antiretroviral_therapy', 'low_measles_vaccine_coverage_first_dose')
+    __slots__ = ('lack_of_exposure_to_antiretroviral_therapy', 'low_measles_vaccine_coverage_first_dose', 'low_hib_vaccine_coverage')
 
     def __init__(self,
                  lack_of_exposure_to_antiretroviral_therapy: CoverageGap,
-                 low_measles_vaccine_coverage_first_dose: CoverageGap, ):
+                 low_measles_vaccine_coverage_first_dose: CoverageGap,
+                 low_hib_vaccine_coverage: CoverageGap, ):
         super().__init__()
         self.lack_of_exposure_to_antiretroviral_therapy = lack_of_exposure_to_antiretroviral_therapy
         self.low_measles_vaccine_coverage_first_dose = low_measles_vaccine_coverage_first_dose
+        self.low_hib_vaccine_coverage = low_hib_vaccine_coverage
 
 
 coverage_gaps = CoverageGaps(
@@ -78,6 +80,23 @@ coverage_gaps = CoverageGaps(
             cat1='exposed',
             cat2='unexposed',
         ),
-    )
+    ),
+    low_hib_vaccine_coverage=CoverageGap(
+        name='low_hib_vaccine_coverage',
+        gbd_id=rid(315),
+        distribution='dichotomous',
+        affected_causes=(causes.lower_respiratory_infections, ),
+        restrictions=Restrictions(
+            male_only=False,
+            female_only=False,
+            yll_only=False,
+            yld_only=False,
+        ),
+        levels=Levels(
+            cat1='exposed',
+            cat2='unexposed',
+        ),
+    ),
+
 )
 
