@@ -64,7 +64,7 @@ class UnknownEntityError(Exception):
 class GbdRecord:
     """Base class for entities modeled in the GBD."""
     __slots__ = ()
-    
+
     def __contains__(self, item):
         return item in self.__slots__
 
@@ -82,13 +82,14 @@ class GbdRecord:
         out = f'{self.__class__.__name__}('
         for i, slot in enumerate(self.__slots__):
             attr = self[slot]
-            if i != 0:
-                out += ','
-            out += f'\n{slot}='
-            if isinstance(attr, tuple):
-                out += '['+','.join([entity.name for entity in attr]) + ']'
-            else:
-                out += repr(attr)
+            if attr is not None:
+                if i != 0:
+                    out += ','
+                out += f'\n{slot}='
+                if isinstance(attr, tuple):
+                    out += '['+','.join([entity.name for entity in attr]) + ']'
+                else:
+                    out += repr(attr)
         return out + ')'
 
 
