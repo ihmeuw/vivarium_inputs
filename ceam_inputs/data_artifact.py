@@ -4,6 +4,8 @@ import os
 from collections import defaultdict
 from multiprocessing import cpu_count
 from random import shuffle
+from tempfile import TemporaryDirectory
+import tarfile
 
 import numpy as np
 import xarray as xr
@@ -129,7 +131,7 @@ def load_risk_factor(entity_config, writer):
     if risk.exposure_parameters is not None:
         exposure_stds = core.get_draws([risk], ['exposure_standard_deviation'], entity_config.locations)
         exposure_stds = normalize(exposure_stds, entity_config.dimensions, {})
-        writer('exposure_stardard_deviation', exposure_stds)
+        writer('exposure_standard_deviation', exposure_stds)
 
 def load_sequela(entity_config, writer):
     sequela = sequelae[entity_config.name]
@@ -279,8 +281,13 @@ class ArtifactBuilder:
         self.entities = set()
         self.constructors = {}
 
-    def save(self, path, locations, year_range=None, parallelism=None):
+    def save(self, path, locations, bundle=True, year_range=None, parallelism=None):
         locations = locations
+
+        if bundle:
+            bundle_path = path
+            temp_dir = TemporaryDirectory()
+            path = temp_dir.name
 
         if year_range is not None:
             year_start, year_end = year_range
@@ -319,6 +326,12 @@ class ArtifactBuilder:
                     else:
                         worker(entity_config, path, LOADERS[entity_type])
             result = [j.get() for j in jobs]
+
+        if bundle:
+            unbundled_name = os.path.basename(os.path.splitext(bundle_path)[0])
+            with tarfile.open(bundle_path, mode='w:gz') as archive:
+                archive.add(path, arcname=unbundled_name)
+
 
     def data_container(self, entity_path: str):
         self.entities.add(entity_path)
