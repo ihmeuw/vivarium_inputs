@@ -1,7 +1,8 @@
 import os
-from collections import defaultdict
 import multiprocessing
+from collections import defaultdict
 from random import shuffle
+from typing import Tuple, Optional, NamedTuple, Sequence, Mapping, Iterable, Callable
 
 import pandas as pd
 
@@ -17,16 +18,28 @@ _log = logging.getLogger(__name__)
 
 
 class DataArtifactError(Exception):
+    """Base error raised for issues in data artifact construction."""
     pass
+
 
 class EntityError(DataArtifactError):
+    """Error raised when modeled entities are improperly specified."""
     pass
 
 
-def split_entity_path(path: str):
-    """ Split a entity path name of the form entity_type[.entity_name] into it's components
-    """
+def split_entity_path(path: str) -> Tuple[str, Optional[str]]:
+    """ Split a entity path name of the form entity_type[.entity_name] into it's components.
 
+    Parameters
+    ----------
+    path :
+        Either a string containing the entity type or a period-delimited
+        string containing the entity path and entity name.
+
+    Returns
+    -------
+        The entity type and, if present, the entity name.
+    """
     entity_path_components = path.split(".")
     if len(entity_path_components) == 2:
         entity_type, entity_name = entity_path_components
@@ -39,23 +52,19 @@ def split_entity_path(path: str):
     return entity_type, entity_name
 
 
-class _EntityConfig:
-    """ A representation of an entity and the context in which to load it's data.
-    """
-    def __init__(self, entity_type, name, locations, year_start, year_end, modeled_causes, entity=None):
-        self.type = entity_type
-        self.name = name
-        self.locations = locations
-        self.year_start = year_start
-        self.year_end = year_end
-        self.modeled_causes = modeled_causes
-        self.entity = entity
+class _EntityConfig(NamedTuple):
+    """A representation of an entity and the context in which to load it's data."""
+    type: str
+    name: str
+    locations: Sequence[int]
+    year_start: int
+    year_end: int
+    modeled_causes: Iterable
+    entity: Optional[str] = None
 
 
 def _normalize(data: pd.DataFrame) -> pd.DataFrame:
-    """ Do basic normalizations to remove GBD specific column names and concepts and
-    to make the dataframe long over draws.
-    """
+    """Remove GBD specific column names and concepts and make the dataframe long over draws."""
     data = normalize_for_simulation(data)
     if "age_group_id" in data:
         data = get_age_group_midpoint_from_age_group_id(data)
@@ -66,9 +75,8 @@ def _normalize(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-def _entities_by_type(entities):
-    """ Split a list of entity paths and group the entity names by entity type.
-    """
+def _entities_by_type(entities: Iterable[str]) -> Mapping[str, set]:
+    """Split a list of entity paths and group the entity names by entity type."""
     entity_by_type = defaultdict(set)
     for entity_path in entities:
         entity_type, entity_name = split_entity_path(entity_path)
@@ -77,25 +85,43 @@ def _entities_by_type(entities):
 
 
 class ArtifactBuilder:
-    """ Accumulates requests for entity data and then loads the data necessary to fulfill those requests
-    into a HDF file on disk which can be loaded by a simulation process.
+    """Builds a data artifact by first accumulating requests, then loading and writing the data in parallel.
+
+    The data is output into an HDF file suitable for parsing by the ``vivarium`` simulation framework.
+
+    Attributes
+    ----------
+    entities :
+        The entities (e.g. causes, risk factors, treatment technologies, etc.) whose data will
+        be included in the artifact.
     """
 
     def __init__(self):
         self.entities = set()
 
-
-    def data_container(self, entity_path: str):
-        """ Records a requenst for entity data for future processing
-        """
+    def data_container(self, entity_path: str) -> None:
+        """Records a request for entity data for future processing."""
         self.entities.add(entity_path)
-        _log.info(f"Adding {entity_path} to list of datasets to load")
+        _log.info(f"Adding {entity_path} to list of data sets to load")
 
+    def process(self, path: str, locations: Sequence[int], parallelism: int=None,
+                loaders: Mapping[str, Callable]=None) -> None:
+        """Loads all requested data and writes it out to a HDF file.
 
-    def process(self, path, locations, parallelism=None, loaders=None):
-        """ Loads data for all requensted entities within the specified locations and saves it into an
-        HDF file at the specified path. By default it will use as many processes as there are CPUs. The
-        data loading process can be memory intensive. To reduce peak consumption, reduce parallelism.
+        Parameters
+        ----------
+        path :
+            The absolute path to the output HDF file to write.
+        locations :
+            A set of locations to load data for.
+        parallelism :
+            The number of processes to use when loading the data. Defaults to the number of available CPUs.
+        loaders :
+            A mapping between entity types and the functions that load their data.
+
+        Note
+        ----
+        The data loading process can be memory intensive. To reduce peak consumption, reduce parallelism.
         """
 
         if loaders is None:
@@ -127,7 +153,7 @@ class ArtifactBuilder:
         jobs = []
         for entity_type, entities in by_type:
             for entity_name in entities:
-                entity_config = _EntityConfig(entity_type=entity_type,
+                entity_config = _EntityConfig(type=entity_type,
                                               name=entity_name,
                                               year_start=year_start,
                                               year_end=year_end,
@@ -141,9 +167,34 @@ class ArtifactBuilder:
         pool.join()
 
 
-def _worker(entity_config, path, loader, lock):
+def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: multiprocessing.Lock) -> None:
+    """Loads and writes the data for a single entity into a shared output file.
+
+    Parameters
+    ----------
+    entity_config :
+        Container for contextual information used in the loading process.
+    path :
+        The path to the output file to write to.
+    loader :
+        The function to load the entity's data. The loader must take an ``_EntityConfig`` object and
+        the writer Callable defined within as arguments.
+    lock :
+        A mechanism to prevent multiple processes from writing to the output file at the
+        same time to prevent data corruption.
+    """
     _log.info(f"Loading data for {entity_config.type}.{entity_config.name}")
-    def writer(measure, data):
+
+    def writer(measure: str, data: pd.DataFrame):
+        """Multi-process safe data writer.
+
+        Parameters
+        ----------
+        measure :
+            The name of the measure to write.
+        data :
+            The data to write to the file.
+        """
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
 
@@ -155,9 +206,8 @@ def _worker(entity_config, path, loader, lock):
     loader(entity_config, writer)
 
 
-def _dump(data, entity_type, entity_name, measure, path):
-    """ Write a dataset out to the target HDF file keyed by the entity the data corrisponds to.
-    """
+def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
+    """Write a dataset out to the target HDF file keyed by the entity the data corresponds to."""
     key_components = ["/", entity_type]
     if entity_name:
         key_components.append(entity_name)
@@ -167,7 +217,7 @@ def _dump(data, entity_type, entity_name, measure, path):
         store.put(key, data, format="table")
 
 
-def _load_cause(entity_config, writer):
+def _load_cause(entity_config: _EntityConfig, writer: Callable) -> None:
     measures = ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]
     result = core.get_draws([causes[entity_config.name]], measures, entity_config.locations)
     result = _normalize(result)
@@ -184,9 +234,9 @@ def _load_cause(entity_config, writer):
         pass
 
 
-def _load_risk_factor(entity_config, writer):
+def _load_risk_factor(entity_config: _EntityConfig, writer: Callable) -> None:
     if entity_config.name == "correlations":
-        #TODO: weird special case but this groups it with the other risk data which  I think makes sense
+        # TODO: weird special case but this groups it with the other risk data which  I think makes sense
         correlations = core.get_risk_correlation_matrix(entity_config.locations)
         writer("correlations", correlations)
         return
@@ -243,7 +293,8 @@ def _load_risk_factor(entity_config, writer):
         exposure_stds = _normalize(exposure_stds)
         writer("exposure_standard_deviation", exposure_stds)
 
-def _load_sequela(entity_config, writer):
+
+def _load_sequela(entity_config: _EntityConfig, writer: Callable) -> None:
     sequela = sequelae[entity_config.name]
     measures = ["prevalence", "incidence"]
     result = core.get_draws([sequela], measures, entity_config.locations).drop("sequela_id", axis=1)
@@ -253,7 +304,6 @@ def _load_sequela(entity_config, writer):
         writer(key, group)
     del result
 
-
     weights = core.get_draws([sequela], ["disability_weight"], entity_config.locations)
     index_columns = [c for c in weights.columns if "draw_" not in c]
     draw_columns = [c for c in weights.columns if "draw_" in c]
@@ -261,7 +311,8 @@ def _load_sequela(entity_config, writer):
     weights["draw"] = weights.draw.str.partition("_")[2].astype(int)
     writer("disability_weight", weights)
 
-def _load_healthcare_entity(entity_config, writer):
+
+def _load_healthcare_entity(entity_config: _EntityConfig, writer: Callable) -> None:
     healthcare_entity = healthcare_entities[entity_config.name]
 
     cost = core.get_draws([healthcare_entity], ["cost"], entity_config.locations)
@@ -273,7 +324,7 @@ def _load_healthcare_entity(entity_config, writer):
     writer("annual_visits", annual_visits)
 
 
-def _load_treatment_technology(entity_config, writer):
+def _load_treatment_technology(entity_config: _EntityConfig, writer: Callable) -> None:
     treatment_technology = treatment_technologies[entity_config.name]
 
     if treatment_technology.protection:
@@ -302,7 +353,8 @@ def _load_treatment_technology(entity_config, writer):
         cost = _normalize(cost)
         writer("cost", cost)
 
-def _load_coverage_gap(entity_config, writer):
+
+def _load_coverage_gap(entity_config: _EntityConfig, writer: Callable) -> None:
     entity = coverage_gaps[entity_config.name]
 
     try:
@@ -314,8 +366,8 @@ def _load_coverage_gap(entity_config, writer):
 
     mediation_factor = core.get_draws([entity], ["mediation_factor"], entity_config.locations)
     if not mediation_factor.empty:
-        #TODO: This should probably be an exception. It looks like James was in the middle of doing better
-        # error handling in ceam_inputs.core but hasn"t finished yet
+        # TODO: This should probably be an exception. It looks like James was in the middle of doing better
+        # error handling in ceam_inputs.core but hasn't finished yet
         mediation_factor = _normalize(mediation_factor)
         writer("mediation_factor", mediation_factor)
 
@@ -323,21 +375,20 @@ def _load_coverage_gap(entity_config, writer):
     relative_risk = _normalize(relative_risk)
     writer("relative_risk", relative_risk)
 
+    paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
+    paf = _normalize(paf)
+    writer("population_attributable_fraction", paf)
+
+
+def _load_etiology(entity_config: _EntityConfig, writer: Callable) -> None:
+    entity = etiologies[entity_config.name]
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
     paf = _normalize(paf)
     writer("population_attributable_fraction", paf)
 
-def _load_etiology(entity_config, writer):
-    entity = etiologies[entity_config.name]
 
-    paf = core.get_draws([entity], ["population_attributable_fraction"],
-                                                      entity_config.locations)
-    paf = _normalize(paf)
-    writer("population_attributable_fraction", paf)
-
-
-def _load_population(entity_config, writer):
+def _load_population(entity_config: _EntityConfig, writer: Callable) -> None:
     pop = core.get_populations(entity_config.locations)
     pop = normalize_for_simulation(pop)
     pop = get_age_group_midpoint_from_age_group_id(pop)
@@ -350,7 +401,7 @@ def _load_population(entity_config, writer):
     writer("theoretical_minimum_risk_life_expectancy", core.get_theoretical_minimum_risk_life_expectancy())
 
 
-def _load_covariate(entity_config, writer):
+def _load_covariate(entity_config: _EntityConfig, writer: Callable) -> None:
     entity = covariates[entity_config.name]
     estimate = get_covariate_estimates([entity.gbd_id], entity_config.locations)
 
@@ -366,7 +417,7 @@ def _load_covariate(entity_config, writer):
     writer("estimate", estimate)
 
 
-def _load_subregions(entity_config, writer):
+def _load_subregions(entity_config: _EntityConfig, writer: Callable) -> None:
     df = pd.DataFrame(core.get_subregions(entity_config.locations))
     df = df.melt(var_name="location", value_name="subregion_id")
     writer("sub_region_ids", df)
