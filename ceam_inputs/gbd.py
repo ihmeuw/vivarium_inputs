@@ -179,7 +179,7 @@ def get_cause_me_id_mapping() -> pd.DataFrame:
 
 
 @memory.cache
-def get_age_group_ids(mortality: bool = False) -> pd.DataFrame:
+def get_age_group_id(mortality: bool = False) -> pd.DataFrame:
     """Get the age group ids associated with a particular gbd round and team."""
     from db_queries.get_demographics import get_demographics
     if mortality:
@@ -200,7 +200,7 @@ def get_age_bins() -> pd.DataFrame:
                    age_group_years_end,
                    age_group_name
             FROM age_group
-            WHERE age_group_id IN ({','.join([str(a) for a in get_age_group_ids()])})
+            WHERE age_group_id IN ({','.join([str(a) for a in get_age_group_id()])})
             """, conn_def='shared')
 
 
@@ -237,15 +237,15 @@ def get_subregions(location_ids: Iterable[int]) -> List[int]:
 @memory.cache
 def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular dismod model, location, and gbd round."""
-    from transmogrifier.draw_ops import get_draws
+    from get_draws.api import get_draws
     publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
     model_versions = get_dismod_model_versions(me_ids, publication_ids)
-    return pd.concat([get_draws(gbd_id_field='modelable_entity_id',
+    return pd.concat([get_draws(gbd_id_type='modelable_entity_id',
                                 gbd_id=me_id,
-                                source="dismod",
-                                location_ids=location_ids,
-                                sex_ids=MALE + FEMALE + COMBINED,
-                                age_group_ids=get_age_group_ids(),
+                                source="epi",
+                                location_id=location_ids,
+                                sex_id=MALE + FEMALE + COMBINED,
+                                age_group_id=get_age_group_id(),
                                 version_id=version,
                                 gbd_round_id=GBD_ROUND_ID) for me_id, version in model_versions.items()])
 
@@ -253,24 +253,24 @@ def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int
 @memory.cache
 def get_codcorrect_draws(cause_ids: List[cid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level deaths for a particular cause, location, and gbd round."""
-    from transmogrifier.draw_ops import get_draws
+    from get_draws.api import get_draws
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
     # publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
     # version_id = get_gbd_tool_version(publication_ids, source='codcorrect')
-    return get_draws(gbd_id_field=['cause_id']*len(cause_ids),
+    return get_draws(gbd_id_type=['cause_id']*len(cause_ids),
                      gbd_id=cause_ids,
                      source="codcorrect",
-                     location_ids=location_ids,
-                     sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(),
+                     location_id=location_ids,
+                     sex_id=MALE + FEMALE + COMBINED,
+                     age_group_id=get_age_group_id(),
                      gbd_round_id=GBD_ROUND_ID)
 
 
 @memory.cache
 def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular cause, location, and gbd round."""
-    from transmogrifier.draw_ops import get_draws
+    from get_draws.api import get_draws
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
     # publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
@@ -281,13 +281,14 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
     # but get_draws doesn't mind and this will automatically update once the DB tables are in place - J.C 11/20
     model_version = get_gbd_tool_version(publication_ids, 'como')
 
-    return get_draws(gbd_id_field=entity_types,
+    return get_draws(gbd_id_type=entity_types,
                      gbd_id=entity_ids,
                      source="como",
-                     location_ids=location_ids,
-                     sex_ids=MALE + FEMALE + COMBINED,
-                     age_group_ids=get_age_group_ids(),
+                     location_id=location_ids,
+                     sex_id=MALE + FEMALE + COMBINED,
+                     age_group_id=get_age_group_id(),
                      version_id=model_version,
+                     year_id=get_estimation_years(GBD_ROUND_ID),
                      gbd_round_id=GBD_ROUND_ID)
 
 
@@ -295,7 +296,7 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
 @memory.cache
 def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level relative risks for a particular risk, location, and gbd round."""
-    from transmogrifier.draw_ops import get_draws
+    from get_draws.api import get_draws
     results = []
     for risk_id in risk_ids:
         # FIXME: We should not need this loop but the current version of get_draws does not return
@@ -303,13 +304,12 @@ def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> 
         # risks without doing additional complicated lookups to associate the meid (which it does
         # return) with the risk. So instead we loop and wait for central comp to fix the issue.
         # Help desk ticket: HELP-4746
-        data = get_draws(gbd_id_field='rei_id',
+        data = get_draws(gbd_id_type='rei_id',
                          gbd_id=risk_id,
-                         source='risk',
-                         location_ids=location_ids,
-                         sex_ids=MALE + FEMALE + COMBINED,
-                         age_group_ids=get_age_group_ids(),
-                         draw_type='rr',
+                         source='rr',
+                         location_id=location_ids,
+                         sex_id=MALE + FEMALE + COMBINED,
+                         age_group_id=get_age_group_id(),
                          gbd_round_id=GBD_ROUND_ID)
         data['risk_id'] = risk_id
         results.append(data)
@@ -319,7 +319,7 @@ def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> 
 @memory.cache
 def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level exposure means for a particular risk, location, and gbd round."""
-    from transmogrifier.draw_ops import get_draws
+    from get_draws.api import get_draws
     results = []
     for risk_id in risk_ids:
         # FIXME: We should not need this loop but the current version of get_draws does not return
@@ -327,14 +327,13 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.Da
         # risks without doing additional complicated lookups to associate the meid (which it does
         # return) with the risk. So instead we loop and wait for central comp to fix the issue.
         # Help desk ticket: HELP-4746
-        data = get_draws(gbd_id_field='rei_id',
-                         gbd_id=risk_id,
-                         source='risk',
-                         location_ids=location_ids,
-                         sex_ids=MALE + FEMALE + COMBINED,
-                         age_group_ids=get_age_group_ids(),
-                         draw_type='exposure',
-                         gbd_round_id=GBD_ROUND_ID)
+        data = get_draws(gbd_id_type='rei_id',
+                gbd_id=risk_id,
+                source='exposure',
+                location_id=location_ids,
+                sex_id=MALE + FEMALE + COMBINED,
+                age_group_id=get_age_group_id(),
+                gbd_round_id=GBD_ROUND_ID)
         data['risk_id'] = risk_id
         results.append(data)
     return pd.concat(results)
@@ -343,7 +342,7 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.Da
 @memory.cache
 def get_pafs(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level pafs for all risks associated with a particular cause, location, and gbd round."""
-    from transmogrifier.draw_ops import get_draws
+    from get_draws.api import get_draws
 
     # I'm cargo culting here. When the simulation is hosted by a dask worker,
     # we can't spawn sub-processes in the way that get_draws wants to
@@ -354,14 +353,14 @@ def get_pafs(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFra
     worker_count = 0 if current_process().daemon else 6  # One worker per 5-year burdenator file (1990 - 2015)
     results = []
     for risk_id in risk_ids:
-        data = get_draws(gbd_id_field='rei_id',
-                         gbd_id=risk_id,
-                         source='burdenator',
-                         location_ids=location_ids,
-                         sex_ids=MALE + FEMALE + COMBINED,
-                         age_group_ids=get_age_group_ids(),
-                         num_workers=worker_count,
-                         gbd_round_id=GBD_ROUND_ID)
+        data = get_draws(gbd_id_type='rei_id',
+                gbd_id=risk_id,
+                source='burdenator',
+                location_id=location_ids,
+                sex_id=MALE + FEMALE,
+                age_group_id=get_age_group_id(),
+                num_workers=worker_count,
+                gbd_round_id=GBD_ROUND_ID)
 
         data = data.query('metric_id == 2')
         del data['metric_id']
@@ -382,11 +381,11 @@ def get_covariate_estimates(covariate_ids: Iterable[int], location_ids: Iterable
     from db_queries import get_covariate_estimates
     # FIXME: Make sure we don't need a version id here.
     covariate_estimates = pd.concat([get_covariate_estimates(covariate_id=covariate_id,
-                                                             location_id=location_ids,
-                                                             sex_id=MALE + FEMALE + COMBINED,
-                                                             age_group_id=-1,
-                                                             gbd_round_id=GBD_ROUND_ID)
-                                     for covariate_id in covariate_ids])
+        location_id=location_ids,
+        sex_id=MALE + FEMALE + COMBINED,
+        age_group_id=-1,
+        gbd_round_id=GBD_ROUND_ID)
+        for covariate_id in covariate_ids])
     return covariate_estimates
 
 
@@ -395,9 +394,9 @@ def get_populations(location_id: int) -> pd.DataFrame:
     """Gets all population levels for a particular location and gbd round."""
     from db_queries import get_population
 
-    return get_population(age_group_id=get_age_group_ids(),
-                          location_id=location_id,
-                          year_id=[-1],
+    return get_population(age_group_id=get_age_group_id(),
+            location_id=location_id,
+            year_id=[-1],
                           sex_id=MALE + FEMALE + COMBINED,
                           gbd_round_id=GBD_ROUND_ID)
 
