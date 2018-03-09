@@ -27,31 +27,6 @@ class EntityError(DataArtifactError):
     pass
 
 
-def split_entity_path(path: str) -> Tuple[str, Optional[str]]:
-    """ Split a entity path name of the form entity_type[.entity_name] into it's components.
-
-    Parameters
-    ----------
-    path :
-        Either a string containing the entity type or a period-delimited
-        string containing the entity path and entity name.
-
-    Returns
-    -------
-        The entity type and, if present, the entity name.
-    """
-    entity_path_components = path.split(".")
-    if len(entity_path_components) == 2:
-        entity_type, entity_name = entity_path_components
-    elif len(entity_path_components) == 1:
-        entity_type = entity_path_components[0]
-        entity_name = None
-    else:
-        raise EntityError(f"Unparsable entity_path: {path}")
-
-    return entity_type, entity_name
-
-
 class _EntityConfig(NamedTuple):
     """A representation of an entity and the context in which to load it's data."""
     type: str
@@ -79,7 +54,8 @@ def _entities_by_type(entities: Iterable[str]) -> Mapping[str, set]:
     """Split a list of entity paths and group the entity names by entity type."""
     entity_by_type = defaultdict(set)
     for entity_path in entities:
-        entity_type, entity_name = split_entity_path(entity_path)
+        entity_type, *tail = entity_path.split('.')
+        entity_name = tail[0] if tail else None
         entity_by_type[entity_type].add(entity_name)
     return entity_by_type
 
@@ -164,7 +140,7 @@ class ArtifactBuilder:
                 else:
                     _worker(entity_config, path, loaders[entity_type], lock)
         pool.close()
-        pool.join()
+        [j.get() for j in jobs]
 
 
 def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: multiprocessing.Lock) -> None:
@@ -185,16 +161,7 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: mul
     """
     _log.info(f"Loading data for {entity_config.type}.{entity_config.name}")
 
-    def writer(measure: str, data: pd.DataFrame):
-        """Multi-process safe data writer.
-
-        Parameters
-        ----------
-        measure :
-            The name of the measure to write.
-        data :
-            The data to write to the file.
-        """
+    for measure, data in loader(entity_config):
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
 
@@ -203,7 +170,7 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: mul
             _dump(data, entity_config.type, entity_config.name, measure, path)
         finally:
             lock.release()
-    loader(entity_config, writer)
+
 
 
 def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
@@ -217,28 +184,28 @@ def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], meas
         store.put(key, data, format="table")
 
 
-def _load_cause(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_cause(entity_config: _EntityConfig) -> None:
     measures = ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]
     result = core.get_draws([causes[entity_config.name]], measures, entity_config.locations)
     result = _normalize(result)
     for key, group in result.groupby("measure"):
-        writer(key, group)
+        yield key,  group
     del result
 
     try:
         measures = ["remission"]
         result = core.get_draws([causes[entity_config.name]], measures, entity_config.locations)
         result["cause_id"] = causes[entity_config.name].gbd_id
-        writer("remission", result)
+        yield "remission",  result
     except core.InvalidQueryError:
         pass
 
 
-def _load_risk_factor(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_risk_factor(entity_config: _EntityConfig) -> None:
     if entity_config.name == "correlations":
         # TODO: weird special case but this groups it with the other risk data which  I think makes sense
         correlations = core.get_risk_correlation_matrix(entity_config.locations)
-        writer("correlations", correlations)
+        yield "correlations",  correlations
         return
 
     risk = risk_factors[entity_config.name]
@@ -253,7 +220,7 @@ def _load_risk_factor(entity_config: _EntityConfig, writer: Callable) -> None:
         dims = ["year", "sex", "measure", "age", "age_group_start",
                 "age_group_end", "location_id", "draw", "cause_id", "parameter"]
         normalized.append(group.set_index(dims))
-    writer("relative_risk", pd.concat(normalized))
+    yield "relative_risk",  pd.concat(normalized)
     del normalized
 
     mfs = core.get_draws([risk], ["mediation_factor"], entity_config.locations)
@@ -263,7 +230,7 @@ def _load_risk_factor(entity_config: _EntityConfig, writer: Callable) -> None:
         draw_columns = [c for c in mfs.columns if "draw_" in c]
         mfs = pd.melt(mfs, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
         mfs["draw"] = mfs.draw.str.partition("_")[2].astype(int)
-        writer("mediation_factor", mfs)
+        yield "mediation_factor",  mfs
         del mfs
 
     pafs = core.get_draws([risk], ["population_attributable_fraction"], entity_config.locations)
@@ -274,7 +241,7 @@ def _load_risk_factor(entity_config: _EntityConfig, writer: Callable) -> None:
         group["cause_id"] = key
         dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location_id", "draw", "cause_id"]
         normalized.append(group.set_index(dims))
-    writer("population_attributable_fraction", pd.concat(normalized))
+    yield "population_attributable_fraction",  pd.concat(normalized)
     del normalized
 
     exposures = core.get_draws([risk], ["exposure"], entity_config.locations)
@@ -285,23 +252,23 @@ def _load_risk_factor(entity_config: _EntityConfig, writer: Callable) -> None:
         group["parameter"] = key
         dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location_id", "draw", "parameter"]
         normalized.append(group.set_index(dims))
-    writer("exposure", pd.concat(normalized))
+    yield "exposure",  pd.concat(normalized)
     del normalized
 
     if risk.exposure_parameters is not None:
         exposure_stds = core.get_draws([risk], ["exposure_standard_deviation"], entity_config.locations)
         exposure_stds = _normalize(exposure_stds)
-        writer("exposure_standard_deviation", exposure_stds)
+        yield "exposure_standard_deviation",  exposure_stds
 
 
-def _load_sequela(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_sequela(entity_config: _EntityConfig) -> None:
     sequela = sequelae[entity_config.name]
     measures = ["prevalence", "incidence"]
     result = core.get_draws([sequela], measures, entity_config.locations).drop("sequela_id", axis=1)
     result = _normalize(result)
     result["sequela_id"] = sequela.gbd_id
     for key, group in result.groupby("measure"):
-        writer(key, group)
+        yield key,  group
     del result
 
     weights = core.get_draws([sequela], ["disability_weight"], entity_config.locations)
@@ -309,58 +276,58 @@ def _load_sequela(entity_config: _EntityConfig, writer: Callable) -> None:
     draw_columns = [c for c in weights.columns if "draw_" in c]
     weights = pd.melt(weights, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
     weights["draw"] = weights.draw.str.partition("_")[2].astype(int)
-    writer("disability_weight", weights)
+    yield "disability_weight",  weights
 
 
-def _load_healthcare_entity(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_healthcare_entity(entity_config: _EntityConfig) -> None:
     healthcare_entity = healthcare_entities[entity_config.name]
 
     cost = core.get_draws([healthcare_entity], ["cost"], entity_config.locations)
     cost = _normalize(cost)
-    writer("cost", cost)
+    yield "cost",  cost
 
     annual_visits = core.get_draws([healthcare_entity], ["annual_visits"], entity_config.locations)
     annual_visits = _normalize(annual_visits)
-    writer("annual_visits", annual_visits)
+    yield "annual_visits",  annual_visits
 
 
-def _load_treatment_technology(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_treatment_technology(entity_config: _EntityConfig) -> None:
     treatment_technology = treatment_technologies[entity_config.name]
 
     if treatment_technology.protection:
         try:
             protection = core.get_draws([treatment_technology], ["protection"], entity_config.locations)
             protection = _normalize(protection)
-            writer("protection", protection)
+            yield "protection",  protection
         except core.DataMissingError:
             pass
 
     if treatment_technology.relative_risk:
         relative_risk = core.get_draws([treatment_technology], ["relative_risk"], entity_config.locations)
         relative_risk = _normalize(relative_risk)
-        writer("relative_risk", relative_risk)
+        yield "relative_risk",  relative_risk
 
     if treatment_technology.exposure:
         try:
             exposure = core.get_draws([treatment_technology], ["exposure"], entity_config.locations)
             exposure = _normalize(exposure)
-            writer("exposure", exposure)
+            yield "exposure",  exposure
         except core.DataMissingError:
             pass
 
     if treatment_technology.cost:
         cost = core.get_draws([treatment_technology], ["cost"], entity_config.locations)
         cost = _normalize(cost)
-        writer("cost", cost)
+        yield "cost",  cost
 
 
-def _load_coverage_gap(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_coverage_gap(entity_config: _EntityConfig) -> None:
     entity = coverage_gaps[entity_config.name]
 
     try:
         exposure = core.get_draws([entity], ["exposure"], entity_config.locations)
         exposure = _normalize(exposure)
-        writer("exposure", exposure)
+        yield "exposure",  exposure
     except core.InvalidQueryError:
         pass
 
@@ -369,39 +336,39 @@ def _load_coverage_gap(entity_config: _EntityConfig, writer: Callable) -> None:
         # TODO: This should probably be an exception. It looks like James was in the middle of doing better
         # error handling in ceam_inputs.core but hasn't finished yet
         mediation_factor = _normalize(mediation_factor)
-        writer("mediation_factor", mediation_factor)
+        yield "mediation_factor",  mediation_factor
 
     relative_risk = core.get_draws([entity], ["relative_risk"], entity_config.locations)
     relative_risk = _normalize(relative_risk)
-    writer("relative_risk", relative_risk)
+    yield "relative_risk",  relative_risk
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
     paf = _normalize(paf)
-    writer("population_attributable_fraction", paf)
+    yield "population_attributable_fraction",  paf
 
 
-def _load_etiology(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_etiology(entity_config: _EntityConfig) -> None:
     entity = etiologies[entity_config.name]
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
     paf = _normalize(paf)
-    writer("population_attributable_fraction", paf)
+    yield "population_attributable_fraction",  paf
 
 
-def _load_population(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_population(entity_config: _EntityConfig) -> None:
     pop = core.get_populations(entity_config.locations)
     pop = normalize_for_simulation(pop)
     pop = get_age_group_midpoint_from_age_group_id(pop)
-    writer("structure", pop)
+    yield "structure",  pop
 
     bins = core.get_age_bins()[["age_group_years_start", "age_group_years_end", "age_group_name"]]
     bins = bins.rename(columns={"age_group_years_start": "age_group_start", "age_group_years_end": "age_group_end"})
-    writer("age_bins", bins)
+    yield "age_bins",  bins
 
-    writer("theoretical_minimum_risk_life_expectancy", core.get_theoretical_minimum_risk_life_expectancy())
+    yield "theoretical_minimum_risk_life_expectancy",  core.get_theoretical_minimum_risk_life_expectancy()
 
 
-def _load_covariate(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_covariate(entity_config: _EntityConfig) -> None:
     entity = covariates[entity_config.name]
     estimate = get_covariate_estimates([entity.gbd_id], entity_config.locations)
 
@@ -414,13 +381,13 @@ def _load_covariate(entity_config: _EntityConfig, writer: Callable) -> None:
         columns = ["location_id", "mean_value", "lower_value", "upper_value", "sex_id", "year_id"]
         estimate = estimate[columns]
         estimate = normalize_for_simulation(estimate)
-    writer("estimate", estimate)
+    yield "estimate",  estimate
 
 
-def _load_subregions(entity_config: _EntityConfig, writer: Callable) -> None:
+def _load_subregions(entity_config: _EntityConfig) -> None:
     df = pd.DataFrame(core.get_subregions(entity_config.locations))
     df = df.melt(var_name="location", value_name="subregion_id")
-    writer("sub_region_ids", df)
+    yield "sub_region_ids",  df
 
 
 LOADERS = {

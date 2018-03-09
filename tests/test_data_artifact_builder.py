@@ -1,17 +1,10 @@
 import pytest
 from unittest import mock
 
-from ceam_inputs.data_artifact import ArtifactBuilder, split_entity_path, EntityError, _entities_by_type
-
-def test_split_entity_path():
-    assert split_entity_path("test.test") == ("test", "test")
-    assert split_entity_path("type_only") == ("type_only", None)
-    with pytest.raises(EntityError):
-        split_entity_path("thing.thing.thing")
-
+from ceam_inputs.data_artifact import ArtifactBuilder, EntityError, _entities_by_type
 
 def test_entities_by_type():
-    entities = ["test.test", "other.test", "other.other_test", "thing"]
+    entities = ["test.test", "other.test.measure", "other.other_test.measure", "thing"]
     by_type = _entities_by_type(entities)
     assert set(by_type.keys()) == {"test", "other", "thing"}
     assert by_type["test"] == {"test"}
@@ -23,15 +16,15 @@ def test_entity_accumulation():
     builder = ArtifactBuilder()
 
     assert not builder.entities
-    builder.data_container("test.test")
+    builder.data_container("test.test.measure")
     assert len(builder.entities) == 1
-    assert builder.entities == {"test.test"}
+    assert builder.entities == {"test.test.measure"}
 
-    builder.data_container("test.test2")
-    assert builder.entities == {"test.test", "test.test2"}
+    builder.data_container("test.test2.other_measure")
+    assert builder.entities == {"test.test.measure", "test.test2.other_measure"}
 
     builder.data_container("type_only")
-    assert builder.entities == {"test.test", "test.test2", "type_only"}
+    assert builder.entities == {"test.test.measure", "test.test2.other_measure", "type_only"}
 
 
 def test_request_and_dump(mocker):
@@ -42,15 +35,19 @@ def test_request_and_dump(mocker):
     builder.data_container("other_test")
 
     loaders = {"test": mock.Mock(), "other_test": mock.Mock()}
+    loaders["test"].return_value = [('a', None), ('b', None)]
+    loaders["other_test"].return_value = [('a', None)]
 
     builder.process("test.hdf", [1, 2], parallelism=1, loaders=loaders)
 
     assert loaders["test"].call_count == 2
     assert loaders["other_test"].call_count == 1
 
-    # One call to dump because the mock loaders don't write anything out but the ArtifactBuilder
-    # itself writes out a dimensions measure
-    assert dump_mock.call_count == 1
+    # NOTE Base just on the number of measures returned by the mock loaders and
+    # the number of entities loaded you would expect this to be 5 but there is
+    # one additional call to write out the full dimensions of the space the
+    # artifact covers
+    assert dump_mock.call_count == 6
 
 @pytest.mark.skip(reason="Slow, really just example code")
 def test_happy_path():
@@ -73,4 +70,4 @@ def test_happy_path():
     for t in ["age_specific_fertility_rate", "live_births_by_sex", "dtp3_coverage_proportion"]:
         builder.data_container(f"covariate.{t}")
     builder.data_container(f"subregions")
-    builder.save("/tmp/test_artifact.hdf", [180], parallelism=4)
+    builder.process("/tmp/test_artifact.hdf", [180], parallelism=1)
