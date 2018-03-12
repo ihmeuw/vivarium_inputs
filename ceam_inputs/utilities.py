@@ -130,8 +130,8 @@ def select_draw_data(data, draw, column_name, src_column=None):
 
         # if 'measure' is in columns, then keep it, else do
         # not keep it (need measure for the relative risk estimations)
-        if 'measure' in data.columns:
-            keep_columns = ['year_id', 'age', 'sex_id', 'measure'] + list(column_map.keys())
+        if 'parameter' in data.columns:
+            keep_columns = ['year_id', 'age', 'sex_id', 'parameter'] + list(column_map.keys())
         else:
             keep_columns = ['year_id', 'age', 'sex_id'] + list(column_map.keys())
 
