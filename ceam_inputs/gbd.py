@@ -10,6 +10,7 @@ from ceam_inputs.util import get_cache_directory, get_input_config
 from ceam_inputs.gbd_mapping import cid, sid, rid
 from ceam_inputs.auxiliary_files import auxiliary_file_path
 
+
 memory = Memory(cachedir=get_cache_directory(get_input_config()), verbose=1)
 
 # Define GBD sex ids for usage with central comp tools.
@@ -37,6 +38,8 @@ class DataNotFoundError(GbdError):
 def get_publication_ids_for_round(gbd_round_id: int) -> Iterable[int]:
     """Gets the Lancet publication ids associated with a particular gbd round."""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
+
     round_year = {3: 2015, 4: 2016}[gbd_round_id]
 
     return ezfuncs.query(f'select publication_id from shared.publication where gbd_round = {round_year}',
@@ -46,6 +49,8 @@ def get_publication_ids_for_round(gbd_round_id: int) -> Iterable[int]:
 def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[int, None]:
     """Grabs the version id for codcorrect, burdenator, and como draws."""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
+
     metadata_type_name = {
             'codcorrect': 'CoDCorrect Version',
             'burdenator': 'Burdenator Version',
@@ -71,6 +76,7 @@ def get_dismod_model_versions(me_ids: Iterable[int],
                               publication_ids: Union[Iterable[int], None]) -> Mapping[int, Union[int, str]]:
     """Grabs the model version ids for dismod draws."""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
 
     mapping = ezfuncs.query(f"""
         SELECT modelable_entity_id, 
@@ -92,6 +98,8 @@ def get_dismod_model_versions(me_ids: Iterable[int],
 def get_sequela_set_version_id(gbd_round_id: int) -> int:
     """Grabs the sequela set version associated with a particular gbd round."""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
+
     q = """
         SELECT gbd_round_id,
                sequela_set_version_id
@@ -103,6 +111,8 @@ def get_sequela_set_version_id(gbd_round_id: int) -> int:
 def get_cause_risk_set_version_id(gbd_round_id: int) -> int:
     """Grabs the version id associated with a cause risk mapping for a particular gbd round."""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
+
     q = f"""
          SELECT cause_risk_set_version_id
          FROM shared.cause_risk_set_version_active
@@ -119,6 +129,7 @@ def get_cause_risk_set_version_id(gbd_round_id: int) -> int:
 def get_sequela_id_mapping(model_version: int) -> pd.DataFrame:
     """Grabs a mapping between sequelae ids and their associated names, me_ids, cause_ids, and healthstate_ids."""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
 
     q = f"""
         SELECT sequela_id,
@@ -135,6 +146,8 @@ def get_sequela_id_mapping(model_version: int) -> pd.DataFrame:
 def get_cause_etiology_mapping(gbd_round_id: int) -> pd.DataFrame:
     """Get a mapping between the diarrhea and lri cause ids and the rei_ids associated with their etiologies."""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
+
     # FIXME: This table has not been updated with the round 4 mapping, but Joe Wagner assures
     # me that the mapping did not change from round 3.  He's going to update the table, then we
     # should remove this.
@@ -155,6 +168,7 @@ def get_cause_etiology_mapping(gbd_round_id: int) -> pd.DataFrame:
 def get_cause_risk_mapping(cause_risk_set_version_id: int) -> pd.DataFrame:
     """Get a mapping between risk ids and cause ids for a particular gbd round."""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
 
     q = f"""
          SELECT cause_id,
@@ -169,6 +183,7 @@ def get_cause_risk_mapping(cause_risk_set_version_id: int) -> pd.DataFrame:
 def get_cause_me_id_mapping() -> pd.DataFrame:
     """Get a mapping between causes and epi/dismod models"""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
 
     q = """SELECT modelable_entity_id,
                   cause_id, 
@@ -182,6 +197,8 @@ def get_cause_me_id_mapping() -> pd.DataFrame:
 def get_age_group_id(mortality: bool = False) -> pd.DataFrame:
     """Get the age group ids associated with a particular gbd round and team."""
     from db_queries.get_demographics import get_demographics
+    warnings.filterwarnings("default", module="db_queries")
+
     if mortality:
         team = 'mort'
     else:
@@ -194,6 +211,8 @@ def get_age_group_id(mortality: bool = False) -> pd.DataFrame:
 def get_age_bins() -> pd.DataFrame:
     """Get the age group bin edges, ids, and names associated with a particular gbd round."""
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
+
     return ezfuncs.query(f"""
             SELECT age_group_id,
                    age_group_years_start,
@@ -213,6 +232,7 @@ def get_healthstate_mapping() -> pd.DataFrame:
     This mapping is stable between gbd rounds.
     """
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
 
     q = """
         SELECT healthstate_id,
@@ -226,6 +246,8 @@ def get_healthstate_mapping() -> pd.DataFrame:
 def get_subregions(location_ids: Iterable[int]) -> List[int]:
     """Get the subregion location ids associated with a particular location id."""
     from hierarchies import dbtrees
+    warnings.filterwarnings("default", module="hierarchies")
+
     return {location_id : [c.id for c in dbtrees.loctree(location_set_id=2).get_node_by_id(location_id).children] for location_id in location_ids}
 
 
@@ -238,6 +260,8 @@ def get_subregions(location_ids: Iterable[int]) -> List[int]:
 def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular dismod model, location, and gbd round."""
     from get_draws.api import get_draws
+    warnings.filterwarnings("default", module="get_draws")
+
     publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
     model_versions = get_dismod_model_versions(me_ids, publication_ids)
     return pd.concat([get_draws(gbd_id_type='modelable_entity_id',
@@ -254,6 +278,8 @@ def get_modelable_entity_draws(me_ids: Iterable[int], location_ids: Iterable[int
 def get_codcorrect_draws(cause_ids: List[cid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level deaths for a particular cause, location, and gbd round."""
     from get_draws.api import get_draws
+    warnings.filterwarnings("default", module="get_draws")
+
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
     # publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
@@ -271,6 +297,8 @@ def get_codcorrect_draws(cause_ids: List[cid], location_ids: Iterable[int]) -> p
 def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level epi parameters for a particular cause, location, and gbd round."""
     from get_draws.api import get_draws
+    warnings.filterwarnings("default", module="get_draws")
+
     # FIXME: Should submit a ticket to IT to determine if we need to specify an
     # output_version_id or a model_version_id to ensure we're getting the correct results
     # publication_ids = get_publication_ids_for_round(GBD_ROUND_ID)
@@ -297,6 +325,8 @@ def get_como_draws(entity_ids: List[Union[cid, sid]], location_ids: Iterable[int
 def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level relative risks for a particular risk, location, and gbd round."""
     from get_draws.api import get_draws
+    warnings.filterwarnings("default", module="get_draws")
+
     results = []
     for risk_id in risk_ids:
         # FIXME: We should not need this loop but the current version of get_draws does not return
@@ -320,6 +350,8 @@ def get_relative_risks(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> 
 def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level exposure means for a particular risk, location, and gbd round."""
     from get_draws.api import get_draws
+    warnings.filterwarnings("default", module="get_draws")
+
     results = []
     for risk_id in risk_ids:
         # FIXME: We should not need this loop but the current version of get_draws does not return
@@ -343,6 +375,7 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.Da
 def get_pafs(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level pafs for all risks associated with a particular cause, location, and gbd round."""
     from get_draws.api import get_draws
+    warnings.filterwarnings("default", module="get_draws")
 
     # I'm cargo culting here. When the simulation is hosted by a dask worker,
     # we can't spawn sub-processes in the way that get_draws wants to
@@ -379,6 +412,8 @@ def get_pafs(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFra
 def get_covariate_estimates(covariate_ids: Iterable[int], location_ids: Iterable[int]) -> pd.DataFrame:
     """Pulls covariate data for a particular covariate and location."""
     from db_queries import get_covariate_estimates
+    warnings.filterwarnings("default", module="db_queries")
+
     # FIXME: Make sure we don't need a version id here.
     covariate_estimates = pd.concat([get_covariate_estimates(covariate_id=covariate_id,
         location_id=location_ids,
@@ -393,6 +428,8 @@ def get_covariate_estimates(covariate_ids: Iterable[int], location_ids: Iterable
 def get_populations(location_id: int) -> pd.DataFrame:
     """Gets all population levels for a particular location and gbd round."""
     from db_queries import get_population
+    warnings.filterwarnings("default", module="db_queries")
+
 
     return get_population(age_group_id=get_age_group_id(),
             location_id=location_id,
@@ -425,6 +462,8 @@ def get_data_from_auxiliary_file(file_name: str, **kwargs: Any) -> pd.DataFrame:
 def get_rei_metadata(rei_set_id: int) -> pd.DataFrame:
     """Gets a whole host of metadata associated with a particular rei set and gbd round"""
     import db_queries
+    warnings.filterwarnings("default", module="db_queries")
+
     return db_queries.get_rei_metadata(rei_set_id=rei_set_id, gbd_round_id=GBD_ROUND_ID)
 
 
@@ -432,6 +471,8 @@ def get_rei_metadata(rei_set_id: int) -> pd.DataFrame:
 def get_cause_metadata(cause_set_id: int) -> pd.DataFrame:
     """Gets a whole host of metadata associated with a particular cause set and gbd round"""
     import db_queries
+    warnings.filterwarnings("default", module="db_queries")
+
     return db_queries.get_cause_metadata(cause_set_id=cause_set_id, gbd_round_id=GBD_ROUND_ID)
 
 
@@ -439,6 +480,8 @@ def get_cause_metadata(cause_set_id: int) -> pd.DataFrame:
 def get_risk(risk_id: int):  # FIXME: I don't know how to properly annotate the return type
     """Gets a risk object containing info about the exposure distribution type and names of exposure categories."""
     from risk_utils.classes import risk
+    warnings.filterwarnings("default", module="risk_utils")
+
     return risk(risk_id=risk_id, gbd_round_id=GBD_ROUND_ID)
 
 
@@ -446,12 +489,16 @@ def get_risk(risk_id: int):  # FIXME: I don't know how to properly annotate the 
 def get_estimation_years(gbd_round_id: int) -> pd.Series:
     """Gets the estimation years for a particular gbd round."""
     from db_queries.get_demographics import get_demographics
+    warnings.filterwarnings("default", module="db_queries")
+
     return get_demographics('epi', gbd_round_id=gbd_round_id)['year_id']
 
 
 @memory.cache
 def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
     from db_tools import ezfuncs
+    warnings.filterwarnings("default", module="db_tools")
+
     query = f'''
     select precise_age as age, mean as life_expectancy
     from upload_theoretical_minimum_risk_life_table_estimate
