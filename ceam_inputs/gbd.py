@@ -39,7 +39,10 @@ def get_publication_ids_for_round(gbd_round_id: int) -> Iterable[int]:
     from db_tools import ezfuncs
     round_year = {3: 2015, 4: 2016}[gbd_round_id]
 
-    return ezfuncs.query(f'select publication_id from shared.publication where gbd_round = {round_year}',
+    return ezfuncs.query(f"""SELECT publication_id FROM
+                             shared.publication
+                             WHERE gbd_round = {round_year}
+                             AND shared.publication.publication_type_id = 1""",
                          conn_def='epi').publication_id.values
 
 
@@ -53,17 +56,22 @@ def get_gbd_tool_version(publication_ids: Iterable[int], source: str) -> Union[i
     }[source]
 
     version_ids = ezfuncs.query(f"""
-        SELECT distinct val
+    SELECT distinct val
         FROM gbd.gbd_process_version_metadata
         JOIN gbd.gbd_process_version_publication USING (gbd_process_version_id)
+        JOIN gbd.gbd_process_version using (gbd_process_version_id)
         JOIN gbd.metadata_type using (metadata_type_id)
         WHERE metadata_type = '{metadata_type_name}'
-              and publication_id in ({','.join([str(pid) for pid in publication_ids])})
-        """, conn_def='gbd')
+        AND publication_id in ({','.join([str(pid) for pid in publication_ids])})
+        AND gbd.gbd_process_version.gbd_process_id = 1
+    """, conn_def='gbd')
+
     if version_ids.empty:
         warnings.warn(f'No version id found for {source} with publications {publication_ids}. '
                       'This likely indicates missing entries in the GBD database.')
         return None
+    else:
+        assert len(version_ids) == 1, "Returned multiple tool version ids for round {GBD_ROUND}. This probably means there is a mistake in the publications mapping in the database."
     return version_ids['val'].astype('int')[0]
 
 
