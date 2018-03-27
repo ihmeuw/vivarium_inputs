@@ -1,260 +1,122 @@
-from typing import Mapping, Iterable
-from scipy import interpolate
+"""Module containing functions that standardize the format of GBD outputs."""
+from typing import Mapping
+
 import pandas as pd
 
+from core_maths.interpolate import interpolate
+
 from ceam_inputs.gbd import get_age_bins
+from ceam_inputs.core import UnhandledDataError
 
 
-def standardize_data_shape(data: pd.DataFrame, fill_na_value: float,
-                           extent_mapping: Mapping[str, Iterable[int]]) -> pd.DataFrame:
-    function_map = {'age_group_id': standardize_data_for_age,
-                    'sex_id': standardize_data_for_sex,
-                    'year_id': standardize_data_for_year, }
-    for key_column in extent_mapping:
-        data = function_map[key_column](data, fill_na_value, extent_mapping[key_column])
-    return data
+def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex,
+                           fill_na_value: Mapping[str, float]=None) -> pd.DataFrame:
+    """Take input data and make it dense over the specified dimensions.
+
+    The behavior of the function depends on which dimension is being considered and the nature of the sparsity:
+
+    Cases:
+    1) dimension missing - nothing needed
+    2) fully dense in the expected range - nothing needed
+    3) some sparsity:
+       a) in the year dimension: interpolate
+       b) in age/sex dimension and dense for a contiguous subset of the expected range and missing elsewhere: fill
+    4) all others - panic
+
+    Parameters
+    ----------
+    data :
+        The data to standardize
+    dimensions :
+        A multi index whose individual index columns must be some subset of {'age', 'sex', 'year'}
+        which represent dimensions of the data; and whose levels provide the expected extent of
+        the data in those dimensions.
+    fill_na_value :
+        A mapping between
+
+    Returns
+    -------
+        A dataframe with either full extent or no extent in all of the given dimensions.
+
+    Raises
+    ------
+    UnhandledDataError :
+        If the data is somehow malformed in a manner we don't deal with.
+    """
+    dimensions = dimensions.to_frame().reset_index(drop=True)
+
+    dimensions = pd.concat([dimensions.assign(measure=measure) for measure in data.measure.unique()], ignore_index=True)
+    draw_columns = [c for c in data.columns if 'draw_' in c]
+
+    assert set(dimensions.columns) <= {'age_group_id', 'sex', 'year', 'measure', 'location_id'}
+    assert set(data.columns) <= set(dimensions.columns.tolist() + draw_columns)
+    assert set(data.measure.unique()) <= fill_na_value.keys()
+
+    # Case 1: Remove any dimensions not present in the data.
+    applicable_dimensions = dimensions[[c for c in dimensions.columns if c in data]].copy()
+    # Case 4: Check preconditions and panic if it's an unhandled case.
+    verify_well_formed(data, applicable_dimensions)
+
+    # Case 3a: Interpolate over year.
+    if 'year' in applicable_dimensions.columns:
+        data = interpolate_years(data, applicable_dimensions)
+
+    # Case 3b: Fill in missing data
+    dimension_columns, extents = zip(*applicable_dimensions.items())
+    expected_index = pd.MultiIndex.from_arrays(extents, names=dimension_columns)
+    data = data.set_index(list(dimension_columns))
+
+    missing = expected_index.difference(data.index)
+    if not missing.empty:
+        to_add = pd.DataFrame(columns=draw_columns, index=missing)
+        to_add = to_add.reset_index().set_index(list(set(dimension_columns) - {'measure'})).sort_index()
+        data = data.reset_index().set_index(list(set(dimension_columns) - {'measure'})).sort_index()
+        for measure, fill in fill_na_value.items():
+            to_add.loc[to_add['measure'] == measure, draw_columns] = fill
+        data = data.append(to_add)
+
+    return data.reset_index()
 
 
-def standardize_data_for_age(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
-    # Potential inputs:
-    # Data with all age groups and all data.
-    # Data with some age groups that needs to be filled with an appropriate null value.
-    # (Unlikely) Data with scattered age groups that needs interpolation. Don't handle this case
-    # Data with a single age group representing all ages (probably -1 in the age group id column) that needs the age
-    # group id column removed.
-    #
-    return data
+def verify_well_formed(data: pd.DataFrame, dimensions: pd.DataFrame):
+    for dimension in dimensions.columns:
+        if dimension == 'sex':
+            continue
+        existing = data[dimension].sort_values().drop_duplicates()
+        expected = dimensions[dimension].sort_values().drop_duplicates()
 
-### START OF ALEC'S CODE ###
+        contiguous_overlap = ((expected >= existing.min()) & (expected <= existing.max()))
+        if dimension == 'age_group_id' and not set(existing) == set(expected[contiguous_overlap]):
+            raise UnhandledDataError(f'The data is malformed in the {dimension} dimension.')
 
-def makeAppendableData(year_id, sex_id, age_group_id, location_id, fill_na_value):
-    index = list(itertools.product(year_id, sex_id, age_group_id,
-                                   location_id))  # Makes a list of tuples with all the possible combinations for the demographic columns
-    df = pd.DataFrame(
-        {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
-         'location_id': list(zip(*index))[3]})  # Makes a dataframe with demographic columns
-
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]  # Create a list of strings that tells us column names
-    df_dummy = pd.DataFrame(data=fill_na_value, index=df.index,
-                            columns=draw_columns)  # Create df filled entirely with fill_na_value
-    df1 = pd.concat([df, df_dummy], axis=1)  # Concatenate the two data frames (by column)
-
-    return df1
+        if dimension == 'year' and (existing.min() > expected.min() or existing.max() < expected.max()):
+            raise UnhandledDataError("Cannot interpolate years without data on both edges")
 
 
-def standardize_data_for_age(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
-    # Need to extract non-age ids from input data (for later functions)
-    this_data_year_ids = set(data['year_id'])
-    this_data_sex_ids = set(data['sex_id'])
-    this_data_location_ids = set(data['location_id'])
+def interpolate_years(data: pd.DataFrame, dimensions: pd.DataFrame) -> pd.DataFrame:
+    existing_extent = data['year'].sort_values().drop_duplicates()
+    expected_extent = dimensions['year'].sort_values().drop_duplicates()
 
-    # Create list of unique age group ids from data and check against extent
-    unique_age_group_ids = set(data['age_group_id'])  # Create set of unique age group ids (sets are inherently unique)
-    extent = set(extent)  # Make extent a set for subset operations
-
-    #  IF Data has extra age group ids, need to get rid of them
-    if not unique_age_group_ids.issubset(extent):
-        excess_age_group_ids = unique_age_group_ids.difference(
-            extent)  # Isolate excess age group ids from unique_age_group_ids
-        for x in excess_age_group_ids:  # Go one-by-one
-            unique_age_group_ids.discard(x)
-        data = data[data['age_group_id'].isin(unique_age_group_ids)]
-
-    # IF Data needs to be expanded, fill age group ids
-    if unique_age_group_ids.issubset(extent) & len(extent) > len(unique_age_group_ids):
-        new_age_group_ids = extent.difference(
-            unique_age_group_ids)  # Isolate age groups ids that need to be added to data
-        appendable_data = makeAppendableData(this_data_year_ids, this_data_sex_ids, new_age_group_ids,
-                                             this_data_location_ids, fill_na_value)
-        data = pd.concat([data, appendable_data], axis=0)  # Concatenate the two data frames (by row)
-
-    return data
-
-### END OF ALEC'S CODE ###
-
-### START OF PAOLA'S CODE ###
-
-def makeMissingData(data_frame, extent, fill_na_value):
-    data = data_frame.copy()
-    extent_missing_data = extent  # assume this is an input to the standardize_data_for_age function
-    age_ids_in_data = data['age_group_id'].unique()
-    missing_age_group_ids = extent_missing_data.difference(age_ids_in_data)
-    year_ids = set(data['year_id'])
-    location_ids = set(data['location_id'])
-    sex_ids = set(data['sex_id'])
-    age_group_ids = missing_age_group_ids
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-    value = fill_na_value
-    index = list(itertools.product(year_ids, sex_ids, age_group_ids,
-                                   location_ids))  # makes a list of tuples with all the possible combinations for the demographic columns
-    df = pd.DataFrame(
-        {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
-         'location_id': list(zip(*index))[3]})
-    df_dummy = pd.DataFrame(data=value, index=df.index, columns=draw_columns)
-    df1 = pd.concat([df, df_dummy], axis=1)
-    return df1
-
-
-def check_for_age_group_ids(data_frame, extent, value):
-    df_ids = set(data['age_group_id'])  # generates a set with age_group_ids in the df
-    extent = set(extent)  # turns list into set
-
-    # in this case data has too many age_group_ids
-    if not df_ids.issubset(extent):
-        # make a list of excess elements
-        extra_age_group_ids = df_ids.difference(extent)
-        # remove additional age_group_ids from data.
-        for x in extra_age_group_ids:
-            df_ids.discard(x)
-    if df_ids.issubset(extent):
-        clean_data = data[data['age_group_id'].isin(df_ids)]
-
-    if len(extent) > len(df_ids):
-        missing_data = makeMissingData(clean_data, extent, value)
-        data_with_correct_age_group_ids = pd.concat([missing_data, clean_data], axis=0)
-
-    return data_with_correct_age_group_ids
-
-### END OF PAOLA'S CODE ###
-
-
-### ALEC'S CODE ###
-### Make dummy data again, but this time with specific values that we need to add to dummy data
-def makeAppendableData(year_id, sex_id, age_group_id, location_id, fill_na_value):
-    index = list(itertools.product(year_id, sex_id, age_group_id,
-                                   location_id))  # Makes a list of tuples with all the possible combinations for the
-    #  demographic columns
-    df = pd.DataFrame(
-        {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
-         'location_id': list(zip(*index))[3]})  # Makes a dataframe with demographic columns
-
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]  # Create a list of strings that tells us column names
-    df_dummy = pd.DataFrame(data=fill_na_value, index=df.index,
-                            columns=draw_columns)  # Create df filled entirely with fill_na_value
-    df1 = pd.concat([df, df_dummy], axis=1)  # Concatenate the two data frames (by column)
-
-    return df1
-
-
-def standardize_data_for_sex(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
-    # Potential inputs:
-    # Data with all sex_ids -> return data
-    # Data with only sex_id 1 or sex_id 2 -> Generate other half and sex_id 3, fill_na
-    # Data with only sex_id 1 and sex_id 2 -> Population weighted average for sex_id 3 (Unlikely to occur) (HOLD)
-    # Data with only sex_id 3 -> Drop sex_id column.
-
-    possible_sex_ids = set({1, 2, 3})  # All possible sex ids
-    sex_ids_in_data = set(data['sex_id'])  # The sex ids that are present in the data
-    missing_sex_ids = possible_sex_ids.difference(sex_ids_in_data)  # Missing sex ids
-    if len(missing_sex_ids) == 0:  # Nothing is missing, just pass data
-        data = data
-
-    if len(missing_sex_ids) == 1:  # One sex_id is missing
-        if 3 not in sex_ids_in_data:
-            # Weighted average for sex_id 3 (HOLD)
-            print('on hold')
-
+    out = []
+    for year in expected_extent:
+        if year in existing_extent.values:
+            out.append(data[data['year'] == year])
         else:
-            # Generate [missing_sex_id] and fill na
-            # Just use the lone value that is in missing_sex_ids as input to generator
-            appendable_data = makeAppendableData(set(data['year_id']), missing_sex_ids, set(data['age_group_id']),
-                                                 set(data['location_id']), fill_na_value)
-            data = pd.concat([data, appendable_data], axis=0)
+            index_columns = list(dimensions.columns)
+            value_columns = list(data.columns.difference(index_columns))
 
-    if len(missing_sex_ids) == 2:  # Two sex_ids are missing
-        if 3 in sex_ids_in_data:
-            # Drop sex_id column
-            del data['sex_id']
-        else:
-            # Generate [missing_sex_id_1] and [missing_sex_id_2] and fill na
-            # Just use the two values that are in missing_sex_ids as input to generator
-            appendable_data = makeAppendableData(set(data['year_id']), missing_sex_ids, set(data['age_group_id']),
-                                                 set(data['location_id']), fill_na_value)
-            data = pd.concat([data, appendable_data], axis=0)
+            previous_year = int(existing_extent[existing_extent < year].iloc[-1])
+            next_year = int(existing_extent[existing_extent > year].iloc[0])
+            start = data[data['year'] == previous_year].sort_values(index_columns).reset_index(drop=True)
+            end = data[data['year'] == next_year].sort_values(index_columns).reset_index(drop=True)
 
-    ## Check against extent and get rid of excess
-    # (James said we may not need this but it's already written so leaving it for now)
-    sex_ids_to_cut = set(data['sex_id']).difference(extent)  # Find which sex ids need to be removed
-    sex_ids_to_keep = possible_sex_ids  # Start with keeping all sex ids
-    for i in sex_ids_to_cut:
-        sex_ids_to_keep.discard(i)
-    data = data[data['sex_id'].isin(sex_ids_to_keep)]
 
-    ## Check that sex ids are 1, 2, or 3
-    assert set(data['sex_id']).issubset({1, 2, 3})
+            interpolated = interpolate(start, end, index_columns, 'year', value_columns, previous_year, next_year)
+            interpolated = interpolated[interpolated['year'] == year]
+            out.append(interpolated)
 
-    return data
-### END ALEC'S CODE ###
+    return pd.concat(out, ignore_index=True)
 
-### START OF PAOLA'S CODE (SEX_ID) ###
-def standardize_data_for_sex(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
-    standard_sex_group_ids = [1, 2, 3]
-    sex_ids_in_df = data['sex_id'].unique()
-
-    males = 1
-    females = 2
-    both = 3
-
-    if len(sex_ids_in_df) == 3:
-        data = data.copy()  # return original dataframe
-
-    if len(sex_ids_in_df) == 2:
-        print('FIXME: df only has values for males and females. Missing Both')
-
-    if len(sex_ids_in_df) == 1:
-        # make dataframe with missing values and append it to the original.
-
-        if sex_ids_in_df == both:
-            data = data.drop('sex_id', 1)
-
-        else:
-            missing_sex_ids = set(standard_sex_group_ids).difference(sex_ids_in_df)
-            year_ids = set(data['year_id'])
-            location_ids = set(data['location_id'])
-            age_group_ids = set(data['age_group_id'])
-            draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-            index = list(itertools.product(year_ids, missing_sex_ids, age_group_ids,
-                                           location_ids))  # makes a list of tuples with all the possible combinations for the demographic columns
-            df = pd.DataFrame(
-                {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
-                 'location_id': list(zip(*index))[3]})
-            df_dummy = pd.DataFrame(data=fill_na_value, index=df.index, columns=draw_columns)
-            df1 = pd.concat([df, df_dummy], axis=1)
-            data = pd.concat([data, df1], axis=0)
-
-    # checks the sex_ids of the resulting dataframe
-    if 'sex_id' in data:
-        assert (set(data['sex_id']).issubset(set(standard_sex_group_ids))), "sex_ids!"
-
-    return data  # or data[data['year_id'].isin(extent)]
-### END OF PAOLA'S CODE ###
-
-### START OF PAOLA'S CODE (YEAR_ID) ###
-
-def standardize_data_for_year(data: pd.DataFrame, fill_na_value: float, extent: Iterable[int]) -> pd.DataFrame:
-        standard_years = set(range(1990, 2017))
-        years_in_df = set(data['year_id'])
-
-        if years_in_df.issuperset(standard_years):
-            data = data[data['year_id'].isin(standard_years)]
-
-        else:
-
-            year_ids = standard_years.difference(years_in_df)
-            sex_ids = set(data['sex_id'])
-            age_group_ids = set(data['age_group_id'])
-            location_ids = set(data['location_id'])
-            index = list(itertools.product(year_id, sex_id, age_group_id,
-                                           location_id))  # makes a list of tuples with all the possible combinations for the demographic columns
-            empty_df = pd.DataFrame(
-                {'year_id': list(zip(*index))[0], 'sex_id': list(zip(*index))[1], 'age_group_id': list(zip(*index))[2],
-                 'location_id': list(zip(*index))[3]})  # makes a dataframe with demographic columns
-            df_all_years = pd.concat([data, empty_df], axis=0)
-            data = df_all_years.interpolate(method='linear')
-
-        return data  # or data[data['year_id'].isin(extent)]
-
-### END OF PAOLA'S CODE ###
 
 def select_draw_data(data, draw, column_name, src_column=None):
     if column_name:
@@ -266,8 +128,8 @@ def select_draw_data(data, draw, column_name, src_column=None):
         else:
             column_map = {'draw_{draw}'.format(draw=draw): column_name}
 
-        # if 'parameter' is in columns, then keep it, else do
-        # not keep it (need parameter for the relative risk estimations)
+        # if 'measure' is in columns, then keep it, else do
+        # not keep it (need measure for the relative risk estimations)
         if 'parameter' in data.columns:
             keep_columns = ['year_id', 'age', 'sex_id', 'parameter'] + list(column_map.keys())
         else:
@@ -278,6 +140,7 @@ def select_draw_data(data, draw, column_name, src_column=None):
 
         return normalize_for_simulation(data)
     return data
+
 
 def normalize_for_simulation(df):
     """

@@ -5,7 +5,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from ceam_inputs import gbd, risk_factor_correlation
+from ceam_inputs import gbd, risk_factor_correlation, causes
 from ceam_inputs.gbd_mapping.templates import sid, UNKNOWN, Cause, Sequela, Etiology, Risk, ModelableEntity, scalar
 from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
 from ceam_inputs.gbd_mapping.coverage_gaps import CoverageGap
@@ -165,7 +165,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'incidence': ((Cause, Sequela), 'gbd_id'),
         'exposure': ((Risk, CoverageGap, TreatmentTechnology), 'gbd_id'),
         'exposure_standard_deviation': ((Risk, CoverageGap), 'exposure_parameters.dismod_id'),
-        'relative_risk': ((Risk, CoverageGap, Etiology, TreatmentTechnology), 'gbd_id'),
+        'relative_risk': ((Risk, CoverageGap, TreatmentTechnology), 'gbd_id'),
         'population_attributable_fraction': ((Risk, Etiology, CoverageGap), 'gbd_id'),
         'cause_specific_mortality': ((Cause,), 'gbd_id'),
         'excess_mortality': ((Cause,), 'gbd_id'),
@@ -174,7 +174,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'remission': (Cause, 'dismod_id'),
         'protection': (TreatmentTechnology, 'protection'),
         'mediation_factor': ((Risk, CoverageGap), 'gbd_id'),
-        'cost': (HealthcareEntity, 'cost'),
+        'cost': ((HealthcareEntity, TreatmentTechnology), 'cost'),
     }
 
     if not all([isinstance(e, type(entities[0])) for e in entities]):
@@ -396,10 +396,19 @@ def _get_relative_risk(entities, location_ids):
     return measure_data
 
 
+def _filter_to_most_detailed(data):
+    most_detailed_causes = {c.gbd_id for c in causes if c is not None and c.gbd_id != 294}
+    return data.query('cause_id in @most_detailed_causes')
+
 def _get_population_attributable_fraction(entities, location_ids):
     if isinstance(entities[0], (Risk, Etiology, CoverageGap)):
         measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
         measure_data = gbd.get_pafs(risk_ids=measure_ids, location_ids=location_ids)
+        measure_data = _filter_to_most_detailed(measure_data)
+
+        # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows. Eventually we should fix it for real
+        draws = [c for c in measure_data.columns if 'draw_' in c]
+        measure_data = measure_data.loc[~(measure_data[draws] == 1).any(axis=1)]
 
         # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
         # measure_ids = {name_measure_map[m] for m in ['death', 'DALY', 'YLD', 'YLL']}
@@ -435,8 +444,7 @@ def _get_exposure(entities, location_ids):
         measure_data = gbd.get_exposures(risk_ids=measure_ids, location_ids=location_ids)
 
         if isinstance(entities[0], (Risk, Etiology)):
-            measure_data = _handle_weird_exposure_measures(measure_data)
-
+            measure_data = _handle_weird_exposure_measures(measure_data) 
         if isinstance(entities[0], CoverageGap):
             measure_data = _handle_coverage_gap_data(entities, measure_data, 0)
 
@@ -452,7 +460,11 @@ def _get_exposure(entities, location_ids):
     elif isinstance(entities[0], TreatmentTechnology):  # We have a treatment technology
         data = []
         for entity, location_id in product(entities, location_ids):
-            data.append(gbd.get_data_from_auxiliary_file(entity.exposure, location_id=location_id))
+            try:
+                data.append(gbd.get_data_from_auxiliary_file(entity.exposure, location_id=location_id))
+            except FileNotFoundError:
+                raise DataMissingError(f'Exposure data for {entity.name} is not available for locations '
+                        f'{location_id}')
         return pd.concat(data)
     else:
         raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'exposure'")
