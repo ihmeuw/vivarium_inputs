@@ -98,7 +98,7 @@ def get_dismod_model_versions(me_ids: Iterable[int],
     version_dict = dict(mapping[['modelable_entity_id', 'model_version_id']].values)
     versions = {}
     for me_id in me_ids:
-        versions[me_id] = version_dict[me_id] if me_id in version_dict else 'best'
+        versions[me_id] = version_dict[me_id] if me_id in version_dict else None
 
     return versions
 
