@@ -75,7 +75,7 @@ class ArtifactBuilder:
     def __init__(self):
         self.entities = set()
 
-    def data_container(self, entity_path: str) -> None:
+    def load(self, entity_path: str, **column_filters) -> None:
         """Records a request for entity data for future processing."""
         self.entities.add(entity_path)
         _log.info(f"Adding {entity_path} to list of data sets to load")
@@ -182,9 +182,15 @@ def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], meas
     if entity_name:
         key_components.append(entity_name)
 
+    # FIXME: This is weird but I don't want to think of a cleaner way right now
+    if measure.startswith("../"):
+        measure = measure[3:]
+        key_components.pop()
+
     key = os.path.join(*(key_components + [measure]))
+    data_columns = list({'year', 'location_id', 'draw', 'cause_id'}.intersection(data.columns))
     with pd.HDFStore(path, complevel=9, format="table") as store:
-        store.put(key, data, format="table")
+        store.put(key, data, format="table", data_columns=data_columns)
 
 
 def _load_cause(entity_config: _EntityConfig) -> None:
@@ -192,13 +198,13 @@ def _load_cause(entity_config: _EntityConfig) -> None:
     result = core.get_draws([causes[entity_config.name]], measures, entity_config.locations)
     result = _normalize(result)
     for key, group in result.groupby("measure"):
-        yield key, group
+        yield key, group[["year", "location_id", "sex", "age", "draw", "value"]]
     del result
 
     try:
         measures = ["remission"]
         result = core.get_draws([causes[entity_config.name]], measures, entity_config.locations)
-        result["cause_id"] = causes[entity_config.name].gbd_id
+        result = _normalize(result)[["year", "location_id", "sex", "age", "draw", "value"]]
         yield "remission", result
     except core.InvalidQueryError:
         pass
@@ -223,8 +229,11 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         dims = ["year", "sex", "measure", "age", "age_group_start",
                 "age_group_end", "location_id", "draw", "cause_id", "parameter"]
         normalized.append(group.set_index(dims))
-    yield "relative_risk", pd.concat(normalized)
+    result = pd.concat(normalized).reset_index()
+    result = result[["year", "location_id", "sex", "age", "draw", "value", "cause_id"]]
+    yield "relative_risk", result
     del normalized
+    del result
 
     mfs = core.get_draws([risk], ["mediation_factor"], entity_config.locations)
     if not mfs.empty:
@@ -233,6 +242,7 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         draw_columns = [c for c in mfs.columns if "draw_" in c]
         mfs = pd.melt(mfs, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
         mfs["draw"] = mfs.draw.str.partition("_")[2].astype(int)
+        mfs = mfs[["cause_id", "risk_id", "draw", "value"]]
         yield "mediation_factor", mfs
         del mfs
 
@@ -244,8 +254,11 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         group["cause_id"] = key
         dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location_id", "draw", "cause_id"]
         normalized.append(group.set_index(dims))
-    yield "population_attributable_fraction", pd.concat(normalized)
+    result = pd.concat(normalized).reset_index()
+    result = result[["year", "location_id", "sex", "age", "draw", "value", "cause_id"]]
+    yield "population_attributable_fraction", result
     del normalized
+    del result
 
     exposures = core.get_draws([risk], ["exposure"], entity_config.locations)
     normalized = []
@@ -255,13 +268,17 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         group["parameter"] = key
         dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location_id", "draw", "parameter"]
         normalized.append(group.set_index(dims))
-    yield "exposure", pd.concat(normalized)
+    result = pd.concat(normalized).reset_index()
+    result = result[["year", "location_id", "sex", "age", "draw", "value"]]
+    yield "exposure", result
     del normalized
+    del result
 
     if risk.exposure_parameters is not None:
-        exposure_stds = core.get_draws([risk], ["exposure_standard_deviation"], entity_config.locations)
-        exposure_stds = _normalize(exposure_stds)
-        yield "exposure_standard_deviation", exposure_stds
+        exposure_sds = core.get_draws([risk], ["exposure_standard_deviation"], entity_config.locations)
+        exposure_sds = _normalize(exposure_sds)
+        exposure_sds = exposure_sds[["year", "location_id", "sex", "age", "draw", "value"]]
+        yield "exposure_standard_deviation", exposure_sds
 
 
 def _load_sequela(entity_config: _EntityConfig) -> None:
@@ -271,7 +288,7 @@ def _load_sequela(entity_config: _EntityConfig) -> None:
     result = _normalize(result)
     result["sequela_id"] = sequela.gbd_id
     for key, group in result.groupby("measure"):
-        yield key, group
+        yield key, group[["year", "location_id", "sex", "age", "draw", "value"]]
     del result
 
     weights = core.get_draws([sequela], ["disability_weight"], entity_config.locations)
@@ -279,7 +296,7 @@ def _load_sequela(entity_config: _EntityConfig) -> None:
     draw_columns = [c for c in weights.columns if "draw_" in c]
     weights = pd.melt(weights, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
     weights["draw"] = weights.draw.str.partition("_")[2].astype(int)
-    yield "disability_weight", weights
+    yield "disability_weight", weights[['draw', 'value']]
 
 
 def _load_healthcare_entity(entity_config: _EntityConfig) -> None:
@@ -287,10 +304,12 @@ def _load_healthcare_entity(entity_config: _EntityConfig) -> None:
 
     cost = core.get_draws([healthcare_entity], ["cost"], entity_config.locations)
     cost = _normalize(cost)
+    cost = cost[["year", "location_id", "draw", "value"]]
     yield "cost", cost
 
     annual_visits = core.get_draws([healthcare_entity], ["annual_visits"], entity_config.locations)
     annual_visits = _normalize(annual_visits)
+    annual_visits = annual_visits[["year", "sex", "age", "value", "draw"]]
     yield "annual_visits", annual_visits
 
 
@@ -301,6 +320,7 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
         try:
             protection = core.get_draws([treatment_technology], ["protection"], entity_config.locations)
             protection = _normalize(protection)
+            protection = protection[["year", "location_id", "cause_id", "parameter", "sex", "age", "draw", "value"]]
             yield "protection", protection
         except core.DataMissingError:
             pass
@@ -308,12 +328,14 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
     if treatment_technology.relative_risk:
         relative_risk = core.get_draws([treatment_technology], ["relative_risk"], entity_config.locations)
         relative_risk = _normalize(relative_risk)
+        relative_risk = relative_risk[["year", "location_id", "cause_id", "parameter", "sex", "age", "draw", "value"]]
         yield "relative_risk", relative_risk
 
     if treatment_technology.exposure:
         try:
             exposure = core.get_draws([treatment_technology], ["exposure"], entity_config.locations)
             exposure = _normalize(exposure)
+            exposure = exposure[["year", "location_id", "sex", "age", "draw", "value"]]
             yield "exposure", exposure
         except core.DataMissingError:
             pass
@@ -321,6 +343,7 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
     if treatment_technology.cost:
         cost = core.get_draws([treatment_technology], ["cost"], entity_config.locations)
         cost = _normalize(cost)
+        cost = cost[["year", "location_id", "draw", "value", "treatment_technology"]]
         yield "cost", cost
 
 
@@ -355,6 +378,7 @@ def _load_etiology(entity_config: _EntityConfig) -> None:
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
     paf = _normalize(paf)
+    paf = paf[["year", "location_id", "cause_id", "sex", "age", "draw", "value"]]
     yield "population_attributable_fraction", paf
 
 
@@ -362,13 +386,13 @@ def _load_population(entity_config: _EntityConfig) -> None:
     pop = core.get_populations(entity_config.locations)
     pop = normalize_for_simulation(pop)
     pop = get_age_group_midpoint_from_age_group_id(pop)
-    yield "structure", pop
+    yield "../structure", pop
 
     bins = core.get_age_bins()[["age_group_years_start", "age_group_years_end", "age_group_name"]]
     bins = bins.rename(columns={"age_group_years_start": "age_group_start", "age_group_years_end": "age_group_end"})
-    yield "age_bins", bins
+    yield "../age_bins", bins
 
-    yield "theoretical_minimum_risk_life_expectancy", core.get_theoretical_minimum_risk_life_expectancy()
+    yield "../theoretical_minimum_risk_life_expectancy", core.get_theoretical_minimum_risk_life_expectancy()
 
 
 def _load_covariate(entity_config: _EntityConfig) -> None:
