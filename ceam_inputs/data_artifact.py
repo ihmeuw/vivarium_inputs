@@ -3,6 +3,7 @@ import multiprocessing
 from collections import defaultdict
 from random import shuffle
 from typing import Tuple, Optional, NamedTuple, Sequence, Mapping, Iterable, Callable
+from unittest.mock import MagicMock
 
 import pandas as pd
 
@@ -79,6 +80,7 @@ class ArtifactBuilder:
         """Records a request for entity data for future processing."""
         self.entities.add(entity_path)
         _log.info(f"Adding {entity_path} to list of data sets to load")
+        return MagicMock()
 
     def process(self, path: str, locations: Sequence[int], parallelism: int=None,
                 loaders: Mapping[str, Callable]=None) -> None:
