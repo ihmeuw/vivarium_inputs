@@ -1,17 +1,19 @@
 import os.path
 
 from getpass import getuser
-from vivarium.framework.engine import build_base_configuration
+from vivarium.configuration import build_simulation_configuration
 
 STATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'cen_functions_scripts')
 
 
 def get_input_config(override_config=None):
     # This will grab the config in this users home directory as well as setting some defaults.
-    input_config = build_base_configuration()
+    input_config = build_simulation_configuration()
     inputs_config_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'gbd_config.yaml')
     input_config.update(inputs_config_path, layer='base', source=inputs_config_path)
     input_config.update(override_config)
+    if "input_draw_number" not in input_config.run_configuration:
+        input_config.run_configuration.input_draw_number = 0
     return input_config
 
 

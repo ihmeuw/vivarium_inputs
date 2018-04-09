@@ -4,7 +4,6 @@ from typing import Iterable, Union, List, Any, Mapping
 
 from joblib import Memory
 import pandas as pd
-import numpy as np
 
 from ceam_inputs.util import get_cache_directory, get_input_config
 from ceam_inputs.gbd_mapping import cid, sid, rid
