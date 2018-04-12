@@ -166,7 +166,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'exposure': ((Risk, CoverageGap, TreatmentTechnology), 'gbd_id'),
         'exposure_standard_deviation': ((Risk, CoverageGap), 'exposure_parameters.dismod_id'),
         'relative_risk': ((Risk, CoverageGap, TreatmentTechnology), 'gbd_id'),
-        'population_attributable_fraction': ((Risk, Etiology, CoverageGap), 'gbd_id'),
+        'population_attributable_fraction': ((Risk, Etiology, CoverageGap, TreatmentTechnology), 'gbd_id'),
         'cause_specific_mortality': ((Cause,), 'gbd_id'),
         'excess_mortality': ((Cause,), 'gbd_id'),
         'annual_visits': (HealthcareEntity, 'utilization'),

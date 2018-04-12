@@ -76,7 +76,7 @@ class ArtifactBuilder:
     def __init__(self):
         self.entities = set()
 
-    def load(self, entity_path: str, **column_filters) -> None:
+    def load(self, entity_path: str, keep_age_group_edges=False, **column_filters) -> None:
         """Records a request for entity data for future processing."""
         self.entities.add(entity_path)
         _log.info(f"Adding {entity_path} to list of data sets to load")
@@ -179,6 +179,9 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: mul
 
 
 def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
+    if data is None:
+        return
+    print(entity_name)
     """Write a dataset out to the target HDF file keyed by the entity the data corresponds to."""
     key_components = ["/", entity_type]
     if entity_name:
@@ -209,7 +212,7 @@ def _load_cause(entity_config: _EntityConfig) -> None:
         result = _normalize(result)[["year", "location_id", "sex", "age", "draw", "value"]]
         yield "remission", result
     except core.InvalidQueryError:
-        pass
+        yield "remission", None
 
 
 def _load_risk_factor(entity_config: _EntityConfig) -> None:
@@ -247,6 +250,8 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         mfs = mfs[["cause_id", "risk_id", "draw", "value"]]
         yield "mediation_factor", mfs
         del mfs
+    else:
+        yield "mediation_factor", None
 
     pafs = core.get_draws([risk], ["population_attributable_fraction"], entity_config.locations)
     normalized = []
@@ -271,7 +276,7 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location_id", "draw", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
-    result = result[["year", "location_id", "sex", "age", "draw", "value"]]
+    result = result[["year", "location_id", "sex", "age", "draw", "value", "parameter"]]
     yield "exposure", result
     del normalized
     del result
@@ -281,6 +286,8 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         exposure_sds = _normalize(exposure_sds)
         exposure_sds = exposure_sds[["year", "location_id", "sex", "age", "draw", "value"]]
         yield "exposure_standard_deviation", exposure_sds
+    else:
+        yield "exposure_standard_deviation", None
 
 
 def _load_sequela(entity_config: _EntityConfig) -> None:
@@ -322,16 +329,30 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
         try:
             protection = core.get_draws([treatment_technology], ["protection"], entity_config.locations)
             protection = _normalize(protection)
-            protection = protection[["year", "location_id", "cause_id", "parameter", "sex", "age", "draw", "value"]]
+            protection = protection[["location_id", "draw", "value"]]
+            protection["value"] = protection.value.astype(float)
             yield "protection", protection
         except core.DataMissingError:
             pass
+            yield "protection", None
+    else:
+        yield "protection", None
 
     if treatment_technology.relative_risk:
         relative_risk = core.get_draws([treatment_technology], ["relative_risk"], entity_config.locations)
         relative_risk = _normalize(relative_risk)
         relative_risk = relative_risk[["year", "location_id", "cause_id", "parameter", "sex", "age", "draw", "value"]]
         yield "relative_risk", relative_risk
+    else:
+        yield "relative_risk", None
+
+    if treatment_technology.population_attributable_fraction:
+        population_attributable_fraction = core.get_draws([treatment_technology], ["population_attributable_fraction"], entity_config.locations)
+        population_attributable_fraction = _normalize(population_attributable_fraction)
+        population_attributable_fraction = population_attributable_fraction[["year", "location_id", "cause_id", "sex", "age", "draw", "value"]]
+        yield "population_attributable_fraction", population_attributable_fraction
+    else:
+        yield "population_attributable_fraction", None
 
     if treatment_technology.exposure:
         try:
@@ -340,13 +361,17 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
             exposure = exposure[["year", "location_id", "sex", "age", "draw", "value"]]
             yield "exposure", exposure
         except core.DataMissingError:
-            pass
+            yield "exposure", None
+    else:
+        yield "exposure", None
 
     if treatment_technology.cost:
         cost = core.get_draws([treatment_technology], ["cost"], entity_config.locations)
         cost = _normalize(cost)
         cost = cost[["year", "location_id", "draw", "value", "treatment_technology"]]
         yield "cost", cost
+    else:
+        yield "cost", None
 
 
 def _load_coverage_gap(entity_config: _EntityConfig) -> None:
@@ -357,7 +382,7 @@ def _load_coverage_gap(entity_config: _EntityConfig) -> None:
         exposure = _normalize(exposure)
         yield "exposure", exposure
     except core.InvalidQueryError:
-        pass
+        yield "exposure", None
 
     mediation_factor = core.get_draws([entity], ["mediation_factor"], entity_config.locations)
     if not mediation_factor.empty:
@@ -365,6 +390,8 @@ def _load_coverage_gap(entity_config: _EntityConfig) -> None:
         # error handling in ceam_inputs.core but hasn't finished yet
         mediation_factor = _normalize(mediation_factor)
         yield "mediation_factor", mediation_factor
+    else:
+        yield "mediation_factor", None
 
     relative_risk = core.get_draws([entity], ["relative_risk"], entity_config.locations)
     relative_risk = _normalize(relative_risk)
