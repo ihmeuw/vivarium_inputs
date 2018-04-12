@@ -3,7 +3,7 @@ uses which is not stored in a standard location, like the modelable entity datab
 """
 
 import platform
-from os.path import join
+import os.path
 
 AUXILIARY_DATA_FOLDER = "{j_drive}/Project/Cost_Effectiveness/CEAM/Auxiliary_Data/{gbd_round}"
 
@@ -97,7 +97,7 @@ def auxiliary_file_path(name, **kwargs):
     else:
         raise IOError
     raw_path = FILES[name]['path']
-    return join(AUXILIARY_DATA_FOLDER, raw_path).format(**template_parameters), FILES[name].get('encoding')
+    return os.path.join(AUXILIARY_DATA_FOLDER, raw_path).format(**template_parameters), FILES[name].get('encoding')
 
 
 def open_auxiliary_file(name, **kwargs):
