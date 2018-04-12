@@ -88,10 +88,14 @@ FILES = {
 
 def auxiliary_file_path(name, **kwargs):
     template_parameters = dict(kwargs)
-    if platform.system() == 'Windows':
-        template_parameters['j_drive'] = 'J:'
+    if platform.system() == "Windows":
+        template_parameters['j_drive'] = "J:"
+    elif platform.system() == "Linux":
+         template_parameters['j_drive']= "/home/j"
+    elif platform.system() == "Darwin":
+         template_parameters['j_drive']= os.path.expanduser("~/j")
     else:
-        template_parameters['j_drive'] = '/home/j'
+        raise IOError
     raw_path = FILES[name]['path']
     return join(AUXILIARY_DATA_FOLDER, raw_path).format(**template_parameters), FILES[name].get('encoding')
 

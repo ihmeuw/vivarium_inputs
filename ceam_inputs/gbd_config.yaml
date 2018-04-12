@@ -2,6 +2,3 @@ input_data:
     intermediary_data_cache_path: /share/scratch/users/{username}/cache
     location_id: 180
     use_subregions: False
-    gbd_round_id: 4
-    j_drive: /home/j
-    risk_factor_correlation_matrix_variation: location_180
