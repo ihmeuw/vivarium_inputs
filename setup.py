@@ -13,7 +13,7 @@ setup(name='ceam_inputs',
       ],
       extras_require={
           'gbd_access': [
-              'transmogrifier',
+              'get_draws',
               'hierarchies',
               'db_tools',
               'db_queries',

@@ -164,11 +164,11 @@ def normalize_for_simulation(df):
 
     Unit test in place? -- Yes
     """
-    if 'sex_id' in df:
-        df['sex'] = df.sex_id.map({1: 'Male', 2: 'Female', 3: 'Both'}).astype(
-            pd.api.types.CategoricalDtype(categories=['Male', 'Female', 'Both'], ordered=False))
-        df = df.drop('sex_id', axis=1)
-    df = df.rename(columns={'year_id': 'year'})
+    if "sex_id" in df:
+        df["sex"] = df.sex_id.map({1: "Male", 2: "Female", 3: "Both"}).astype(
+            pd.api.types.CategoricalDtype(categories=["Male", "Female", "Both"], ordered=False))
+        df = df.drop("sex_id", axis=1)
+    df = df.rename(columns={"year_id": "year"})
     return df
 
 
