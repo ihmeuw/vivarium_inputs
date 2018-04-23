@@ -1,3 +1,10 @@
+"""
+Wrappers for the lower level GBD and auxiliary data access tools.
+
+NOTE on warnings. This module explicitly make deprecation warnings from modules
+it depends directly on visible but only if they actually used in the current
+process in order to reduce noise.
+"""
 from multiprocessing.process import current_process
 import warnings
 from typing import Iterable, Union, List, Any, Mapping
