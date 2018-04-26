@@ -26,7 +26,7 @@ FILES = {
         'owner': 'Reed Sorenson <rsoren@uw.edu>',
         },
     'Risk Standard Deviation Meids': {
-       'path': 'risk_exposure_sd_mapping.csv',
+       'path': 'metadata/risk_exposure_sd_mapping.csv',
        'owner': 'Zane Rankin <zrankin@uw.edu>',
     },
     'Inpatient Visit Costs': {
@@ -79,7 +79,7 @@ FILES = {
         'owner': 'Everett Mumford <emumford@uw.edu>',
     },
     'Risk Data': {
-        'path': 'risk_variables.xlsx',
+        'path': 'metadata/risk_variables.xlsx',
         'source': '/home/j/WORK/05_risk/central/documentation/GBD\ 2016/risk_variables.xlsx',
         'owner': 'Kelly Cercy <kcercy@uw.edu>'
     }
