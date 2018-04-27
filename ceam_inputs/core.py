@@ -166,7 +166,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'exposure': ((Risk, CoverageGap, TreatmentTechnology), 'gbd_id'),
         'exposure_standard_deviation': ((Risk, CoverageGap), 'exposure_parameters.dismod_id'),
         'relative_risk': ((Risk, CoverageGap, TreatmentTechnology), 'gbd_id'),
-        'population_attributable_fraction': ((Risk, Etiology, CoverageGap, TreatmentTechnology), 'gbd_id'),
+        'population_attributable_fraction': ((Cause, Etiology, CoverageGap, TreatmentTechnology), 'gbd_id'),
         'cause_specific_mortality': ((Cause,), 'gbd_id'),
         'excess_mortality': ((Cause,), 'gbd_id'),
         'annual_visits': (HealthcareEntity, 'utilization'),
@@ -401,9 +401,9 @@ def _filter_to_most_detailed(data):
     return data.query('cause_id in @most_detailed_causes')
 
 def _get_population_attributable_fraction(entities, location_ids):
-    if isinstance(entities[0], (Risk, Etiology, CoverageGap)):
+    if isinstance(entities[0], (Cause, Etiology, CoverageGap)):
         measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
-        measure_data = gbd.get_pafs(risk_ids=measure_ids, location_ids=location_ids)
+        measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids)
         measure_data = _filter_to_most_detailed(measure_data)
 
         # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows. Eventually we should fix it for real
@@ -420,6 +420,7 @@ def _get_population_attributable_fraction(entities, location_ids):
 
         # TODO: figure out if we need to assert some property of the different PAF measures
         measure_data = measure_data[measure_data['measure_id'] == name_measure_map['YLD']]
+        measure_data = measure_data.rename(columns={'rei_id': 'risk_id'})
         # FIXME: Is this the only data we need to delete measure id for?
         del measure_data['measure_id']
         if isinstance(entities[0], Etiology):

@@ -95,11 +95,11 @@ def get_exposure_standard_deviation(risk, override_config=None):
     return data
 
 
-def get_population_attributable_fraction(entity, cause, override_config=None):
+def get_population_attributable_fraction(entity, risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_draws([entity], ['population_attributable_fraction'],
                           [config.input_data.location_id]).drop('measure', 'columns')
-    data = data[data['cause_id'] == cause.gbd_id]
+    data = data[data['risk_id'] == cause.gbd_id]
     return _clean_and_filter_data(data, config.run_configuration.input_draw_number, 'population_attributable_fraction')
 
 
