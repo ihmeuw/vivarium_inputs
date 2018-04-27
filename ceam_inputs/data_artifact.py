@@ -114,6 +114,7 @@ class ArtifactBuilder:
         year_start = min(estimation_years)
         year_end = max(estimation_years)
 
+        self.entities = ['cause.measles.remission']
         entity_by_type = _entities_by_type(self.entities)
 
         age_bins = core.get_age_bins()
@@ -146,7 +147,8 @@ class ArtifactBuilder:
                     jobs.append(pool.apply_async(_worker, (entity_config, path, loaders[entity_type], lock)))
                 else:
                     _worker(entity_config, path, loaders[entity_type], lock)
-        pool.close()
+        if pool is not None:
+            pool.close()
         # NOTE: This loop is necessary because without the calls to get exceptions raised within the
         # workers would not be reraised here and the program could exit before all the workers finish.
         for j in jobs:
@@ -461,6 +463,21 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
 
 def _load_coverage_gap(entity_config: _EntityConfig) -> None:
     entity = coverage_gaps[entity_config.name]
+
+    yield "affected_causes", [c.name for c in entity.affected_causes]
+    yield "restrictions", {
+            "male_only": entity.restrictions.male_only,
+            "female_only": entity.restrictions.female_only,
+            "yll_only": entity.restrictions.yll_only,
+            "yld_only": entity.restrictions.yld_only,
+            "yll_age_start": entity.restrictions.yll_age_start,
+            "yll_age_end": entity.restrictions.yll_age_end,
+            "yld_age_start": entity.restrictions.yld_age_start,
+            "yld_age_end": entity.restrictions.yld_age_end,
+    }
+    yield "distribution", entity.distribution
+
+    yield "levels" , [(f"cat{cat_number}", level_name) for level_name, cat_number in zip(entity.levels, range(60))]
 
     try:
         exposure = core.get_draws([entity], ["exposure"], entity_config.locations)
