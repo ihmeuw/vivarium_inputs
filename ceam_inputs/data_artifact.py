@@ -114,7 +114,6 @@ class ArtifactBuilder:
         year_start = min(estimation_years)
         year_end = max(estimation_years)
 
-        self.entities = ['cause.measles.remission']
         entity_by_type = _entities_by_type(self.entities)
 
         age_bins = core.get_age_bins()
