@@ -1,4 +1,4 @@
 input_data:
     intermediary_data_cache_path: /share/scratch/users/{username}/cache
-    location_id: 180
+    location: Kenya
     use_subregions: False

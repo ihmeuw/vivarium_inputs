@@ -526,3 +526,8 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
     and process_id = 30
     '''
     return ezfuncs.query(query, conn_def='mortality')
+
+@memory.cache
+def get_location_ids() -> pd.DataFrame:
+    from db_queries import get_location_metadata
+    return get_location_metadata(location_set_id=2, gbd_round_id=GBD_ROUND_ID)[["location_id", "location_name"]]

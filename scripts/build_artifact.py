@@ -13,7 +13,7 @@ def main():
     config.vivarium.dataset_manager = "ceam_inputs.data_artifact.ArtifactBuilder"
     component_manager = load_component_manager(config)
     simulation = setup_simulation(component_manager, config)
-    simulation.data.process(args.output_path, [simulation.configuration.input_data.location_id], parallelism=args.parallelism)
+    simulation.data.process(args.output_path, [simulation.configuration.input_data.location], parallelism=args.parallelism)
 
 if __name__ == "__main__":
     main()

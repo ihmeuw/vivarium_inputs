@@ -1,4 +1,5 @@
 import os
+import warnings
 import multiprocessing
 from collections import defaultdict
 from random import shuffle
@@ -19,6 +20,9 @@ from .gbd_mapping import (causes, risk_factors, sequelae, healthcare_entities,
 
 import logging
 _log = logging.getLogger(__name__)
+
+CAUSE_BY_ID = {c.gbd_id:c for c in causes if c is not None}
+RISK_BY_ID = {r.gbd_id:r for r in risk_factors}
 
 
 class DataArtifactError(Exception):
@@ -118,7 +122,7 @@ class ArtifactBuilder:
 
         age_bins = core.get_age_bins()
         dimensions = [range(year_start, year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
-        dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location_id"])
+        dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location"])
         dimensions = dimensions.to_frame().reset_index(drop=True)
         _dump(dimensions, "dimensions", None, "full_space", path)
 
@@ -200,7 +204,7 @@ def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], meas
 
     key = os.path.join(*(key_components + [measure]))
     if isinstance(data, (pd.DataFrame, pd.Series)):
-        data_columns = list({'year', 'location_id', 'draw', 'cause_id'}.intersection(data.columns))
+        data_columns = list({"year", "location", "draw", "cause", "risk"}.intersection(data.columns))
         with pd.HDFStore(path, complevel=9, format="table") as store:
             store.put(key, data, format="table", data_columns=data_columns)
     else:
@@ -246,7 +250,7 @@ def _load_cause(entity_config: _EntityConfig) -> None:
     result = core.get_draws([cause], measures, entity_config.locations)
     result = _normalize(result)
     for key, group in result.groupby("measure"):
-        yield key, group[["year", "location_id", "sex", "age", "draw", "value"]]
+        yield key, group[["year", "location", "sex", "age", "draw", "value"]]
     del result
 
     if cause.name != "all_causes":
@@ -255,11 +259,14 @@ def _load_cause(entity_config: _EntityConfig) -> None:
         for key, group in pafs.groupby(["risk_id"]):
             group = group.drop(["risk_id"], axis=1)
             group = _normalize(group)
-            group["risk_id"] = key
-            dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location_id", "draw", "risk_id"]
-            normalized.append(group.set_index(dims))
+            if key in RISK_BY_ID:
+                group["risk"] = RISK_BY_ID[key].name
+                dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "risk"]
+                normalized.append(group.set_index(dims))
+            else:
+                warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause {cause.name} but that risk is missing from the gbd mapping")
         result = pd.concat(normalized).reset_index()
-        result = result[["year", "location_id", "sex", "age", "draw", "value", "risk_id"]]
+        result = result[["year", "location", "sex", "age", "draw", "value", "risk"]]
         yield "population_attributable_fraction", result
         del normalized
         del result
@@ -268,7 +275,7 @@ def _load_cause(entity_config: _EntityConfig) -> None:
         measures = ["remission"]
         result = core.get_draws([causes[entity_config.name]], measures, entity_config.locations)
         if not result.empty:
-            result = _normalize(result)[["year", "location_id", "sex", "age", "draw", "value"]]
+            result = _normalize(result)[["year", "location", "sex", "age", "draw", "value"]]
             yield "remission", result
         else:
             yield "remission", None
@@ -327,12 +334,12 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         group = group.drop(["cause_id", "parameter"], axis=1)
         group = _normalize(group)
         group["parameter"] = key[0]
-        group["cause_id"] = key[1]
+        group["cause"] = CAUSE_BY_ID[key[1]].name
         dims = ["year", "sex", "measure", "age", "age_group_start",
-                "age_group_end", "location_id", "draw", "cause_id", "parameter"]
+                "age_group_end", "location", "draw", "cause", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
-    result = result[["year", "location_id", "sex", "age", "draw", "value", "cause_id"]]
+    result = result[["year", "location", "sex", "age", "draw", "value", "parameter", "cause"]]
     yield "relative_risk", result
     del normalized
     del result
@@ -344,7 +351,9 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         draw_columns = [c for c in mfs.columns if "draw_" in c]
         mfs = pd.melt(mfs, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
         mfs["draw"] = mfs.draw.str.partition("_")[2].astype(int)
-        mfs = mfs[["cause_id", "risk_id", "draw", "value"]]
+        mfs["cause"] = mfs.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        mfs["risk"] = mfs.risk_id.apply(lambda risk_id: RISK_BY_ID[risk_id].name)
+        mfs = mfs[["cause", "risk", "draw", "value"]]
         yield "mediation_factor", mfs
         del mfs
     else:
@@ -356,10 +365,10 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         group = group.drop(["parameter"], axis=1)
         group = _normalize(group)
         group["parameter"] = key
-        dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location_id", "draw", "parameter"]
+        dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
-    result = result[["year", "location_id", "sex", "age", "draw", "value", "parameter"]]
+    result = result[["year", "location", "sex", "age", "draw", "value", "parameter"]]
     yield "exposure", result
     del normalized
     del result
@@ -367,7 +376,7 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
     if risk.exposure_parameters is not None:
         exposure_sds = core.get_draws([risk], ["exposure_standard_deviation"], entity_config.locations)
         exposure_sds = _normalize(exposure_sds)
-        exposure_sds = exposure_sds[["year", "location_id", "sex", "age", "draw", "value"]]
+        exposure_sds = exposure_sds[["year", "location", "sex", "age", "draw", "value"]]
         yield "exposure_standard_deviation", exposure_sds
     else:
         yield "exposure_standard_deviation", None
@@ -383,7 +392,7 @@ def _load_sequela(entity_config: _EntityConfig) -> None:
     result = _normalize(result)
     result["sequela_id"] = sequela.gbd_id
     for key, group in result.groupby("measure"):
-        yield key, group[["year", "location_id", "sex", "age", "draw", "value"]]
+        yield key, group[["year", "location", "sex", "age", "draw", "value"]]
     del result
 
     weights = core.get_draws([sequela], ["disability_weight"], entity_config.locations)
@@ -399,7 +408,7 @@ def _load_healthcare_entity(entity_config: _EntityConfig) -> None:
 
     cost = core.get_draws([healthcare_entity], ["cost"], entity_config.locations)
     cost = _normalize(cost)
-    cost = cost[["year", "location_id", "draw", "value"]]
+    cost = cost[["year", "location", "draw", "value"]]
     yield "cost", cost
 
     annual_visits = core.get_draws([healthcare_entity], ["annual_visits"], entity_config.locations)
@@ -415,7 +424,7 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
         try:
             protection = core.get_draws([treatment_technology], ["protection"], entity_config.locations)
             protection = _normalize(protection)
-            protection = protection[["location_id", "draw", "value"]]
+            protection = protection[["location", "draw", "value"]]
             protection["value"] = protection.value.astype(float)
             yield "protection", protection
         except core.DataMissingError:
@@ -427,7 +436,8 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
     if treatment_technology.relative_risk:
         relative_risk = core.get_draws([treatment_technology], ["relative_risk"], entity_config.locations)
         relative_risk = _normalize(relative_risk)
-        relative_risk = relative_risk[["year", "location_id", "cause_id", "parameter", "sex", "age", "draw", "value"]]
+        relative_risk["cause"] = relative_risk.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        relative_risk = relative_risk[["year", "location", "cause", "parameter", "sex", "age", "draw", "value"]]
         yield "relative_risk", relative_risk
     else:
         yield "relative_risk", None
@@ -435,7 +445,8 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
     if treatment_technology.population_attributable_fraction:
         population_attributable_fraction = core.get_draws([treatment_technology], ["population_attributable_fraction"], entity_config.locations)
         population_attributable_fraction = _normalize(population_attributable_fraction)
-        population_attributable_fraction = population_attributable_fraction[["year", "location_id", "cause_id", "sex", "age", "draw", "value"]]
+        population_attributable_fraction["cause"] = population_attributable_fraction.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        population_attributable_fraction = population_attributable_fraction[["year", "location", "cause", "sex", "age", "draw", "value"]]
         yield "population_attributable_fraction", population_attributable_fraction
     else:
         yield "population_attributable_fraction", None
@@ -444,7 +455,7 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
         try:
             exposure = core.get_draws([treatment_technology], ["exposure"], entity_config.locations)
             exposure = _normalize(exposure)
-            exposure = exposure[["year", "location_id", "sex", "age", "draw", "value"]]
+            exposure = exposure[["year", "location", "sex", "age", "draw", "value"]]
             yield "exposure", exposure
         except core.DataMissingError:
             yield "exposure", None
@@ -454,7 +465,7 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
     if treatment_technology.cost:
         cost = core.get_draws([treatment_technology], ["cost"], entity_config.locations)
         cost = _normalize(cost)
-        cost = cost[["year", "location_id", "draw", "value", "treatment_technology"]]
+        cost = cost[["year", "location", "draw", "value", "treatment_technology"]]
         yield "cost", cost
     else:
         yield "cost", None
@@ -508,7 +519,8 @@ def _load_etiology(entity_config: _EntityConfig) -> None:
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
     paf = _normalize(paf)
-    paf = paf[["year", "location_id", "cause_id", "sex", "age", "draw", "value"]]
+    paf["cause"] = paf.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+    paf = paf[["year", "location", "cause", "sex", "age", "draw", "value"]]
     yield "population_attributable_fraction", paf
 
 
@@ -530,12 +542,12 @@ def _load_covariate(entity_config: _EntityConfig) -> None:
     estimate = get_covariate_estimates([entity.gbd_id], entity_config.locations)
 
     if entity is covariates.age_specific_fertility_rate:
-        columns = ["location_id", "mean_value", "lower_value", "upper_value", "age_group_id", "sex_id", "year_id"]
+        columns = ["location", "mean_value", "lower_value", "upper_value", "age_group_id", "sex_id", "year_id"]
         estimate = estimate[columns]
         estimate = get_age_group_midpoint_from_age_group_id(estimate)
         estimate = normalize_for_simulation(estimate)
     elif entity in (covariates.live_births_by_sex, covariates.dtp3_coverage_proportion):
-        columns = ["location_id", "mean_value", "lower_value", "upper_value", "sex_id", "year_id"]
+        columns = ["location", "mean_value", "lower_value", "upper_value", "sex_id", "year_id"]
         estimate = estimate[columns]
         estimate = normalize_for_simulation(estimate)
     yield "estimate", estimate

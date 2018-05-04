@@ -18,6 +18,9 @@ MALE = [1]
 FEMALE = [2]
 COMBINED = [3]
 
+LOCATION_IDS_BY_NAME = {r.location_name:r.location_id for _, r in gbd.get_location_ids().iterrows()}
+LOCATION_NAMES_BY_ID = {v:k for k,v in LOCATION_IDS_BY_NAME.items()}
+
 name_measure_map = {'death': 1,
                     'DALY': 2,
                     'YLD': 3,
@@ -72,7 +75,7 @@ class DuplicateDataError(DataError):
 
 
 def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
-              location_ids: Iterable[int]) -> pd.DataFrame:
+              locations: Iterable[str]) -> pd.DataFrame:
     """Gets draw level gbd data for each specified measure and entity.
 
     Parameters
@@ -82,8 +85,8 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         type (e.g. all `gbd_mapping.Cause` objects or all `gbd_mapping.Risk` objects, etc.
     measures:
         A list of the GBD measures requested for the provided entities.
-    location_ids:
-        A list of location ids to pull data for.
+    locations:
+        A list of locations to pull data for.
 
     Returns
     -------
@@ -107,6 +110,8 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'mediation_factor': (_get_mediation_factor, {'cause_id'}),
         'cost': (_get_cost, set()),
     }
+
+    location_ids = [LOCATION_IDS_BY_NAME[name] for name in locations]
 
     data = []
     id_cols = set()
@@ -132,6 +137,9 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
 
     data = data[key_columns + draw_columns].reset_index(drop=True)
+    if "location_id" in data:
+        data["location"] = data.location_id.apply(LOCATION_NAMES_BY_ID.get)
+        data = data.drop("location_id", "columns")
     _validate_data(data, key_columns)
 
     return data
@@ -294,9 +302,13 @@ def _get_incidence(entities, location_ids):
 
 
 def _get_cause_specific_mortality(entities, location_ids):
-    deaths = get_draws(entities, ["death"], location_ids)
+    # FIXME: Mapping backword to name like this is awkward
+    locations = [LOCATION_NAMES_BY_ID[location_id] for location_id in location_ids]
+    deaths = get_draws(entities, ["death"], locations)
+    deaths["location_id"] = deaths.location.apply(LOCATION_IDS_BY_NAME.get)
+    deaths = deaths.drop("location", "columns")
 
-    populations = get_populations(location_ids)
+    populations = get_populations(locations)
     populations = populations[populations['year_id'] >= deaths.year_id.min()]
 
     merge_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id']
@@ -313,10 +325,12 @@ def _get_cause_specific_mortality(entities, location_ids):
 
 
 def _get_excess_mortality(entities, location_ids):
-    prevalences = get_draws(entities, ['prevalence'], location_ids).drop('measure', 'columns')
-    csmrs = get_draws(entities, ['cause_specific_mortality'], location_ids).drop('measure', 'columns')
+    # FIXME: Mapping backword to name like this is awkward
+    locations = [LOCATION_NAMES_BY_ID[location_id] for location_id in location_ids]
+    prevalences = get_draws(entities, ['prevalence'], locations).drop('measure', 'columns')
+    csmrs = get_draws(entities, ['cause_specific_mortality'], locations).drop('measure', 'columns')
 
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location_id', 'cause_id']
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'location', 'cause_id']
     prevalences = prevalences.set_index(key_columns)
     csmrs = csmrs.set_index(key_columns)
 
@@ -328,6 +342,9 @@ def _get_excess_mortality(entities, location_ids):
 
     em = csmrs.divide(prevalences, axis='index').reset_index()
     em = em[em['sex_id'] != COMBINED]
+
+    em["location_id"] = em.location.apply(LOCATION_IDS_BY_NAME.get)
+    em = em.drop("location", "columns")
 
     return em.dropna()
 
@@ -621,7 +638,7 @@ def _get_cost(entities, location_ids):
 ####################################
 
 
-def get_ensemble_weights(risks, location_ids):
+def get_ensemble_weights(risks):
     data = []
     ids = [risk.gbd_id for risk in risks]
     for i in range(0, (len(ids))):
@@ -635,7 +652,8 @@ def get_ensemble_weights(risks, location_ids):
     return data
 
 
-def get_risk_correlation_matrix(location_ids):
+def get_risk_correlation_matrix(locations):
+    location_ids = [LOCATION_IDS_BY_NAME[location] for location in locations]
     data = []
     for location_id in location_ids:
         df = risk_factor_correlation.load_matrices(location_id=location_id,
@@ -650,7 +668,8 @@ def get_risk_correlation_matrix(location_ids):
 #######################
 
 
-def get_populations(location_ids):
+def get_populations(locations):
+    location_ids = [LOCATION_IDS_BY_NAME[location] for location in locations]
     populations = pd.concat([gbd.get_populations(location_id) for location_id in location_ids])
     keep_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population']
     return populations[keep_columns]
@@ -664,9 +683,11 @@ def get_theoretical_minimum_risk_life_expectancy():
     return gbd.get_theoretical_minimum_risk_life_expectancy()
 
 
-def get_subregions(location_ids):
+def get_subregions(locations):
+    location_ids = [LOCATION_IDS_BY_NAME[location] for location in locations]
     return gbd.get_subregions(location_ids)
 
 
-def get_covariate_estimates(covariates, location_ids):
+def get_covariate_estimates(covariates, locations):
+    location_ids = [LOCATION_IDS_BY_NAME[location] for location in locations]
     return gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)

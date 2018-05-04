@@ -48,7 +48,7 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex,
     dimensions = pd.concat([dimensions.assign(measure=measure) for measure in data.measure.unique()], ignore_index=True)
     draw_columns = [c for c in data.columns if 'draw_' in c]
 
-    assert set(dimensions.columns) <= {'age_group_id', 'sex', 'year', 'measure', 'location_id'}
+    assert set(dimensions.columns) <= {'age_group_id', 'sex', 'year', 'measure', 'location'}
     assert set(data.columns) <= set(dimensions.columns.tolist() + draw_columns)
     assert set(data.measure.unique()) <= fill_na_value.keys()
 
