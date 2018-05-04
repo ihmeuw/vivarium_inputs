@@ -93,7 +93,7 @@ def auxiliary_file_path(name, **kwargs):
     elif platform.system() == "Linux":
          template_parameters['j_drive']= "/home/j"
     elif platform.system() == "Darwin":
-         template_parameters['j_drive']= "/home/j" #"#os.path.expanduser("~/j")
+         template_parameters['j_drive']= "/home/j"
     else:
         raise IOError
     raw_path = FILES[name]['path']

@@ -404,41 +404,40 @@ def _filter_to_most_detailed(data):
 def _compute_paf_for_special_cases(entity, location_ids):
     paf = pd.DataFrame()
     for location_id in location_ids:
-        _ex = _get_exposure([entity], [location_id])
+        ex = _get_exposure([entity], [location_id])
         key_cols = ['age_group_id', 'year_id', 'sex_id', 'parameter']
         rr_cols = key_cols + ['cause_id']
-        _rr = _get_relative_risk([entity], [location_id])
-        _years = _rr.year_id.unique()
-        rr = _rr.set_index(rr_cols)
-        ex = _ex[_ex['year_id'].isin(_years)].set_index(key_cols)
+        rr = _get_relative_risk([entity], [location_id])
+        years = rr.year_id.unique()
+        relative_risk = rr.set_index(rr_cols)
+        exposure = ex[ex['year_id'].isin(years)].set_index(key_cols)
         draw_columns = ['draw_{}'.format(i) for i in range(1000)]
-        _cause_id = _rr.cause_id.unique()[0]
-        rr_cause = rr.xs(key=_cause_id, level='cause_id')
-        temp = rr_cause[draw_columns]*ex[draw_columns]
-        temp_sum = temp.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
-        temp_result = ((temp_sum-1)/temp_sum)
-        temp_result['cause_id'] = _cause_id
-        temp_result['location_id'] = location_id
-        temp_result['risk_id'] = ex.risk_id.unique()[0]
-        paf = paf.append(temp_result)
+        cause_ids = rr.cause_id.unique()
+        for cause_id in cause_ids:
+            rr_cause = relative_risk.xs(key=cause_id, level='cause_id')
+            temp = rr_cause[draw_columns]*exposure[draw_columns]
+            temp_sum = temp.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
+            temp_result = ((temp_sum-1)/temp_sum)
+            temp_result['cause_id'] = cause_id
+            temp_result['location_id'] = location_id
+            temp_result['risk_id'] = ex.risk_id.unique()[0]
+            paf = paf.append(temp_result)
     paf = paf.reset_index()
     return paf
 
 
 def _get_population_attributable_fraction(entities, location_ids):
     if isinstance(entities[0], (Risk, Etiology, CoverageGap)):
-
+        # any special_case whose PAF needs to be directly computed
         SPECIAL = [risk_factors.unsafe_water_source]
         special_cases = list(set(entities).intersection(SPECIAL))
         regular_cases = list(set(entities)-set(special_cases))
         paf = pd.DataFrame()
-
-        # any special_case whose PAF needs to be directly computed
         if special_cases:
             for entity in special_cases:
                 paf = paf.append(_compute_paf_for_special_cases(entity, location_ids))
         if regular_cases:
-            measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
+            measure_ids = _get_ids_for_measure(regular_cases, 'population_attributable_fraction')
             measure_data = gbd.get_pafs(risk_ids=measure_ids, location_ids=location_ids)
             measure_data = _filter_to_most_detailed(measure_data)
 
@@ -707,3 +706,4 @@ def get_subregions(location_ids):
 
 def get_covariate_estimates(covariates, location_ids):
     return gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)
+
