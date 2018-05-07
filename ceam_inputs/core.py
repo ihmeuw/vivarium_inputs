@@ -5,7 +5,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from ceam_inputs import gbd, risk_factor_correlation, causes
+from ceam_inputs import gbd, risk_factor_correlation, causes, risk_factors, etiologies, coverage_gaps
 from ceam_inputs.gbd_mapping.templates import sid, UNKNOWN, Cause, Sequela, Etiology, Risk, ModelableEntity, scalar
 from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
 from ceam_inputs.gbd_mapping.coverage_gaps import CoverageGap
@@ -413,15 +413,20 @@ def _get_relative_risk(entities, location_ids):
     return measure_data
 
 
-def _filter_to_most_detailed(data):
-    most_detailed_causes = {c.gbd_id for c in causes if c is not None and c.gbd_id != 294}
-    return data.query('cause_id in @most_detailed_causes')
+def _filter_to_most_detailed(data, entity_type):
+    entity_list = {
+            Cause: causes,
+            Etiology: etiologies,
+            CoverageGap: coverage_gaps,
+        }[entity_type]
+    most_detailed_risks = {r.gbd_id for r in risk_factors if r is not None}
+    return data.query('rei_id in @most_detailed_risks')
 
 def _get_population_attributable_fraction(entities, location_ids):
     if isinstance(entities[0], (Cause, Etiology, CoverageGap)):
         measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
         measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids)
-        measure_data = _filter_to_most_detailed(measure_data)
+        measure_data = _filter_to_most_detailed(measure_data, type(entities[0]))
 
         # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows. Eventually we should fix it for real
         draws = [c for c in measure_data.columns if 'draw_' in c]

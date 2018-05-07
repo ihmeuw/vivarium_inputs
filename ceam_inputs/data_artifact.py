@@ -4,15 +4,17 @@ import multiprocessing
 from collections import defaultdict
 from random import shuffle
 from typing import Tuple, Optional, NamedTuple, Sequence, Mapping, Iterable, Callable
-from unittest.mock import MagicMock
 
 import pandas as pd
 import tables
 from tables.nodes import filenode
 import json
 
+from vivarium.framework.components import ComponentManager
 from ceam_inputs import core
 from ceam_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
+from ceam_public_health.dataset_manager import Artifact
+from ceam_public_health.disease.model import DiseaseModel
 
 from .gbd import get_estimation_years, get_covariate_estimates, GBD_ROUND_ID
 from .gbd_mapping import (causes, risk_factors, sequelae, healthcare_entities,
@@ -42,7 +44,7 @@ class _EntityConfig(NamedTuple):
     locations: Sequence[int]
     year_start: int
     year_end: int
-    modeled_causes: Iterable
+    modeled_causes: Sequence[str]
     entity: Optional[str] = None
 
 
@@ -81,16 +83,44 @@ class ArtifactBuilder:
     """
 
     def __init__(self):
-        self.entities = set()
+        estimation_years = get_estimation_years(GBD_ROUND_ID)
+        self.year_start = min(estimation_years)
+        self.year_end = max(estimation_years)
+        self.processed_entities = set()
+        self.modeled_causes = set()
+
+        self.artifact = None
 
     def load(self, entity_path: str, keep_age_group_edges=False, **column_filters) -> None:
         """Records a request for entity data for future processing."""
-        self.entities.add(entity_path)
-        _log.info(f"Adding {entity_path} to list of data sets to load")
-        return MagicMock()
 
-    def process(self, path: str, locations: Sequence[int], parallelism: int=None,
-                loaders: Mapping[str, Callable]=None) -> None:
+        self.process(entity_path)
+
+        self.artifact.open()
+        result = self.artifact.load(entity_path, keep_age_group_edges, **column_filters)
+        self.artifact.close()
+
+        return result
+
+    def start_processing(self, component_manager: ComponentManager, path: str, locations: Sequence[str], loaders: Mapping[str, Callable]=None) -> None:
+        self.modeled_causes = {c.name for c in component_manager.components if isinstance(c, DiseaseModel)}
+        self.locations = locations
+        if loaders is None:
+            loaders = LOADERS
+        self.loaders = loaders
+        self.path = path
+        self.artifact = Artifact(path, self.year_start, self.year_end, 0, locations[0])
+
+        age_bins = core.get_age_bins()
+        dimensions = [range(self.year_start, self.year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
+        dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location"])
+        dimensions = dimensions.to_frame().reset_index(drop=True)
+        _dump(dimensions, "dimensions", None, "full_space", path)
+
+    def end_processing(self) -> None:
+        pass
+
+    def process(self, entity_path: str) -> None:
         """Loads all requested data and writes it out to a HDF file.
 
         Parameters
@@ -109,56 +139,21 @@ class ArtifactBuilder:
         The data loading process can be memory intensive. To reduce peak consumption, reduce parallelism.
         """
 
-        if loaders is None:
-            loaders = LOADERS
+        entity_type, *tail = entity_path.split('.')
+        entity_name = tail[0] if tail else None
 
-        locations = locations
-
-        estimation_years = get_estimation_years(GBD_ROUND_ID)
-        year_start = min(estimation_years)
-        year_end = max(estimation_years)
-
-        entity_by_type = _entities_by_type(self.entities)
-
-        age_bins = core.get_age_bins()
-        dimensions = [range(year_start, year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
-        dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location"])
-        dimensions = dimensions.to_frame().reset_index(drop=True)
-        _dump(dimensions, "dimensions", None, "full_space", path)
-
-        if parallelism is None:
-            parallelism = multiprocessing.cpu_count()
-
-        lock_manager = multiprocessing.Manager()
-        lock = lock_manager.Lock()
-
-        pool = None
-        by_type = list(entity_by_type.items())
-        shuffle(by_type)
-        jobs = []
-        for entity_type, entities in by_type:
-            for entity_name in entities:
-                entity_config = _EntityConfig(type=entity_type,
-                                              name=entity_name,
-                                              year_start=year_start,
-                                              year_end=year_end,
-                                              locations=locations,
-                                              modeled_causes=entity_by_type["cause"])
-                if parallelism > 1:
-                    if pool is None:
-                        pool = multiprocessing.Pool(parallelism)
-                    jobs.append(pool.apply_async(_worker, (entity_config, path, loaders[entity_type], lock)))
-                else:
-                    _worker(entity_config, path, loaders[entity_type], lock)
-        if pool is not None:
-            pool.close()
-        # NOTE: This loop is necessary because without the calls to get exceptions raised within the
-        # workers would not be reraised here and the program could exit before all the workers finish.
-        for j in jobs:
-            j.get()
+        if (entity_type, entity_name) not in self.processed_entities:
+            entity_config = _EntityConfig(type=entity_type,
+                                          name=entity_name,
+                                          year_start=self.year_start,
+                                          year_end=self.year_end,
+                                          locations=self.locations,
+                                          modeled_causes=self.modeled_causes)
+            _worker(entity_config, self.path, self.loaders[entity_type])
+            self.processed_entities.add((entity_type, entity_name))
 
 
-def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: multiprocessing.Lock) -> None:
+def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
     """Loads and writes the data for a single entity into a shared output file.
 
     Parameters
@@ -170,9 +165,6 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: mul
     loader :
         The function to load the entity's data. The loader must take an ``_EntityConfig`` object and
         the writer Callable defined within as arguments.
-    lock :
-        A mechanism to prevent multiple processes from writing to the output file at the
-        same time to prevent data corruption.
     """
     _log.info(f"Loading data for {entity_config.type}.{entity_config.name}")
 
@@ -180,11 +172,7 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: mul
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
 
-        lock.acquire()
-        try:
-            _dump(data, entity_config.type, entity_config.name, measure, path)
-        finally:
-            lock.release()
+        _dump(data, entity_config.type, entity_config.name, measure, path)
 
 
 
@@ -255,21 +243,24 @@ def _load_cause(entity_config: _EntityConfig) -> None:
 
     if cause.name != "all_causes":
         pafs = core.get_draws([cause], ["population_attributable_fraction"], entity_config.locations)
-        normalized = []
-        for key, group in pafs.groupby(["risk_id"]):
-            group = group.drop(["risk_id"], axis=1)
-            group = _normalize(group)
-            if key in RISK_BY_ID:
-                group["risk"] = RISK_BY_ID[key].name
-                dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "risk"]
-                normalized.append(group.set_index(dims))
-            else:
-                warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause {cause.name} but that risk is missing from the gbd mapping")
-        result = pd.concat(normalized).reset_index()
-        result = result[["year", "location", "sex", "age", "draw", "value", "risk"]]
-        yield "population_attributable_fraction", result
-        del normalized
-        del result
+        if pafs.empty:
+            warnings.warn(f"No Population Attributable Fraction data found for cause '{cause.name}'")
+        else:
+            normalized = []
+            for key, group in pafs.groupby(["risk_id"]):
+                group = group.drop(["risk_id"], axis=1)
+                group = _normalize(group)
+                if key in RISK_BY_ID:
+                    group["risk"] = RISK_BY_ID[key].name
+                    dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "risk"]
+                    normalized.append(group.set_index(dims))
+                else:
+                    warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause '{cause.name}' but that risk is missing from the gbd mapping")
+            result = pd.concat(normalized).reset_index()
+            result = result[["year", "location", "sex", "age", "draw", "value", "risk"]]
+            yield "population_attributable_fraction", result
+            del normalized
+            del result
 
     try:
         measures = ["remission"]
@@ -292,7 +283,7 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
 
     risk = risk_factors[entity_config.name]
 
-    yield "affected_causes", [c.name for c in risk.affected_causes]
+    yield "affected_causes", [c.name for c in risk.affected_causes if c.name in entity_config.modeled_causes]
     yield "restrictions", {
             "male_only": risk.restrictions.male_only,
             "female_only": risk.restrictions.female_only,
@@ -312,7 +303,9 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
             "min_val": risk.exposure_parameters.min_val,
         }
 
-    yield "levels" , [(f"cat{cat_number}", level_name) for level_name, cat_number in zip(risk.levels, range(60))]
+    if risk.levels is not None:
+        yield "levels" , [(f"cat{cat_number}", level_name) for level_name, cat_number in zip(risk.levels, range(60))]
+
     if risk.tmred is not None:
         yield "tmred", {
                 "distribution": risk.tmred.distribution,
@@ -474,7 +467,7 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
 def _load_coverage_gap(entity_config: _EntityConfig) -> None:
     entity = coverage_gaps[entity_config.name]
 
-    yield "affected_causes", [c.name for c in entity.affected_causes]
+    yield "affected_causes", [c.name for c in entity.affected_causes if c.name in entity_config.modeled_causes]
     yield "restrictions", {
             "male_only": entity.restrictions.male_only,
             "female_only": entity.restrictions.female_only,
@@ -510,8 +503,9 @@ def _load_coverage_gap(entity_config: _EntityConfig) -> None:
     yield "relative_risk", relative_risk
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
-    paf = _normalize(paf)
-    yield "population_attributable_fraction", paf
+    if not paf.empty:
+        paf = _normalize(paf)
+        yield "population_attributable_fraction", paf
 
 
 def _load_etiology(entity_config: _EntityConfig) -> None:
