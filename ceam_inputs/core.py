@@ -563,9 +563,7 @@ def _handle_weird_exposure_measures(measure_data):
         # with the risk factors team to get the exposure reported consistently.  In the mean time
         # we scale the unit-full prevalence numbers to unit-less proportion numbers. - J.C.
         if measure_id == name_measure_map['prevalence']:
-            total_prevalence = pd.DataFrame(np.sum([risk_data.loc[risk_data['parameter'] == parameter, draw_cols].values
-                                                    for parameter in risk_data['parameter'].unique()], axis=0),
-                                            columns=draw_cols, index=risk_data.index.drop_duplicates())
+            total_prevalence = risk_data.reset_index().groupby(key_cols).sum()
             for parameter in risk_data['parameter'].unique():
                 correct_parameter = risk_data['parameter'] == parameter
                 measure_data.loc[correct_risk & correct_parameter, draw_cols] /= total_prevalence
