@@ -1,4 +1,4 @@
-from vivarium.configuration import ConfigTree  # Just for typing info.
+from vivarium.config_tree import ConfigTree  # Just for typing info.
 
 from ceam_inputs.gbd_mapping import *
 from ceam_inputs import core
