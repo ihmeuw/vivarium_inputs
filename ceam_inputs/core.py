@@ -441,7 +441,8 @@ def _get_population_attributable_fraction(entities, location_ids):
             measure_data = gbd.get_pafs(risk_ids=measure_ids, location_ids=location_ids)
             measure_data = _filter_to_most_detailed(measure_data)
 
-            # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows. Eventually we should fix it for real
+            # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows.
+            # Eventually we should fix it for real
             draws = [c for c in measure_data.columns if 'draw_' in c]
             measure_data = measure_data.loc[~(measure_data[draws] == 1).any(axis=1)]
 
@@ -481,7 +482,7 @@ def _get_exposure(entities, location_ids):
         measure_data = gbd.get_exposures(risk_ids=measure_ids, location_ids=location_ids)
 
         if isinstance(entities[0], (Risk, Etiology)):
-            measure_data = _handle_weird_exposure_measures(measure_data) 
+            measure_data = _handle_weird_exposure_measures(measure_data)
         if isinstance(entities[0], CoverageGap):
             measure_data = _handle_coverage_gap_data(entities, measure_data, 0)
 
@@ -500,8 +501,7 @@ def _get_exposure(entities, location_ids):
             try:
                 data.append(gbd.get_data_from_auxiliary_file(entity.exposure, location_id=location_id))
             except FileNotFoundError:
-                raise DataMissingError(f'Exposure data for {entity.name} is not available for locations '
-                        f'{location_id}')
+                raise DataMissingError(f'Exposure data for {entity.name} is not available for locations {location_id}')
         return pd.concat(data)
     else:
         raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'exposure'")
@@ -550,12 +550,7 @@ def _handle_weird_exposure_measures(measure_data):
         correct_risk = measure_data['risk_id'] == risk_id
         risk_data = measure_data[correct_risk]
 
-        measure_ids = risk_data.measure_id.unique()
-        if len(measure_ids) > 1:
-            raise UnhandledDataError("Exposures should always come back with a single measure, "
-                                     "or they should be dealt with as a special case.  ")
-
-        measure_id = int(measure_ids)
+        measure_id = _get_exposure_measure_id(risk_data)
 
         # FIXME:
         # Some categorical risks come from cause models, or they get weird exposure models that
@@ -563,7 +558,7 @@ def _handle_weird_exposure_measures(measure_data):
         # with the risk factors team to get the exposure reported consistently.  In the mean time
         # we scale the unit-full prevalence numbers to unit-less proportion numbers. - J.C.
         if measure_id == name_measure_map['prevalence']:
-            total_prevalence = risk_data.reset_index().groupby(key_cols).sum()
+            total_prevalence = risk_data[draw_cols].reset_index().groupby(key_cols).sum()
             for parameter in risk_data['parameter'].unique():
                 correct_parameter = risk_data['parameter'] == parameter
                 measure_data.loc[correct_risk & correct_parameter, draw_cols] /= total_prevalence
@@ -571,6 +566,15 @@ def _handle_weird_exposure_measures(measure_data):
             measure_data.loc[correct_risk, 'measure_id'] = name_measure_map['proportion']
 
     return measure_data.reset_index()
+
+
+def _get_exposure_measure_id(data):
+    measure_ids = data.measure_id.unique()
+    if len(measure_ids) > 1:
+        raise UnhandledDataError("Exposures should always come back with a single measure, "
+                                 "or they should be dealt with as a special case.  ")
+
+    return int(measure_ids)
 
 
 def _get_exposure_standard_deviation(entities, location_ids):
