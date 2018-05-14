@@ -417,7 +417,8 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
         try:
             protection = core.get_draws([treatment_technology], ["protection"], entity_config.locations)
             protection = _normalize(protection)
-            protection = protection[["location", "draw", "value"]]
+            # FIXME: I think the 'treatment_technolgy' column is an indication that the rota vaccine data is shaped badly
+            protection = protection[["location", "draw", "value", "treatment_technology"]]
             protection["value"] = protection.value.astype(float)
             yield "protection", protection
         except core.DataMissingError:
@@ -533,7 +534,10 @@ def _load_population(entity_config: _EntityConfig) -> None:
 
 def _load_covariate(entity_config: _EntityConfig) -> None:
     entity = covariates[entity_config.name]
-    estimate = get_covariate_estimates([entity.gbd_id], entity_config.locations)
+    location_ids = [core.LOCATION_IDS_BY_NAME[l] for l in entity_config.locations]
+    estimate = get_covariate_estimates([entity.gbd_id], location_ids)
+    estimate['location'] = estimate.location_id.apply(core.LOCATION_NAMES_BY_ID.get)
+    estimate = estimate.drop('location_id', 'columns')
 
     if entity is covariates.age_specific_fertility_rate:
         columns = ["location", "mean_value", "lower_value", "upper_value", "age_group_id", "sex_id", "year_id"]

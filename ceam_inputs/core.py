@@ -310,6 +310,7 @@ def _get_cause_specific_mortality(entities, location_ids):
 
     populations = get_populations(locations)
     populations = populations[populations['year_id'] >= deaths.year_id.min()]
+    populations["location_id"] = populations.location.apply(LOCATION_IDS_BY_NAME.get)
 
     merge_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id']
     key_columns = merge_columns + ['cause_id']
@@ -413,20 +414,18 @@ def _get_relative_risk(entities, location_ids):
     return measure_data
 
 
-def _filter_to_most_detailed(data, entity_type):
-    entity_list = {
-            Cause: causes,
-            Etiology: etiologies,
-            CoverageGap: coverage_gaps,
-        }[entity_type]
-    most_detailed_risks = {r.gbd_id for r in risk_factors if r is not None}
-    return data.query('rei_id in @most_detailed_risks')
+def _filter_to_most_detailed(data):
+    for column, entity_list in [('cause_id', causes), ('etiology_id', etiologies), ('risk_id', risk_factors)]:
+        if column in data:
+            most_detailed = {e.gbd_id for e in entity_list if e is not None}
+            data = data.query(f"{column} in @most_detailed")
+    return data
 
 def _get_population_attributable_fraction(entities, location_ids):
     if isinstance(entities[0], (Cause, Etiology, CoverageGap)):
         measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
         measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids)
-        measure_data = _filter_to_most_detailed(measure_data, type(entities[0]))
+        measure_data = _filter_to_most_detailed(measure_data)
 
         # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows. Eventually we should fix it for real
         draws = [c for c in measure_data.columns if 'draw_' in c]
@@ -663,7 +662,7 @@ def get_risk_correlation_matrix(locations):
     for location_id in location_ids:
         df = risk_factor_correlation.load_matrices(location_id=location_id,
                                                    gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
-        df['location_id'] = location_id
+        df['location'] = LOCATION_NAMES_BY_ID[location_id]
         data.append(df)
     return pd.concat(data)
 
@@ -676,7 +675,8 @@ def get_risk_correlation_matrix(locations):
 def get_populations(locations):
     location_ids = [LOCATION_IDS_BY_NAME[location] for location in locations]
     populations = pd.concat([gbd.get_populations(location_id) for location_id in location_ids])
-    keep_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population']
+    populations["location"] = populations.location_id.apply(LOCATION_NAMES_BY_ID.get)
+    keep_columns = ['age_group_id', 'location', 'year_id', 'sex_id', 'population']
     return populations[keep_columns]
 
 
