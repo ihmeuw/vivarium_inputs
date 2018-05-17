@@ -4,6 +4,8 @@ import pytest
 import pandas as pd
 import numpy as np
 
+from vivarium.test_util import metadata
+
 from ceam_inputs import gbd
 from ceam_inputs.util import get_input_config
 from ceam_inputs.gbd_mapping import causes, risk_factors, sid
@@ -11,14 +13,17 @@ from ceam_inputs.gbd_mapping import causes, risk_factors, sid
 
 @pytest.fixture(scope='module')
 def base_config():
-    base_config = get_input_config()
-    # Remove user overrides but keep custom cache locations if any
-    base_config.reset_layer('override', preserve_keys=['input_data.intermediary_data_cache_path',
-                                                       'input_data.auxiliary_data_folder'])
-    base_config.time.start.year = 1990
-    base_config.time.end.year = 2010
-    base_config.time.step_size = 30.5
-    return base_config
+    config = get_input_config()
+
+    config.update({
+        'time': {
+            'start': {'year': 1990},
+            'end': {'year': 2010},
+            'step_size': 30.5
+        }
+    }, **metadata(__file__))
+
+    return config
 
 
 @pytest.fixture
@@ -51,7 +56,7 @@ def locations():
 
 
 def clean_cod_mock_output(cause_ids, location_ids):
-    age = gbd.get_age_group_ids(gbd.GBD_ROUND_ID)
+    age = gbd.get_age_group_id(gbd.GBD_ROUND_ID)
     measure = [1, 4]
     metric = [1]
     version = [66.]
@@ -71,7 +76,7 @@ def clean_cod_mock_output(cause_ids, location_ids):
 
 
 def clean_me_mock_output(me_ids, location_ids):
-    age = gbd.get_age_group_ids(gbd.GBD_ROUND_ID)
+    age = gbd.get_age_group_id(gbd.GBD_ROUND_ID)
     measure = [5, 7, 9, 11, 12, 13, 14, 15, 16, 6]
     metric = [3]
     version = [190274.]
@@ -93,7 +98,7 @@ def clean_me_mock_output(me_ids, location_ids):
 
 
 def clean_como_mock_output(entity_ids, location_ids):
-    age = gbd.get_age_group_ids(gbd.GBD_ROUND_ID)
+    age = gbd.get_age_group_id(gbd.GBD_ROUND_ID)
     measure = [3, 5, 6]
     metric = [3]
     sex = [1, 2, 3]
@@ -113,17 +118,10 @@ def clean_como_mock_output(entity_ids, location_ids):
 def clean_rr_mock_output(risk_ids, location_ids):
     risks = {r.gbd_id: r for r in risk_factors if r.gbd_id in risk_ids}
 
-    age = gbd.get_age_group_ids(gbd.GBD_ROUND_ID)
+    age = gbd.get_age_group_id(gbd.GBD_ROUND_ID)
     sex = [1, 2]
     year = [1990, 1995, 2000, 2005, 2010, 2016]
     me_id = np.random.randint(1000, 10000, len(risk_ids))
-
-
-
-
-
-
-
 
 
 @pytest.fixture
