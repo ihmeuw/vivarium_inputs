@@ -17,7 +17,7 @@ FILES = {
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv',
         },
     'Ensemble Distribution Weights': {
-        'path': 'ensemble_weight/risk/{rei_id}.csv',
+        'path': 'ensemble_weight/risk/weights/{rei_id}.csv',
         'source': '/home/j/WORK/05_risk/ensemble/weights',
         'owner': 'Patrick J Sur <psur2417@uw.edu>, Stan Biryukov <stan0625@uw.edu>',
         },
