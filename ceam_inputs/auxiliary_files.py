@@ -17,7 +17,7 @@ FILES = {
         'source': '/home/j/WORK/04_epi/03_outputs/01_code/02_dw/03_custom/combined_dws.csv',
         },
     'Ensemble Distribution Weights': {
-        'path': 'ensemble_weight/risk/{rei_id}.csv',
+        'path': 'ensemble_weight/risk/weights/{rei_id}.csv',
         'source': '/home/j/WORK/05_risk/ensemble/weights',
         'owner': 'Patrick J Sur <psur2417@uw.edu>, Stan Biryukov <stan0625@uw.edu>',
         },
@@ -26,7 +26,7 @@ FILES = {
         'owner': 'Reed Sorenson <rsoren@uw.edu>',
         },
     'Risk Standard Deviation Meids': {
-       'path': 'risk_exposure_sd_mapping.csv',
+       'path': 'metadata/risk_exposure_sd_mapping.csv',
        'owner': 'Zane Rankin <zrankin@uw.edu>',
     },
     'Inpatient Visit Costs': {
@@ -79,7 +79,7 @@ FILES = {
         'owner': 'Everett Mumford <emumford@uw.edu>',
     },
     'Risk Data': {
-        'path': 'risk_variables.xlsx',
+        'path': 'metadata/risk_variables.xlsx',
         'source': '/home/j/WORK/05_risk/central/documentation/GBD\ 2016/risk_variables.xlsx',
         'owner': 'Kelly Cercy <kcercy@uw.edu>'
     }
@@ -93,7 +93,7 @@ def auxiliary_file_path(name, **kwargs):
     elif platform.system() == "Linux":
          template_parameters['j_drive']= "/home/j"
     elif platform.system() == "Darwin":
-         template_parameters['j_drive']= os.path.expanduser("~/j")
+         template_parameters['j_drive']= "/home/j"
     else:
         raise IOError
     raw_path = FILES[name]['path']
