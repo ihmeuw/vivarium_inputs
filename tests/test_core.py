@@ -61,10 +61,10 @@ def test_get_ids_for_relative_risk(cause_list, risk_list):
 
 
 def test_get_ids_for_population_attributable_fraction(cause_list, risk_list):
-    ids = core._get_ids_for_measure(risk_list, 'population_attributable_fraction')
-    assert set(ids) == {r.gbd_id for r in risk_list}
+    ids = core._get_ids_for_measure(cause_list, 'population_attributable_fraction')
+    assert set(ids) == {r.gbd_id for r in cause_list}
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure(cause_list, 'population_attributable_fraction')
+        core._get_ids_for_measure(risk_list, 'population_attributable_fraction')
 
 
 def test_get_draws_bad_args(cause_list, risk_list, locations):

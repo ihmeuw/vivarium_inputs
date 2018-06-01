@@ -47,7 +47,7 @@ def risk_list():
 
 @pytest.fixture
 def locations():
-    return [161, 179, 180, 6, 7, 214]
+    return ['Bangladesh', 'Ethiopia', 'Kenya', 'China', 'North Korea', 'Nigeria']
 
 
 def clean_cod_mock_output(cause_ids, location_ids):
