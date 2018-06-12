@@ -99,7 +99,7 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'prevalence': (_get_prevalence, set()),
         'incidence': (_get_incidence, set()),
         'relative_risk': (_get_relative_risk, {'cause_id', 'parameter', }),
-        'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id', }),
+        'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id', 'risk_id',}),
         'cause_specific_mortality': (_get_cause_specific_mortality, set()),
         'excess_mortality': (_get_excess_mortality, set()),
         'exposure': (_get_exposure, {'parameter', }),
@@ -137,10 +137,10 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
     draw_columns = [f'draw_{i}' for i in range(0, 1000)]
 
     data = data[key_columns + draw_columns].reset_index(drop=True)
+    _validate_data(data, key_columns)
     if "location_id" in data:
         data["location"] = data.location_id.apply(LOCATION_NAMES_BY_ID.get)
         data = data.drop("location_id", "columns")
-    _validate_data(data, key_columns)
 
     return data
 
@@ -448,7 +448,7 @@ def _compute_paf_for_special_cases(entity, location_ids):
 
 
 def _get_population_attributable_fraction(entities, location_ids):
-    if isinstance(entities[0], (Risk, Etiology, CoverageGap)):
+    if isinstance(entities[0], (Cause, Etiology, CoverageGap)):
         # any special_case whose PAF needs to be directly computed
         SPECIAL = [risk_factors.unsafe_water_source]
         special_cases = list(set(entities).intersection(SPECIAL))
@@ -459,7 +459,7 @@ def _get_population_attributable_fraction(entities, location_ids):
                 paf = paf.append(_compute_paf_for_special_cases(entity, location_ids))
         if regular_cases:
             measure_ids = _get_ids_for_measure(regular_cases, 'population_attributable_fraction')
-            measure_data = gbd.get_pafs(risk_ids=measure_ids, location_ids=location_ids)
+            measure_data = gbd.get_pafs(cause_ids=measure_ids, location_ids=location_ids).rename(columns={"rei_id": "risk_id"})
             measure_data = _filter_to_most_detailed(measure_data)
 
             # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows.
