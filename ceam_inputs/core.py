@@ -422,27 +422,32 @@ def _filter_to_most_detailed(data):
     return data
 
 
-def _compute_paf_for_special_cases(entity, location_ids):
+def _compute_paf_for_special_cases(cause, risk, location_ids):
+    # TODO This could take in lists of causes and risks and probably be more efficient but in practice
+    # the outer function will rarely be invoked that way so I'm going to do the simple thing here.
+
+    cause_id = cause.gbd_id
     paf = pd.DataFrame()
     for location_id in location_ids:
-        ex = _get_exposure([entity], [location_id])
+        ex = _get_exposure([risk], [location_id])
         key_cols = ['age_group_id', 'year_id', 'sex_id', 'parameter']
         rr_cols = key_cols + ['cause_id']
-        rr = _get_relative_risk([entity], [location_id])
+        rr = _get_relative_risk([risk], [location_id])
+
         years = rr.year_id.unique()
         relative_risk = rr.set_index(rr_cols)
         exposure = ex[ex['year_id'].isin(years)].set_index(key_cols)
         draw_columns = ['draw_{}'.format(i) for i in range(1000)]
-        cause_ids = rr.cause_id.unique()
-        for cause_id in cause_ids:
-            rr_cause = relative_risk.xs(key=cause_id, level='cause_id')
-            temp = rr_cause[draw_columns]*exposure[draw_columns]
-            temp_sum = temp.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
-            temp_result = ((temp_sum-1)/temp_sum)
-            temp_result['cause_id'] = cause_id
-            temp_result['location_id'] = location_id
-            temp_result['risk_id'] = ex.risk_id.unique()[0]
-            paf = paf.append(temp_result)
+
+        rr_cause = relative_risk.xs(key=cause_id, level='cause_id')
+        temp = rr_cause[draw_columns]*exposure[draw_columns]
+        temp_sum = temp.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
+        temp_result = ((temp_sum-1)/temp_sum)
+        temp_result['cause_id'] = cause_id
+        temp_result['location_id'] = location_id
+        temp_result['risk_id'] = ex.risk_id.unique()[0]
+        temp_result['measure_id'] = 3
+        paf = paf.append(temp_result)
     paf = paf.reset_index()
     return paf
 
@@ -451,41 +456,43 @@ def _get_population_attributable_fraction(entities, location_ids):
     if isinstance(entities[0], (Cause, Etiology, CoverageGap)):
         # any special_case whose PAF needs to be directly computed
         SPECIAL = [risk_factors.unsafe_water_source]
-        special_cases = list(set(entities).intersection(SPECIAL))
-        regular_cases = list(set(entities)-set(special_cases))
-        paf = pd.DataFrame()
-        if special_cases:
-            for entity in special_cases:
-                paf = paf.append(_compute_paf_for_special_cases(entity, location_ids))
-        if regular_cases:
-            measure_ids = _get_ids_for_measure(regular_cases, 'population_attributable_fraction')
-            measure_data = gbd.get_pafs(cause_ids=measure_ids, location_ids=location_ids).rename(columns={"rei_id": "risk_id"})
-            measure_data = _filter_to_most_detailed(measure_data)
+        measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
+        measure_data = gbd.get_pafs(cause_ids=measure_ids, location_ids=location_ids).rename(columns={"rei_id": "risk_id"})
+        measure_data = _filter_to_most_detailed(measure_data)
 
-            # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows.
-            # Eventually we should fix it for real
-            draws = [c for c in measure_data.columns if 'draw_' in c]
-            measure_data = measure_data.loc[~(measure_data[draws] == 1).any(axis=1)]
+        risks_in_result = measure_data.risk_id.unique()
+        special_cases = [r for r in SPECIAL if r.gbd_id in risks_in_result]
+        for risk in special_cases:
+            special_causes = measure_data[measure_data.risk_id == risk.gbd_id].cause_id.unique()
+            special_causes = [cause for cause in causes if cause and cause.gbd_id in special_causes and cause is not causes.all_causes]
+            for cause in special_causes:
+                special_paf = _compute_paf_for_special_cases(cause, risk, location_ids)
+                measure_data = measure_data.query("risk_id != @risk.gbd_id or cause_id != @cause.gbd_id")
+                measure_data = measure_data.append(special_paf)
 
-            # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
-            # measure_ids = {name_measure_map[m] for m in ['death', 'DALY', 'YLD', 'YLL']}
-            # err_msg = ("Not all PAF data has values for deaths, DALYs, YLDs and YLLs. "
-            #           + "This may not indicate an error but it is a case we don't explicitly handle. "
-            #           + "If you need this PAF, come talk to one of the programmers.")
-            # assert np.all(
-            #    measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
+        # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows.
+        # Eventually we should fix it for real
+        draws = [c for c in measure_data.columns if 'draw_' in c]
+        measure_data = measure_data.loc[~(measure_data[draws] == 1).any(axis=1)]
 
-            # TODO: figure out if we need to assert some property of the different PAF measures
-            measure_data = measure_data[measure_data['measure_id'] == name_measure_map['YLD']]
-            # FIXME: Is this the only data we need to delete measure id for?
-            del measure_data['measure_id']
-            if isinstance(entities[0], Etiology):
-                measure_data = measure_data.rename(columns={'risk_id': 'etiology_id'})
-            if isinstance(entities[0], CoverageGap):
-                measure_data = measure_data.rename(columns={'risk_id': 'coverage_gap_id'})
-            paf = paf.append(measure_data)
+        # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
+        # measure_ids = {name_measure_map[m] for m in ['death', 'DALY', 'YLD', 'YLL']}
+        # err_msg = ("Not all PAF data has values for deaths, DALYs, YLDs and YLLs. "
+        #           + "This may not indicate an error but it is a case we don't explicitly handle. "
+        #           + "If you need this PAF, come talk to one of the programmers.")
+        # assert np.all(
+        #    measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
 
-        return paf
+        # TODO: figure out if we need to assert some property of the different PAF measures
+        measure_data = measure_data[measure_data['measure_id'] == name_measure_map['YLD']]
+        # FIXME: Is this the only data we need to delete measure id for?
+        del measure_data['measure_id']
+        if isinstance(entities[0], Etiology):
+            measure_data = measure_data.rename(columns={'risk_id': 'etiology_id'})
+        if isinstance(entities[0], CoverageGap):
+            measure_data = measure_data.rename(columns={'risk_id': 'coverage_gap_id'})
+
+        return measure_data
     elif isinstance(entities[0], TreatmentTechnology):
         data = []
         for entity, location_id in product(entities, location_ids):
