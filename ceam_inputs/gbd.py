@@ -386,7 +386,7 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.Da
 
 
 @memory.cache
-def get_pafs(entity_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
+def get_pafs(entity_ids: Iterable, location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level pafs for all risks associated with a particular cause, location, and gbd round."""
     from get_draws.api import get_draws
     warnings.filterwarnings("default", module="get_draws")

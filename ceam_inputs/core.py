@@ -99,7 +99,7 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'prevalence': (_get_prevalence, set()),
         'incidence': (_get_incidence, set()),
         'relative_risk': (_get_relative_risk, {'cause_id', 'parameter', }),
-        'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id', 'risk_id',}),
+        'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id',}),
         'cause_specific_mortality': (_get_cause_specific_mortality, set()),
         'excess_mortality': (_get_excess_mortality, set()),
         'exposure': (_get_exposure, {'parameter', }),
@@ -457,18 +457,23 @@ def _get_population_attributable_fraction(entities, location_ids):
         # any special_case whose PAF needs to be directly computed
         SPECIAL = [risk_factors.unsafe_water_source]
         measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
-        measure_data = gbd.get_pafs(cause_ids=measure_ids, location_ids=location_ids).rename(columns={"rei_id": "risk_id"})
+        measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids)
+        if type(entities[0]) is Etiology:
+            measure_data = measure_data.rename(columns={"rei_id": "etiology_id"})
+        else:
+            measure_data = measure_data.rename(columns={"rei_id": "risk_id"})
         measure_data = _filter_to_most_detailed(measure_data)
 
-        risks_in_result = measure_data.risk_id.unique()
-        special_cases = [r for r in SPECIAL if r.gbd_id in risks_in_result]
-        for risk in special_cases:
-            special_causes = measure_data[measure_data.risk_id == risk.gbd_id].cause_id.unique()
-            special_causes = [cause for cause in causes if cause and cause.gbd_id in special_causes and cause is not causes.all_causes]
-            for cause in special_causes:
-                special_paf = _compute_paf_for_special_cases(cause, risk, location_ids)
-                measure_data = measure_data.query("risk_id != @risk.gbd_id or cause_id != @cause.gbd_id")
-                measure_data = measure_data.append(special_paf)
+        if type(entities[0]) is Cause:
+            risks_in_result = measure_data.risk_id.unique()
+            special_cases = [r for r in SPECIAL if r.gbd_id in risks_in_result]
+            for risk in special_cases:
+                special_causes = measure_data[measure_data.risk_id == risk.gbd_id].cause_id.unique()
+                special_causes = [cause for cause in causes if cause and cause.gbd_id in special_causes and cause is not causes.all_causes]
+                for cause in special_causes:
+                    special_paf = _compute_paf_for_special_cases(cause, risk, location_ids)
+                    measure_data = measure_data.query("risk_id != @risk.gbd_id or cause_id != @cause.gbd_id")
+                    measure_data = measure_data.append(special_paf)
 
         # TODO: We currently do not handle the case where PAF==1 well so we just dump those rows.
         # Eventually we should fix it for real

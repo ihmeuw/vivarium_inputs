@@ -3,8 +3,8 @@ import hashlib
 
 import pandas as pd
 
-from ceam_inputs.gbd_mapping import causes, risk_factors
-from ceam_inputs import core
+from ceam_inputs.gbd_mapping import causes, risk_factors, Etiology, Cause
+from ceam_inputs import core, rid
 
 
 def test_get_ids_for_inconsistent_entities(cause_list, sequela_list):
@@ -97,27 +97,35 @@ def mock_rrs(mocker):
 @pytest.fixture
 def mock_pafs(mocker, cause_list):
     risk_cause_pafs = {}
-    def mock_pafs(cause_ids, location_ids):
+    def mock_pafs(entity_ids, location_ids):
         pafs = []
-        for c in cause_ids:
-            for r in {r.gbd_id for r in risk_factors if c in [cc.gbd_id for cc in r.affected_causes]}:
-                if risk_cause_pafs:
-                    if (r, c) in risk_cause_pafs:
-                        current_paf = risk_cause_pafs[(r, c)]
+        for gbd_id in entity_ids:
+            if isinstance(gbd_id, rid):
+                rids = [gbd_id]
+                #TODO This assumes that all non-cause entities are diarrhea etiologies
+                cids = [causes.diarrheal_diseases.gbd_id]
+            else:
+                rids = {r.gbd_id for r in risk_factors if gbd_id in [cc.gbd_id for cc in r.affected_causes]}
+                cids = [gbd_id]
+            for c in cids:
+                for r in rids:
+                    if risk_cause_pafs:
+                        if (r, c) in risk_cause_pafs:
+                            current_paf = risk_cause_pafs[(r, c)]
+                        else:
+                            current_paf = int(hashlib.md5(str((r, c)).encode()).hexdigest(), 16)
+                            current_paf /= 2**128
+                            risk_cause_pafs[(r, c)] = current_paf
                     else:
-                        current_paf = int(hashlib.md5(str((r, c)).encode()).hexdigest(), 16)
-                        current_paf /= 2**128
+                        current_paf = 0.001
                         risk_cause_pafs[(r, c)] = current_paf
-                else:
-                    current_paf = 0.001
-                    risk_cause_pafs[(r, c)] = current_paf
 
-                age_groups = [10, 11, 12]
-                years = [1990, 1995]
-                sexes = [1, 2]
-                idx = pd.MultiIndex.from_product([[c],        [r],      age_groups,     years,     sexes,    [3],          location_ids],
-                                           names=["cause_id", "rei_id", "age_group_id", "year_id", "sex_id", "measure_id", "location_id"])
-                pafs.append(pd.DataFrame({f"draw_{i}":current_paf for i in range(1000)}, index=idx).reset_index())
+                    age_groups = [10, 11, 12]
+                    years = [1990, 1995]
+                    sexes = [1, 2]
+                    idx = pd.MultiIndex.from_product([[c],        [r],      age_groups,     years,     sexes,    [3],          location_ids],
+                                               names=["cause_id", "rei_id", "age_group_id", "year_id", "sex_id", "measure_id", "location_id"])
+                    pafs.append(pd.DataFrame({f"draw_{i}":current_paf for i in range(1000)}, index=idx).reset_index())
         return pd.concat(pafs)
 
 
@@ -169,32 +177,48 @@ def test__compute_paf_for_special_cases(mock_rrs, mock_exposures, locations):
             assert all(paf[[f"draw_{i}" for i in range(1000)]] == true_paf)
 
 
-def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposures, cause_list, locations):
+@pytest.fixture(params=["cause", "etiology"])
+def cause_like_entities(request, cause_list, etiology_list):
+    if request.param == "cause":
+        return cause_list
+    elif request.param == "etiology":
+        return etiology_list
+
+
+def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposures, cause_like_entities, locations):
     _, risk_cause_pafs = mock_pafs
 
-    pafs = core.get_draws(cause_list, ["population_attributable_fraction"], locations)
-    assert {c.gbd_id for c in cause_list if c not in [causes.all_causes, causes.tetanus]} == set(pafs.cause_id.unique())
+    pafs = core.get_draws(cause_like_entities, ["population_attributable_fraction"], locations)
+    if isinstance(cause_like_entities[0], Etiology):
+        id_column = "etiology_id"
+        paired_id_column = "cause_id"
+        expected_paired_entities = {causes.diarrheal_diseases.gbd_id}
+    else:
+        id_column = "cause_id"
+        paired_id_column = "risk_id"
+        expected_paired_entities = {r.gbd_id for r in risk_factors if set(cause_like_entities).intersection(r.affected_causes)}
+    assert {c.gbd_id for c in cause_like_entities if c not in [causes.all_causes, causes.tetanus]} == set(pafs[id_column].unique())
 
-    expected_risks = {r.gbd_id for r in risk_factors if set(cause_list).intersection(r.affected_causes)}
-    assert expected_risks == set(pafs.risk_id.unique())
+    assert expected_paired_entities == set(pafs[paired_id_column].unique())
 
     assert set(locations) == set(pafs.location.unique())
 
     for (r, c), v in risk_cause_pafs.items():
-        assert all(pafs.query("risk_id == @r and cause_id == @c")[[f"draw_{i}" for i in range(1000)]] == v)
+        assert all(pafs.query(f"{id_column} == @r and cause_id == @c")[[f"draw_{i}" for i in range(1000)]] == v)
 
-    #TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction where it isn't
-    # really accessible for tests. Should probably clean that up.
-    special_risks = [risk_factors.unsafe_water_source]
-    location_ids = [core.LOCATION_IDS_BY_NAME[name] for name in locations]
-    for risk in special_risks:
-        for cause in risk.affected_causes:
-            special = core._compute_paf_for_special_cases(cause, risk, location_ids)
-            special['location'] = special.location_id.apply(core.LOCATION_NAMES_BY_ID.get)
-            del special['location_id']
-            del special['measure_id']
-            special = special.set_index(['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id'])
-            assert all(pafs.drop('measure', 'columns').set_index(['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id']).reindex(special.index) == special)
+    if isinstance(cause_like_entities[0], Cause):
+        #TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction where it isn't
+        # really accessible for tests. Should probably clean that up.
+        special_risks = [risk_factors.unsafe_water_source]
+        location_ids = [core.LOCATION_IDS_BY_NAME[name] for name in locations]
+        for risk in special_risks:
+            for cause in risk.affected_causes:
+                special = core._compute_paf_for_special_cases(cause, risk, location_ids)
+                special['location'] = special.location_id.apply(core.LOCATION_NAMES_BY_ID.get)
+                del special['location_id']
+                del special['measure_id']
+                special = special.set_index(['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id'])
+                assert all(pafs.drop('measure', 'columns').set_index(['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id']).reindex(special.index) == special)
 
 
 def test_get_draws_bad_args(cause_list, risk_list, locations):

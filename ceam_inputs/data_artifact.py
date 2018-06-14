@@ -96,20 +96,20 @@ class ArtifactBuilder:
 
         self.process(entity_path)
 
-        self.artifact.open()
+        self.artifact.open(self.path, self.year_start, self.year_end, 0, self.locations[0])
         result = self.artifact.load(entity_path, keep_age_group_edges, **column_filters)
         self.artifact.close()
 
         return result
 
     def start_processing(self, component_manager: ComponentManager, path: str, locations: Sequence[str], loaders: Mapping[str, Callable]=None) -> None:
-        self.modeled_causes = {c.name for c in component_manager.components if isinstance(c, DiseaseModel)}
+        self.modeled_causes = {c.cause for c in component_manager._components if isinstance(c, DiseaseModel)}
         self.locations = locations
         if loaders is None:
             loaders = LOADERS
         self.loaders = loaders
         self.path = path
-        self.artifact = Artifact(path, self.year_start, self.year_end, 0, locations[0])
+        self.artifact = Artifact()
 
         age_bins = core.get_age_bins()
         dimensions = [range(self.year_start, self.year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
