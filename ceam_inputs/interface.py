@@ -99,13 +99,12 @@ def get_population_attributable_fraction(entity, risk, override_config=None):
     config = get_input_config(override_config)
     data = core.get_draws([entity], ['population_attributable_fraction'],
                           [config.input_data.location]).drop('measure', 'columns')
-    data = data[data['risk_id'] == cause.gbd_id]
+    data = data[data['risk_id'] == risk.gbd_id]
     return _clean_and_filter_data(data, config.input_data.input_draw_number, 'population_attributable_fraction')
 
 
 def get_ensemble_weights(risk, override_config=None):
-    config = get_input_config(override_config)
-    return core.get_ensemble_weights([risk], [config.input_data.location])
+    return core.get_ensemble_weights([risk])
 
 
 def get_mediation_factor(risk, cause, override_config=None):

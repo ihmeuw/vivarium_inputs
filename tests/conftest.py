@@ -8,7 +8,7 @@ from vivarium.test_util import metadata
 
 from ceam_inputs import gbd
 from ceam_inputs.util import get_input_config
-from ceam_inputs.gbd_mapping import causes, risk_factors, sid
+from ceam_inputs.gbd_mapping import causes, risk_factors, sid, etiologies
 
 
 @pytest.fixture(scope='module')
@@ -30,6 +30,7 @@ def base_config():
 def cause_list():
     return [causes.diarrheal_diseases, causes.ischemic_heart_disease, causes.ischemic_stroke,
             causes.hemorrhagic_stroke, causes.tetanus, causes.diabetes_mellitus, causes.all_causes]
+
 
 @pytest.fixture
 def etiology_list():

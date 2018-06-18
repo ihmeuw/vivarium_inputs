@@ -110,7 +110,6 @@ def interpolate_years(data: pd.DataFrame, dimensions: pd.DataFrame) -> pd.DataFr
             start = data[data['year'] == previous_year].sort_values(index_columns).reset_index(drop=True)
             end = data[data['year'] == next_year].sort_values(index_columns).reset_index(drop=True)
 
-
             interpolated = interpolate(start, end, index_columns, 'year', value_columns, previous_year, next_year)
             interpolated = interpolated[interpolated['year'] == year]
             out.append(interpolated)

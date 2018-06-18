@@ -69,11 +69,13 @@ def test_get_ids_for_population_attributable_fraction(cause_list, risk_list):
     with pytest.raises(core.InvalidQueryError):
         core._get_ids_for_measure(risk_list, 'population_attributable_fraction')
 
+
 # TODO there's a bunch of repeated code in the next three functions but I'm not sure what the general form should be yet
 @pytest.fixture
 def mock_rrs(mocker):
     rrs_mock = mocker.patch("ceam_inputs.core._get_relative_risk")
     rr_map = {}
+
     def rr_builder(risks, locations):
         rrs = []
         for risk in risks:
@@ -87,22 +89,25 @@ def mock_rrs(mocker):
                 age_groups = [10, 11, 12]
                 years = [1990, 1995]
                 sexes = [1, 2]
-                idx = pd.MultiIndex.from_product([[cause.gbd_id], [risk.gbd_id], age_groups,     years,     sexes,    locations,  ["continuous"]],
-                                           names=["cause_id",     "risk_id",     "age_group_id", "year_id", "sex_id", "location_id", "parameter"])
-                rrs.append(pd.DataFrame({f"draw_{i}":current_rr for i in range(1000)}, index=idx).reset_index())
+                idx = pd.MultiIndex.from_product(
+                    [[cause.gbd_id],   [risk.gbd_id], age_groups,     years,     sexes,    locations,  ["continuous"]],
+                    names=["cause_id", "risk_id",     "age_group_id", "year_id", "sex_id", "location_id", "parameter"])
+                rrs.append(pd.DataFrame({f"draw_{i}": current_rr for i in range(1000)}, index=idx).reset_index())
         return pd.concat(rrs)
     rrs_mock.side_effect = rr_builder
     return rrs_mock, rr_map
 
+
 @pytest.fixture
 def mock_pafs(mocker, cause_list):
     risk_cause_pafs = {}
+
     def mock_pafs(entity_ids, location_ids):
         pafs = []
         for gbd_id in entity_ids:
             if isinstance(gbd_id, rid):
                 rids = [gbd_id]
-                #TODO This assumes that all non-cause entities are diarrhea etiologies
+                # TODO This assumes that all non-cause entities are diarrhea etiologies
                 cids = [causes.diarrheal_diseases.gbd_id]
             else:
                 rids = {r.gbd_id for r in risk_factors if gbd_id in [cc.gbd_id for cc in r.affected_causes]}
@@ -123,20 +128,22 @@ def mock_pafs(mocker, cause_list):
                     age_groups = [10, 11, 12]
                     years = [1990, 1995]
                     sexes = [1, 2]
-                    idx = pd.MultiIndex.from_product([[c],        [r],      age_groups,     years,     sexes,    [3],          location_ids],
-                                               names=["cause_id", "rei_id", "age_group_id", "year_id", "sex_id", "measure_id", "location_id"])
+                    idx = pd.MultiIndex.from_product(
+                        [[c],               [r],      age_groups,     years,     sexes,    [3],          location_ids],
+                        names=["cause_id", "rei_id", "age_group_id", "year_id", "sex_id", "measure_id", "location_id"])
                     pafs.append(pd.DataFrame({f"draw_{i}":current_paf for i in range(1000)}, index=idx).reset_index())
         return pd.concat(pafs)
-
 
     gbd_mock = mocker.patch("ceam_inputs.core.gbd")
     gbd_mock.get_pafs.side_effect = mock_pafs
     return gbd_mock, risk_cause_pafs
 
+
 @pytest.fixture
 def mock_exposures(mocker):
     exposures_mock = mocker.patch("ceam_inputs.core._get_exposure")
     exposure_map = {}
+
     def exposure_builder(risks, locations):
         exposures = []
         for risk in risks:
@@ -150,19 +157,22 @@ def mock_exposures(mocker):
             age_groups = [10, 11, 12]
             years = [1990, 1995]
             sexes = [1, 2]
-            idx = pd.MultiIndex.from_product([[risk.gbd_id], age_groups,     years,     sexes,    locations,  ["continuous"]],
-                                       names=["risk_id",     "age_group_id", "year_id", "sex_id", "location_id", "parameter"])
+            idx = pd.MultiIndex.from_product(
+                [[risk.gbd_id],   age_groups,     years,     sexes,    locations,  ["continuous"]],
+                names=["risk_id", "age_group_id", "year_id", "sex_id", "location_id", "parameter"])
             exposures.append(pd.DataFrame({f"draw_{i}":current_exposure for i in range(1000)}, index=idx).reset_index())
         return pd.concat(exposures)
 
     exposures_mock.side_effect = exposure_builder
     return exposures_mock, exposure_map
 
+
 def test__compute_paf_for_special_cases(mock_rrs, mock_exposures, locations):
     _, rrs = mock_rrs
     _, exposures = mock_exposures
-    #TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction where it isn't
-    # really accessible for tests. Should probably clean that up.
+
+    # TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction
+    # where it isn't really accessible for tests. Should probably clean that up.
     special_risks = [risk_factors.unsafe_water_source]
 
     location_ids = [core.LOCATION_IDS_BY_NAME[name] for name in locations]
@@ -207,8 +217,8 @@ def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposure
         assert all(pafs.query(f"{id_column} == @r and cause_id == @c")[[f"draw_{i}" for i in range(1000)]] == v)
 
     if isinstance(cause_like_entities[0], Cause):
-        #TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction where it isn't
-        # really accessible for tests. Should probably clean that up.
+        # TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction
+        # where it isn't really accessible for tests. Should probably clean that up.
         special_risks = [risk_factors.unsafe_water_source]
         location_ids = [core.LOCATION_IDS_BY_NAME[name] for name in locations]
         for risk in special_risks:
@@ -218,7 +228,11 @@ def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposure
                 del special['location_id']
                 del special['measure_id']
                 special = special.set_index(['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id'])
-                assert all(pafs.drop('measure', 'columns').set_index(['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id']).reindex(special.index) == special)
+                assert all(
+                    pafs.drop('measure', 'columns').set_index(
+                        ['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id']
+                    ).reindex(special.index) == special
+                )
 
 
 def test_get_draws_bad_args(cause_list, risk_list, locations):

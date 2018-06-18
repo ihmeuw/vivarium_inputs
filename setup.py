@@ -10,6 +10,7 @@ setup(name='ceam_inputs',
           'numpy',
           'scipy',
           'joblib',
+          'tables',
       ],
       extras_require={
           'gbd_access': [

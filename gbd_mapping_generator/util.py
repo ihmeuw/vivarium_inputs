@@ -132,6 +132,7 @@ def make_record(name, attrs=None, superclass=None, docstring=None):
     out += make_attribute_assignment([attr[0] for attr in attrs])
     return out
 
+
 def get_default_output_directory():
     here = os.path.realpath(__file__)
     return os.path.realpath(os.path.dirname(here) + '/../ceam_inputs/gbd_mapping/')

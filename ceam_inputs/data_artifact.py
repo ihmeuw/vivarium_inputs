@@ -1,9 +1,7 @@
 import os
 import warnings
-import multiprocessing
 from collections import defaultdict
-from random import shuffle
-from typing import Tuple, Optional, NamedTuple, Sequence, Mapping, Iterable, Callable
+from typing import Optional, NamedTuple, Sequence, Mapping, Iterable, Callable
 
 import pandas as pd
 import tables
@@ -23,8 +21,8 @@ from .gbd_mapping import (causes, risk_factors, sequelae, healthcare_entities,
 import logging
 _log = logging.getLogger(__name__)
 
-CAUSE_BY_ID = {c.gbd_id:c for c in causes if c is not None}
-RISK_BY_ID = {r.gbd_id:r for r in risk_factors}
+CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
+RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
 
 
 class DataArtifactError(Exception):
@@ -41,10 +39,10 @@ class _EntityConfig(NamedTuple):
     """A representation of an entity and the context in which to load it's data."""
     type: str
     name: str
-    locations: Sequence[int]
+    locations: Iterable[str]
     year_start: int
     year_end: int
-    modeled_causes: Sequence[str]
+    modeled_causes: Iterable[str]
     entity: Optional[str] = None
 
 
@@ -74,12 +72,6 @@ class ArtifactBuilder:
     """Builds a data artifact by first accumulating requests, then loading and writing the data in parallel.
 
     The data is output into an HDF file suitable for parsing by the ``vivarium`` simulation framework.
-
-    Attributes
-    ----------
-    entities :
-        The entities (e.g. causes, risk factors, treatment technologies, etc.) whose data will
-        be included in the artifact.
     """
 
     def __init__(self):
@@ -102,7 +94,8 @@ class ArtifactBuilder:
 
         return result
 
-    def start_processing(self, component_manager: ComponentManager, path: str, locations: Sequence[str], loaders: Mapping[str, Callable]=None) -> None:
+    def start_processing(self, component_manager: ComponentManager, path: str,
+                         locations: Sequence[str], loaders: Mapping[str, Callable]=None) -> None:
         self.modeled_causes = {c.cause for c in component_manager._components if isinstance(c, DiseaseModel)}
         self.locations = locations
         if loaders is None:
@@ -125,14 +118,8 @@ class ArtifactBuilder:
 
         Parameters
         ----------
-        path :
+        entity_path :
             The absolute path to the output HDF file to write.
-        locations :
-            A set of locations to load data for.
-        parallelism :
-            The number of processes to use when loading the data. Defaults to the number of available CPUs.
-        loaders :
-            A mapping between entity types and the functions that load their data.
 
         Note
         ----
@@ -173,7 +160,6 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
 
         _dump(data, entity_config.type, entity_config.name, measure, path)
-
 
 
 def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
@@ -252,10 +238,12 @@ def _load_cause(entity_config: _EntityConfig) -> None:
                 group = _normalize(group)
                 if key in RISK_BY_ID:
                     group["risk"] = RISK_BY_ID[key].name
-                    dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "risk"]
+                    dims = ["year", "sex", "measure", "age", "age_group_start",
+                            "age_group_end", "location", "draw", "risk"]
                     normalized.append(group.set_index(dims))
                 else:
-                    warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause '{cause.name}' but that risk is missing from the gbd mapping")
+                    warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause "
+                                  f"'{cause.name}' but that risk is missing from the gbd mapping")
             result = pd.concat(normalized).reset_index()
             result = result[["year", "location", "sex", "age", "draw", "value", "risk"]]
             yield "population_attributable_fraction", result
@@ -417,7 +405,8 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
         try:
             protection = core.get_draws([treatment_technology], ["protection"], entity_config.locations)
             protection = _normalize(protection)
-            # FIXME: I think the 'treatment_technolgy' column is an indication that the rota vaccine data is shaped badly
+            # FIXME: I think the 'treatment_technology' column is an indication
+            # that the rota vaccine data is shaped badly
             protection = protection[["location", "draw", "value", "treatment_technology"]]
             protection["value"] = protection.value.astype(float)
             yield "protection", protection
@@ -437,10 +426,14 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
         yield "relative_risk", None
 
     if treatment_technology.population_attributable_fraction:
-        population_attributable_fraction = core.get_draws([treatment_technology], ["population_attributable_fraction"], entity_config.locations)
+        population_attributable_fraction = core.get_draws([treatment_technology],
+                                                          ["population_attributable_fraction"],
+                                                          entity_config.locations)
         population_attributable_fraction = _normalize(population_attributable_fraction)
-        population_attributable_fraction["cause"] = population_attributable_fraction.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        population_attributable_fraction = population_attributable_fraction[["year", "location", "cause", "sex", "age", "draw", "value"]]
+        population_attributable_fraction["cause"] = population_attributable_fraction.cause_id.apply(
+            lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        population_attributable_fraction = population_attributable_fraction[
+            ["year", "location", "cause", "sex", "age", "draw", "value"]]
         yield "population_attributable_fraction", population_attributable_fraction
     else:
         yield "population_attributable_fraction", None
