@@ -2,7 +2,7 @@ import argparse
 
 from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.plugins import PluginManager
-from vivarium.interface.testing import TestingContext
+from vivarium.interface.interactive import InteractiveContext
 
 
 def main():
@@ -26,7 +26,7 @@ def main():
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
 
-    simulation = TestingContext(simulation_config, components, plugin_manager)
+    simulation = InteractiveContext(simulation_config, components, plugin_manager)
     simulation.data.start_processing(simulation.component_manager, args.output_path,
                                      [simulation.configuration.input_data.location])
     simulation.setup()
