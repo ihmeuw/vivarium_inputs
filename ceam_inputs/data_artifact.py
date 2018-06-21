@@ -1,7 +1,7 @@
 import os
 import warnings
 from collections import defaultdict
-from typing import Optional, NamedTuple, Sequence, Mapping, Iterable, Callable
+from typing import Optional, NamedTuple, Sequence, Mapping, Iterable, Callable, Tuple
 
 import pandas as pd
 import tables
@@ -48,6 +48,7 @@ class _EntityConfig(NamedTuple):
 
 def _normalize(data: pd.DataFrame) -> pd.DataFrame:
     """Remove GBD specific column names and concepts and make the dataframe long over draws."""
+    assert not data.empty
     data = normalize_for_simulation(data)
     if "age_group_id" in data:
         data = get_age_group_midpoint_from_age_group_id(data)
@@ -58,12 +59,25 @@ def _normalize(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
+def _parse_entity_path(entity_path: str) -> Tuple[str, Optional[str], str]:
+    # FIXME We need a better specification of what the paths can be. This is confusing.
+    entity_type, *tail = entity_path.split('.')
+    if len(tail) == 2:
+        entity_name = tail[0]
+        measure = tail[1]
+    elif len(tail) == 1:
+        entity_name = None
+        measure = tail[0]
+    else:
+        raise ValueError(f"Invalid entity path: {entity_path}")
+
+    return entity_type, entity_name, measure
+
 def _entities_by_type(entities: Iterable[str]) -> Mapping[str, set]:
     """Split a list of entity paths and group the entity names by entity type."""
     entity_by_type = defaultdict(set)
     for entity_path in entities:
-        entity_type, *tail = entity_path.split('.')
-        entity_name = tail[0] if tail else None
+        entity_type, entity_name, _ = _parse_entity_path(entity_path)
         entity_by_type[entity_type].add(entity_name)
     return entity_by_type
 
@@ -126,8 +140,7 @@ class ArtifactBuilder:
         The data loading process can be memory intensive. To reduce peak consumption, reduce parallelism.
         """
 
-        entity_type, *tail = entity_path.split('.')
-        entity_name = tail[0] if tail else None
+        entity_type, entity_name, _ = _parse_entity_path(entity_path)
 
         if (entity_type, entity_name) not in self.processed_entities:
             entity_config = _EntityConfig(type=entity_type,
@@ -162,32 +175,40 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
         _dump(data, entity_config.type, entity_config.name, measure, path)
 
 
-def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
-    if data is None:
-        return
-    print(entity_name)
-    """Write a dataset out to the target HDF file keyed by the entity the data corresponds to."""
+def _prepare_key(entity_type: str, entity_name: Optional[str], measure: str) -> Sequence[str]:
     key_components = ["/", entity_type]
     if entity_name:
         key_components.append(entity_name)
 
-    # FIXME: This is weird but I don't want to think of a cleaner way right now
-    if measure.startswith("../"):
-        measure = measure[3:]
-        key_components.pop()
+    return key_components + [measure]
 
-    key = os.path.join(*(key_components + [measure]))
+def _dump(data, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
+    if data is None:
+        return
+    print(entity_name)
+
+    key_components = _prepare_key(entity_type, entity_name, measure)
+
+    """Write a dataset out to the target HDF file keyed by the entity the data corresponds to."""
     if isinstance(data, (pd.DataFrame, pd.Series)):
-        data_columns = list({"year", "location", "draw", "cause", "risk"}.intersection(data.columns))
-        with pd.HDFStore(path, complevel=9, format="table") as store:
-            store.put(key, data, format="table", data_columns=data_columns)
+        _dump_dataframe(data, key_components, path)
     else:
-        prefix = os.path.join(*key_components)
+        _dump_json_blob(data, key_components, path)
+
+def _dump_dataframe(data, key_components: Sequence[str], path: str) -> None:
+        data_columns = list({"year", "location", "draw", "cause", "risk"}.intersection(data.columns))
+        inner_path = os.path.join(*key_components)
+        with pd.HDFStore(path, complevel=9, format="table") as store:
+            store.put(inner_path, data, format="table", data_columns=data_columns)
+
+def _dump_json_blob(data, key_components: Sequence[str], path:str) -> None:
+        inner_path = os.path.join(*key_components)
+        prefix = os.path.join(*key_components[:-2])
         store = tables.open_file(path, "a")
-        if key in store:
-            store.remove_node(key)
+        if inner_path in store:
+            store.remove_node(inner_path)
         try:
-            store.create_group(os.path.join(*key_components[:-1]), key_components[-1], createparents=True)
+            store.create_group(prefix, key_components[-2], createparents=True)
         except tables.exceptions.NodeError as e:
             if "already has a child node" in str(e):
                 # The parent group already exists, which is fine
@@ -195,7 +216,7 @@ def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], meas
             else:
                 raise
 
-        fnode = filenode.new_node(store, where=prefix, name=measure)
+        fnode = filenode.new_node(store, where=os.path.join(*key_components[:-1]), name=key_components[-1])
         fnode.write(bytes(json.dumps(data), "utf-8"))
         fnode.close()
         store.close()
@@ -516,13 +537,13 @@ def _load_population(entity_config: _EntityConfig) -> None:
     pop = core.get_populations(entity_config.locations)
     pop = normalize_for_simulation(pop)
     pop = get_age_group_midpoint_from_age_group_id(pop)
-    yield "../structure", pop
+    yield "structure", pop
 
     bins = core.get_age_bins()[["age_group_years_start", "age_group_years_end", "age_group_name"]]
     bins = bins.rename(columns={"age_group_years_start": "age_group_start", "age_group_years_end": "age_group_end"})
-    yield "../age_bins", bins
+    yield "age_bins", bins
 
-    yield "../theoretical_minimum_risk_life_expectancy", core.get_theoretical_minimum_risk_life_expectancy()
+    yield "theoretical_minimum_risk_life_expectancy", core.get_theoretical_minimum_risk_life_expectancy()
 
 
 def _load_covariate(entity_config: _EntityConfig) -> None:
