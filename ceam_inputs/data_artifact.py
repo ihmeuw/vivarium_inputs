@@ -102,7 +102,7 @@ class ArtifactBuilder:
 
         self.process(entity_path)
 
-        self.artifact.open(self.path, self.year_start, self.year_end, 0, self.locations[0])
+        self.artifact.open()
         result = self.artifact.load(entity_path, keep_age_group_edges, **column_filters)
         self.artifact.close()
 
@@ -116,7 +116,7 @@ class ArtifactBuilder:
             loaders = LOADERS
         self.loaders = loaders
         self.path = path
-        self.artifact = Artifact()
+        self.artifact = Artifact(self.path, self.year_start, self.year_end, 0, self.locations[0])
 
         age_bins = core.get_age_bins()
         dimensions = [range(self.year_start, self.year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
