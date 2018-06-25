@@ -196,7 +196,7 @@ def _dump(data, entity_type: str, entity_name: Optional[str], measure: str, path
         _dump_json_blob(data, key_components, path)
 
 def _dump_dataframe(data, key_components: Sequence[str], path: str) -> None:
-        data_columns = list({"year", "location", "draw", "cause", "risk"}.intersection(data.columns))
+        data_columns = {"year", "location", "draw", "cause", "risk"}.intersection(data.columns)
         inner_path = os.path.join(*key_components)
         with pd.HDFStore(path, complevel=9, format="table") as store:
             store.put(inner_path, data, format="table", data_columns=data_columns)

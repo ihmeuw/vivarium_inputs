@@ -1,6 +1,6 @@
 import os
 
-from hypothesis import given, assume
+from hypothesis import given, assume, reproduce_failure
 import hypothesis.strategies as st
 from hypothesis.extra.pandas import data_frames, column
 
@@ -104,6 +104,7 @@ def test__prepare_key(entity_path):
     assert key_components[-1] == measure
     assert len(key_components) == expected_length
 
+#@reproduce_failure('3.59.2', b'AAEAAAEAAgEAAwEBAQAAAAEBAQABAAEAAQACAAA=')
 @given(
         entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES), st.sampled_from(POPULATION_ENTITY_PATHS)),
         columns = st.sets(st.sampled_from(["year", "location", "draw", "cause", "risk"]) | st.text(min_size=1, max_size=30)),
@@ -121,7 +122,7 @@ def test__dump_dataframe(entity_path, columns, path, mocker):
     mock_pd.HDFStore.assert_called_with(path, complevel=mocker.ANY, format="table")
 
     expected_columns = list({"year", "location", "draw", "cause", "risk"}.intersection(columns))
-    mock_pd.HDFStore().__enter__().put.assert_called_with(os.path.join(*key_components), data, format="table", data_columns=expected_columns)
+    mock_pd.HDFStore().__enter__().put.assert_called_with(os.path.join(*key_components), data, format="table", data_columns=set(expected_columns))
 
 @given(
         entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES), st.sampled_from(POPULATION_ENTITY_PATHS)),
