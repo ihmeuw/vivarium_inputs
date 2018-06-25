@@ -10,6 +10,7 @@ setup(name='ceam_inputs',
           'numpy',
           'scipy',
           'joblib',
+          'tables',
       ],
       extras_require={
           'gbd_access': [
@@ -18,6 +19,11 @@ setup(name='ceam_inputs',
               'db_tools',
               'db_queries',
               'risk_utils',
+          ]
+          'testing': [
+            'pytest',
+            'pytest-mock',
+            'hypothesis',
           ]
       }
       )

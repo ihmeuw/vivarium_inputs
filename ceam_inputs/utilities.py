@@ -48,7 +48,7 @@ def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex,
     dimensions = pd.concat([dimensions.assign(measure=measure) for measure in data.measure.unique()], ignore_index=True)
     draw_columns = [c for c in data.columns if 'draw_' in c]
 
-    assert set(dimensions.columns) <= {'age_group_id', 'sex', 'year', 'measure', 'location_id'}
+    assert set(dimensions.columns) <= {'age_group_id', 'sex', 'year', 'measure', 'location'}
     assert set(data.columns) <= set(dimensions.columns.tolist() + draw_columns)
     assert set(data.measure.unique()) <= fill_na_value.keys()
 
@@ -109,7 +109,6 @@ def interpolate_years(data: pd.DataFrame, dimensions: pd.DataFrame) -> pd.DataFr
             next_year = int(existing_extent[existing_extent > year].iloc[0])
             start = data[data['year'] == previous_year].sort_values(index_columns).reset_index(drop=True)
             end = data[data['year'] == next_year].sort_values(index_columns).reset_index(drop=True)
-
 
             interpolated = interpolate(start, end, index_columns, 'year', value_columns, previous_year, next_year)
             interpolated = interpolated[interpolated['year'] == year]

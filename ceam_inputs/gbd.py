@@ -386,7 +386,7 @@ def get_exposures(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.Da
 
 
 @memory.cache
-def get_pafs(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFrame:
+def get_pafs(entity_ids: Iterable, location_ids: Iterable[int]) -> pd.DataFrame:
     """Gets draw level pafs for all risks associated with a particular cause, location, and gbd round."""
     from get_draws.api import get_draws
     warnings.filterwarnings("default", module="get_draws")
@@ -399,9 +399,13 @@ def get_pafs(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFra
     # FIXME: This is not reflective of the actual file structure according to Joe. -James
     worker_count = 0 if current_process().daemon else 6  # One worker per 5-year burdenator file (1990 - 2015)
     results = []
-    for risk_id in risk_ids:
-        data = get_draws(gbd_id_type='rei_id',
-                gbd_id=risk_id,
+    for entity_id in entity_ids:
+        if isinstance(entity_id, rid):
+            id_type = 'rei_id'
+        else:
+            id_type = 'cause_id'
+        data = get_draws(gbd_id_type=id_type,
+                gbd_id=entity_id,
                 source='burdenator',
                 location_id=location_ids,
                 sex_id=MALE + FEMALE,
@@ -411,8 +415,6 @@ def get_pafs(risk_ids: Iterable[rid], location_ids: Iterable[int]) -> pd.DataFra
 
         data = data.query('metric_id == 2')
         del data['metric_id']
-
-        data = data.rename(columns={'rei_id': 'risk_id'})
 
         results.append(data)
     return pd.concat(results)
@@ -524,3 +526,8 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
     and process_id = 30
     '''
     return ezfuncs.query(query, conn_def='mortality')
+
+@memory.cache
+def get_location_ids() -> pd.DataFrame:
+    from db_queries import get_location_metadata
+    return get_location_metadata(location_set_id=2, gbd_round_id=GBD_ROUND_ID)[["location_id", "location_name"]]

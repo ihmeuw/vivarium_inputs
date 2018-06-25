@@ -8,7 +8,7 @@ from vivarium.test_util import metadata
 
 from ceam_inputs import gbd
 from ceam_inputs.util import get_input_config
-from ceam_inputs.gbd_mapping import causes, risk_factors, sid
+from ceam_inputs.gbd_mapping import causes, risk_factors, sid, etiologies
 
 
 @pytest.fixture(scope='module')
@@ -33,6 +33,11 @@ def cause_list():
 
 
 @pytest.fixture
+def etiology_list():
+    return [etiologies.cholera, etiologies.amoebiasis]
+
+
+@pytest.fixture
 def sequela_list():
     return list(causes.diarrheal_diseases.sequelae + causes.ischemic_heart_disease.sequelae
                 + causes.ischemic_stroke.sequelae + causes.hemorrhagic_stroke.sequelae
@@ -52,7 +57,7 @@ def risk_list():
 
 @pytest.fixture
 def locations():
-    return [161, 179, 180, 6, 7, 214]
+    return ['Bangladesh', 'Ethiopia', 'Kenya', 'China', 'North Korea', 'Nigeria']
 
 
 def clean_cod_mock_output(cause_ids, location_ids):

@@ -1,6 +1,6 @@
 input_data:
     intermediary_data_cache_path: /share/scratch/users/{username}/cache
-    location_id: 180
+    location: Kenya
     use_subregions: False
     input_draw_number: 0
     gbd_round_id: 4

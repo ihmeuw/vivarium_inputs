@@ -1,13 +1,18 @@
 import os
-import multiprocessing
+import warnings
 from collections import defaultdict
-from random import shuffle
-from typing import Tuple, Optional, NamedTuple, Sequence, Mapping, Iterable, Callable
+from typing import Optional, NamedTuple, Sequence, Mapping, Iterable, Callable, Tuple
 
 import pandas as pd
+import tables
+from tables.nodes import filenode
+import json
 
+from vivarium.framework.components import ComponentManager
 from ceam_inputs import core
 from ceam_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
+from ceam_public_health.dataset_manager import Artifact
+from ceam_public_health.disease.model import DiseaseModel
 
 from .gbd import get_estimation_years, get_covariate_estimates, GBD_ROUND_ID
 from .gbd_mapping import (causes, risk_factors, sequelae, healthcare_entities,
@@ -15,6 +20,9 @@ from .gbd_mapping import (causes, risk_factors, sequelae, healthcare_entities,
 
 import logging
 _log = logging.getLogger(__name__)
+
+CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
+RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
 
 
 class DataArtifactError(Exception):
@@ -31,15 +39,16 @@ class _EntityConfig(NamedTuple):
     """A representation of an entity and the context in which to load it's data."""
     type: str
     name: str
-    locations: Sequence[int]
+    locations: Iterable[str]
     year_start: int
     year_end: int
-    modeled_causes: Iterable
+    modeled_causes: Iterable[str]
     entity: Optional[str] = None
 
 
 def _normalize(data: pd.DataFrame) -> pd.DataFrame:
     """Remove GBD specific column names and concepts and make the dataframe long over draws."""
+    assert not data.empty
     data = normalize_for_simulation(data)
     if "age_group_id" in data:
         data = get_age_group_midpoint_from_age_group_id(data)
@@ -50,12 +59,25 @@ def _normalize(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
+def _parse_entity_path(entity_path: str) -> Tuple[str, Optional[str], str]:
+    # FIXME We need a better specification of what the paths can be. This is confusing.
+    entity_type, *tail = entity_path.split('.')
+    if len(tail) == 2:
+        entity_name = tail[0]
+        measure = tail[1]
+    elif len(tail) == 1:
+        entity_name = None
+        measure = tail[0]
+    else:
+        raise ValueError(f"Invalid entity path: {entity_path}")
+
+    return entity_type, entity_name, measure
+
 def _entities_by_type(entities: Iterable[str]) -> Mapping[str, set]:
     """Split a list of entity paths and group the entity names by entity type."""
     entity_by_type = defaultdict(set)
     for entity_path in entities:
-        entity_type, *tail = entity_path.split('.')
-        entity_name = tail[0] if tail else None
+        entity_type, entity_name, _ = _parse_entity_path(entity_path)
         entity_by_type[entity_type].add(entity_name)
     return entity_by_type
 
@@ -64,89 +86,74 @@ class ArtifactBuilder:
     """Builds a data artifact by first accumulating requests, then loading and writing the data in parallel.
 
     The data is output into an HDF file suitable for parsing by the ``vivarium`` simulation framework.
-
-    Attributes
-    ----------
-    entities :
-        The entities (e.g. causes, risk factors, treatment technologies, etc.) whose data will
-        be included in the artifact.
     """
 
     def __init__(self):
-        self.entities = set()
+        estimation_years = get_estimation_years(GBD_ROUND_ID)
+        self.year_start = min(estimation_years)
+        self.year_end = max(estimation_years)
+        self.processed_entities = set()
+        self.modeled_causes = set()
 
-    def data_container(self, entity_path: str) -> None:
+        self.artifact = None
+
+    def load(self, entity_path: str, keep_age_group_edges=False, **column_filters) -> None:
         """Records a request for entity data for future processing."""
-        self.entities.add(entity_path)
-        _log.info(f"Adding {entity_path} to list of data sets to load")
 
-    def process(self, path: str, locations: Sequence[int], parallelism: int=None,
-                loaders: Mapping[str, Callable]=None) -> None:
+        self.process(entity_path)
+
+        self.artifact.open()
+        result = self.artifact.load(entity_path, keep_age_group_edges, **column_filters)
+        self.artifact.close()
+
+        return result
+
+    def start_processing(self, component_manager: ComponentManager, path: str,
+                         locations: Sequence[str], loaders: Mapping[str, Callable]=None) -> None:
+        self.modeled_causes = {c.cause for c in component_manager._components if isinstance(c, DiseaseModel)}
+        self.locations = locations
+        if loaders is None:
+            loaders = LOADERS
+        self.loaders = loaders
+        self.path = path
+        self.artifact = Artifact(self.path, self.year_start, self.year_end, 0, self.locations[0])
+
+        age_bins = core.get_age_bins()
+        dimensions = [range(self.year_start, self.year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
+        dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location"])
+        dimensions = dimensions.to_frame().reset_index(drop=True)
+        _dump(dimensions, "dimensions", None, "full_space", path)
+
+    def end_processing(self) -> None:
+        pass
+
+    def process(self, entity_path: str) -> None:
         """Loads all requested data and writes it out to a HDF file.
 
         Parameters
         ----------
-        path :
+        entity_path :
             The absolute path to the output HDF file to write.
-        locations :
-            A set of locations to load data for.
-        parallelism :
-            The number of processes to use when loading the data. Defaults to the number of available CPUs.
-        loaders :
-            A mapping between entity types and the functions that load their data.
 
         Note
         ----
         The data loading process can be memory intensive. To reduce peak consumption, reduce parallelism.
         """
 
-        if loaders is None:
-            loaders = LOADERS
+        entity_type, entity_name, _ = _parse_entity_path(entity_path)
 
-        locations = locations
-
-        estimation_years = get_estimation_years(GBD_ROUND_ID)
-        year_start = min(estimation_years)
-        year_end = max(estimation_years)
-
-        entity_by_type = _entities_by_type(self.entities)
-
-        age_bins = core.get_age_bins()
-        dimensions = [range(year_start, year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
-        dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location_id"])
-        dimensions = dimensions.to_frame().reset_index(drop=True)
-        _dump(dimensions, "dimensions", None, "full_space", path)
-
-        if parallelism is None:
-            parallelism = multiprocessing.cpu_count()
-
-        lock_manager = multiprocessing.Manager()
-        lock = lock_manager.Lock()
-
-        pool = multiprocessing.Pool(parallelism)
-        by_type = list(entity_by_type.items())
-        shuffle(by_type)
-        jobs = []
-        for entity_type, entities in by_type:
-            for entity_name in entities:
-                entity_config = _EntityConfig(type=entity_type,
-                                              name=entity_name,
-                                              year_start=year_start,
-                                              year_end=year_end,
-                                              locations=locations,
-                                              modeled_causes=entity_by_type["cause"])
-                if parallelism > 1:
-                    jobs.append(pool.apply_async(_worker, (entity_config, path, loaders[entity_type], lock)))
-                else:
-                    _worker(entity_config, path, loaders[entity_type], lock)
-        pool.close()
-        # NOTE: This loop is necessary because without the calls to get exceptions raised within the
-        # workers would not be reraised here and the program could exit before all the workers finish.
-        for j in jobs:
-            j.get()
+        if (entity_type, entity_name) not in self.processed_entities:
+            entity_config = _EntityConfig(type=entity_type,
+                                          name=entity_name,
+                                          year_start=self.year_start,
+                                          year_end=self.year_end,
+                                          locations=self.locations,
+                                          modeled_causes=self.modeled_causes)
+            _worker(entity_config, self.path, self.loaders[entity_type])
+            self.processed_entities.add((entity_type, entity_name))
 
 
-def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: multiprocessing.Lock) -> None:
+def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
     """Loads and writes the data for a single entity into a shared output file.
 
     Parameters
@@ -158,9 +165,6 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: mul
     loader :
         The function to load the entity's data. The loader must take an ``_EntityConfig`` object and
         the writer Callable defined within as arguments.
-    lock :
-        A mechanism to prevent multiple processes from writing to the output file at the
-        same time to prevent data corruption.
     """
     _log.info(f"Loading data for {entity_config.type}.{entity_config.name}")
 
@@ -168,40 +172,115 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable, lock: mul
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
 
-        lock.acquire()
-        try:
-            _dump(data, entity_config.type, entity_config.name, measure, path)
-        finally:
-            lock.release()
+        _dump(data, entity_config.type, entity_config.name, measure, path)
 
 
-
-def _dump(data: pd.DataFrame, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
-    """Write a dataset out to the target HDF file keyed by the entity the data corresponds to."""
+def _prepare_key(entity_type: str, entity_name: Optional[str], measure: str) -> Sequence[str]:
     key_components = ["/", entity_type]
     if entity_name:
         key_components.append(entity_name)
 
-    key = os.path.join(*(key_components + [measure]))
-    with pd.HDFStore(path, complevel=9, format="table") as store:
-        store.put(key, data, format="table")
+    return key_components + [measure]
+
+def _dump(data, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
+    if data is None:
+        return
+    print(entity_name)
+
+    key_components = _prepare_key(entity_type, entity_name, measure)
+
+    """Write a dataset out to the target HDF file keyed by the entity the data corresponds to."""
+    if isinstance(data, (pd.DataFrame, pd.Series)):
+        _dump_dataframe(data, key_components, path)
+    else:
+        _dump_json_blob(data, key_components, path)
+
+def _dump_dataframe(data, key_components: Sequence[str], path: str) -> None:
+        data_columns = {"year", "location", "draw", "cause", "risk"}.intersection(data.columns)
+        inner_path = os.path.join(*key_components)
+        with pd.HDFStore(path, complevel=9, format="table") as store:
+            store.put(inner_path, data, format="table", data_columns=data_columns)
+
+def _dump_json_blob(data, key_components: Sequence[str], path:str) -> None:
+        inner_path = os.path.join(*key_components)
+        prefix = os.path.join(*key_components[:-2])
+        store = tables.open_file(path, "a")
+        if inner_path in store:
+            store.remove_node(inner_path)
+        try:
+            store.create_group(prefix, key_components[-2], createparents=True)
+        except tables.exceptions.NodeError as e:
+            if "already has a child node" in str(e):
+                # The parent group already exists, which is fine
+                pass
+            else:
+                raise
+
+        fnode = filenode.new_node(store, where=os.path.join(*key_components[:-1]), name=key_components[-1])
+        fnode.write(bytes(json.dumps(data), "utf-8"))
+        fnode.close()
+        store.close()
 
 
 def _load_cause(entity_config: _EntityConfig) -> None:
     measures = ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]
-    result = core.get_draws([causes[entity_config.name]], measures, entity_config.locations)
+    cause = causes[entity_config.name]
+
+    yield "restrictions", {
+            "male_only": cause.restrictions.male_only,
+            "female_only": cause.restrictions.female_only,
+            "yll_only": cause.restrictions.yll_only,
+            "yld_only": cause.restrictions.yld_only,
+            "yll_age_start": cause.restrictions.yll_age_start,
+            "yll_age_end": cause.restrictions.yll_age_end,
+            "yld_age_start": cause.restrictions.yld_age_start,
+            "yld_age_end": cause.restrictions.yld_age_end,
+    }
+
+    if cause.sequelae is not None:
+        yield "sequelae", [s.name for s in cause.sequelae]
+    if cause.etiologies is not None:
+        yield "etiologies", [e.name for e in cause.etiologies]
+
+    result = core.get_draws([cause], measures, entity_config.locations)
     result = _normalize(result)
     for key, group in result.groupby("measure"):
-        yield key, group
+        yield key, group[["year", "location", "sex", "age", "draw", "value"]]
     del result
+
+    if cause.name != "all_causes":
+        pafs = core.get_draws([cause], ["population_attributable_fraction"], entity_config.locations)
+        if pafs.empty:
+            warnings.warn(f"No Population Attributable Fraction data found for cause '{cause.name}'")
+        else:
+            normalized = []
+            for key, group in pafs.groupby(["risk_id"]):
+                group = group.drop(["risk_id"], axis=1)
+                group = _normalize(group)
+                if key in RISK_BY_ID:
+                    group["risk"] = RISK_BY_ID[key].name
+                    dims = ["year", "sex", "measure", "age", "age_group_start",
+                            "age_group_end", "location", "draw", "risk"]
+                    normalized.append(group.set_index(dims))
+                else:
+                    warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause "
+                                  f"'{cause.name}' but that risk is missing from the gbd mapping")
+            result = pd.concat(normalized).reset_index()
+            result = result[["year", "location", "sex", "age", "draw", "value", "risk"]]
+            yield "population_attributable_fraction", result
+            del normalized
+            del result
 
     try:
         measures = ["remission"]
         result = core.get_draws([causes[entity_config.name]], measures, entity_config.locations)
-        result["cause_id"] = causes[entity_config.name].gbd_id
-        yield "remission", result
+        if not result.empty:
+            result = _normalize(result)[["year", "location", "sex", "age", "draw", "value"]]
+            yield "remission", result
+        else:
+            yield "remission", None
     except core.InvalidQueryError:
-        pass
+        yield "remission", None
 
 
 def _load_risk_factor(entity_config: _EntityConfig) -> None:
@@ -213,18 +292,59 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
 
     risk = risk_factors[entity_config.name]
 
+    yield "affected_causes", [c.name for c in risk.affected_causes if c.name in entity_config.modeled_causes]
+    yield "restrictions", {
+            "male_only": risk.restrictions.male_only,
+            "female_only": risk.restrictions.female_only,
+            "yll_only": risk.restrictions.yll_only,
+            "yld_only": risk.restrictions.yld_only,
+            "yll_age_start": risk.restrictions.yll_age_start,
+            "yll_age_end": risk.restrictions.yll_age_end,
+            "yld_age_start": risk.restrictions.yld_age_start,
+            "yld_age_end": risk.restrictions.yld_age_end,
+    }
+    yield "distribution", risk.distribution
+    if risk.exposure_parameters is not None:
+        yield "exposure_parameters", {
+            "scale": risk.exposure_parameters.scale,
+            "max_rr": risk.exposure_parameters.max_rr,
+            "max_val": risk.exposure_parameters.max_val,
+            "min_val": risk.exposure_parameters.min_val,
+        }
+
+    if risk.levels is not None:
+        yield "levels" , [(f"cat{cat_number}", level_name) for level_name, cat_number in zip(risk.levels, range(60))]
+
+    if risk.tmred is not None:
+        yield "tmred", {
+                "distribution": risk.tmred.distribution,
+                "min": risk.tmred.min,
+                "max": risk.tmred.max,
+                "inverted": risk.tmred.inverted,
+        }
+    if risk.exposure_parameters is not None:
+        yield "exposure_parameters", {
+                "scale": risk.exposure_parameters.scale,
+                "max_rr": risk.exposure_parameters.max_rr,
+                "max_val": risk.exposure_parameters.max_val,
+                "min_val": risk.exposure_parameters.min_val,
+        }
+
     rrs = core.get_draws([risk], ["relative_risk"], entity_config.locations)
     normalized = []
     for key, group in rrs.groupby(["parameter", "cause_id"]):
         group = group.drop(["cause_id", "parameter"], axis=1)
         group = _normalize(group)
         group["parameter"] = key[0]
-        group["cause_id"] = key[1]
+        group["cause"] = CAUSE_BY_ID[key[1]].name
         dims = ["year", "sex", "measure", "age", "age_group_start",
-                "age_group_end", "location_id", "draw", "cause_id", "parameter"]
+                "age_group_end", "location", "draw", "cause", "parameter"]
         normalized.append(group.set_index(dims))
-    yield "relative_risk", pd.concat(normalized)
+    result = pd.concat(normalized).reset_index()
+    result = result[["year", "location", "sex", "age", "draw", "value", "parameter", "cause"]]
+    yield "relative_risk", result
     del normalized
+    del result
 
     mfs = core.get_draws([risk], ["mediation_factor"], entity_config.locations)
     if not mfs.empty:
@@ -233,19 +353,13 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         draw_columns = [c for c in mfs.columns if "draw_" in c]
         mfs = pd.melt(mfs, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
         mfs["draw"] = mfs.draw.str.partition("_")[2].astype(int)
+        mfs["cause"] = mfs.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        mfs["risk"] = mfs.risk_id.apply(lambda risk_id: RISK_BY_ID[risk_id].name)
+        mfs = mfs[["cause", "risk", "draw", "value"]]
         yield "mediation_factor", mfs
         del mfs
-
-    pafs = core.get_draws([risk], ["population_attributable_fraction"], entity_config.locations)
-    normalized = []
-    for key, group in pafs.groupby(["cause_id"]):
-        group = group.drop(["cause_id"], axis=1)
-        group = _normalize(group)
-        group["cause_id"] = key
-        dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location_id", "draw", "cause_id"]
-        normalized.append(group.set_index(dims))
-    yield "population_attributable_fraction", pd.concat(normalized)
-    del normalized
+    else:
+        yield "mediation_factor", None
 
     exposures = core.get_draws([risk], ["exposure"], entity_config.locations)
     normalized = []
@@ -253,25 +367,34 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         group = group.drop(["parameter"], axis=1)
         group = _normalize(group)
         group["parameter"] = key
-        dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location_id", "draw", "parameter"]
+        dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "parameter"]
         normalized.append(group.set_index(dims))
-    yield "exposure", pd.concat(normalized)
+    result = pd.concat(normalized).reset_index()
+    result = result[["year", "location", "sex", "age", "draw", "value", "parameter"]]
+    yield "exposure", result
     del normalized
+    del result
 
     if risk.exposure_parameters is not None:
-        exposure_stds = core.get_draws([risk], ["exposure_standard_deviation"], entity_config.locations)
-        exposure_stds = _normalize(exposure_stds)
-        yield "exposure_standard_deviation", exposure_stds
+        exposure_sds = core.get_draws([risk], ["exposure_standard_deviation"], entity_config.locations)
+        exposure_sds = _normalize(exposure_sds)
+        exposure_sds = exposure_sds[["year", "location", "sex", "age", "draw", "value"]]
+        yield "exposure_standard_deviation", exposure_sds
+    else:
+        yield "exposure_standard_deviation", None
 
 
 def _load_sequela(entity_config: _EntityConfig) -> None:
     sequela = sequelae[entity_config.name]
+
+    yield "healthstate", sequela.healthstate.name
+
     measures = ["prevalence", "incidence"]
     result = core.get_draws([sequela], measures, entity_config.locations).drop("sequela_id", axis=1)
     result = _normalize(result)
     result["sequela_id"] = sequela.gbd_id
     for key, group in result.groupby("measure"):
-        yield key, group
+        yield key, group[["year", "location", "sex", "age", "draw", "value"]]
     del result
 
     weights = core.get_draws([sequela], ["disability_weight"], entity_config.locations)
@@ -279,7 +402,7 @@ def _load_sequela(entity_config: _EntityConfig) -> None:
     draw_columns = [c for c in weights.columns if "draw_" in c]
     weights = pd.melt(weights, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
     weights["draw"] = weights.draw.str.partition("_")[2].astype(int)
-    yield "disability_weight", weights
+    yield "disability_weight", weights[['draw', 'value']]
 
 
 def _load_healthcare_entity(entity_config: _EntityConfig) -> None:
@@ -287,10 +410,12 @@ def _load_healthcare_entity(entity_config: _EntityConfig) -> None:
 
     cost = core.get_draws([healthcare_entity], ["cost"], entity_config.locations)
     cost = _normalize(cost)
+    cost = cost[["year", "location", "draw", "value"]]
     yield "cost", cost
 
     annual_visits = core.get_draws([healthcare_entity], ["annual_visits"], entity_config.locations)
     annual_visits = _normalize(annual_visits)
+    annual_visits = annual_visits[["year", "sex", "age", "value", "draw"]]
     yield "annual_visits", annual_visits
 
 
@@ -301,38 +426,83 @@ def _load_treatment_technology(entity_config: _EntityConfig) -> None:
         try:
             protection = core.get_draws([treatment_technology], ["protection"], entity_config.locations)
             protection = _normalize(protection)
+            # FIXME: I think the 'treatment_technology' column is an indication
+            # that the rota vaccine data is shaped badly
+            protection = protection[["location", "draw", "value", "treatment_technology"]]
+            protection["value"] = protection.value.astype(float)
             yield "protection", protection
         except core.DataMissingError:
             pass
+            yield "protection", None
+    else:
+        yield "protection", None
 
     if treatment_technology.relative_risk:
         relative_risk = core.get_draws([treatment_technology], ["relative_risk"], entity_config.locations)
         relative_risk = _normalize(relative_risk)
+        relative_risk["cause"] = relative_risk.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        relative_risk = relative_risk[["year", "location", "cause", "parameter", "sex", "age", "draw", "value"]]
         yield "relative_risk", relative_risk
+    else:
+        yield "relative_risk", None
+
+    if treatment_technology.population_attributable_fraction:
+        population_attributable_fraction = core.get_draws([treatment_technology],
+                                                          ["population_attributable_fraction"],
+                                                          entity_config.locations)
+        population_attributable_fraction = _normalize(population_attributable_fraction)
+        population_attributable_fraction["cause"] = population_attributable_fraction.cause_id.apply(
+            lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        population_attributable_fraction = population_attributable_fraction[
+            ["year", "location", "cause", "sex", "age", "draw", "value"]]
+        yield "population_attributable_fraction", population_attributable_fraction
+    else:
+        yield "population_attributable_fraction", None
 
     if treatment_technology.exposure:
         try:
             exposure = core.get_draws([treatment_technology], ["exposure"], entity_config.locations)
             exposure = _normalize(exposure)
+            exposure = exposure[["year", "location", "sex", "age", "draw", "value"]]
             yield "exposure", exposure
         except core.DataMissingError:
-            pass
+            yield "exposure", None
+    else:
+        yield "exposure", None
 
     if treatment_technology.cost:
         cost = core.get_draws([treatment_technology], ["cost"], entity_config.locations)
         cost = _normalize(cost)
+        cost = cost[["year", "location", "draw", "value", "treatment_technology"]]
         yield "cost", cost
+    else:
+        yield "cost", None
 
 
 def _load_coverage_gap(entity_config: _EntityConfig) -> None:
     entity = coverage_gaps[entity_config.name]
+
+    yield "affected_causes", [c.name for c in entity.affected_causes if c.name in entity_config.modeled_causes]
+    yield "restrictions", {
+            "male_only": entity.restrictions.male_only,
+            "female_only": entity.restrictions.female_only,
+            "yll_only": entity.restrictions.yll_only,
+            "yld_only": entity.restrictions.yld_only,
+            "yll_age_start": entity.restrictions.yll_age_start,
+            "yll_age_end": entity.restrictions.yll_age_end,
+            "yld_age_start": entity.restrictions.yld_age_start,
+            "yld_age_end": entity.restrictions.yld_age_end,
+    }
+    yield "distribution", entity.distribution
+
+    yield "levels" , [(f"cat{cat_number}", level_name) for level_name, cat_number in zip(entity.levels, range(60))]
 
     try:
         exposure = core.get_draws([entity], ["exposure"], entity_config.locations)
         exposure = _normalize(exposure)
         yield "exposure", exposure
     except core.InvalidQueryError:
-        pass
+        yield "exposure", None
 
     mediation_factor = core.get_draws([entity], ["mediation_factor"], entity_config.locations)
     if not mediation_factor.empty:
@@ -340,14 +510,17 @@ def _load_coverage_gap(entity_config: _EntityConfig) -> None:
         # error handling in ceam_inputs.core but hasn't finished yet
         mediation_factor = _normalize(mediation_factor)
         yield "mediation_factor", mediation_factor
+    else:
+        yield "mediation_factor", None
 
     relative_risk = core.get_draws([entity], ["relative_risk"], entity_config.locations)
     relative_risk = _normalize(relative_risk)
     yield "relative_risk", relative_risk
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
-    paf = _normalize(paf)
-    yield "population_attributable_fraction", paf
+    if not paf.empty:
+        paf = _normalize(paf)
+        yield "population_attributable_fraction", paf
 
 
 def _load_etiology(entity_config: _EntityConfig) -> None:
@@ -355,6 +528,8 @@ def _load_etiology(entity_config: _EntityConfig) -> None:
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
     paf = _normalize(paf)
+    paf["cause"] = paf.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+    paf = paf[["year", "location", "cause", "sex", "age", "draw", "value"]]
     yield "population_attributable_fraction", paf
 
 
@@ -373,15 +548,18 @@ def _load_population(entity_config: _EntityConfig) -> None:
 
 def _load_covariate(entity_config: _EntityConfig) -> None:
     entity = covariates[entity_config.name]
-    estimate = get_covariate_estimates([entity.gbd_id], entity_config.locations)
+    location_ids = [core.LOCATION_IDS_BY_NAME[l] for l in entity_config.locations]
+    estimate = get_covariate_estimates([entity.gbd_id], location_ids)
+    estimate['location'] = estimate.location_id.apply(core.LOCATION_NAMES_BY_ID.get)
+    estimate = estimate.drop('location_id', 'columns')
 
     if entity is covariates.age_specific_fertility_rate:
-        columns = ["location_id", "mean_value", "lower_value", "upper_value", "age_group_id", "sex_id", "year_id"]
+        columns = ["location", "mean_value", "lower_value", "upper_value", "age_group_id", "sex_id", "year_id"]
         estimate = estimate[columns]
         estimate = get_age_group_midpoint_from_age_group_id(estimate)
         estimate = normalize_for_simulation(estimate)
     elif entity in (covariates.live_births_by_sex, covariates.dtp3_coverage_proportion):
-        columns = ["location_id", "mean_value", "lower_value", "upper_value", "sex_id", "year_id"]
+        columns = ["location", "mean_value", "lower_value", "upper_value", "sex_id", "year_id"]
         estimate = estimate[columns]
         estimate = normalize_for_simulation(estimate)
     yield "estimate", estimate

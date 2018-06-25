@@ -51,7 +51,6 @@ treatment_technologies = TreatmentTechnologies(
     ors=TreatmentTechnology(
         name='ors',
         gbd_id=None,
-        cost='ORS Costs',
         unit_cost=0.50,  # As per Marcia 07/01/2017
         coverage=0.58,  # As per Marcia 07/01/2017
         population_attributable_fraction='Ors Pafs',

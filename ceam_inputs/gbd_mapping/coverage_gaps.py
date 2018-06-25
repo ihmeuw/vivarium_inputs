@@ -33,7 +33,8 @@ class CoverageGap(GbdRecord):
 
 class CoverageGaps(GbdRecord):
     """Container for coverage gaps."""
-    __slots__ = ('lack_of_exposure_to_antiretroviral_therapy', 'low_measles_vaccine_coverage_first_dose', 'low_hib_vaccine_coverage')
+    __slots__ = ('lack_of_exposure_to_antiretroviral_therapy', 'low_measles_vaccine_coverage_first_dose',
+                 'low_hib_vaccine_coverage')
 
     def __init__(self,
                  lack_of_exposure_to_antiretroviral_therapy: CoverageGap,
@@ -99,4 +100,3 @@ coverage_gaps = CoverageGaps(
     ),
 
 )
-
