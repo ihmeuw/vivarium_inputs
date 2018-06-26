@@ -5,3 +5,4 @@ pytest
 joblib
 -e git+git://github.com/ihmeuw/vivarium.git#egg=vivarium
 -e git+ssh://git@stash.ihme.washington.edu:7999/cste/ceam_public_health.git#egg=ceam_public_health
+hypothesis
