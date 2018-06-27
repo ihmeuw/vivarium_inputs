@@ -284,12 +284,6 @@ def _load_cause(entity_config: _EntityConfig) -> None:
 
 
 def _load_risk_factor(entity_config: _EntityConfig) -> None:
-    if entity_config.name == "correlations":
-        # TODO: weird special case but this groups it with the other risk data which  I think makes sense
-        correlations = core.get_risk_correlation_matrix(entity_config.locations)
-        yield "correlations", correlations
-        return
-
     risk = risk_factors[entity_config.name]
 
     yield "affected_causes", [c.name for c in risk.affected_causes if c.name in entity_config.modeled_causes]
@@ -311,6 +305,14 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
             "max_val": risk.exposure_parameters.max_val,
             "min_val": risk.exposure_parameters.min_val,
         }
+
+    if risk.distribution == "ensemble":
+        weights = core.get_ensemble_weights([risk])
+        weights = weights.drop(["location_id", "risk_id"], axis=1)
+        weights = normalize_for_simulation(weights)
+        weights = get_age_group_midpoint_from_age_group_id(weights)
+        yield "ensemble_weights", weights
+
 
     if risk.levels is not None:
         yield "levels" , [(f"cat{cat_number}", level_name) for level_name, cat_number in zip(risk.levels, range(60))]
@@ -345,21 +347,6 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
     yield "relative_risk", result
     del normalized
     del result
-
-    mfs = core.get_draws([risk], ["mediation_factor"], entity_config.locations)
-    if not mfs.empty:
-        # Not all risks have mediation factors
-        index_columns = [c for c in mfs.columns if "draw_" not in c]
-        draw_columns = [c for c in mfs.columns if "draw_" in c]
-        mfs = pd.melt(mfs, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
-        mfs["draw"] = mfs.draw.str.partition("_")[2].astype(int)
-        mfs["cause"] = mfs.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        mfs["risk"] = mfs.risk_id.apply(lambda risk_id: RISK_BY_ID[risk_id].name)
-        mfs = mfs[["cause", "risk", "draw", "value"]]
-        yield "mediation_factor", mfs
-        del mfs
-    else:
-        yield "mediation_factor", None
 
     exposures = core.get_draws([risk], ["exposure"], entity_config.locations)
     normalized = []
@@ -503,15 +490,6 @@ def _load_coverage_gap(entity_config: _EntityConfig) -> None:
         yield "exposure", exposure
     except core.InvalidQueryError:
         yield "exposure", None
-
-    mediation_factor = core.get_draws([entity], ["mediation_factor"], entity_config.locations)
-    if not mediation_factor.empty:
-        # TODO: This should probably be an exception. It looks like James was in the middle of doing better
-        # error handling in ceam_inputs.core but hasn't finished yet
-        mediation_factor = _normalize(mediation_factor)
-        yield "mediation_factor", mediation_factor
-    else:
-        yield "mediation_factor", None
 
     relative_risk = core.get_draws([entity], ["relative_risk"], entity_config.locations)
     relative_risk = _normalize(relative_risk)

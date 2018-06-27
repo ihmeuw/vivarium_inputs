@@ -19,7 +19,7 @@ setup(name='ceam_inputs',
               'db_tools',
               'db_queries',
               'risk_utils',
-          ]
+          ],
           'testing': [
             'pytest',
             'pytest-mock',
