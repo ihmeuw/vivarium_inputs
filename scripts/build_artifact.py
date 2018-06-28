@@ -1,3 +1,4 @@
+import logging
 import argparse
 
 from vivarium.framework.configuration import build_model_specification
@@ -9,8 +10,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('simulation_configuration', type=str)
     parser.add_argument('output_path', type=str)
+    parser.add_argument('--from_scratch', '-s', action="store_true", help="Do not reuse any data in the artifact, if any exists")
     args = parser.parse_args()
 
+
+    logging.basicConfig(level=logging.INFO)
     model_specification = build_model_specification(args.simulation_configuration)
     model_specification.plugins.optional.update({
         "data": {
@@ -28,7 +32,8 @@ def main():
 
     simulation = InteractiveContext(simulation_config, components, plugin_manager)
     simulation.data.start_processing(simulation.component_manager, args.output_path,
-                                     [simulation.configuration.input_data.location])
+                                     [simulation.configuration.input_data.location],
+                                     incremental=not args.from_scratch)
     simulation.setup()
     simulation.data.end_processing()
 

@@ -5,7 +5,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from ceam_inputs import gbd, risk_factor_correlation, causes, risk_factors, etiologies
+from ceam_inputs import gbd, risk_factor_correlation, causes, risk_factors, etiologies, coverage_gaps
 from ceam_inputs.gbd_mapping.templates import sid, UNKNOWN, Cause, Sequela, Etiology, Risk, ModelableEntity, scalar
 from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
 from ceam_inputs.gbd_mapping.coverage_gaps import CoverageGap
@@ -415,7 +415,7 @@ def _get_relative_risk(entities, location_ids):
 
 
 def _filter_to_most_detailed(data):
-    for column, entity_list in [('cause_id', causes), ('etiology_id', etiologies), ('risk_id', risk_factors)]:
+    for column, entity_list in [('cause_id', causes), ('etiology_id', etiologies), ('risk_id', risk_factors), ('coverage_gap_id', coverage_gaps)]:
         if column in data:
             most_detailed = {e.gbd_id for e in entity_list if e is not None}
             data = data.query(f"{column} in @most_detailed")
@@ -460,6 +460,8 @@ def _get_population_attributable_fraction(entities, location_ids):
         measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids)
         if type(entities[0]) is Etiology:
             measure_data = measure_data.rename(columns={"rei_id": "etiology_id"})
+        elif type(entities[0]) is CoverageGap:
+            measure_data = measure_data.rename(columns={"rei_id": "coverage_gap_id"})
         else:
             measure_data = measure_data.rename(columns={"rei_id": "risk_id"})
         measure_data = _filter_to_most_detailed(measure_data)
@@ -492,10 +494,6 @@ def _get_population_attributable_fraction(entities, location_ids):
         measure_data = measure_data[measure_data['measure_id'] == name_measure_map['YLD']]
         # FIXME: Is this the only data we need to delete measure id for?
         del measure_data['measure_id']
-        if isinstance(entities[0], Etiology):
-            measure_data = measure_data.rename(columns={'risk_id': 'etiology_id'})
-        if isinstance(entities[0], CoverageGap):
-            measure_data = measure_data.rename(columns={'risk_id': 'coverage_gap_id'})
 
         return measure_data
     elif isinstance(entities[0], TreatmentTechnology):
