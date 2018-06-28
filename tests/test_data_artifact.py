@@ -115,6 +115,7 @@ def test__dump_dataframe(entity_path, columns, path, mocker):
 
     mock_pd = mocker.patch("ceam_inputs.data_artifact.pd")
     data = mocker.Mock()
+    data.empty = False
     data.columns = list(columns)
 
     _dump_dataframe(data, key_components, path)
