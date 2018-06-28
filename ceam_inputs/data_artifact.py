@@ -88,7 +88,8 @@ class ArtifactBuilder:
     The data is output into an HDF file suitable for parsing by the ``vivarium`` simulation framework.
     """
 
-    def __init__(self):
+    def __init__(self, incremental=True):
+        self.incremental = incremental
         estimation_years = get_estimation_years(GBD_ROUND_ID)
         self.year_start = min(estimation_years)
         self.year_end = max(estimation_years)
@@ -100,7 +101,17 @@ class ArtifactBuilder:
     def load(self, entity_path: str, keep_age_group_edges=False, **column_filters) -> None:
         """Records a request for entity data for future processing."""
 
-        self.process(entity_path)
+        needs_load = True
+        if self.incremental:
+            self.artifact.open()
+            if ("/"+entity_path.replace(".", "/")) in self.artifact._hdf:
+                needs_load = False
+            self.artifact.close()
+
+        if needs_load:
+            self.process(entity_path)
+        else:
+            _log.info(f"Loading '{entity_path}' from artifact")
 
         self.artifact.open()
         result = self.artifact.load(entity_path, keep_age_group_edges, **column_filters)
@@ -185,7 +196,6 @@ def _prepare_key(entity_type: str, entity_name: Optional[str], measure: str) -> 
 def _dump(data, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
     if data is None:
         return
-    print(entity_name)
 
     key_components = _prepare_key(entity_type, entity_name, measure)
 
@@ -196,30 +206,32 @@ def _dump(data, entity_type: str, entity_name: Optional[str], measure: str, path
         _dump_json_blob(data, key_components, path)
 
 def _dump_dataframe(data, key_components: Sequence[str], path: str) -> None:
-        data_columns = {"year", "location", "draw", "cause", "risk"}.intersection(data.columns)
-        inner_path = os.path.join(*key_components)
-        with pd.HDFStore(path, complevel=9, format="table") as store:
-            store.put(inner_path, data, format="table", data_columns=data_columns)
+    if data.empty:
+        raise ValueError("Cannot persist empty dataset")
+    data_columns = {"year", "location", "draw", "cause", "risk"}.intersection(data.columns)
+    inner_path = os.path.join(*key_components)
+    with pd.HDFStore(path, complevel=9, format="table") as store:
+        store.put(inner_path, data, format="table", data_columns=data_columns)
 
 def _dump_json_blob(data, key_components: Sequence[str], path:str) -> None:
-        inner_path = os.path.join(*key_components)
-        prefix = os.path.join(*key_components[:-2])
-        store = tables.open_file(path, "a")
-        if inner_path in store:
-            store.remove_node(inner_path)
-        try:
-            store.create_group(prefix, key_components[-2], createparents=True)
-        except tables.exceptions.NodeError as e:
-            if "already has a child node" in str(e):
-                # The parent group already exists, which is fine
-                pass
-            else:
-                raise
+    inner_path = os.path.join(*key_components)
+    prefix = os.path.join(*key_components[:-2])
+    store = tables.open_file(path, "a")
+    if inner_path in store:
+        store.remove_node(inner_path)
+    try:
+        store.create_group(prefix, key_components[-2], createparents=True)
+    except tables.exceptions.NodeError as e:
+        if "already has a child node" in str(e):
+            # The parent group already exists, which is fine
+            pass
+        else:
+            raise
 
-        fnode = filenode.new_node(store, where=os.path.join(*key_components[:-1]), name=key_components[-1])
-        fnode.write(bytes(json.dumps(data), "utf-8"))
-        fnode.close()
-        store.close()
+    fnode = filenode.new_node(store, where=os.path.join(*key_components[:-1]), name=key_components[-1])
+    fnode.write(bytes(json.dumps(data), "utf-8"))
+    fnode.close()
+    store.close()
 
 
 def _load_cause(entity_config: _EntityConfig) -> None:
@@ -493,11 +505,15 @@ def _load_coverage_gap(entity_config: _EntityConfig) -> None:
 
     relative_risk = core.get_draws([entity], ["relative_risk"], entity_config.locations)
     relative_risk = _normalize(relative_risk)
+    relative_risk["cause"] = relative_risk.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+    relative_risk = relative_risk.drop('cause_id', axis=1)
     yield "relative_risk", relative_risk
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
     if not paf.empty:
         paf = _normalize(paf)
+        paf["cause"] = paf.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        paf = paf.drop('cause_id', axis=1)
         yield "population_attributable_fraction", paf
 
 

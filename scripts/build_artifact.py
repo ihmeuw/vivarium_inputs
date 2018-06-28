@@ -1,3 +1,4 @@
+import logging
 import argparse
 
 from vivarium.framework.configuration import build_model_specification
@@ -11,6 +12,8 @@ def main():
     parser.add_argument('output_path', type=str)
     args = parser.parse_args()
 
+
+    logging.basicConfig(level=logging.INFO)
     model_specification = build_model_specification(args.simulation_configuration)
     model_specification.plugins.optional.update({
         "data": {
