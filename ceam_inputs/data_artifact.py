@@ -88,8 +88,8 @@ class ArtifactBuilder:
     The data is output into an HDF file suitable for parsing by the ``vivarium`` simulation framework.
     """
 
-    def __init__(self, incremental=True):
-        self.incremental = incremental
+    def __init__(self):
+        self.incremental = True
         estimation_years = get_estimation_years(GBD_ROUND_ID)
         self.year_start = min(estimation_years)
         self.year_end = max(estimation_years)
@@ -120,7 +120,9 @@ class ArtifactBuilder:
         return result
 
     def start_processing(self, component_manager: ComponentManager, path: str,
-                         locations: Sequence[str], loaders: Mapping[str, Callable]=None) -> None:
+                         locations: Sequence[str], loaders: Mapping[str, Callable]=None,
+                         incremental: bool=True) -> None:
+        self.incremental = incremental
         self.modeled_causes = {c.cause for c in component_manager._components if isinstance(c, DiseaseModel)}
         self.locations = locations
         if loaders is None:
