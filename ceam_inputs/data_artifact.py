@@ -104,9 +104,11 @@ class ArtifactBuilder:
         needs_load = True
         if self.incremental:
             self.artifact.open()
-            if ("/"+entity_path.replace(".", "/")) in self.artifact._hdf:
-                needs_load = False
-            self.artifact.close()
+            try:
+                if ("/"+entity_path.replace(".", "/")) in self.artifact._hdf:
+                    needs_load = False
+            finally:
+                self.artifact.close()
 
         if needs_load:
             self.process(entity_path)
@@ -114,8 +116,10 @@ class ArtifactBuilder:
             _log.info(f"Loading '{entity_path}' from artifact")
 
         self.artifact.open()
-        result = self.artifact.load(entity_path, keep_age_group_edges, **column_filters)
-        self.artifact.close()
+        try:
+            result = self.artifact.load(entity_path, keep_age_group_edges, **column_filters)
+        finally:
+            self.artifact.close()
 
         return result
 
