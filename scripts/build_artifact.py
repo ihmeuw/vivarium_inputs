@@ -9,7 +9,7 @@ from vivarium.interface.interactive import InteractiveContext
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('simulation_configuration', type=str)
-    parser.add_argument('output_path', type=str)
+    parser.add_argument('--output_path', type=str, default='')
     parser.add_argument('--from_scratch', '-s', action="store_true", help="Do not reuse any data in the artifact, if any exists")
     args = parser.parse_args()
 
@@ -21,6 +21,12 @@ def main():
             "controller": "ceam_inputs.data_artifact.ArtifactBuilder",
             "builder_interface": "ceam_public_health.dataset_manager.ArtifactManagerInterface",
         }})
+
+    if not args.output_path:
+        if 'path' in model_specification.configuration.artifact:
+            args.output_path = model_specification.configuration.artifact.path
+        else:
+            raise argparse.ArgumentError("specify --output_path or include configuration.artifact.path in model specification")
 
     plugin_config = model_specification.plugins
     component_config = model_specification.components
