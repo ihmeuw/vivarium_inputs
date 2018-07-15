@@ -107,7 +107,6 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'annual_visits': (_get_annual_visits, {'modelable_entity_id', }),
         'disability_weight': (_get_disability_weight, set()),
         'protection': (_get_protection, set()),
-        'mediation_factor': (_get_mediation_factor, {'cause_id'}),
         'cost': (_get_cost, set()),
     }
 
@@ -181,7 +180,6 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'disability_weight': (Sequela, 'gbd_id'),
         'remission': (Cause, 'dismod_id'),
         'protection': (TreatmentTechnology, 'protection'),
-        'mediation_factor': ((Risk, CoverageGap), 'gbd_id'),
         'cost': ((HealthcareEntity, TreatmentTechnology), 'cost'),
     }
 
@@ -423,9 +421,6 @@ def _filter_to_most_detailed(data):
 
 
 def _compute_paf_for_special_cases(cause, risk, location_ids):
-    # TODO This could take in lists of causes and risks and probably be more efficient but in practice
-    # the outer function will rarely be invoked that way so I'm going to do the simple thing here.
-
     cause_id = cause.gbd_id
     paf = pd.DataFrame()
     for location_id in location_ids:
@@ -621,28 +616,6 @@ def _get_exposure_standard_deviation(entities, location_ids):
     return df[key_cols + draw_cols]
 
 
-def _get_mediation_factor(entities, location_ids):
-    risk_ids = _get_ids_for_measure(entities, 'mediation_factor')
-    _gbd_round_id_map = {3: 'GBD_2015', 4: 'GBD_2016'}
-    data = gbd.get_data_from_auxiliary_file("Mediation Factors", gbd_round=_gbd_round_id_map[gbd.GBD_ROUND_ID])
-    id_col = 'risk_id' if isinstance(entities[0], Risk) else 'coverage_gap_id'
-    data = data.rename(columns={'rei_id': id_col})
-
-    data = data[data[id_col].isin(risk_ids)]
-
-    if not data.empty:
-        draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-        data[draw_columns] = 1 - (data[draw_columns])
-        data = data.groupby(['cause_id', id_col])[draw_columns].prod()
-    return data.reset_index()
-    # else:
-    #    columns = list(product(location_ids, risk_ids))
-    #    df = pd.DataFrame(columns, columns=['location_id', 'risk_id'])
-    #    for i in range(0, 1000):
-    #        df[f'draw_{i}'] = 0
-    #    return df
-
-
 ###############
 # Other stuff #
 ###############
@@ -702,17 +675,6 @@ def get_ensemble_weights(risks):
         data.append(temp)
     data = pd.concat(data)
     return data
-
-
-def get_risk_correlation_matrix(locations):
-    location_ids = [LOCATION_IDS_BY_NAME[location] for location in locations]
-    data = []
-    for location_id in location_ids:
-        df = risk_factor_correlation.load_matrices(location_id=location_id,
-                                                   gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
-        df['location'] = LOCATION_NAMES_BY_ID[location_id]
-        data.append(df)
-    return pd.concat(data)
 
 
 #######################

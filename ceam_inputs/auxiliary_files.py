@@ -67,11 +67,6 @@ FILES = {
         'source': '/share/epi/risk/bmgf/paf/diarrhea_ors/paf_yll_{location_id}.csv',
         'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
     },
-    'Mediation Factors': {
-        'path': 'mediation_matrix_corrected.csv',
-        'source': '/home/j/WORK/05_risk/mediation/mediation_matrix_corrected.csv',
-        'owner': 'Kelly Cercy <kcercy@uw.edu>; Dietary Risk Factors Team',
-    },
     'Rota Vaccine Protection': {
         'path': 'protection/treatment_technology/rotaviral_enteritis_vaccines.hdf',
         # FIXME: Everett to clean up source code after distribution is chosen and put code in CEAM

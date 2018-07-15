@@ -8,10 +8,10 @@ from ceam_inputs.utilities import select_draw_data, get_age_group_midpoint_from_
 __all__ = [
     "get_prevalence", "get_incidence", "get_remission", "get_cause_specific_mortality", "get_excess_mortality",
     "get_disability_weight", "get_relative_risk", "get_exposure", "get_exposure_standard_deviation",
-    "get_population_attributable_fraction", "get_ensemble_weights", "get_mediation_factor",
-    "get_risk_correlation_matrix", "get_populations", "get_age_bins", "get_theoretical_minimum_risk_life_expectancy",
-    "get_subregions", "get_outpatient_visit_costs", "get_inpatient_visit_costs", "get_inpatient_visit_costs",
-    "get_hypertension_drug_costs", "get_age_specific_fertility_rates", "get_live_births_by_sex", "get_dtp3_coverage",
+    "get_population_attributable_fraction", "get_ensemble_weights", "get_populations", "get_age_bins",
+    "get_theoretical_minimum_risk_life_expectancy", "get_subregions", "get_outpatient_visit_costs",
+    "get_inpatient_visit_costs", "get_inpatient_visit_costs", "get_hypertension_drug_costs",
+    "get_age_specific_fertility_rates", "get_live_births_by_sex", "get_dtp3_coverage",
     "get_protection", "get_healthcare_annual_visits",
 ]
 
@@ -106,21 +106,6 @@ def get_population_attributable_fraction(entity, risk, override_config=None):
 def get_ensemble_weights(risk, override_config=None):
     return core.get_ensemble_weights([risk])
 
-
-def get_mediation_factor(risk, cause, override_config=None):
-    config = get_input_config(override_config)
-    data = core.get_draws([risk], ['mediation_factor'], [config.input_data.location]).drop('measure', 'columns')
-    try:
-        return data[data['cause_id'] == cause.gbd_id] if cause.gbd_id in data['cause_id'] else 0
-    except TypeError:
-        return 0
-
-
-def get_risk_correlation_matrix(override_config=None):
-    config = get_input_config(override_config)
-    data = core.get_risk_correlation_matrix([config.input_data.location])
-    del data['location']
-    return data
 
 #######################
 # Other kinds of data #

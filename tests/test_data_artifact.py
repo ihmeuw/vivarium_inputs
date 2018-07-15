@@ -1,18 +1,19 @@
 import os
 
-from hypothesis import given, assume, reproduce_failure
+from hypothesis import given, assume
 import hypothesis.strategies as st
 from hypothesis.extra.pandas import data_frames, column
 
 from ceam_inputs import causes, risk_factors, Cause, Risk, Etiology, Sequela
 from ceam_inputs.utilities import get_age_group_midpoint_from_age_group_id
-from ceam_inputs.core import name_measure_map
 from ceam_inputs.data_artifact import _entities_by_type, _normalize, _prepare_key, _parse_entity_path, _dump_dataframe, _dump_json_blob
 
 CAUSE_MEASURES = ["death", "prevalence", "incidence", "population_attributable_fraction",
                   "cause_specific_mortality", "excess_mortality", "remission"]
-RISK_MEASURES = ["exposure", "exposure_standard_deviation", "relative_risk", "mediation_factor"]
-POPULATION_ENTITY_PATHS = [("population.structure"), ("population.age_bins"), ("population.theoretical_minimum_risk_life_expectancy")]
+RISK_MEASURES = ["exposure", "exposure_standard_deviation", "relative_risk"]
+POPULATION_ENTITY_PATHS = ["population.structure", "population.age_bins",
+                           "population.theoretical_minimum_risk_life_expectancy"]
+
 
 @st.composite
 def measure(draw, entities, measures):
@@ -26,6 +27,7 @@ def measure(draw, entities, measures):
             Sequela: "sequela",
     }[type(entity)]
     return f"{entity_type}.{entity.name}.{measure}"
+
 
 @given(st.sets(measure(causes, CAUSE_MEASURES) | measure(risk_factors, RISK_MEASURES)))
 def test__entities_by_type(measures):
@@ -43,6 +45,7 @@ def test__entities_by_type(measures):
             to_check.remove((entity_type, entity_name))
     assert not to_check
 
+
 @st.composite
 def measure_dataframes(draw):
     columns = draw(st.sets(st.sampled_from([
@@ -56,6 +59,7 @@ def measure_dataframes(draw):
     df = draw(data_frames(columns=columns))
     assume(not df.empty)
     return df
+
 
 @given(measure_dataframes())
 def test__normalize(data):
@@ -73,7 +77,9 @@ def test__normalize(data):
         no_draw_norm = normed[[c for c in normed.columns if c != "draw"]].unique()
         assert no_draw_norm == get_age_group_midpoint_from_age_group_id(no_draw_orig)
 
-@given(st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES), st.sampled_from(POPULATION_ENTITY_PATHS)))
+
+@given(st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES),
+                 st.sampled_from(POPULATION_ENTITY_PATHS)))
 def test__parse_entity_path(entity_path):
     entity_type, entity_name, measure = _parse_entity_path(entity_path)
 
@@ -88,7 +94,9 @@ def test__parse_entity_path(entity_path):
         assert entity_name is None
         assert measure == chunks[1]
 
-@given(st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES), st.sampled_from(POPULATION_ENTITY_PATHS)))
+
+@given(st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES),
+                 st.sampled_from(POPULATION_ENTITY_PATHS)))
 def test__prepare_key(entity_path):
     entity_type, entity_name, measure = _parse_entity_path(entity_path)
 
@@ -99,17 +107,16 @@ def test__prepare_key(entity_path):
     if entity_name is None:
         expected_length -= 1
 
-
     assert key_components[1] == entity_type
     assert key_components[-1] == measure
     assert len(key_components) == expected_length
 
-#@reproduce_failure('3.59.2', b'AAEAAAEAAgEAAwEBAQAAAAEBAQABAAEAAQACAAA=')
-@given(
-        entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES), st.sampled_from(POPULATION_ENTITY_PATHS)),
-        columns = st.sets(st.sampled_from(["year", "location", "draw", "cause", "risk"]) | st.text(min_size=1, max_size=30)),
-        path = st.text(alphabet="abcdefghijklmnopqrstuvwxyz1234567890_/"),
-      )
+
+@given(entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES),
+                             st.sampled_from(POPULATION_ENTITY_PATHS)),
+       columns=st.sets(st.sampled_from(["year", "location", "draw", "cause", "risk"])
+                       | st.text(min_size=1, max_size=30)),
+       path=st.text(alphabet="abcdefghijklmnopqrstuvwxyz1234567890_/"), )
 def test__dump_dataframe(entity_path, columns, path, mocker):
     key_components = _prepare_key(*_parse_entity_path(entity_path))
 
@@ -123,22 +130,25 @@ def test__dump_dataframe(entity_path, columns, path, mocker):
     mock_pd.HDFStore.assert_called_with(path, complevel=mocker.ANY, format="table")
 
     expected_columns = list({"year", "location", "draw", "cause", "risk"}.intersection(columns))
-    mock_pd.HDFStore().__enter__().put.assert_called_with(os.path.join(*key_components), data, format="table", data_columns=set(expected_columns))
+    mock_pd.HDFStore().__enter__().put.assert_called_with(os.path.join(*key_components), data,
+                                                          format="table", data_columns=set(expected_columns))
 
-@given(
-        entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES), st.sampled_from(POPULATION_ENTITY_PATHS)),
-        path = st.text(alphabet="abcdefghijklmnopqrstuvwxyz1234567890_/"),
-      )
+
+@given(entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES),
+                             st.sampled_from(POPULATION_ENTITY_PATHS)),
+       path=st.text(alphabet="abcdefghijklmnopqrstuvwxyz1234567890_/"))
 def test__dump_json_blob(entity_path, path, mocker):
     key_components = _prepare_key(*_parse_entity_path(entity_path))
 
     mock_tables = mocker.patch("ceam_inputs.data_artifact.tables")
     mock_filenode = mocker.patch("ceam_inputs.data_artifact.filenode")
-    data = {1:2}
+    data = {1: 2}
 
     _dump_json_blob(data, key_components, path)
 
     mock_tables.open_file.assert_called_with(path, "a")
-    mock_tables.open_file().create_group.assert_called_with(os.path.join(*key_components[:-2]), key_components[-2], createparents=True)
-    mock_filenode.new_node.assert_called_with(mock_tables.open_file(), where=os.path.join(*key_components[:-1]), name=key_components[-1])
-    mock_filenode.new_node().write.assert_called() #TODO check data
+    mock_tables.open_file().create_group.assert_called_with(os.path.join(*key_components[:-2]),
+                                                            key_components[-2], createparents=True)
+    mock_filenode.new_node.assert_called_with(mock_tables.open_file(),
+                                              where=os.path.join(*key_components[:-1]), name=key_components[-1])
+    mock_filenode.new_node().write.assert_called()  # TODO check data
