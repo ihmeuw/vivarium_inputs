@@ -5,4 +5,3 @@ input_data:
     input_draw_number: 0
     gbd_round_id: 4
     j_drive: /home/j
-    risk_factor_correlation_matrix_variation: location_180

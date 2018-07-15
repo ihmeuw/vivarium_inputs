@@ -21,10 +21,6 @@ FILES = {
         'source': '/home/j/WORK/05_risk/ensemble/weights',
         'owner': 'Patrick J Sur <psur2417@uw.edu>, Stan Biryukov <stan0625@uw.edu>',
         },
-    'Risk Factor Propensity Correlation Matrices': {
-        'path': 'risk_factor_propensity_correlation_matricies/location_{location_id}',
-        'owner': 'Reed Sorenson <rsoren@uw.edu>',
-        },
     'Risk Standard Deviation Meids': {
        'path': 'metadata/risk_exposure_sd_mapping.csv',
        'owner': 'Zane Rankin <zrankin@uw.edu>',

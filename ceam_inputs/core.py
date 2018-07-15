@@ -5,7 +5,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from ceam_inputs import gbd, risk_factor_correlation, causes, risk_factors, etiologies, coverage_gaps
+from ceam_inputs import gbd, causes, risk_factors, etiologies, coverage_gaps
 from ceam_inputs.gbd_mapping.templates import sid, UNKNOWN, Cause, Sequela, Etiology, Risk, ModelableEntity, scalar
 from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
 from ceam_inputs.gbd_mapping.coverage_gaps import CoverageGap
