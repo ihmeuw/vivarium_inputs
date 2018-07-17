@@ -18,8 +18,8 @@ MALE = [1]
 FEMALE = [2]
 COMBINED = [3]
 
-LOCATION_IDS_BY_NAME = {r.location_name:r.location_id for _, r in gbd.get_location_ids().iterrows()}
-LOCATION_NAMES_BY_ID = {v:k for k,v in LOCATION_IDS_BY_NAME.items()}
+LOCATION_IDS_BY_NAME = {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}
+LOCATION_NAMES_BY_ID = {v: k for k, v in LOCATION_IDS_BY_NAME.items()}
 
 name_measure_map = {'death': 1,
                     'DALY': 2,
@@ -99,7 +99,7 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'prevalence': (_get_prevalence, set()),
         'incidence': (_get_incidence, set()),
         'relative_risk': (_get_relative_risk, {'cause_id', 'parameter', }),
-        'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id',}),
+        'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id', }),
         'cause_specific_mortality': (_get_cause_specific_mortality, set()),
         'excess_mortality': (_get_excess_mortality, set()),
         'exposure': (_get_exposure, {'parameter', }),

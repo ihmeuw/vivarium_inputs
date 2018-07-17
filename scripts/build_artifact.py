@@ -19,7 +19,7 @@ def main():
     model_specification.plugins.optional.update({
         "data": {
             "controller": "ceam_inputs.data_artifact.ArtifactBuilder",
-            "builder_interface": "ceam_public_health.dataset_manager.ArtifactManagerInterface",
+            "builder_interface": "vivarium_public_health.dataset_manager.ArtifactManagerInterface",
         }})
 
     output_path = get_output_path(args.output_path, model_specification.configuration)

@@ -11,8 +11,8 @@ import json
 from vivarium.framework.components import ComponentManager
 from ceam_inputs import core
 from ceam_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
-from ceam_public_health.dataset_manager import Artifact
-from ceam_public_health.disease.model import DiseaseModel
+from vivarium_public_health.dataset_manager import Artifact
+from vivarium_public_health.disease.model import DiseaseModel
 
 from .gbd import get_estimation_years, get_covariate_estimates, GBD_ROUND_ID
 from .gbd_mapping import (causes, risk_factors, sequelae, healthcare_entities,
