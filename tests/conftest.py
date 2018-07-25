@@ -4,7 +4,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from vivarium.test_util import metadata
+from vivarium.testing_utilities import metadata
 
 from ceam_inputs import gbd
 from ceam_inputs.util import get_input_config
