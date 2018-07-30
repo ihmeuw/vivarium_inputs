@@ -4,9 +4,11 @@ from hypothesis import given, assume
 import hypothesis.strategies as st
 from hypothesis.extra.pandas import data_frames, column
 
-from vivarium_inputs import causes, risk_factors, Cause, Risk, Etiology, Sequela
+from gbd_mapping import causes, risks, Cause, Risk, Etiology, Sequela
+
 from vivarium_inputs.utilities import get_age_group_midpoint_from_age_group_id
-from vivarium_inputs.data_artifact import _entities_by_type, _normalize, _prepare_key, _parse_entity_path, _dump_dataframe, _dump_json_blob
+from vivarium_inputs.data_artifact import (_entities_by_type, _normalize, _prepare_key, _parse_entity_path,
+                                           _dump_dataframe, _dump_json_blob)
 
 CAUSE_MEASURES = ["death", "prevalence", "incidence", "population_attributable_fraction",
                   "cause_specific_mortality", "excess_mortality", "remission"]
@@ -29,7 +31,7 @@ def measure(draw, entities, measures):
     return f"{entity_type}.{entity.name}.{measure}"
 
 
-@given(st.sets(measure(causes, CAUSE_MEASURES) | measure(risk_factors, RISK_MEASURES)))
+@given(st.sets(measure(causes, CAUSE_MEASURES) | measure(risks, RISK_MEASURES)))
 def test__entities_by_type(measures):
     print(measures)
     by_type = _entities_by_type(measures)
@@ -78,7 +80,7 @@ def test__normalize(data):
         assert no_draw_norm == get_age_group_midpoint_from_age_group_id(no_draw_orig)
 
 
-@given(st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES),
+@given(st.one_of(measure(causes, CAUSE_MEASURES), measure(risks, RISK_MEASURES),
                  st.sampled_from(POPULATION_ENTITY_PATHS)))
 def test__parse_entity_path(entity_path):
     entity_type, entity_name, measure = _parse_entity_path(entity_path)
@@ -95,7 +97,7 @@ def test__parse_entity_path(entity_path):
         assert measure == chunks[1]
 
 
-@given(st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES),
+@given(st.one_of(measure(causes, CAUSE_MEASURES), measure(risks, RISK_MEASURES),
                  st.sampled_from(POPULATION_ENTITY_PATHS)))
 def test__prepare_key(entity_path):
     entity_type, entity_name, measure = _parse_entity_path(entity_path)
@@ -112,7 +114,7 @@ def test__prepare_key(entity_path):
     assert len(key_components) == expected_length
 
 
-@given(entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES),
+@given(entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risks, RISK_MEASURES),
                              st.sampled_from(POPULATION_ENTITY_PATHS)),
        columns=st.sets(st.sampled_from(["year", "location", "draw", "cause", "risk"])
                        | st.text(min_size=1, max_size=30)),
@@ -120,7 +122,7 @@ def test__prepare_key(entity_path):
 def test__dump_dataframe(entity_path, columns, path, mocker):
     key_components = _prepare_key(*_parse_entity_path(entity_path))
 
-    mock_pd = mocker.patch("ceam_inputs.data_artifact.pd")
+    mock_pd = mocker.patch("vivarium_inputs.data_artifact.pd")
     data = mocker.Mock()
     data.empty = False
     data.columns = list(columns)
@@ -134,14 +136,14 @@ def test__dump_dataframe(entity_path, columns, path, mocker):
                                                           format="table", data_columns=set(expected_columns))
 
 
-@given(entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risk_factors, RISK_MEASURES),
+@given(entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risks, RISK_MEASURES),
                              st.sampled_from(POPULATION_ENTITY_PATHS)),
        path=st.text(alphabet="abcdefghijklmnopqrstuvwxyz1234567890_/"))
 def test__dump_json_blob(entity_path, path, mocker):
     key_components = _prepare_key(*_parse_entity_path(entity_path))
 
-    mock_tables = mocker.patch("ceam_inputs.data_artifact.tables")
-    mock_filenode = mocker.patch("ceam_inputs.data_artifact.filenode")
+    mock_tables = mocker.patch("vivarium_inputs.data_artifact.tables")
+    mock_filenode = mocker.patch("vivarium_inputs.data_artifact.filenode")
     data = {1: 2}
 
     _dump_json_blob(data, key_components, path)

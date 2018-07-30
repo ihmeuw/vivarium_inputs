@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 
-setup(name='ceam_inputs',
+setup(name='vivarium_inputs',
       version='0.1',
       packages=find_packages(),
       include_package_data=True,

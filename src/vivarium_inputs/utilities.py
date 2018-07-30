@@ -4,8 +4,8 @@ from typing import Mapping
 import pandas as pd
 
 from core_maths.interpolate import interpolate
+import vivarium_gbd_access.gbd as gbd
 
-from vivarium_inputs.gbd import get_age_bins
 from vivarium_inputs.core import UnhandledDataError
 
 
@@ -185,7 +185,7 @@ def get_age_group_midpoint_from_age_group_id(df):
     Notes
     -----
     Assumptions -- We assume that using a midpoint of age 82.5 for the 80+ year old age group is
-    ok for the purposes of CEAM. Everett proposed that we could get the life expectancy at age 80
+    ok for the purposes of Vivarium. Everett proposed that we could get the life expectancy at age 80
     for each location and use that as the midpoint for the 80+ group, but Abie suggested that we
     keep the midpoint as 82.5 for now. GBD populations have data for each age group up until the
     age 95+ age group, at which point I'm assuming we can use 97.5 as the midpoint.
@@ -196,7 +196,7 @@ def get_age_group_midpoint_from_age_group_id(df):
 
     df = df.copy()
     idx = df.index
-    mapping = get_age_bins()
+    mapping = gbd.get_age_bins()
     mapping = mapping.set_index('age_group_id')
     mapping['age'] = mapping[['age_group_years_start', 'age_group_years_end']].mean(axis=1)
 

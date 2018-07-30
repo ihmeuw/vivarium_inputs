@@ -1,8 +1,8 @@
 from vivarium.config_tree import ConfigTree  # Just for typing info.
+from vivarium_gbd_access.utilities import get_input_config
 from gbd_mapping import covariates
 
 from vivarium_inputs import core
-from vivarium_inputs.util import get_input_config
 from vivarium_inputs.utilities import (select_draw_data, get_age_group_midpoint_from_age_group_id,
                                        normalize_for_simulation)
 from vivarium_inputs.mapping_extension import healthcare_entities

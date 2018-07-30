@@ -77,7 +77,7 @@ def test_get_ids_for_population_attributable_fraction(cause_list, risk_list):
 # TODO there's a bunch of repeated code in the next three functions but I'm not sure what the general form should be yet
 @pytest.fixture
 def mock_rrs(mocker):
-    rrs_mock = mocker.patch("ceam_inputs.core._get_relative_risk")
+    rrs_mock = mocker.patch("vivarium_inputs.core._get_relative_risk")
     rr_map = {}
 
     def rr_builder(risks, locations):
@@ -138,14 +138,14 @@ def mock_pafs(mocker, cause_list):
                     pafs.append(pd.DataFrame({f"draw_{i}":current_paf for i in range(1000)}, index=idx).reset_index())
         return pd.concat(pafs)
 
-    gbd_mock = mocker.patch("ceam_inputs.core.gbd")
+    gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
     gbd_mock.get_pafs.side_effect = mock_pafs
     return gbd_mock, risk_cause_pafs
 
 
 @pytest.fixture
 def mock_exposures(mocker):
-    exposures_mock = mocker.patch("ceam_inputs.core._get_exposure")
+    exposures_mock = mocker.patch("vivarium_inputs.core._get_exposure")
     exposure_map = {}
 
     def exposure_builder(risks, locations):
@@ -252,6 +252,3 @@ def test_get_draws_bad_args(cause_list, risk_list, locations):
     for measure in ['exposure', 'relative_risk']:
         with pytest.raises(core.InvalidQueryError):
             core.get_draws(cause_list, [measure], locations)
-
-
-

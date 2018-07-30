@@ -18,7 +18,7 @@ def main():
     model_specification = build_model_specification(args.simulation_configuration)
     model_specification.plugins.optional.update({
         "data": {
-            "controller": "ceam_inputs.data_artifact.ArtifactBuilder",
+            "controller": "vivarium_inputs.data_artifact.ArtifactBuilder",
             "builder_interface": "vivarium_public_health.dataset_manager.ArtifactManagerInterface",
         }})
 

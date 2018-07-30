@@ -126,9 +126,3 @@ def clean_rr_mock_output(risk_ids, location_ids):
     sex = [1, 2]
     year = [1990, 1995, 2000, 2005, 2010, 2016]
     me_id = np.random.randint(1000, 10000, len(risk_ids))
-
-
-@pytest.fixture
-def gbd_mock(mocker):
-    m = mocker.patch('ceam_inputs.core.gbd')
-    m.get_codcorrect_draws.side_effect = cod_mock_output
