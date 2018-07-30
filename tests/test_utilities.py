@@ -7,8 +7,8 @@ from core_maths.interpolate import interpolate
 
 from itertools import product
 
-from ceam_inputs.utilities import standardize_dimensions
-from ceam_inputs.core import UnhandledDataError
+from vivarium_inputs.utilities import standardize_dimensions
+from vivarium_inputs.core import UnhandledDataError
 
 
 def test_standardize_dimensions__fill():

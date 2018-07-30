@@ -3,8 +3,12 @@ import hashlib
 
 import pandas as pd
 
-from ceam_inputs.gbd_mapping import causes, risk_factors, Etiology, Cause
-from ceam_inputs import core, rid
+from gbd_mapping.id import reiid
+from gbd_mapping.cause import Cause, causes
+from gbd_mapping.risk import risks
+from gbd_mapping.etiology import Etiology
+
+from vivarium_inputs import core
 
 
 def test_get_ids_for_inconsistent_entities(cause_list, sequela_list):
@@ -105,12 +109,12 @@ def mock_pafs(mocker, cause_list):
     def mock_pafs(entity_ids, location_ids):
         pafs = []
         for gbd_id in entity_ids:
-            if isinstance(gbd_id, rid):
+            if isinstance(gbd_id, reiid):
                 rids = [gbd_id]
                 # TODO This assumes that all non-cause entities are diarrhea etiologies
                 cids = [causes.diarrheal_diseases.gbd_id]
             else:
-                rids = {r.gbd_id for r in risk_factors if gbd_id in [cc.gbd_id for cc in r.affected_causes]}
+                rids = {r.gbd_id for r in risks if gbd_id in [cc.gbd_id for cc in r.affected_causes]}
                 cids = [gbd_id]
             for c in cids:
                 for r in rids:
@@ -160,7 +164,8 @@ def mock_exposures(mocker):
             idx = pd.MultiIndex.from_product(
                 [[risk.gbd_id],   age_groups,     years,     sexes,    locations,  ["continuous"]],
                 names=["risk_id", "age_group_id", "year_id", "sex_id", "location_id", "parameter"])
-            exposures.append(pd.DataFrame({f"draw_{i}":current_exposure for i in range(1000)}, index=idx).reset_index())
+            exposures.append(pd.DataFrame({f"draw_{i}": current_exposure
+                                           for i in range(1000)}, index=idx).reset_index())
         return pd.concat(exposures)
 
     exposures_mock.side_effect = exposure_builder
@@ -173,7 +178,7 @@ def test__compute_paf_for_special_cases(mock_rrs, mock_exposures, locations):
 
     # TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction
     # where it isn't really accessible for tests. Should probably clean that up.
-    special_risks = [risk_factors.unsafe_water_source]
+    special_risks = [risks.unsafe_water_source]
 
     location_ids = [core.LOCATION_IDS_BY_NAME[name] for name in locations]
     for risk in special_risks:
@@ -206,8 +211,9 @@ def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposure
     else:
         id_column = "cause_id"
         paired_id_column = "risk_id"
-        expected_paired_entities = {r.gbd_id for r in risk_factors if set(cause_like_entities).intersection(r.affected_causes)}
-    assert {c.gbd_id for c in cause_like_entities if c not in [causes.all_causes, causes.tetanus]} == set(pafs[id_column].unique())
+        expected_paired_entities = {r.gbd_id for r in risks if set(cause_like_entities).intersection(r.affected_causes)}
+    assert {c.gbd_id for c in cause_like_entities
+            if c not in [causes.all_causes, causes.tetanus]} == set(pafs[id_column].unique())
 
     assert expected_paired_entities == set(pafs[paired_id_column].unique())
 
@@ -219,7 +225,7 @@ def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposure
     if isinstance(cause_like_entities[0], Cause):
         # TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction
         # where it isn't really accessible for tests. Should probably clean that up.
-        special_risks = [risk_factors.unsafe_water_source]
+        special_risks = [risks.unsafe_water_source]
         location_ids = [core.LOCATION_IDS_BY_NAME[name] for name in locations]
         for risk in special_risks:
             for cause in risk.affected_causes:
@@ -247,13 +253,5 @@ def test_get_draws_bad_args(cause_list, risk_list, locations):
         with pytest.raises(core.InvalidQueryError):
             core.get_draws(cause_list, [measure], locations)
 
-
-@pytest.mark.skip("This test has never passed?  Only relevant for data artifact.")
-def test_get_draws__weird_risk_measures(locations):
-    df = core.get_draws(
-        [risk_factors['high_systolic_blood_pressure']],
-        ['exposure', 'relative_risk', 'population_attributable_fraction', 'exposure_standard_deviation'],
-        [180]
-    )
 
 

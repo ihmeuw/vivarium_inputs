@@ -5,12 +5,17 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from ceam_inputs import gbd, causes, risk_factors, etiologies, coverage_gaps
-from ceam_inputs.gbd_mapping.templates import sid, UNKNOWN, Cause, Sequela, Etiology, Risk, ModelableEntity, scalar
-from ceam_inputs.gbd_mapping.healthcare_entities import HealthcareEntity
-from ceam_inputs.gbd_mapping.coverage_gaps import CoverageGap
-from ceam_inputs.gbd_mapping.covariates import Covariate
-from ceam_inputs.gbd_mapping.treatment_technologies import TreatmentTechnology
+from gbd_mapping.id import sid, scalar, UNKNOWN
+from gbd_mapping.base_template import ModelableEntity
+from gbd_mapping.cause import Cause, causes
+from gbd_mapping.risk import Risk, risks
+from gbd_mapping.sequela import Sequela
+from gbd_mapping.etiology import Etiology, etiologies
+from gbd_mapping.coverage_gap import CoverageGap, coverage_gaps
+from gbd_mapping.covariate import Covariate
+import vivarium_gbd_access.gbd as gbd
+
+from vivarium_inputs.mapping_extension import HealthcareEntity
 
 
 # Define GBD sex ids for usage with central comp tools.
@@ -170,17 +175,16 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'death': (Cause, 'gbd_id'),
         'prevalence': ((Cause, Sequela), 'gbd_id'),
         'incidence': ((Cause, Sequela), 'gbd_id'),
-        'exposure': ((Risk, CoverageGap, TreatmentTechnology), 'gbd_id'),
+        'exposure': ((Risk, CoverageGap), 'gbd_id'),
         'exposure_standard_deviation': ((Risk, CoverageGap), 'exposure_parameters.dismod_id'),
-        'relative_risk': ((Risk, CoverageGap, TreatmentTechnology), 'gbd_id'),
-        'population_attributable_fraction': ((Cause, Etiology, CoverageGap, TreatmentTechnology), 'gbd_id'),
+        'relative_risk': ((Risk, CoverageGap), 'gbd_id'),
+        'population_attributable_fraction': ((Cause, Etiology, CoverageGap), 'gbd_id'),
         'cause_specific_mortality': ((Cause,), 'gbd_id'),
         'excess_mortality': ((Cause,), 'gbd_id'),
         'annual_visits': (HealthcareEntity, 'utilization'),
         'disability_weight': (Sequela, 'gbd_id'),
         'remission': (Cause, 'dismod_id'),
-        'protection': (TreatmentTechnology, 'protection'),
-        'cost': ((HealthcareEntity, TreatmentTechnology), 'cost'),
+        'cost': ((HealthcareEntity), 'cost'),
     }
 
     if not all([isinstance(e, type(entities[0])) for e in entities]):
@@ -215,7 +219,6 @@ def _get_additional_id_columns(data, entities):
         Etiology: 'etiology_id',
         CoverageGap: 'coverage_gap_id',
         HealthcareEntity: 'healthcare_entity',
-        TreatmentTechnology: 'treatment_technology',
     }
     out = set()
     out.add(id_column_map[type(entities[0])])
@@ -378,20 +381,7 @@ def _get_disability_weight(entities, _):
 ###################
 
 def _get_relative_risk(entities, location_ids):
-    if isinstance(entities[0], TreatmentTechnology):
-        data = []
-        for entity in entities:
-            entity_data = gbd.get_data_from_auxiliary_file(entity.relative_risk,
-                                                           gbd_round=gbd_round_id_map[gbd.GBD_ROUND_ID])
-            if len(entity_data.sex_id) == 3:
-                entity_data = entity_data[entity_data['sex_id'] != COMBINED]
-
-            data.append(entity_data)
-
-        df = pd.concat(data)
-        return df
-    else:
-        measure_ids = _get_ids_for_measure(entities, 'relative_risk')
+    measure_ids = _get_ids_for_measure(entities, 'relative_risk')
     measure_data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
     measure_data = measure_data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
     if isinstance(entities[0], CoverageGap):
@@ -413,7 +403,8 @@ def _get_relative_risk(entities, location_ids):
 
 
 def _filter_to_most_detailed(data):
-    for column, entity_list in [('cause_id', causes), ('etiology_id', etiologies), ('risk_id', risk_factors), ('coverage_gap_id', coverage_gaps)]:
+    for column, entity_list in [('cause_id', causes), ('etiology_id', etiologies),
+                                ('risk_id', risks), ('coverage_gap_id', coverage_gaps)]:
         if column in data:
             most_detailed = {e.gbd_id for e in entity_list if e is not None}
             data = data.query(f"{column} in @most_detailed")
@@ -450,7 +441,7 @@ def _compute_paf_for_special_cases(cause, risk, location_ids):
 def _get_population_attributable_fraction(entities, location_ids):
     if isinstance(entities[0], (Cause, Etiology, CoverageGap)):
         # any special_case whose PAF needs to be directly computed
-        SPECIAL = [risk_factors.unsafe_water_source]
+        SPECIAL = [risks.unsafe_water_source]
         measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
         measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids)
         if type(entities[0]) is Etiology:
@@ -491,13 +482,6 @@ def _get_population_attributable_fraction(entities, location_ids):
         del measure_data['measure_id']
 
         return measure_data
-    elif isinstance(entities[0], TreatmentTechnology):
-        data = []
-        for entity, location_id in product(entities, location_ids):
-            data.append(gbd.get_data_from_auxiliary_file(entity.population_attributable_fraction,
-                                                         location_id=location_id))
-        df = pd.concat(data)
-        return df
     else:
         raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'population_attributable_fraction'")
 
@@ -521,14 +505,6 @@ def _get_exposure(entities, location_ids):
         # FIXME: Is this the only data we need to delete measure id for?
         del measure_data['measure_id']
         return measure_data
-    elif isinstance(entities[0], TreatmentTechnology):  # We have a treatment technology
-        data = []
-        for entity, location_id in product(entities, location_ids):
-            try:
-                data.append(gbd.get_data_from_auxiliary_file(entity.exposure, location_id=location_id))
-            except FileNotFoundError:
-                raise DataMissingError(f'Exposure data for {entity.name} is not available for locations {location_id}')
-        return pd.concat(data)
     else:
         raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'exposure'")
 

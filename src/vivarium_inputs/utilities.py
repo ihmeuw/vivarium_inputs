@@ -5,8 +5,8 @@ import pandas as pd
 
 from core_maths.interpolate import interpolate
 
-from ceam_inputs.gbd import get_age_bins
-from ceam_inputs.core import UnhandledDataError
+from vivarium_inputs.gbd import get_age_bins
+from vivarium_inputs.core import UnhandledDataError
 
 
 def standardize_dimensions(data: pd.DataFrame, dimensions: pd.MultiIndex,

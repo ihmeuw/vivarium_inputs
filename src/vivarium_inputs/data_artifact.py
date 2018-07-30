@@ -9,20 +9,20 @@ from tables.nodes import filenode
 import json
 
 from vivarium.framework.components import ComponentManager
-from ceam_inputs import core
-from ceam_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
+from vivarium_inputs import core
+from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
 from vivarium_public_health.dataset_manager import Artifact
 from vivarium_public_health.disease.model import DiseaseModel
+import vivarium_gbd_access.gbd as gbd
+from gbd_mapping import causes, risks, sequelae, coverage_gaps, etiologies, covariates
 
-from .gbd import get_estimation_years, get_covariate_estimates, GBD_ROUND_ID
-from .gbd_mapping import (causes, risk_factors, sequelae, healthcare_entities,
-                          treatment_technologies, coverage_gaps, etiologies, covariates)
+from vivarium_inputs.mapping_extension import healthcare_entities
 
 import logging
 _log = logging.getLogger(__name__)
 
 CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
-RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
+RISK_BY_ID = {r.gbd_id: r for r in risks}
 
 
 class DataArtifactError(Exception):
@@ -73,6 +73,7 @@ def _parse_entity_path(entity_path: str) -> Tuple[str, Optional[str], str]:
 
     return entity_type, entity_name, measure
 
+
 def _entities_by_type(entities: Iterable[str]) -> Mapping[str, set]:
     """Split a list of entity paths and group the entity names by entity type."""
     entity_by_type = defaultdict(set)
@@ -90,7 +91,7 @@ class ArtifactBuilder:
 
     def __init__(self):
         self.incremental = True
-        estimation_years = get_estimation_years(GBD_ROUND_ID)
+        estimation_years = gbd.get_estimation_years(gbd.GBD_ROUND_ID)
         self.year_start = min(estimation_years)
         self.year_end = max(estimation_years)
         self.processed_entities = set()
@@ -302,7 +303,7 @@ def _load_cause(entity_config: _EntityConfig) -> None:
 
 
 def _load_risk_factor(entity_config: _EntityConfig) -> None:
-    risk = risk_factors[entity_config.name]
+    risk = risks[entity_config.name]
 
     yield "affected_causes", [c.name for c in risk.affected_causes if c.name in entity_config.modeled_causes]
     yield "restrictions", {
@@ -424,66 +425,6 @@ def _load_healthcare_entity(entity_config: _EntityConfig) -> None:
     yield "annual_visits", annual_visits
 
 
-def _load_treatment_technology(entity_config: _EntityConfig) -> None:
-    treatment_technology = treatment_technologies[entity_config.name]
-
-    if treatment_technology.protection:
-        try:
-            protection = core.get_draws([treatment_technology], ["protection"], entity_config.locations)
-            protection = _normalize(protection)
-            # FIXME: I think the 'treatment_technology' column is an indication
-            # that the rota vaccine data is shaped badly
-            protection = protection[["location", "draw", "value", "treatment_technology"]]
-            protection["value"] = protection.value.astype(float)
-            yield "protection", protection
-        except core.DataMissingError:
-            pass
-            yield "protection", None
-    else:
-        yield "protection", None
-
-    if treatment_technology.relative_risk:
-        relative_risk = core.get_draws([treatment_technology], ["relative_risk"], entity_config.locations)
-        relative_risk = _normalize(relative_risk)
-        relative_risk["cause"] = relative_risk.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        relative_risk = relative_risk[["year", "location", "cause", "parameter", "sex", "age", "draw", "value"]]
-        yield "relative_risk", relative_risk
-    else:
-        yield "relative_risk", None
-
-    if treatment_technology.population_attributable_fraction:
-        population_attributable_fraction = core.get_draws([treatment_technology],
-                                                          ["population_attributable_fraction"],
-                                                          entity_config.locations)
-        population_attributable_fraction = _normalize(population_attributable_fraction)
-        population_attributable_fraction["cause"] = population_attributable_fraction.cause_id.apply(
-            lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        population_attributable_fraction = population_attributable_fraction[
-            ["year", "location", "cause", "sex", "age", "draw", "value"]]
-        yield "population_attributable_fraction", population_attributable_fraction
-    else:
-        yield "population_attributable_fraction", None
-
-    if treatment_technology.exposure:
-        try:
-            exposure = core.get_draws([treatment_technology], ["exposure"], entity_config.locations)
-            exposure = _normalize(exposure)
-            exposure = exposure[["year", "location", "sex", "age", "draw", "value"]]
-            yield "exposure", exposure
-        except core.DataMissingError:
-            yield "exposure", None
-    else:
-        yield "exposure", None
-
-    if treatment_technology.cost:
-        cost = core.get_draws([treatment_technology], ["cost"], entity_config.locations)
-        cost = _normalize(cost)
-        cost = cost[["year", "location", "draw", "value", "treatment_technology"]]
-        yield "cost", cost
-    else:
-        yield "cost", None
-
-
 def _load_coverage_gap(entity_config: _EntityConfig) -> None:
     entity = coverage_gaps[entity_config.name]
 
@@ -549,7 +490,7 @@ def _load_population(entity_config: _EntityConfig) -> None:
 def _load_covariate(entity_config: _EntityConfig) -> None:
     entity = covariates[entity_config.name]
     location_ids = [core.LOCATION_IDS_BY_NAME[l] for l in entity_config.locations]
-    estimate = get_covariate_estimates([entity.gbd_id], location_ids)
+    estimate = gbd.get_covariate_estimates([entity.gbd_id], location_ids)
     estimate['location'] = estimate.location_id.apply(core.LOCATION_NAMES_BY_ID.get)
     estimate = estimate.drop('location_id', 'columns')
 
@@ -577,7 +518,6 @@ LOADERS = {
     "sequela": _load_sequela,
     "population": _load_population,
     "healthcare_entity": _load_healthcare_entity,
-    "treatment_technology": _load_treatment_technology,
     "coverage_gap": _load_coverage_gap,
     "etiology": _load_etiology,
     "covariate": _load_covariate,

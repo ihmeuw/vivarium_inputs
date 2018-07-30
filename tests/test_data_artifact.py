@@ -4,9 +4,9 @@ from hypothesis import given, assume
 import hypothesis.strategies as st
 from hypothesis.extra.pandas import data_frames, column
 
-from ceam_inputs import causes, risk_factors, Cause, Risk, Etiology, Sequela
-from ceam_inputs.utilities import get_age_group_midpoint_from_age_group_id
-from ceam_inputs.data_artifact import _entities_by_type, _normalize, _prepare_key, _parse_entity_path, _dump_dataframe, _dump_json_blob
+from vivarium_inputs import causes, risk_factors, Cause, Risk, Etiology, Sequela
+from vivarium_inputs.utilities import get_age_group_midpoint_from_age_group_id
+from vivarium_inputs.data_artifact import _entities_by_type, _normalize, _prepare_key, _parse_entity_path, _dump_dataframe, _dump_json_blob
 
 CAUSE_MEASURES = ["death", "prevalence", "incidence", "population_attributable_fraction",
                   "cause_specific_mortality", "excess_mortality", "remission"]

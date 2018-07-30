@@ -1,16 +1,18 @@
 from vivarium.config_tree import ConfigTree  # Just for typing info.
+from gbd_mapping import covariates
 
-from ceam_inputs.gbd_mapping import *
-from ceam_inputs import core
-from ceam_inputs.util import get_input_config
-from ceam_inputs.utilities import select_draw_data, get_age_group_midpoint_from_age_group_id, normalize_for_simulation
+from vivarium_inputs import core
+from vivarium_inputs.util import get_input_config
+from vivarium_inputs.utilities import (select_draw_data, get_age_group_midpoint_from_age_group_id,
+                                       normalize_for_simulation)
+from vivarium_inputs.mapping_extension import healthcare_entities
 
 __all__ = [
     "get_prevalence", "get_incidence", "get_remission", "get_cause_specific_mortality", "get_excess_mortality",
     "get_disability_weight", "get_relative_risk", "get_exposure", "get_exposure_standard_deviation",
     "get_population_attributable_fraction", "get_ensemble_weights", "get_populations", "get_age_bins",
     "get_theoretical_minimum_risk_life_expectancy", "get_subregions", "get_outpatient_visit_costs",
-    "get_inpatient_visit_costs", "get_inpatient_visit_costs", "get_hypertension_drug_costs",
+    "get_inpatient_visit_costs", "get_inpatient_visit_costs",
     "get_age_specific_fertility_rates", "get_live_births_by_sex", "get_dtp3_coverage",
     "get_protection", "get_healthcare_annual_visits",
 ]
@@ -150,12 +152,6 @@ def get_inpatient_visit_costs(override_config=None):
                           ['cost'], [config.input_data.location]).drop('measure', 'columns')
     data = data[['year_id', f'draw_{config.input_data.input_draw_number}']]
     return data.rename(columns={'year_id':'year', f'draw_{config.input_data.input_draw_number}': 'cost'})
-
-
-def get_hypertension_drug_costs(override_config=None):
-    config = get_input_config(override_config)
-    return core.get_draws([treatment_technologies.hypertension_drugs],
-                          ['cost'], [config.input_data.location]).drop('measure', 'columns')
 
 
 def get_age_specific_fertility_rates(override_config=None):

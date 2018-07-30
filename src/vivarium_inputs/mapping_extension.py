@@ -1,5 +1,7 @@
 from typing import Union
-from .templates import GbdRecord, ModelableEntity, meid
+
+from gbd_mapping.id import meid
+from gbd_mapping.base_template import GbdRecord, ModelableEntity
 
 
 class HealthcareEntity(ModelableEntity):

@@ -5,10 +5,9 @@ import pandas as pd
 import numpy as np
 
 from vivarium.testing_utilities import metadata
-
-from ceam_inputs import gbd
-from ceam_inputs.util import get_input_config
-from ceam_inputs.gbd_mapping import causes, risk_factors, sid, etiologies
+import vivarium_gbd_access.gbd as gbd
+from vivarium_gbd_access.utilities import get_input_config
+from gbd_mapping import causes, risks, sid, etiologies
 
 
 @pytest.fixture(scope='module')
@@ -52,7 +51,7 @@ def etiology_list():
 
 @pytest.fixture
 def risk_list():
-    return [r for r in risk_factors]
+    return [r for r in risks]
 
 
 @pytest.fixture
@@ -121,7 +120,7 @@ def clean_como_mock_output(entity_ids, location_ids):
 
 
 def clean_rr_mock_output(risk_ids, location_ids):
-    risks = {r.gbd_id: r for r in risk_factors if r.gbd_id in risk_ids}
+    risks = {r.gbd_id: r for r in risks if r.gbd_id in risk_ids}
 
     age = gbd.get_age_group_id(gbd.GBD_ROUND_ID)
     sex = [1, 2]
