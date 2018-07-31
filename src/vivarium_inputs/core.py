@@ -12,7 +12,12 @@ from gbd_mapping.sequela import Sequela
 from gbd_mapping.etiology import Etiology, etiologies
 from gbd_mapping.coverage_gap import CoverageGap, coverage_gaps
 from gbd_mapping.covariate import Covariate
-import vivarium_gbd_access.gbd as gbd
+
+try:
+    import vivarium_gbd_access.gbd as gbd
+except ModuleNotFoundError:
+    gbd = None
+
 
 from vivarium_inputs.mapping_extension import HealthcareEntity
 
