@@ -1,6 +1,23 @@
 from vivarium.config_tree import ConfigTree  # Just for typing info.
-from vivarium_gbd_access.utilities import get_input_config
 from gbd_mapping import covariates
+
+try:
+    from vivarium_gbd_access.utilities import get_input_config
+except ImportError:
+    from vivarium.framework.configuration import build_simulation_configuration
+
+    def get_input_config(override_config):
+        config = build_simulation_configuration()
+        config.update(override_config)
+        config.update({
+            'input_data': {
+                'location': 'Kenya',
+                'input_draw_number': 0,
+            }
+        })
+
+        return config
+
 
 from vivarium_inputs import core
 from vivarium_inputs.utilities import (select_draw_data, get_age_group_midpoint_from_age_group_id,
