@@ -1,7 +1,6 @@
 tables
 numpy
 pandas
-pytest
 joblib
 vivarium
 vivarium_public_health
