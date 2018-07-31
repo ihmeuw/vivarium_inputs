@@ -39,6 +39,7 @@ def test_standardize_dimensions__fill():
 
 @pytest.mark.skip("Cluster")
 def test_standardize_dimensions__interpolate():
+    from core_maths.interpolate import interpolate
     expected = pd.MultiIndex.from_product([range(22), ['Male'], [1991, 1995, 2000, 2005]],
                                           names=['age_group_id', 'sex', 'year'])
 

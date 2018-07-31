@@ -2,8 +2,6 @@
 from typing import Mapping
 
 import pandas as pd
-
-from core_maths.interpolate import interpolate
 import vivarium_gbd_access.gbd as gbd
 
 from vivarium_inputs.core import UnhandledDataError
@@ -94,6 +92,7 @@ def verify_well_formed(data: pd.DataFrame, dimensions: pd.DataFrame):
 
 
 def interpolate_years(data: pd.DataFrame, dimensions: pd.DataFrame) -> pd.DataFrame:
+
     existing_extent = data['year'].sort_values().drop_duplicates()
     expected_extent = dimensions['year'].sort_values().drop_duplicates()
 
@@ -102,6 +101,7 @@ def interpolate_years(data: pd.DataFrame, dimensions: pd.DataFrame) -> pd.DataFr
         if year in existing_extent.values:
             out.append(data[data['year'] == year])
         else:
+            from core_maths.interpolate import interpolate
             index_columns = list(dimensions.columns)
             value_columns = list(data.columns.difference(index_columns))
 
