@@ -243,6 +243,7 @@ def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposure
                 )
 
 
+@pytest.mark.skip("Cluster")
 def test_get_draws_bad_args(cause_list, risk_list, locations):
     with pytest.raises(core.InvalidQueryError):
         core.get_draws(cause_list + risk_list, ['test'], locations)
