@@ -172,6 +172,7 @@ def mock_exposures(mocker):
     return exposures_mock, exposure_map
 
 
+@pytest.mark.skip("Cluster")
 def test__compute_paf_for_special_cases(mock_rrs, mock_exposures, locations):
     _, rrs = mock_rrs
     _, exposures = mock_exposures
@@ -180,7 +181,7 @@ def test__compute_paf_for_special_cases(mock_rrs, mock_exposures, locations):
     # where it isn't really accessible for tests. Should probably clean that up.
     special_risks = [risks.unsafe_water_source]
 
-    location_ids = [core.LOCATION_IDS_BY_NAME[name] for name in locations]
+    location_ids = [core.get_location_ids_by_name()[name] for name in locations]
     for risk in special_risks:
         for cause in risk.affected_causes:
             paf = core._compute_paf_for_special_cases(cause, risk, location_ids)
@@ -200,6 +201,7 @@ def cause_like_entities(request, cause_list, etiology_list):
         return etiology_list
 
 
+@pytest.mark.skip("cluster")
 def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposures, cause_like_entities, locations):
     _, risk_cause_pafs = mock_pafs
 
@@ -226,7 +228,7 @@ def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposure
         # TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction
         # where it isn't really accessible for tests. Should probably clean that up.
         special_risks = [risks.unsafe_water_source]
-        location_ids = [core.LOCATION_IDS_BY_NAME[name] for name in locations]
+        location_ids = [core.get_location_ids_by_name()[name] for name in locations]
         for risk in special_risks:
             for cause in risk.affected_causes:
                 special = core._compute_paf_for_special_cases(cause, risk, location_ids)

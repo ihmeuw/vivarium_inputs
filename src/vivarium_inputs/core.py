@@ -22,8 +22,8 @@ MALE = [1]
 FEMALE = [2]
 COMBINED = [3]
 
-LOCATION_IDS_BY_NAME = {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}
-LOCATION_NAMES_BY_ID = {v: k for k, v in LOCATION_IDS_BY_NAME.items()}
+
+
 
 name_measure_map = {'death': 1,
                     'DALY': 2,
@@ -114,7 +114,7 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'cost': (_get_cost, set()),
     }
 
-    location_ids = [LOCATION_IDS_BY_NAME[name] for name in locations]
+    location_ids = [get_location_ids_by_name()[name] for name in locations]
 
     data = []
     id_cols = set()
@@ -305,12 +305,12 @@ def _get_cause_specific_mortality(entities, location_ids):
     # FIXME: Mapping backword to name like this is awkward
     locations = [LOCATION_NAMES_BY_ID[location_id] for location_id in location_ids]
     deaths = get_draws(entities, ["death"], locations)
-    deaths["location_id"] = deaths.location.apply(LOCATION_IDS_BY_NAME.get)
+    deaths["location_id"] = deaths.location.apply(get_location_ids_by_name().get)
     deaths = deaths.drop("location", "columns")
 
     populations = get_populations(locations)
     populations = populations[populations['year_id'] >= deaths.year_id.min()]
-    populations["location_id"] = populations.location.apply(LOCATION_IDS_BY_NAME.get)
+    populations["location_id"] = populations.location.apply(get_location_ids_by_name().get)
 
     merge_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id']
     key_columns = merge_columns + ['cause_id']
@@ -344,7 +344,7 @@ def _get_excess_mortality(entities, location_ids):
     em = csmrs.divide(prevalences, axis='index').reset_index()
     em = em[em['sex_id'] != COMBINED]
 
-    em["location_id"] = em.location.apply(LOCATION_IDS_BY_NAME.get)
+    em["location_id"] = em.location.apply(get_location_ids_by_name().get)
     em = em.drop("location", "columns")
 
     return em.dropna()
@@ -658,7 +658,7 @@ def get_ensemble_weights(risks):
 
 
 def get_populations(locations):
-    location_ids = [LOCATION_IDS_BY_NAME[location] for location in locations]
+    location_ids = [get_location_ids_by_name()[location] for location in locations]
     populations = pd.concat([gbd.get_populations(location_id) for location_id in location_ids])
     populations["location"] = populations.location_id.apply(LOCATION_NAMES_BY_ID.get)
     keep_columns = ['age_group_id', 'location', 'year_id', 'sex_id', 'population']
@@ -674,11 +674,18 @@ def get_theoretical_minimum_risk_life_expectancy():
 
 
 def get_subregions(locations):
-    location_ids = [LOCATION_IDS_BY_NAME[location] for location in locations]
+    location_ids = [get_location_ids_by_name()[location] for location in locations]
     return gbd.get_subregions(location_ids)
 
 
 def get_covariate_estimates(covariates, locations):
-    location_ids = [LOCATION_IDS_BY_NAME[location] for location in locations]
+    location_ids = [get_location_ids_by_name()[location] for location in locations]
     return gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)
 
+
+def get_location_ids_by_name():
+    return  {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}
+
+
+def get_location_names_by_id():
+    return {v: k for k, v in get_location_ids_by_name().items()}

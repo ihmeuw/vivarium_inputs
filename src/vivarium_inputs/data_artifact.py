@@ -489,9 +489,9 @@ def _load_population(entity_config: _EntityConfig) -> None:
 
 def _load_covariate(entity_config: _EntityConfig) -> None:
     entity = covariates[entity_config.name]
-    location_ids = [core.LOCATION_IDS_BY_NAME[l] for l in entity_config.locations]
+    location_ids = [core.get_location_ids_by_name()[l] for l in entity_config.locations]
     estimate = gbd.get_covariate_estimates([entity.gbd_id], location_ids)
-    estimate['location'] = estimate.location_id.apply(core.LOCATION_NAMES_BY_ID.get)
+    estimate['location'] = estimate.location_id.apply(core.get_location_names_by_id().get)
     estimate = estimate.drop('location_id', 'columns')
 
     if entity is covariates.age_specific_fertility_rate:
