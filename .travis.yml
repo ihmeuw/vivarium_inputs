@@ -1,0 +1,17 @@
+language: python
+python:
+- 3.6
+install:
+- pip install -r requirements.txt
+- pip install .
+script:
+- pytest
+deploy:
+  provider: pypi
+  user: collijk
+  password:
+    secure: IPgAdea13A4Ot7rj0fp8o3piC0qLvPP0M06l0t2a8IV+dCMRvLKzEEIEBYkPkMNkWz9ye86tlWoik49nrAIO6WBUvrF7M9MNcKzzoNscOAejR/l9N2pQolSriR6pbfCG2DLC1NWOwydZSz4WE5F9KjfQJEdKV9b8t+rlNnnIp/MOsxIkQ44jk0eqkd1cRFsASvwe/rvJn3s/KUS6OP0Ih5F+A+AE6hVguHSErkO5NTc/MrqdghVQb7hm+LNOvSAaBpcqlKnAsb4gXugVIkdSRnx+4vUh6oY/KwLQ0R51D2aspGiZspkKnqFDfOpFB0LCbJw9eE1Fc006TsNNMAwdg9ONB3Sd/HSiOdtTNp/inwmkTmUCIY044CdTRtbmGpKc5P2zyKWcy+GzN0ryeoda2L/RM+/4xK1rsiTiZnVUBt6XvgGciygEdW6jYg3f84C0yaJm4CrejdzmS7jqZfYihzXYzUdUM8cQ0QtJV1nML4ghOFEl51wV2Vfr3cQSjNaCtnL8NooDCsdEJWD2kMU1EWdL61O4JewvwxdUUtFfJ7d4aTFjqEYpLMKAEBfHK+JZ29olGEtcTVHGfsyy9YDUMtEOjlfbLdT1YoQKw2cS2G+1hj3btmHcEMnG/gkQHhgDu+CS8TF7R7us7N6Jlzlk5UvT91P+pCaMGUXji9KCeLs=
+  on:
+    distributions: sdist bdist_wheel
+    repo: ihmeuw/vivarium_inputs
+    tags: true

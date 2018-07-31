@@ -1,6 +1,5 @@
 """This module performs the core data transformations on GBD data and provides a basic API for data access."""
 from typing import Iterable, Sequence, List
-from itertools import product
 
 import numpy as np
 import pandas as pd

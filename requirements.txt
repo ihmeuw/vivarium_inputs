@@ -3,6 +3,6 @@ numpy
 pandas
 pytest
 joblib
--e git+git://github.com/ihmeuw/vivarium.git#egg=vivarium
--e git+git://github.com/ihmeuw/vivarium_public_health.git#egg=vivarium_public_health
-hypothesis
+vivarium
+vivarium_public_health
+gbd_mapping
