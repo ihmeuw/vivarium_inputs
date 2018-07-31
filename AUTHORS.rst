@@ -7,6 +7,8 @@ Authors
 - Abraham Flaxman <abie@uw.edu>
 - Everett Mumford <emumford@uw.edu>
 - Zane Rankin <zrankin@uw.edu>
+- Paola Pedroza <ppedroza@uw.edu>
+- Erika Eldrenkamp <eeldren@uw.edu>
 
 Current Maintainers
 -------------------
