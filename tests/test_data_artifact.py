@@ -1,5 +1,6 @@
 import os
 
+import pytest
 from hypothesis import given, assume
 import hypothesis.strategies as st
 from hypothesis.extra.pandas import data_frames, column
@@ -63,6 +64,7 @@ def measure_dataframes(draw):
     return df
 
 
+@pytest.mark.skip("Cluster")
 @given(measure_dataframes())
 def test__normalize(data):
     normed = _normalize(data)

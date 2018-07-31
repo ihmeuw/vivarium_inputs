@@ -2,7 +2,6 @@
 from typing import Mapping
 
 import pandas as pd
-import vivarium_gbd_access.gbd as gbd
 
 from vivarium_inputs.core import UnhandledDataError
 
@@ -190,6 +189,7 @@ def get_age_group_midpoint_from_age_group_id(df):
     keep the midpoint as 82.5 for now. GBD populations have data for each age group up until the
     age 95+ age group, at which point I'm assuming we can use 97.5 as the midpoint.
     """
+    import vivarium_gbd_access.gbd as gbd
     if df.empty:
         df['age'] = 0
         return df
