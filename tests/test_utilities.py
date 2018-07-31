@@ -3,8 +3,6 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from core_maths.interpolate import interpolate
-
 from itertools import product
 
 from vivarium_inputs.utilities import standardize_dimensions
@@ -39,6 +37,7 @@ def test_standardize_dimensions__fill():
                   == actual.reindex(sorted(actual.columns), axis=1))
 
 
+@pytest.mark.skip("Cluster")
 def test_standardize_dimensions__interpolate():
     expected = pd.MultiIndex.from_product([range(22), ['Male'], [1991, 1995, 2000, 2005]],
                                           names=['age_group_id', 'sex', 'year'])
