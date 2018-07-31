@@ -116,6 +116,7 @@ def test__prepare_key(entity_path):
     assert len(key_components) == expected_length
 
 
+@pytest.mark.skip("Cluster")
 @given(entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risks, RISK_MEASURES),
                              st.sampled_from(POPULATION_ENTITY_PATHS)),
        columns=st.sets(st.sampled_from(["year", "location", "draw", "cause", "risk"])
