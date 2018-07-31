@@ -232,7 +232,7 @@ def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposure
         for risk in special_risks:
             for cause in risk.affected_causes:
                 special = core._compute_paf_for_special_cases(cause, risk, location_ids)
-                special['location'] = special.location_id.apply(core.LOCATION_NAMES_BY_ID.get)
+                special['location'] = special.location_id.apply(core.get_location_names_by_id().get)
                 del special['location_id']
                 del special['measure_id']
                 special = special.set_index(['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id'])

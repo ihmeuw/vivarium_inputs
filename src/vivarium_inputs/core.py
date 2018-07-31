@@ -22,9 +22,6 @@ MALE = [1]
 FEMALE = [2]
 COMBINED = [3]
 
-
-
-
 name_measure_map = {'death': 1,
                     'DALY': 2,
                     'YLD': 3,
@@ -142,7 +139,7 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
     data = data[key_columns + draw_columns].reset_index(drop=True)
     _validate_data(data, key_columns)
     if "location_id" in data:
-        data["location"] = data.location_id.apply(LOCATION_NAMES_BY_ID.get)
+        data["location"] = data.location_id.apply(get_location_names_by_id().get)
         data = data.drop("location_id", "columns")
 
     return data
@@ -303,7 +300,7 @@ def _get_incidence(entities, location_ids):
 
 def _get_cause_specific_mortality(entities, location_ids):
     # FIXME: Mapping backword to name like this is awkward
-    locations = [LOCATION_NAMES_BY_ID[location_id] for location_id in location_ids]
+    locations = [get_location_names_by_id()[location_id] for location_id in location_ids]
     deaths = get_draws(entities, ["death"], locations)
     deaths["location_id"] = deaths.location.apply(get_location_ids_by_name().get)
     deaths = deaths.drop("location", "columns")
@@ -327,7 +324,7 @@ def _get_cause_specific_mortality(entities, location_ids):
 
 def _get_excess_mortality(entities, location_ids):
     # FIXME: Mapping backword to name like this is awkward
-    locations = [LOCATION_NAMES_BY_ID[location_id] for location_id in location_ids]
+    locations = [get_location_names_by_id()[location_id] for location_id in location_ids]
     prevalences = get_draws(entities, ['prevalence'], locations).drop('measure', 'columns')
     csmrs = get_draws(entities, ['cause_specific_mortality'], locations).drop('measure', 'columns')
 
@@ -660,7 +657,7 @@ def get_ensemble_weights(risks):
 def get_populations(locations):
     location_ids = [get_location_ids_by_name()[location] for location in locations]
     populations = pd.concat([gbd.get_populations(location_id) for location_id in location_ids])
-    populations["location"] = populations.location_id.apply(LOCATION_NAMES_BY_ID.get)
+    populations["location"] = populations.location_id.apply(get_location_names_by_id().get)
     keep_columns = ['age_group_id', 'location', 'year_id', 'sex_id', 'population']
     return populations[keep_columns]
 

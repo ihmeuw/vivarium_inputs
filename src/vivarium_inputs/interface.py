@@ -3,7 +3,7 @@ from gbd_mapping import covariates
 
 try:
     from vivarium_gbd_access.utilities import get_input_config
-except ImportError:
+except ModuleNotFoundError:
     from vivarium.framework.configuration import build_simulation_configuration
 
     def get_input_config(override_config):
