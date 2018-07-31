@@ -13,7 +13,6 @@ from vivarium_inputs import core
 from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
 from vivarium_public_health.dataset_manager import Artifact
 from vivarium_public_health.disease.model import DiseaseModel
-import vivarium_gbd_access.gbd as gbd
 from gbd_mapping import causes, risks, sequelae, coverage_gaps, etiologies, covariates
 
 from vivarium_inputs.mapping_extension import healthcare_entities
@@ -90,6 +89,7 @@ class ArtifactBuilder:
     """
 
     def __init__(self):
+        import vivarium_gbd_access.gbd as gbd
         self.incremental = True
         estimation_years = gbd.get_estimation_years(gbd.GBD_ROUND_ID)
         self.year_start = min(estimation_years)
