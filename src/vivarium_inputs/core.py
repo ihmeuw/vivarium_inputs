@@ -16,7 +16,7 @@ from gbd_mapping.covariate import Covariate
 try:
     import vivarium_gbd_access.gbd as gbd
 except ModuleNotFoundError:
-    gbd = None
+    gbd = object()
 
 
 from vivarium_inputs.mapping_extension import HealthcareEntity

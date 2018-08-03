@@ -5,9 +5,8 @@ import pandas as pd
 import pytest
 
 from gbd_mapping.id import reiid
-from gbd_mapping.cause import Cause, causes
+from gbd_mapping.cause import causes
 from gbd_mapping.risk import risks
-from gbd_mapping.etiology import Etiology
 
 from vivarium_inputs import core
 
