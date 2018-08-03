@@ -381,6 +381,37 @@ def _get_disability_weight(entities, _):
 # Risk-like stuff #
 ###################
 
+def _standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
+    # age_groups that we expect to exist for each risk
+    whole_age_groups = gbd.get_age_group_id()
+
+    sex_id = data.sex_id.unique()
+    year_id = data.year_id.unique()
+    location_id = data.location_id.unique()
+
+    index_cols = ['year_id', 'location_id', 'sex_id', 'age_group_id']
+    draw_cols = [c for c in data.columns if 'draw_' in c]
+
+    other_cols = {c: data[c].unique() for c in data.columns if c not in index_cols and c not in draw_cols}
+    index_cols = index_cols + [*other_cols.keys()]
+    data = data.set_index(index_cols)
+
+    # expected indexes to be in the data
+    expected = pd.MultiIndex.from_product([year_id, location_id, sex_id, whole_age_groups] + [*other_cols.values()],
+                                          names=(['year_id', 'location_id', 'sex_id', 'age_group_id'] + [
+                                              *other_cols.keys()]))
+
+    new_data = data.copy()
+    missing = expected.difference(data.index)
+
+    # assign dtype=float to prevent the artifact error with mixed dtypes
+    to_add = pd.DataFrame({column: fill_value for column in draw_cols}, index=missing, dtype=float)
+
+    new_data = new_data.append(to_add).sort_index()
+
+    return new_data.reset_index()
+
+
 def _get_relative_risk(entities, location_ids):
     measure_ids = _get_ids_for_measure(entities, 'relative_risk')
     measure_data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
@@ -397,9 +428,13 @@ def _get_relative_risk(entities, location_ids):
     # assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), err_msg
 
     measure_data = measure_data[measure_data['morbidity'] == 1]  # FIXME: HACK
+
     del measure_data['mortality']
     del measure_data['morbidity']
+    del measure_data['metric_id']
+    del measure_data['modelable_entity_id']
 
+    measure_data = _standardize_data(measure_data, 1)
     return measure_data
 
 
@@ -413,6 +448,10 @@ def _filter_to_most_detailed(data):
 
 
 def _compute_paf_for_special_cases(cause, risk, location_ids):
+    """Computes pafs in cases where rr and exposure data is inconsistent with available pafs.
+
+    Paf for unsafe_water_source from central_comp is lower than what it is
+    supposed to be and does not assign correct incidence rates equivalent to gbd """
     cause_id = cause.gbd_id
     paf = pd.DataFrame()
     for location_id in location_ids:
@@ -482,6 +521,8 @@ def _get_population_attributable_fraction(entities, location_ids):
         # FIXME: Is this the only data we need to delete measure id for?
         del measure_data['measure_id']
 
+        # Paf data missing age_groups needs to get standardized
+        measure_data = _standardize_data(measure_data, 0)
         return measure_data
     else:
         raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'population_attributable_fraction'")
