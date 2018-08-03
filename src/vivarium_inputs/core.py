@@ -16,7 +16,8 @@ from gbd_mapping.covariate import Covariate
 try:
     import vivarium_gbd_access.gbd as gbd
 except ModuleNotFoundError:
-    gbd = object()
+    from unittest.mock import Mock
+    gbd = Mock()
 
 
 from vivarium_inputs.mapping_extension import HealthcareEntity
