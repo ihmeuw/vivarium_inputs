@@ -11,7 +11,7 @@ import json
 from vivarium.framework.components import ComponentManager
 from vivarium_inputs import core
 from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
-from vivarium_public_health.dataset_manager import Artifact
+from vivarium_public_health.dataset_manager import Artifact, EntityKey
 from vivarium_public_health.disease.model import DiseaseModel
 from gbd_mapping import causes, risks, sequelae, coverage_gaps, etiologies, covariates
 
@@ -36,8 +36,7 @@ class EntityError(DataArtifactError):
 
 class _EntityConfig(NamedTuple):
     """A representation of an entity and the context in which to load it's data."""
-    type: str
-    name: str
+    entity_key: EntityKey
     locations: Iterable[str]
     year_start: int
     year_end: int
@@ -56,21 +55,6 @@ def _normalize(data: pd.DataFrame) -> pd.DataFrame:
     data = pd.melt(data, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
     data["draw"] = data.draw.str.partition("_")[2].astype(int)
     return data
-
-
-def _parse_entity_path(entity_path: str) -> Tuple[str, Optional[str], str]:
-    # FIXME We need a better specification of what the paths can be. This is confusing.
-    entity_type, *tail = entity_path.split('.')
-    if len(tail) == 2:
-        entity_name = tail[0]
-        measure = tail[1]
-    elif len(tail) == 1:
-        entity_name = None
-        measure = tail[0]
-    else:
-        raise ValueError(f"Invalid entity path: {entity_path}")
-
-    return entity_type, entity_name, measure
 
 
 def _entities_by_type(entities: Iterable[str]) -> Mapping[str, set]:
@@ -99,26 +83,26 @@ class ArtifactBuilder:
 
         self.artifact = None
 
-    def load(self, entity_path: str, keep_age_group_edges=False, **column_filters) -> None:
+    def load(self, entity_k: str, keep_age_group_edges=False, **column_filters) -> None:
         """Records a request for entity data for future processing."""
-
+        entity_key = EntityKey(entity_k)
         needs_load = True
         if self.incremental:
             self.artifact.open()
             try:
-                if ("/"+entity_path.replace(".", "/")) in self.artifact._hdf:
+                if entity_key.to_path() in self.artifact._hdf:
                     needs_load = False
             finally:
                 self.artifact.close()
 
         if needs_load:
-            self.process(entity_path)
+            self.process(entity_key)
         else:
-            _log.info(f"Loading '{entity_path}' from artifact")
+            _log.info(f"Loading '{entity_key}' from artifact")
 
         self.artifact.open()
         try:
-            result = self.artifact.load(entity_path, keep_age_group_edges, **column_filters)
+            result = self.artifact.load(entity_key, keep_age_group_edges, **column_filters)
         finally:
             self.artifact.close()
 
@@ -145,30 +129,22 @@ class ArtifactBuilder:
     def end_processing(self) -> None:
         pass
 
-    def process(self, entity_path: str) -> None:
+    def process(self, entity_key: EntityKey) -> None:
         """Loads all requested data and writes it out to a HDF file.
-
-        Parameters
-        ----------
-        entity_path :
-            The absolute path to the output HDF file to write.
 
         Note
         ----
         The data loading process can be memory intensive. To reduce peak consumption, reduce parallelism.
         """
 
-        entity_type, entity_name, _ = _parse_entity_path(entity_path)
-
-        if (entity_type, entity_name) not in self.processed_entities:
-            entity_config = _EntityConfig(type=entity_type,
-                                          name=entity_name,
+        if entity_key not in self.processed_entities:
+            entity_config = _EntityConfig(entity_key=entity_key,
                                           year_start=self.year_start,
                                           year_end=self.year_end,
                                           locations=self.locations,
                                           modeled_causes=self.modeled_causes)
-            _worker(entity_config, self.path, self.loaders[entity_type])
-            self.processed_entities.add((entity_type, entity_name))
+            _worker(entity_config, self.path, self.loaders[entity_key.type])
+            self.processed_entities.add(entity_key)
 
 
 def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
@@ -184,16 +160,17 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
         The function to load the entity's data. The loader must take an ``_EntityConfig`` object and
         the writer Callable defined within as arguments.
     """
-    _log.info(f"Loading data for {entity_config.type}.{entity_config.name}")
+    _log.info(f"Loading data for {entity_config.entity_key}")
 
     for measure, data in loader(entity_config):
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
 
-        _dump(data, entity_config.type, entity_config.name, measure, path)
+        _dump(data, entity_config.entity_key, measure, path)
 
 
 def _prepare_key(entity_type: str, entity_name: Optional[str], measure: str) -> Sequence[str]:
+    # so this is just the list of ['/', entity_type, (entity_name), measure]]; so, EntityKey.split('.')
     key_components = ["/", entity_type]
     if entity_name:
         key_components.append(entity_name)
