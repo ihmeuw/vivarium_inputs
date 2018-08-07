@@ -81,7 +81,7 @@ def parse_qsub(response):
             job_ind = split_response.index('job')
         elif 'job-array' in split_response:
             job_ind = split_response.index('job-array')
-    except ValueError, IndexError:
+    except (ValueError, IndexError):
         print("\nThe response was formatted differently than expected:\n\n{}\n".format(response),
               file=sys.stderr)
         raise OSError  # what the heck is the right err here
@@ -99,7 +99,7 @@ def _build_artifact():
     """Inward-facing interface for building a data artifact from a simulation
     configuration file"""
 
-    parser = argparse.ArgumentParser()''
+    parser = argparse.ArgumentParser()
     parser.add_argument('simulation_configuration', type=str)
     parser.add_argument('--output_root', type=str, optional=True)
     parser.add_argument('--location', type=str, optional=True)
@@ -149,17 +149,17 @@ def update_configuration(specification_arg, location_arg, output_root_arg, confi
             configuration.input_data.location):
             configuration.artifact.path = os.path.join('\\', 'share', 'scratch', getpass.getuser(),
                 'vivarium_artifacts', specification_name + '.hdf')
-        else
+        else:
             raise argparse.ArgumentError(
                 "specify a location or include configuration.input_data.location in model specification")
-    elif not location_arg and output_root_arg 
+    elif not location_arg and output_root_arg:
         if ('input_data' in configuration and 'location' in configuration.input_data and 
             configuration.input_data.location):
             configuration.artifact.path = os.path.join(output_root_arg, 'specification_name' + '.hdf')
         else:
             raise argparse.ArgumentError(
                 "specify a location or include configuration.input_data.location in model specification")
-    elif location_arg and not output_root_arg
+    elif location_arg and not output_root_arg:
         configuration.input_data.location = location_arg
         configuration.artifact.path = os.path.join('\\', 'share', 'scratch', getpass.getuser(),
             'vivarium_artifacts', specification_name + f'_{location_arg}.hdf')
