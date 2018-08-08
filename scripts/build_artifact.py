@@ -79,16 +79,14 @@ def parse_qsub(response):
 
     split_response = response.split()
     # qsub response can be funky but JID should directly follow "Your job".
-    try:
-        # job arrays say "job-array", regular jobs say "job"
-        if 'job' in split_response:
-            job_ind = split_response.index('job')
-        elif 'job-array' in split_response:
-            job_ind = split_response.index('job-array')
-    except (ValueError, IndexError):
-        print("\nThe response was formatted differently than expected:\n\n{}\n".format(response),
-              file=sys.stderr)
-        raise OSError  # what the heck is the right err here
+    # job arrays say "job-array", regular jobs say "job"
+    job_ind = 0
+    if 'job' in split_response:
+        job_ind = split_response.index('job')
+    elif 'job-array' in split_response:
+        job_ind = split_response.index('job-array')
+    if not job_ind:
+        raise OSError("Unexpected response from qsub: " + response)
 
     jid = split_response[job_ind + 1]
 
