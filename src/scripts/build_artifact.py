@@ -65,9 +65,9 @@ def build_artifact(simulation_configuration, project,locations, output_root, fro
     else:
         job_name = f"{config_name}_build_artifact"
         slots = 2
-        submit_command = ("qsub -N {job_name} -pe multi_slot {slots} " +
+        submit_command = (f"qsub -N {job_name} -pe multi_slot {slots} " +
                           script_arg)
-        exitcode, repsonse = subprocess.getstatusoutput(submit_command)
+        exitcode, response = subprocess.getstatusoutput(submit_command)
         if exitcode:
             raise OSError(exitcode, response)
         _log.info(response)
