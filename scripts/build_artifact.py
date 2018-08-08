@@ -30,7 +30,7 @@ def build_artifact(simulation_configuration, locations, output_root, from_scratc
 
     location and output_root specifications overwrite parameteres from the
     configuration file. Any artifact.path in the configuration file is 
-    guaranteed to be overwritte either by the passed output_root or a
+    guaranteed to be overwritten either by the passed output_root or a
     predetermined path at /ihme/scratch/{user}/vivarium_artifacts/
     """ 
 
