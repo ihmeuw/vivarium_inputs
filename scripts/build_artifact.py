@@ -16,11 +16,12 @@ _log = logging.getLogger(__name__)
 
 
 @click.command()
-@click.argument('simulation_configuration')
-@click.option('--locations', nargs='-1')
+@click.argument('simulation_configuration', nargs=1)
+@click.argument('project', nargs=1)
+@click.argument('locations', nargs=-1)
 @click.option('--output_root')
 @click.option('--from_scratch')
-def build_artifact(simulation_configuration, locations, output_root, from_scratch):
+def build_artifact(simulation_configuration, project,locations, output_root, from_scratch):
     """Outward-facing interface for building a data artifact from a simulation
     configuration file
 
@@ -33,22 +34,44 @@ def build_artifact(simulation_configuration, locations, output_root, from_scratc
     guaranteed to be overwritten either by the passed output_root or a
     predetermined path at /ihme/scratch/{user}/vivarium_artifacts/
     """ 
+    config_file = os.path.basename(simulation_configuration)
+    config_name = os.path.splitext(config_file)[0]
+
+    python_context = os.path.realpath(subprocess.getoutput("which python"))
 
     #TODO: get full path. Will __file__ work with click?
-    base_command = f"build_artifact.py {simulation_configuration}"
+    script_path = os.path.realpath(__file__)
+    script_arg = f"{script_path} {simulation_configuration} "
     if output_root:
-        base_command += f"--output_root {output_root}"
+        script_arg += f"--output_root {output_root} "
     if from_scratch:
-        base_command += f"--from_scratch {from_scratch}"
+        script_arg += f"--from_scratch {from_scratch} "
 
     jids = []
     if len(locations) > 0:
         for location in locations:
-            submit_command = base_command + f"--location {location}"
-            jid = subprocess.getoutput(submit_command)
+            job_name = f"{config_name}_{location}_build_artifact"
+            slots = 2
+            submit_command = (f"qsub -N {job_name} -P {project} " +
+                              f"-pe multi_slot {slots} " +
+                              f"-b y {python_context} " +
+                              script_arg + f"--location {location}")
+            exitcode, response = subprocess.getstatusoutput(submit_command)
+            if exitcode:
+                raise OSError(exitcode, response)
+            _log.info(response)
+            jid = parse_qsub(response)
             jids.append(jid)
     else:
-        jid = subprocess.getoutput(base_command)
+        job_name = f"{config_name}_build_artifact"
+        slots = 2
+        submit_command = ("qsub -N {job_name} -pe multi_slot {slots} " +
+                          script_arg)
+        exitcode, repsonse = subprocess.getstatusoutput(submit_command)
+        if exitcode:
+            raise OSError(exitcode, response)
+        _log.info(response)
+        jid = parse_qsub(response)
         jids.append(jid)
 
     monitor_job_ids(jids)
