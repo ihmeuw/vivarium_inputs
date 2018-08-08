@@ -1,12 +1,8 @@
-import os
 import warnings
 from collections import defaultdict
 from typing import Optional, NamedTuple, Sequence, Mapping, Iterable, Callable, Tuple
 
 import pandas as pd
-import tables
-from tables.nodes import filenode
-import json
 
 from vivarium.framework.components import ComponentManager
 from vivarium_inputs import core
@@ -140,7 +136,7 @@ class ArtifactBuilder:
         dimensions = [range(self.year_start, self.year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
         dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location"])
         dimensions = dimensions.to_frame().reset_index(drop=True)
-        _dump(dimensions, "dimensions", None, "full_space", path)
+        self.artifact.write(["dimensions", "full_space"], dimensions)
 
     def end_processing(self) -> None:
         pass
@@ -167,19 +163,19 @@ class ArtifactBuilder:
                                           year_end=self.year_end,
                                           locations=self.locations,
                                           modeled_causes=self.modeled_causes)
-            _worker(entity_config, self.path, self.loaders[entity_type])
+            _worker(entity_config, self.artifact, self.loaders[entity_type])
             self.processed_entities.add((entity_type, entity_name))
 
 
-def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
+def _worker(entity_config: _EntityConfig, artifact: Artifact, loader: Callable) -> None:
     """Loads and writes the data for a single entity into a shared output file.
 
     Parameters
     ----------
     entity_config :
         Container for contextual information used in the loading process.
-    path :
-        The path to the output file to write to.
+    artifact :
+        The data artifact to write to.
     loader :
         The function to load the entity's data. The loader must take an ``_EntityConfig`` object and
         the writer Callable defined within as arguments.
@@ -190,55 +186,18 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
 
-        _dump(data, entity_config.type, entity_config.name, measure, path)
+        key_components = _prepare_key(entity_config.type, entity_config.name, measure)
+
+        artifact.write(key_components, data)
 
 
 def _prepare_key(entity_type: str, entity_name: Optional[str], measure: str) -> Sequence[str]:
     key_components = ["/", entity_type]
     if entity_name:
         key_components.append(entity_name)
+    key_components.append(measure)
 
-    return key_components + [measure]
-
-def _dump(data, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
-    if data is None:
-        return
-
-    key_components = _prepare_key(entity_type, entity_name, measure)
-
-    """Write a dataset out to the target HDF file keyed by the entity the data corresponds to."""
-    if isinstance(data, (pd.DataFrame, pd.Series)):
-        _dump_dataframe(data, key_components, path)
-    else:
-        _dump_json_blob(data, key_components, path)
-
-def _dump_dataframe(data, key_components: Sequence[str], path: str) -> None:
-    if data.empty:
-        raise ValueError("Cannot persist empty dataset")
-    data_columns = {"year", "location", "draw", "cause", "risk"}.intersection(data.columns)
-    inner_path = os.path.join(*key_components)
-    with pd.HDFStore(path, complevel=9, format="table") as store:
-        store.put(inner_path, data, format="table", data_columns=data_columns)
-
-def _dump_json_blob(data, key_components: Sequence[str], path:str) -> None:
-    inner_path = os.path.join(*key_components)
-    prefix = os.path.join(*key_components[:-2])
-    store = tables.open_file(path, "a")
-    if inner_path in store:
-        store.remove_node(inner_path)
-    try:
-        store.create_group(prefix, key_components[-2], createparents=True)
-    except tables.exceptions.NodeError as e:
-        if "already has a child node" in str(e):
-            # The parent group already exists, which is fine
-            pass
-        else:
-            raise
-
-    fnode = filenode.new_node(store, where=os.path.join(*key_components[:-1]), name=key_components[-1])
-    fnode.write(bytes(json.dumps(data), "utf-8"))
-    fnode.close()
-    store.close()
+    return key_components
 
 
 def _load_cause(entity_config: _EntityConfig) -> None:
@@ -331,7 +290,6 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         weights = normalize_for_simulation(weights)
         weights = get_age_group_midpoint_from_age_group_id(weights)
         yield "ensemble_weights", weights
-
 
     if risk.levels is not None:
         yield "levels" , [(f"cat{cat_number}", level_name) for level_name, cat_number in zip(risk.levels, range(60))]

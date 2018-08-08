@@ -8,7 +8,7 @@ from vivarium.interface.interactive import InteractiveContext
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('simulation_configuration', type=str)
+    parser.add_argument('model_specification', type=str)
     parser.add_argument('--output_path', type=str)
     parser.add_argument('--from_scratch', '-s', action="store_true",
                         help="Do not reuse any data in the artifact, if any exists")
