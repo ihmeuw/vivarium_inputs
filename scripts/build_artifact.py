@@ -12,6 +12,9 @@ from vivarium.framework.plugins import PluginManager
 from vivarium.interface.interactive import InteractiveContext
 
 
+_log = logging.getLogger(__name__)
+
+
 @click.command()
 @click.argument('simulation_configuration')
 @click.option('--locations', nargs='-1')
