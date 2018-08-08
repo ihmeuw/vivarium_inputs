@@ -103,13 +103,11 @@ def _build_artifact():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('simulation_configuration', type=str)
-    parser.add_argument('--output_root', type=str, optional=True)
-    parser.add_argument('--location', type=str, optional=True)
+    parser.add_argument('--output_root', type=str, required=False)
+    parser.add_argument('--location', type=str, required=False)
     parser.add_argument('--from_scratch', '-s', action="store_true",
                         help="Do not reuse any data in the artifact, if any exists")
     args = parser.parse_args()
-
-    logging.basicConfig(level=logging.INFO)
 
     model_specification = build_model_specification(args.simulation_configuration)
     model_specification.plugins.optional.update({
@@ -149,8 +147,8 @@ def update_configuration(specification_arg, location_arg, output_root_arg, confi
     if not location_arg and not output_root_arg:
         if ('input_data' in configuration and 'location' in configuration.input_data and 
             configuration.input_data.location):
-            configuration.artifact.path = os.path.join('\\', 'share', 'scratch', getpass.getuser(),
-                'vivarium_artifacts', specification_name + '.hdf')
+            configuration.artifact.path = os.path.join('/', 'share', 'scratch', 'users',
+                    getpass.getuser(), 'vivarium_artifacts', specification_name + '.hdf')
         else:
             raise argparse.ArgumentError(
                 "specify a location or include configuration.input_data.location in model specification")
@@ -163,8 +161,8 @@ def update_configuration(specification_arg, location_arg, output_root_arg, confi
                 "specify a location or include configuration.input_data.location in model specification")
     elif location_arg and not output_root_arg:
         configuration.input_data.location = location_arg
-        configuration.artifact.path = os.path.join('\\', 'share', 'scratch', getpass.getuser(),
-            'vivarium_artifacts', specification_name + f'_{location_arg}.hdf')
+        configuration.artifact.path = os.path.join('/', 'share', 'scratch', 'users',
+                getpass.getuser(), 'vivarium_artifacts', specification_name + f'_{location_arg}.hdf')
     else:
         configuration.input_data.location = location_arg
         configuration.artifact.path = os.path.join(output_root_arg,
