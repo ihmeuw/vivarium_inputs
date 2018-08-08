@@ -186,6 +186,7 @@ def _dump_json_blob(data, entity_key: EntityKey, measure: str, path: str) -> Non
         store.remove_node(entity_key.to_path(measure))
     try:
         store.create_group(entity_key.group_prefix, entity_key.group_name, createparents=True)
+
     except tables.exceptions.NodeError as e:
         if "already has a child node" in str(e):
             # The parent group already exists, which is fine
@@ -193,7 +194,7 @@ def _dump_json_blob(data, entity_key: EntityKey, measure: str, path: str) -> Non
         else:
             raise
 
-    fnode = filenode.new_node(store, where=entity_key.group_prefix + '/' + entity_key.group_name, name=measure)
+    fnode = filenode.new_node(store, where=entity_key.group, name=measure)
     fnode.write(bytes(json.dumps(data), "utf-8"))
     fnode.close()
     store.close()
