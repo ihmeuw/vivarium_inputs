@@ -69,8 +69,9 @@ def monitor_job_ids(jids):
         percent_done = int(float(total - running) / total * 100)
         print(' ' * 15, end='\r')
         time.sleep(1)
-        print(f'{percent_done}% finished.', end='\r')
-        time.sleep(1)
+        print(f' {percent_done}% finished.', end='\r')
+        time.sleep(2)
+    print("\n")
 
 
 def parse_qsub(response):
