@@ -1,12 +1,12 @@
-import pytest
 import hashlib
 
+import numpy as np
 import pandas as pd
+import pytest
 
 from gbd_mapping.id import reiid
-from gbd_mapping.cause import Cause, causes
+from gbd_mapping.cause import causes
 from gbd_mapping.risk import risks
-from gbd_mapping.etiology import Etiology
 
 from vivarium_inputs import core
 
@@ -200,49 +200,6 @@ def cause_like_entities(request, cause_list, etiology_list):
     elif request.param == "etiology":
         return etiology_list
 
-
-@pytest.mark.skip("cluster")
-def test_get_population_attributable_fraction(mock_pafs, mock_rrs, mock_exposures, cause_like_entities, locations):
-    _, risk_cause_pafs = mock_pafs
-
-    pafs = core.get_draws(cause_like_entities, ["population_attributable_fraction"], locations)
-    if isinstance(cause_like_entities[0], Etiology):
-        id_column = "etiology_id"
-        paired_id_column = "cause_id"
-        expected_paired_entities = {causes.diarrheal_diseases.gbd_id}
-    else:
-        id_column = "cause_id"
-        paired_id_column = "risk_id"
-        expected_paired_entities = {r.gbd_id for r in risks if set(cause_like_entities).intersection(r.affected_causes)}
-    assert {c.gbd_id for c in cause_like_entities
-            if c not in [causes.all_causes, causes.tetanus]} == set(pafs[id_column].unique())
-
-    assert expected_paired_entities == set(pafs[paired_id_column].unique())
-
-    assert set(locations) == set(pafs.location.unique())
-
-    for (r, c), v in risk_cause_pafs.items():
-        assert all(pafs.query(f"{id_column} == @r and cause_id == @c")[[f"draw_{i}" for i in range(1000)]] == v)
-
-    if isinstance(cause_like_entities[0], Cause):
-        # TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction
-        # where it isn't really accessible for tests. Should probably clean that up.
-        special_risks = [risks.unsafe_water_source]
-        location_ids = [core.get_location_ids_by_name()[name] for name in locations]
-        for risk in special_risks:
-            for cause in risk.affected_causes:
-                special = core._compute_paf_for_special_cases(cause, risk, location_ids)
-                special['location'] = special.location_id.apply(core.get_location_names_by_id().get)
-                del special['location_id']
-                del special['measure_id']
-                special = special.set_index(['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id'])
-                assert all(
-                    pafs.drop('measure', 'columns').set_index(
-                        ['age_group_id', 'year_id', 'sex_id', 'cause_id', 'location', 'risk_id']
-                    ).reindex(special.index) == special
-                )
-
-
 @pytest.mark.skip("Cluster")
 def test_get_draws_bad_args(cause_list, risk_list, locations):
     with pytest.raises(core.InvalidQueryError):
@@ -255,3 +212,71 @@ def test_get_draws_bad_args(cause_list, risk_list, locations):
     for measure in ['exposure', 'relative_risk']:
         with pytest.raises(core.InvalidQueryError):
             core.get_draws(cause_list, [measure], locations)
+
+
+def test_get_relative_risk(mocker):
+    age_group_mock = mocker.patch("vivarium_inputs.core.gbd.get_age_group_id")
+    age_group_mock.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
+    rr_mocks = mocker.patch("vivarium_inputs.core.gbd.get_relative_risks")
+    draw_cols = [f"rr_{i}" for i in range(10)]
+    rr_maps = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2], 'age_group_id': [4, 5],
+               'risk_id': [240], 'cause_id': [302], 'parameter': ['cat1', 'cat2', 'cat3', 'cat4'],
+               'morbidity': [1], 'mortality': [1], 'rei_id ': [240], 'modelable_entity_id': [9082], 'metric_id': [3]}
+
+    rr_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*rr_maps.values()], names=[*rr_maps.keys()]))
+    rr_[draw_cols] = np.random.random_sample((len(rr_), 10)) * 10
+    rr_mocks.return_value = rr_.reset_index()
+    get_rr = core._get_relative_risk([risks.child_wasting], [1])
+    whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
+    missing_age_groups = list(set(whole_age_groups) - set(rr_maps['age_group_id']))
+    missing_rr_maps = rr_maps.copy()
+    missing_rr_maps['age_group_id'] = missing_age_groups
+
+    del missing_rr_maps['morbidity']
+    del missing_rr_maps['mortality']
+    del missing_rr_maps['metric_id']
+    del missing_rr_maps['modelable_entity_id']
+
+    missing_rr = pd.DataFrame(1.0, columns=[f"draw_{i}" for i in range(10)],
+                              index=pd.MultiIndex.from_product([*missing_rr_maps.values()],
+                              names=[*missing_rr_maps.keys()]))
+    rr_ = rr_.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(10)})
+    rr_ = rr_.reset_index(['morbidity', 'mortality', 'metric_id', 'modelable_entity_id'])
+    rr_ = rr_.drop(['morbidity', 'mortality', 'metric_id', 'modelable_entity_id'], axis=1)
+    expected_rr = rr_.append(missing_rr).sort_index().reset_index()
+    get_rr = get_rr[expected_rr.columns]
+
+    pd.util.testing.assert_frame_equal(expected_rr, get_rr)
+
+
+def test_get_population_attributable_fraction(mocker):
+    id_mock = mocker.patch("vivarium_inputs.core._get_ids_for_measure")
+    paf_mocks = mocker.patch("vivarium_inputs.core.gbd.get_pafs")
+    age_group_mock = mocker.patch("vivarium_inputs.core.gbd.get_age_group_id")
+    age_group_mock.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
+    draw_cols = [f"draw_{i}" for i in range(10)]
+    paf_maps = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2], 'age_group_id': [4, 5],
+                'rei_id': [84, 339, 238, 136, 240], 'cause_id': [302], 'measure_id':[3]}
+
+    paf_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*paf_maps.values()], names=[*paf_maps.keys()]))
+    paf_[draw_cols] = np.random.random_sample((len(paf_), 10))
+    paf_mocks.return_value = paf_.reset_index()
+
+    get_paf = core._get_population_attributable_fraction([causes.diarrheal_diseases], [1])
+
+    whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
+    missing_age_groups = list(set(whole_age_groups) - set(paf_maps['age_group_id']))
+    missing_paf_maps = paf_maps.copy()
+    missing_paf_maps['age_group_id'] = missing_age_groups
+    del missing_paf_maps['measure_id']
+
+    missing_paf = pd.DataFrame(0.0, columns=draw_cols,
+                               index=pd.MultiIndex.from_product([*missing_paf_maps.values()],
+                                                                names=[*missing_paf_maps.keys()]))
+    paf_ = paf_.reset_index('measure_id')
+    paf_ = paf_.drop('measure_id', axis=1)
+    expected_paf = paf_.append(missing_paf).sort_index().reset_index()
+    expected_paf = expected_paf.rename(columns={'rei_id':'risk_id'})
+    get_paf = get_paf[expected_paf.columns]
+
+    pd.util.testing.assert_frame_equal(expected_paf, get_paf)
