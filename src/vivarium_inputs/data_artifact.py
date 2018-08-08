@@ -11,7 +11,7 @@ import json
 from vivarium.framework.components import ComponentManager
 from vivarium_inputs import core
 from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
-from vivarium_public_health.dataset_manager import Artifact
+from vivarium_public_health.dataset_manager import Artifact, EntityKey
 from vivarium_public_health.disease.model import DiseaseModel
 from gbd_mapping import causes, risks, sequelae, coverage_gaps, etiologies, covariates
 
@@ -36,8 +36,7 @@ class EntityError(DataArtifactError):
 
 class _EntityConfig(NamedTuple):
     """A representation of an entity and the context in which to load it's data."""
-    type: str
-    name: str
+    entity_key: EntityKey
     locations: Iterable[str]
     year_start: int
     year_end: int
@@ -58,30 +57,6 @@ def _normalize(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-def _parse_entity_path(entity_path: str) -> Tuple[str, Optional[str], str]:
-    # FIXME We need a better specification of what the paths can be. This is confusing.
-    entity_type, *tail = entity_path.split('.')
-    if len(tail) == 2:
-        entity_name = tail[0]
-        measure = tail[1]
-    elif len(tail) == 1:
-        entity_name = None
-        measure = tail[0]
-    else:
-        raise ValueError(f"Invalid entity path: {entity_path}")
-
-    return entity_type, entity_name, measure
-
-
-def _entities_by_type(entities: Iterable[str]) -> Mapping[str, set]:
-    """Split a list of entity paths and group the entity names by entity type."""
-    entity_by_type = defaultdict(set)
-    for entity_path in entities:
-        entity_type, entity_name, _ = _parse_entity_path(entity_path)
-        entity_by_type[entity_type].add(entity_name)
-    return entity_by_type
-
-
 class ArtifactBuilder:
     """Builds a data artifact by first accumulating requests, then loading and writing the data in parallel.
 
@@ -99,26 +74,26 @@ class ArtifactBuilder:
 
         self.artifact = None
 
-    def load(self, entity_path: str, keep_age_group_edges=False, **column_filters) -> None:
+    def load(self, entity_k: str, keep_age_group_edges=False, **column_filters) -> None:
         """Records a request for entity data for future processing."""
-
+        entity_key = EntityKey(entity_k)
         needs_load = True
         if self.incremental:
             self.artifact.open()
             try:
-                if ("/"+entity_path.replace(".", "/")) in self.artifact._hdf:
+                if entity_key.to_path() in self.artifact._hdf:
                     needs_load = False
             finally:
                 self.artifact.close()
 
         if needs_load:
-            self.process(entity_path)
+            self.process(entity_key)
         else:
-            _log.info(f"Loading '{entity_path}' from artifact")
+            _log.info(f"Loading '{entity_key}' from artifact")
 
         self.artifact.open()
         try:
-            result = self.artifact.load(entity_path, keep_age_group_edges, **column_filters)
+            result = self.artifact.load(entity_key, keep_age_group_edges, **column_filters)
         finally:
             self.artifact.close()
 
@@ -140,35 +115,27 @@ class ArtifactBuilder:
         dimensions = [range(self.year_start, self.year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
         dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location"])
         dimensions = dimensions.to_frame().reset_index(drop=True)
-        _dump(dimensions, "dimensions", None, "full_space", path)
+        _dump(dimensions, EntityKey('dimensions.full_space'), 'full_space', path)
 
     def end_processing(self) -> None:
         pass
 
-    def process(self, entity_path: str) -> None:
+    def process(self, entity_key: EntityKey) -> None:
         """Loads all requested data and writes it out to a HDF file.
-
-        Parameters
-        ----------
-        entity_path :
-            The absolute path to the output HDF file to write.
 
         Note
         ----
         The data loading process can be memory intensive. To reduce peak consumption, reduce parallelism.
         """
 
-        entity_type, entity_name, _ = _parse_entity_path(entity_path)
-
-        if (entity_type, entity_name) not in self.processed_entities:
-            entity_config = _EntityConfig(type=entity_type,
-                                          name=entity_name,
+        if (entity_key.type, entity_key.name) not in self.processed_entities:
+            entity_config = _EntityConfig(entity_key=entity_key,
                                           year_start=self.year_start,
                                           year_end=self.year_end,
                                           locations=self.locations,
                                           modeled_causes=self.modeled_causes)
-            _worker(entity_config, self.path, self.loaders[entity_type])
-            self.processed_entities.add((entity_type, entity_name))
+            _worker(entity_config, self.path, self.loaders[entity_key.type])
+            self.processed_entities.add((entity_key.type, entity_key.name))
 
 
 def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
@@ -184,50 +151,42 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
         The function to load the entity's data. The loader must take an ``_EntityConfig`` object and
         the writer Callable defined within as arguments.
     """
-    _log.info(f"Loading data for {entity_config.type}.{entity_config.name}")
+    _log.info(f"Loading data for {entity_config.entity_key}")
 
     for measure, data in loader(entity_config):
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
+        _dump(data, entity_config.entity_key, measure, path)
 
-        _dump(data, entity_config.type, entity_config.name, measure, path)
 
-
-def _prepare_key(entity_type: str, entity_name: Optional[str], measure: str) -> Sequence[str]:
-    key_components = ["/", entity_type]
-    if entity_name:
-        key_components.append(entity_name)
-
-    return key_components + [measure]
-
-def _dump(data, entity_type: str, entity_name: Optional[str], measure: str, path: str) -> None:
+def _dump(data, entity_key: EntityKey, measure: str, path: str) -> None:
     if data is None:
         return
 
-    key_components = _prepare_key(entity_type, entity_name, measure)
-
     """Write a dataset out to the target HDF file keyed by the entity the data corresponds to."""
     if isinstance(data, (pd.DataFrame, pd.Series)):
-        _dump_dataframe(data, key_components, path)
+        _dump_dataframe(data, entity_key, measure, path)
     else:
-        _dump_json_blob(data, key_components, path)
+        _dump_json_blob(data, entity_key, measure, path)
 
-def _dump_dataframe(data, key_components: Sequence[str], path: str) -> None:
+
+def _dump_dataframe(data, entity_key: EntityKey, measure: str, path: str) -> None:
     if data.empty:
         raise ValueError("Cannot persist empty dataset")
-    data_columns = {"year", "location", "draw", "cause", "risk"}.intersection(data.columns)
-    inner_path = os.path.join(*key_components)
-    with pd.HDFStore(path, complevel=9, format="table") as store:
-        store.put(inner_path, data, format="table", data_columns=data_columns)
 
-def _dump_json_blob(data, key_components: Sequence[str], path:str) -> None:
-    inner_path = os.path.join(*key_components)
-    prefix = os.path.join(*key_components[:-2])
+    data_columns = {"year", "location", "draw", "cause", "risk"}.intersection(data.columns)
+
+    with pd.HDFStore(path, complevel=9, format="table") as store:
+        store.put(entity_key.to_path(measure), data, format="table", data_columns=data_columns)
+
+
+def _dump_json_blob(data, entity_key: EntityKey, measure: str, path: str) -> None:
     store = tables.open_file(path, "a")
-    if inner_path in store:
-        store.remove_node(inner_path)
+    if entity_key.to_path(measure) in store:
+        store.remove_node(entity_key.to_path(measure))
     try:
-        store.create_group(prefix, key_components[-2], createparents=True)
+        store.create_group(entity_key.group_prefix, entity_key.group_name, createparents=True)
+
     except tables.exceptions.NodeError as e:
         if "already has a child node" in str(e):
             # The parent group already exists, which is fine
@@ -235,7 +194,7 @@ def _dump_json_blob(data, key_components: Sequence[str], path:str) -> None:
         else:
             raise
 
-    fnode = filenode.new_node(store, where=os.path.join(*key_components[:-1]), name=key_components[-1])
+    fnode = filenode.new_node(store, where=entity_key.group, name=measure)
     fnode.write(bytes(json.dumps(data), "utf-8"))
     fnode.close()
     store.close()
@@ -243,7 +202,7 @@ def _dump_json_blob(data, key_components: Sequence[str], path:str) -> None:
 
 def _load_cause(entity_config: _EntityConfig) -> None:
     measures = ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]
-    cause = causes[entity_config.name]
+    cause = causes[entity_config.entity_key.name]
 
     yield "restrictions", {
             "male_only": cause.restrictions.male_only,
@@ -292,7 +251,7 @@ def _load_cause(entity_config: _EntityConfig) -> None:
 
     try:
         measures = ["remission"]
-        result = core.get_draws([causes[entity_config.name]], measures, entity_config.locations)
+        result = core.get_draws([causes[entity_config.entity_key.name]], measures, entity_config.locations)
         if not result.empty:
             result = _normalize(result)[["year", "location", "sex", "age", "draw", "value"]]
             yield "remission", result
@@ -303,7 +262,7 @@ def _load_cause(entity_config: _EntityConfig) -> None:
 
 
 def _load_risk_factor(entity_config: _EntityConfig) -> None:
-    risk = risks[entity_config.name]
+    risk = risks[entity_config.entity_key.name]
 
     yield "affected_causes", [c.name for c in risk.affected_causes if c.name in entity_config.modeled_causes]
     yield "restrictions", {
@@ -331,7 +290,6 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
         weights = normalize_for_simulation(weights)
         weights = get_age_group_midpoint_from_age_group_id(weights)
         yield "ensemble_weights", weights
-
 
     if risk.levels is not None:
         yield "levels" , [(f"cat{cat_number}", level_name) for level_name, cat_number in zip(risk.levels, range(60))]
@@ -391,7 +349,7 @@ def _load_risk_factor(entity_config: _EntityConfig) -> None:
 
 
 def _load_sequela(entity_config: _EntityConfig) -> None:
-    sequela = sequelae[entity_config.name]
+    sequela = sequelae[entity_config.entity_key.name]
 
     yield "healthstate", sequela.healthstate.name
 
@@ -412,7 +370,7 @@ def _load_sequela(entity_config: _EntityConfig) -> None:
 
 
 def _load_healthcare_entity(entity_config: _EntityConfig) -> None:
-    healthcare_entity = healthcare_entities[entity_config.name]
+    healthcare_entity = healthcare_entities[entity_config.entity_key.name]
 
     cost = core.get_draws([healthcare_entity], ["cost"], entity_config.locations)
     cost = _normalize(cost)
@@ -426,7 +384,7 @@ def _load_healthcare_entity(entity_config: _EntityConfig) -> None:
 
 
 def _load_coverage_gap(entity_config: _EntityConfig) -> None:
-    entity = coverage_gaps[entity_config.name]
+    entity = coverage_gaps[entity_config.entity_key.name]
 
     yield "affected_causes", [c.name for c in entity.affected_causes if c.name in entity_config.modeled_causes]
     yield "restrictions", {
@@ -465,7 +423,7 @@ def _load_coverage_gap(entity_config: _EntityConfig) -> None:
 
 
 def _load_etiology(entity_config: _EntityConfig) -> None:
-    entity = etiologies[entity_config.name]
+    entity = etiologies[entity_config.entity_key.name]
 
     paf = core.get_draws([entity], ["population_attributable_fraction"], entity_config.locations)
     paf = _normalize(paf)
@@ -488,7 +446,7 @@ def _load_population(entity_config: _EntityConfig) -> None:
 
 
 def _load_covariate(entity_config: _EntityConfig) -> None:
-    entity = covariates[entity_config.name]
+    entity = covariates[entity_config.entity_key.name]
     location_ids = [core.get_location_ids_by_name()[l] for l in entity_config.locations]
     estimate = gbd.get_covariate_estimates([entity.gbd_id], location_ids)
     estimate['location'] = estimate.location_id.apply(core.get_location_names_by_id().get)
