@@ -215,6 +215,7 @@ def test_get_draws_bad_args(cause_list, risk_list, locations):
 
 
 def test_get_relative_risk(mocker):
+    gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
     age_group_mock = mocker.patch("vivarium_inputs.core.gbd.get_age_group_id")
     age_group_mock.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     rr_mocks = mocker.patch("vivarium_inputs.core.gbd.get_relative_risks")
@@ -251,6 +252,7 @@ def test_get_relative_risk(mocker):
 
 def test_get_population_attributable_fraction(mocker):
     id_mock = mocker.patch("vivarium_inputs.core._get_ids_for_measure")
+    gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
     paf_mocks = mocker.patch("vivarium_inputs.core.gbd.get_pafs")
     age_group_mock = mocker.patch("vivarium_inputs.core.gbd.get_age_group_id")
     age_group_mock.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
