@@ -104,7 +104,9 @@ class ArtifactBuilder:
             loaders = LOADERS
         self.loaders = loaders
         self.path = path
-        self.artifact = Artifact(self.path, self.year_start, self.year_end, 0, self.locations[0])
+        default_filter = {'draw': 0,
+                          'location': self.locations[0]}
+        self.artifact = Artifact(self.path, default_filter)
 
         age_bins = core.get_age_bins()
         dimensions = [range(self.year_start, self.year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
