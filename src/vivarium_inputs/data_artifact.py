@@ -154,7 +154,6 @@ def _worker(entity_config: _EntityConfig, artifact: Artifact, loader: Callable) 
         artifact.write(entity_config.entity_key, data)
 
 
-
 def _load_cause(entity_config: _EntityConfig) -> None:
     measures = ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]
     cause = causes[entity_config.entity_key.name]
