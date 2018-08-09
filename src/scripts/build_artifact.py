@@ -1,6 +1,6 @@
 import logging
 import getpass
-import os
+import pathlib
 import argparse
 import subprocess
 import time
@@ -34,13 +34,10 @@ def build_artifact(simulation_configuration, project,locations, output_root, fro
     guaranteed to be overwritten either by the passed output_root or a
     predetermined path at /ihme/scratch/{user}/vivarium_artifacts/
     """ 
-    config_file = os.path.basename(simulation_configuration)
-    config_name = os.path.splitext(config_file)[0]
+    config_path = pathlib.Path(simulation_configuration).resolve()
+    python_context_path = pathlib.Path(subprocess.getoutput("which python")).resolve()
+    script_path = pathlib.Path(__file__).resolve()
 
-    python_context = os.path.realpath(subprocess.getoutput("which python"))
-
-    #TODO: get full path. Will __file__ work with click?
-    script_path = os.path.realpath(__file__)
     script_arg = f"{script_path} {simulation_configuration} "
     if output_root:
         script_arg += f"--output_root {output_root} "
@@ -50,11 +47,11 @@ def build_artifact(simulation_configuration, project,locations, output_root, fro
     jids = []
     if len(locations) > 0:
         for location in locations:
-            job_name = f"{config_name}_{location}_build_artifact"
+            job_name = f"{config_path.stem}_{location}_build_artifact"
             slots = 2
             submit_command = (f"qsub -N {job_name} -P {project} " +
                               f"-pe multi_slot {slots} " +
-                              f"-b y {python_context} " +
+                              f"-b y {python_context_path} " +
                               script_arg + f"--location {location}")
             exitcode, response = subprocess.getstatusoutput(submit_command)
             if exitcode:
@@ -164,32 +161,34 @@ def update_configuration(specification_arg, location_arg, output_root_arg, confi
     """Update the simulation configuration artifact output path and location with 
     command line inputs."""
 
-    specification_file = os.path.basename(specification_arg)
-    specification_name = os.path.splitext(specification_file)[0]
+    specification_path = pathlib.Path(specification_arg).resolve()
 
     if not location_arg and not output_root_arg:
         if ('input_data' in configuration and 'location' in configuration.input_data and 
             configuration.input_data.location):
-            configuration.artifact.path = os.path.join('/', 'share', 'scratch', 'users',
-                    getpass.getuser(), 'vivarium_artifacts', specification_name + '.hdf')
+            artifact_path = pathlib.Path('/share')
+            configuration.artifact.path = str(artifact_path / 'scratch' / 'users' / getpass.getuser() /
+                    'vivarium_artifacts' / (specification_path.stem + '.hdf'))
         else:
             raise argparse.ArgumentError(
                 "specify a location or include configuration.input_data.location in model specification")
     elif not location_arg and output_root_arg:
         if ('input_data' in configuration and 'location' in configuration.input_data and 
             configuration.input_data.location):
-            configuration.artifact.path = os.path.join(output_root_arg, 'specification_name' + '.hdf')
+            artifact_path = pathlib.Path(output_root_arg).resolve()
+            configuration.artifact.path = str(artifact_path / (specification_path.stem + '.hdf'))
         else:
             raise argparse.ArgumentError(
                 "specify a location or include configuration.input_data.location in model specification")
     elif location_arg and not output_root_arg:
         configuration.input_data.location = location_arg
-        configuration.artifact.path = os.path.join('/', 'share', 'scratch', 'users',
-                getpass.getuser(), 'vivarium_artifacts', specification_name + f'_{location_arg}.hdf')
+        artifact_path = pathlib.Path('/share')
+        configuration.artifact.path = str(artifact_path / 'scratch' / 'users' / getpass.getuser() /
+                'vivarium_artifacts' / (specification_path.stem + f'_{location_arg}.hdf'))
     else:
         configuration.input_data.location = location_arg
-        configuration.artifact.path = os.path.join(output_root_arg,
-                                                   'specification_name' + f'_{location_arg}.hdf')
+        artifact_path = pathlib.Path(output_root_arg).resolve()
+        configuration.artifact.path = str(artifact_path / (specification_path.stem + f'_{location_arg}.hdf'))
 
 
 if __name__ == "__main__":
