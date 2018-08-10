@@ -44,7 +44,6 @@ def build_artifact(simulation_configuration, project,locations, output_root, fro
         script_args += "--location {}"
         for location in locations:
             job_name = f"{config_path.stem}_{location}_build_artifact"
-            print(script_args)
             command = build_submit_command(python_context_path, job_name,
                                            project, script_args.format(location))
             submit_job(command, job_name)
