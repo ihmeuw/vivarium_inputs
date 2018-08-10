@@ -75,7 +75,7 @@ def parse_qsub(response):
     elif 'job-array' in split_response:
         job_ind = split_response.index('job-array')
     if not job_ind:
-        raise OSError("Unexpected response from qsub: " + response)
+        return -1
 
     jid = split_response[job_ind + 1]
 
