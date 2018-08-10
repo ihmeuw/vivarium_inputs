@@ -38,7 +38,6 @@ def build_artifact(simulation_configuration, project,locations, output_root, fro
     if from_scratch:
         script_arg += f"--from_scratch {from_scratch} "
 
-    jids = []
     if len(locations) > 0:
         for location in locations:
             job_name = f"{config_path.stem}_{location}_build_artifact"
@@ -49,10 +48,9 @@ def build_artifact(simulation_configuration, project,locations, output_root, fro
                               script_arg + f"--location {location}")
             exitcode, response = subprocess.getstatusoutput(submit_command)
             if exitcode:
-                raise OSError(exitcode, response)
-            _log.info(response)
-            jid = parse_qsub(response)
-            jids.append(jid)
+                click.secho(f"{location} qsub failed with exit code {exitcode}: {response}", fg='red')
+            else:
+                click.secho(f"{location} qsub succeeded: {response}", fg='green')
     else:
         job_name = f"{config_name}_build_artifact"
         slots = 2
@@ -60,32 +58,9 @@ def build_artifact(simulation_configuration, project,locations, output_root, fro
                           script_arg)
         exitcode, response = subprocess.getstatusoutput(submit_command)
         if exitcode:
-            raise OSError(exitcode, response)
-        _log.info(response)
-        jid = parse_qsub(response)
-        jids.append(jid)
-
-    monitor_job_ids(jids)
-
-
-def monitor_job_ids(jids):
-    """Monitor a list of job ids and print the percentage finished at
-    15 second intervals"""
-
-    total = len(jids)
-    running = total
-    while running:
-        running = 0
-        result = subprocess.getoutput('qstat')
-        for jid in jids:
-            if jid in result:
-                running += 1
-        percent_done = int(float(total - running) / total * 100)
-        print(' ' * 15, end='\r')
-        time.sleep(1)
-        print(f' {percent_done}% finished.', end='\r')
-        time.sleep(2)
-    print("\n")
+            click.secho(f"qsub failed with exit code {exitcode}: {response}", fg='red')
+        else:
+            click.secho(f"qsub succeeded: {response}", fg='green')
 
 
 def parse_qsub(response):
