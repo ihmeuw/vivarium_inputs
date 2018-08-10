@@ -163,7 +163,7 @@ def get_output_path(configuration_arg, output_root_arg, location_arg):
     if location_arg:
         return output_base / (configuration_path.stem + f'_{location_arg}.hdf')
     else:
-        return output_base /= (configuration_path.stem + '.hdf')
+        return output_base / (configuration_path.stem + '.hdf')
 
 
 if __name__ == "__main__":
