@@ -16,23 +16,21 @@ _log = logging.getLogger(__name__)
 
 
 @click.command()
-@click.argument('simulation_configuration', nargs=1)
-@click.argument('project', nargs=1)
+@click.argument('simulation_configuration', type=click.Path(dir_okay=False, readable=True))
+@click.argument('project')
 @click.argument('locations', nargs=-1)
-@click.option('--output_root')
-@click.option('--from_scratch')
+@click.option('--output_root', type=click.Path(file_okay=False, writable=True),
+        help="Directory to save artifact result in")
+@click.option('--from_scratch', type=click.BOOL,  default=True,
+        help="Do not reuse any data in the artifact, if any exists")
 def build_artifact(simulation_configuration, project,locations, output_root, from_scratch):
-    """Outward-facing interface for building a data artifact from a simulation
-    configuration file
-
-    simulation_configuration - path to a simulation config file
-    locations - optional location specification. Can be multiple
-    output_root - optional directory specification to save results in
-
-    location and output_root specifications overwrite parameteres from the
-    configuration file. Any artifact.path in the configuration file is 
-    guaranteed to be overwritten either by the passed output_root or a
-    predetermined path at /ihme/scratch/{user}/vivarium_artifacts/
+    """
+    build_artifact is a program for building data artifacts from a SIMULATION_CONFIGURATION file. The
+    work is offloaded to the cluster under the provided PROJECT. Multiple, optional LOCATIONS can be
+    provided to overwrite the configuration file.
+ 
+    Any artifact.path specified in the configuration file is guaranteed to be overwritten either by the
+    optional output_root or a predetermined path based on user: /ihme/scratch/{user}/vivarium_artifacts
     """ 
     config_path = pathlib.Path(simulation_configuration).resolve()
     python_context_path = pathlib.Path(subprocess.getoutput("which python")).resolve()
@@ -122,11 +120,14 @@ def _build_artifact():
     configuration file"""
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('simulation_configuration', type=str)
-    parser.add_argument('--output_root', type=str, required=False)
-    parser.add_argument('--location', type=str, required=False)
+    parser.add_argument('simulation_configuration', type=str,
+            help="path to a simulation configuration file")
+    parser.add_argument('--output_root', type=str, required=False,
+            help="directory to save artifact to. Overwrites configuration file")
+    parser.add_argument('--location', type=str, required=False,
+            help="location to get data for. Overwrites configuration file")
     parser.add_argument('--from_scratch', '-s', action="store_true",
-                        help="Do not reuse any data in the artifact, if any exists")
+            help="Do not reuse any data in the artifact, if any exists")
     args = parser.parse_args()
 
     model_specification = build_model_specification(args.simulation_configuration)
