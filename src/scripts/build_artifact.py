@@ -1,4 +1,3 @@
-import logging
 import getpass
 import pathlib
 import argparse
@@ -10,9 +9,6 @@ import click
 from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.plugins import PluginManager
 from vivarium.interface.interactive import InteractiveContext
-
-
-_log = logging.getLogger(__name__)
 
 
 @click.command()
