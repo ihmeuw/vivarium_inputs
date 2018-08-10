@@ -12,7 +12,8 @@ from vivarium.interface.interactive import InteractiveContext
 
 
 @click.command()
-@click.argument('simulation_configuration', type=click.Path(dir_okay=False, readable=True))
+@click.argument('simulation_configuration', type=click.Path(dir_okay=False,
+        readable=True))
 @click.argument('project')
 @click.argument('locations', nargs=-1)
 @click.option('--output_root', type=click.Path(file_okay=False, writable=True),
@@ -28,39 +29,47 @@ def build_artifact(simulation_configuration, project,locations, output_root, fro
     Any artifact.path specified in the configuration file is guaranteed to be overwritten either by the
     optional output_root or a predetermined path based on user: /ihme/scratch/{user}/vivarium_artifacts
     """ 
+
     config_path = pathlib.Path(simulation_configuration).resolve()
     python_context_path = pathlib.Path(subprocess.getoutput("which python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
 
-    script_arg = f"{script_path} {simulation_configuration} "
+    script_args = f"{script_path} {config_path} "
     if output_root:
-        script_arg += f"--output_root {output_root} "
+        script_args += f"--output_root {output_root} "
     if from_scratch:
-        script_arg += f"--from_scratch {from_scratch} "
+        script_args += f"--from_scratch "
 
     if len(locations) > 0:
+        script_args += "--location {}"
         for location in locations:
             job_name = f"{config_path.stem}_{location}_build_artifact"
-            slots = 2
-            submit_command = (f"qsub -N {job_name} -P {project} " +
-                              f"-pe multi_slot {slots} " +
-                              f"-b y {python_context_path} " +
-                              script_arg + f"--location {location}")
-            exitcode, response = subprocess.getstatusoutput(submit_command)
-            if exitcode:
-                click.secho(f"{location} qsub failed with exit code {exitcode}: {response}", fg='red')
-            else:
-                click.secho(f"{location} qsub succeeded: {response}", fg='green')
+            print(script_args)
+            command = build_submit_command(python_context_path, job_name,
+                                           project, script_args.format(location))
+            submit_job(command, job_name)
     else:
-        job_name = f"{config_name}_build_artifact"
-        slots = 2
-        submit_command = (f"qsub -N {job_name} -pe multi_slot {slots} " +
-                          script_arg)
-        exitcode, response = subprocess.getstatusoutput(submit_command)
-        if exitcode:
-            click.secho(f"qsub failed with exit code {exitcode}: {response}", fg='red')
-        else:
-            click.secho(f"qsub succeeded: {response}", fg='green')
+        job_name = f"{config_path.stem}_build_artifact"
+        command = build_submit_command(python_context_path, job_name,
+                                              project, script_args)
+        submit_job(command, job_name)
+
+
+def submit_job(command, name):
+    """Submit job to cluster and report result"""
+
+    exitcode, response = subprocess.getstatusoutput(command)
+    if exitcode:
+        click.secho(f"{name} failed with exit code {exitcode}: {response}", fg='red')
+    else:
+        click.secho(f"{name} succeeded: {response}", fg='green')
+
+
+def build_submit_command(python_context_path, job_name, project, script_args, slots=2):
+    """Construct a qsub command string from an executable, job name, project and arguments."""
+
+    return (f"qsub -N {job_name} -P {project} -pe multi_slot {slots} " +
+            f"-b y {python_context_path} " + script_args)
 
 
 def parse_qsub(response):
