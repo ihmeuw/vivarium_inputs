@@ -108,12 +108,13 @@ def _build_artifact():
             "builder_interface": "vivarium_public_health.dataset_manager.ArtifactManagerInterface",
         }})
 
-    update_configuration(args.simulation_configuration, args.location, args.output_root,
-                         model_specification.configuration)
-
     plugin_config = model_specification.plugins
     component_config = model_specification.components
     simulation_config = model_specification.configuration
+
+    simulation_config.input_data.location = get_location(args.location, simulation_config)
+    simulation_config.artifact.path = get_output_path(args.simulation_configuration, args.output_root,
+                                                      args.location)
 
     output_path = simulation_config.artifact.path
 
@@ -129,38 +130,40 @@ def _build_artifact():
     simulation.data.end_processing()
 
 
-def update_configuration(specification_arg, location_arg, output_root_arg, configuration):
-    """Update the simulation configuration artifact output path and location with 
-    command line inputs."""
+def get_location(location_arg, configuration):
+    """Return the correct location given the location argument and a configuration file"""
 
-    specification_path = pathlib.Path(specification_arg).resolve()
-
-    if not location_arg and not output_root_arg:
-        if ('input_data' in configuration and 'location' in configuration.input_data and 
-            configuration.input_data.location):
-            artifact_path = pathlib.Path('/share')
-            configuration.artifact.path = str(artifact_path / 'scratch' / 'users' / getpass.getuser() /
-                    'vivarium_artifacts' / (specification_path.stem + '.hdf'))
-        else:
-            raise argparse.ArgumentError(
-                "specify a location or include configuration.input_data.location in model specification")
-    elif not location_arg and output_root_arg:
-        if ('input_data' in configuration and 'location' in configuration.input_data and 
-            configuration.input_data.location):
-            artifact_path = pathlib.Path(output_root_arg).resolve()
-            configuration.artifact.path = str(artifact_path / (specification_path.stem + '.hdf'))
-        else:
-            raise argparse.ArgumentError(
-                "specify a location or include configuration.input_data.location in model specification")
-    elif location_arg and not output_root_arg:
-        configuration.input_data.location = location_arg
-        artifact_path = pathlib.Path('/share')
-        configuration.artifact.path = str(artifact_path / 'scratch' / 'users' / getpass.getuser() /
-                'vivarium_artifacts' / (specification_path.stem + f'_{location_arg}.hdf'))
+    if location_arg:
+        return location_arg
+    elif contains_location(configuration):
+        return configuration.input_data.location
     else:
-        configuration.input_data.location = location_arg
-        artifact_path = pathlib.Path(output_root_arg).resolve()
-        configuration.artifact.path = str(artifact_path / (specification_path.stem + f'_{location_arg}.hdf'))
+        raise argparse.ArgumentError(
+            "specify a location or include configuration.input_data.location in model specification")    
+
+
+def contains_location(configuration):
+    """Check if location is specified in the configuration"""
+
+    return ('input_data' in configuration and 'location' in configuration.input_data and
+            configuration.input_data.location)
+
+
+def get_output_path(configuration_arg, output_root_arg, location_arg):
+    """Return the correct output path for the data artifact given the output_root and location arguments
+    and a configuration file"""
+
+    configuration_path = pathlib.Path(configuration_arg)
+
+    if output_root_arg:
+        output_base = pathlib.Path(output_root_arg).resolve()
+    else:
+        output_base = pathlib.Path('/share') / 'scratch' / 'users' / getpass.getuser() / 'vivarium_artifacts'
+
+    if location_arg:
+        return output_base / (configuration_path.stem + f'_{location_arg}.hdf')
+    else:
+        return output_base /= (configuration_path.stem + '.hdf')
 
 
 if __name__ == "__main__":
