@@ -71,29 +71,6 @@ def build_submit_command(python_context_path, job_name, project, script_args, sl
             f"-b y {python_context_path} " + script_args)
 
 
-def parse_qsub(response):
-    """Parse stdout from a call to qsub and return the job id"""
-
-    split_response = response.split()
-    # qsub response can be funky but JID should directly follow "Your job".
-    # job arrays say "job-array", regular jobs say "job"
-    job_ind = 0
-    if 'job' in split_response:
-        job_ind = split_response.index('job')
-    elif 'job-array' in split_response:
-        job_ind = split_response.index('job-array')
-    if not job_ind:
-        return -1
-
-    jid = split_response[job_ind + 1]
-
-    # If this is an array job, we want the parent jid not the array indicators.
-    period_ind = jid.find(".")
-    jid = jid[:period_ind]
-
-    return jid
-
-
 def _build_artifact():
     """Inward-facing interface for building a data artifact from a simulation
     configuration file"""
