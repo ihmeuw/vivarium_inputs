@@ -3,10 +3,10 @@ from hypothesis import given, assume
 import hypothesis.strategies as st
 from hypothesis.extra.pandas import data_frames, column
 
-from gbd_mapping import causes, risks, Cause, Risk, Etiology, Sequela
+from gbd_mapping import Cause, Risk, Etiology, Sequela
 
 from vivarium_inputs.utilities import get_age_group_midpoint_from_age_group_id
-from vivarium_inputs.data_artifact import _normalize, _dump_dataframe, _dump_json_blob, EntityKey
+from vivarium_inputs.data_artifact import _normalize
 
 CAUSE_MEASURES = ["death", "prevalence", "incidence", "population_attributable_fraction",
                   "cause_specific_mortality", "excess_mortality", "remission"]
@@ -61,45 +61,3 @@ def test__normalize(data):
         no_draw_norm = normed[[c for c in normed.columns if c != "draw"]].unique()
         assert no_draw_norm == get_age_group_midpoint_from_age_group_id(no_draw_orig)
 
-
-@pytest.mark.skip("Cluster")
-@given(entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risks, RISK_MEASURES),
-                             st.sampled_from(POPULATION_ENTITY_PATHS)),
-       columns=st.sets(st.sampled_from(["year", "location", "draw", "cause", "risk"])
-                       | st.text(min_size=1, max_size=30)),
-       path=st.text(alphabet="abcdefghijklmnopqrstuvwxyz1234567890_/"), )
-def test__dump_dataframe(entity_path, columns, path, mocker):
-    entity_key = EntityKey(entity_path)
-
-    mock_pd = mocker.patch("vivarium_inputs.data_artifact.pd")
-    data = mocker.Mock()
-    data.empty = False
-    data.columns = list(columns)
-
-    _dump_dataframe(data, entity_key, entity_key.measure, path)
-
-    mock_pd.HDFStore.assert_called_with(path, complevel=mocker.ANY, format="table")
-
-    expected_columns = list({"year", "location", "draw", "cause", "risk"}.intersection(columns))
-    mock_pd.HDFStore().__enter__().put.assert_called_with(entity_key.to_path(), data,
-                                                          format="table", data_columns=set(expected_columns))
-
-
-@given(entity_path=st.one_of(measure(causes, CAUSE_MEASURES), measure(risks, RISK_MEASURES),
-                             st.sampled_from(POPULATION_ENTITY_PATHS)),
-       path=st.text(alphabet="abcdefghijklmnopqrstuvwxyz1234567890_/"))
-def test__dump_json_blob(entity_path, path, mocker):
-    entity_key = EntityKey(entity_path)
-
-    mock_tables = mocker.patch("vivarium_inputs.data_artifact.tables")
-    mock_filenode = mocker.patch("vivarium_inputs.data_artifact.filenode")
-    data = {1: 2}
-
-    _dump_json_blob(data, entity_key, entity_key.measure, path)
-
-    mock_tables.open_file.assert_called_with(path, "a")
-    mock_tables.open_file().create_group.assert_called_with(entity_key.group_prefix, entity_key.group_name,
-                                                            createparents=True)
-    mock_filenode.new_node.assert_called_with(mock_tables.open_file(),
-                                              where=entity_key.group, name=entity_key.measure)
-    mock_filenode.new_node().write.assert_called()  # TODO check data
