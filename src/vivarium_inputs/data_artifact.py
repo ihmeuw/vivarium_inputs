@@ -153,7 +153,7 @@ def _worker(entity_config: _EntityConfig, artifact: Artifact, loader: Callable) 
     for measure, data in loader(entity_config):
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
-        artifact.write(entity_config.entity_key, data)
+        artifact.write(entity_config.entity_key, data, measure)
 
 
 def _load_cause(entity_config: _EntityConfig) -> None:
