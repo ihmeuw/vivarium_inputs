@@ -73,27 +73,14 @@ class ArtifactBuilder:
     def load(self, entity_k: str, keep_age_group_edges=False, **column_filters) -> None:
         """Records a request for entity data for future processing."""
         entity_key = EntityKey(entity_k)
-        needs_load = True
-        if self.incremental:
-            self.artifact.open()
-            try:
-                if entity_key.to_path() in self.artifact._hdf:
-                    needs_load = False
-            finally:
-                self.artifact.close()
+        needs_load = self.incremental and entity_key not in self.artifact or not self.incremental
 
         if needs_load:
             self.process(entity_key)
         else:
             _log.info(f"Loading '{entity_key}' from artifact")
 
-        self.artifact.open()
-        try:
-            result = self.artifact.load(entity_key, keep_age_group_edges, **column_filters)
-        finally:
-            self.artifact.close()
-
-        return result
+        return self.artifact.load(entity_key, keep_age_group_edges, **column_filters)
 
     def start_processing(self, component_manager: ComponentManager, path: str,
                          locations: Sequence[str], loaders: Mapping[str, Callable]=None,
@@ -105,16 +92,14 @@ class ArtifactBuilder:
             loaders = LOADERS
         self.loaders = loaders
         self.path = path
-        default_filter = {'draw': 0,
-                          'location': self.locations[0]}
-        self.artifact = Artifact(self.path, default_filter)
-
+        self.artifact = Artifact(self.path)
+        self.start_time = datetime.now()
         age_bins = core.get_age_bins()
         dimensions = [range(self.year_start, self.year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
         dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location"])
         dimensions = dimensions.to_frame().reset_index(drop=True)
         self.artifact.write(EntityKey("dimensions.full_space"), dimensions)
-        self.start_time = datetime.now()
+
 
     def end_processing(self) -> None:
         _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
