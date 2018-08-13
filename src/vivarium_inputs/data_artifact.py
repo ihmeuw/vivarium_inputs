@@ -1,3 +1,4 @@
+from datetime import datetime
 import warnings
 from typing import Optional, NamedTuple, Sequence, Mapping, Iterable, Callable
 
@@ -113,9 +114,10 @@ class ArtifactBuilder:
         dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location"])
         dimensions = dimensions.to_frame().reset_index(drop=True)
         self.artifact.write(EntityKey("dimensions.full_space"), dimensions)
+        self.start_time = datetime.now()
 
     def end_processing(self) -> None:
-        pass
+        _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
 
     def process(self, entity_key: EntityKey) -> None:
         """Loads all requested data and writes it out to a HDF file.
@@ -153,7 +155,8 @@ def _worker(entity_config: _EntityConfig, artifact: Artifact, loader: Callable) 
     for measure, data in loader(entity_config):
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
-        artifact.write(entity_config.entity_key, data, measure)
+        key = entity_config.entity_key.with_measure(measure)
+        artifact.write(key, data)
 
 
 def _load_cause(entity_config: _EntityConfig) -> None:
@@ -404,7 +407,7 @@ def _load_population(entity_config: _EntityConfig) -> None:
 def _load_covariate(entity_config: _EntityConfig) -> None:
     entity = covariates[entity_config.entity_key.name]
     location_ids = [core.get_location_ids_by_name()[l] for l in entity_config.locations]
-    estimate = gbd.get_covariate_estimates([entity.gbd_id], location_ids)
+    estimate = core.get_covariate_estimates([entity.gbd_id], location_ids)
     estimate['location'] = estimate.location_id.apply(core.get_location_names_by_id().get)
     estimate = estimate.drop('location_id', 'columns')
 
