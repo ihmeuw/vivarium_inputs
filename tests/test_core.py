@@ -215,9 +215,8 @@ def test_get_draws_bad_args(cause_list, risk_list, locations):
 
 
 def test_get_relative_risk(mocker):
-    age_group_mock = mocker.patch("vivarium_inputs.core.gbd.get_age_group_id")
-    age_group_mock.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
-    rr_mocks = mocker.patch("vivarium_inputs.core.gbd.get_relative_risks")
+    gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
+    gbd_mock.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     draw_cols = [f"rr_{i}" for i in range(10)]
     rr_maps = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2], 'age_group_id': [4, 5],
                'risk_id': [240], 'cause_id': [302], 'parameter': ['cat1', 'cat2', 'cat3', 'cat4'],
@@ -225,7 +224,7 @@ def test_get_relative_risk(mocker):
 
     rr_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*rr_maps.values()], names=[*rr_maps.keys()]))
     rr_[draw_cols] = np.random.random_sample((len(rr_), 10)) * 10
-    rr_mocks.return_value = rr_.reset_index()
+    gbd_mock.get_relative_risks.return_value = rr_.reset_index()
     get_rr = core._get_relative_risk([risks.child_wasting], [1])
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(rr_maps['age_group_id']))
@@ -251,16 +250,15 @@ def test_get_relative_risk(mocker):
 
 def test_get_population_attributable_fraction(mocker):
     id_mock = mocker.patch("vivarium_inputs.core._get_ids_for_measure")
-    paf_mocks = mocker.patch("vivarium_inputs.core.gbd.get_pafs")
-    age_group_mock = mocker.patch("vivarium_inputs.core.gbd.get_age_group_id")
-    age_group_mock.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
+    gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
+    gbd_mock.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     draw_cols = [f"draw_{i}" for i in range(10)]
     paf_maps = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2], 'age_group_id': [4, 5],
                 'rei_id': [84, 339, 238, 136, 240], 'cause_id': [302], 'measure_id':[3]}
 
     paf_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*paf_maps.values()], names=[*paf_maps.keys()]))
     paf_[draw_cols] = np.random.random_sample((len(paf_), 10))
-    paf_mocks.return_value = paf_.reset_index()
+    gbd_mock.get_pafs.return_value = paf_.reset_index()
 
     get_paf = core._get_population_attributable_fraction([causes.diarrheal_diseases], [1])
 
