@@ -1,12 +1,8 @@
-import os
+from datetime import datetime
 import warnings
-from collections import defaultdict
-from typing import Optional, NamedTuple, Sequence, Mapping, Iterable, Callable, Tuple
+from typing import Optional, NamedTuple, Sequence, Mapping, Iterable, Callable
 
 import pandas as pd
-import tables
-from tables.nodes import filenode
-import json
 
 from vivarium.framework.components import ComponentManager
 from vivarium_inputs import core
@@ -77,27 +73,14 @@ class ArtifactBuilder:
     def load(self, entity_k: str, keep_age_group_edges=False, **column_filters) -> None:
         """Records a request for entity data for future processing."""
         entity_key = EntityKey(entity_k)
-        needs_load = True
-        if self.incremental:
-            self.artifact.open()
-            try:
-                if entity_key.to_path() in self.artifact._hdf:
-                    needs_load = False
-            finally:
-                self.artifact.close()
+        needs_load = self.incremental and entity_key not in self.artifact or not self.incremental
 
         if needs_load:
             self.process(entity_key)
         else:
             _log.info(f"Loading '{entity_key}' from artifact")
 
-        self.artifact.open()
-        try:
-            result = self.artifact.load(entity_key, keep_age_group_edges, **column_filters)
-        finally:
-            self.artifact.close()
-
-        return result
+        return self.artifact.load(entity_key, keep_age_group_edges, **column_filters)
 
     def start_processing(self, component_manager: ComponentManager, path: str,
                          locations: Sequence[str], loaders: Mapping[str, Callable]=None,
@@ -109,16 +92,17 @@ class ArtifactBuilder:
             loaders = LOADERS
         self.loaders = loaders
         self.path = path
-        self.artifact = Artifact(self.path, self.year_start, self.year_end, 0, self.locations[0])
-
+        self.artifact = Artifact(self.path)
+        self.start_time = datetime.now()
         age_bins = core.get_age_bins()
         dimensions = [range(self.year_start, self.year_end+1), ["Male", "Female"], age_bins.age_group_id, locations]
         dimensions = pd.MultiIndex.from_product(dimensions, names=["year", "sex", "age_group_id", "location"])
         dimensions = dimensions.to_frame().reset_index(drop=True)
-        _dump(dimensions, EntityKey('dimensions.full_space'), 'full_space', path)
+        self.artifact.write(EntityKey("dimensions.full_space"), dimensions)
+
 
     def end_processing(self) -> None:
-        pass
+        _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
 
     def process(self, entity_key: EntityKey) -> None:
         """Loads all requested data and writes it out to a HDF file.
@@ -134,19 +118,19 @@ class ArtifactBuilder:
                                           year_end=self.year_end,
                                           locations=self.locations,
                                           modeled_causes=self.modeled_causes)
-            _worker(entity_config, self.path, self.loaders[entity_key.type])
+            _worker(entity_config, self.artifact, self.loaders[entity_key.type])
             self.processed_entities.add((entity_key.type, entity_key.name))
 
 
-def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
+def _worker(entity_config: _EntityConfig, artifact: Artifact, loader: Callable) -> None:
     """Loads and writes the data for a single entity into a shared output file.
 
     Parameters
     ----------
     entity_config :
         Container for contextual information used in the loading process.
-    path :
-        The path to the output file to write to.
+    artifact :
+        The data artifact to write to.
     loader :
         The function to load the entity's data. The loader must take an ``_EntityConfig`` object and
         the writer Callable defined within as arguments.
@@ -156,48 +140,8 @@ def _worker(entity_config: _EntityConfig, path: str, loader: Callable) -> None:
     for measure, data in loader(entity_config):
         if isinstance(data, pd.DataFrame) and "year" in data:
             data = data.loc[(data.year >= entity_config.year_start) & (data.year <= entity_config.year_end)]
-        _dump(data, entity_config.entity_key, measure, path)
-
-
-def _dump(data, entity_key: EntityKey, measure: str, path: str) -> None:
-    if data is None:
-        return
-
-    """Write a dataset out to the target HDF file keyed by the entity the data corresponds to."""
-    if isinstance(data, (pd.DataFrame, pd.Series)):
-        _dump_dataframe(data, entity_key, measure, path)
-    else:
-        _dump_json_blob(data, entity_key, measure, path)
-
-
-def _dump_dataframe(data, entity_key: EntityKey, measure: str, path: str) -> None:
-    if data.empty:
-        raise ValueError("Cannot persist empty dataset")
-
-    data_columns = {"year", "location", "draw", "cause", "risk"}.intersection(data.columns)
-
-    with pd.HDFStore(path, complevel=9, format="table") as store:
-        store.put(entity_key.to_path(measure), data, format="table", data_columns=data_columns)
-
-
-def _dump_json_blob(data, entity_key: EntityKey, measure: str, path: str) -> None:
-    store = tables.open_file(path, "a")
-    if entity_key.to_path(measure) in store:
-        store.remove_node(entity_key.to_path(measure))
-    try:
-        store.create_group(entity_key.group_prefix, entity_key.group_name, createparents=True)
-
-    except tables.exceptions.NodeError as e:
-        if "already has a child node" in str(e):
-            # The parent group already exists, which is fine
-            pass
-        else:
-            raise
-
-    fnode = filenode.new_node(store, where=entity_key.group, name=measure)
-    fnode.write(bytes(json.dumps(data), "utf-8"))
-    fnode.close()
-    store.close()
+        key = entity_config.entity_key.with_measure(measure)
+        artifact.write(key, data)
 
 
 def _load_cause(entity_config: _EntityConfig) -> None:
@@ -448,7 +392,7 @@ def _load_population(entity_config: _EntityConfig) -> None:
 def _load_covariate(entity_config: _EntityConfig) -> None:
     entity = covariates[entity_config.entity_key.name]
     location_ids = [core.get_location_ids_by_name()[l] for l in entity_config.locations]
-    estimate = gbd.get_covariate_estimates([entity.gbd_id], location_ids)
+    estimate = core.get_covariate_estimates([entity.gbd_id], location_ids)
     estimate['location'] = estimate.location_id.apply(core.get_location_names_by_id().get)
     estimate = estimate.drop('location_id', 'columns')
 
