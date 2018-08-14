@@ -18,6 +18,7 @@ if __name__ == "__main__":
         'numpy',
         'scipy',
         'pandas',
+        'click',
         'joblib',
         'tables',
         'vivarium',
@@ -64,6 +65,11 @@ if __name__ == "__main__":
             'data': data_requires,
             'dev': doc_requirements + test_requirements + data_requires,
         },
+
+        entry_points='''
+            [console_scripts]
+            build_artifact=scripts.build_artifact:build_artifact
+        ''',
 
         zip_safe=False,
     )
