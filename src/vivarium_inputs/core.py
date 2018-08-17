@@ -726,7 +726,10 @@ def get_subregions(locations):
 
 def get_covariate_estimates(covariates, locations):
     location_ids = [get_location_ids_by_name()[location] for location in locations]
-    return gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)
+    data = gbd.get_covariate_estimates([covariate.gbd_id for covariate in covariates], location_ids)
+    data['location'] = data.location_id.apply(get_location_names_by_id().get)
+    data = data.drop('location_id', 'columns')
+    return data
 
 
 def get_location_ids_by_name():
@@ -735,3 +738,8 @@ def get_location_ids_by_name():
 
 def get_location_names_by_id():
     return {v: k for k, v in get_location_ids_by_name().items()}
+
+
+def get_estimation_years():
+    return gbd.get_estimation_years(gbd.GBD_ROUND_ID)
+
