@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Collection
 import warnings
 
 from gbd_mapping import causes, risks, sequelae, coverage_gaps, covariates, etiologies
@@ -26,7 +26,7 @@ CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
 RISK_BY_ID = {r.gbd_id: r for r in risks}
 
 
-def loader(entity_key: EntityKey, location: str, modeled_causes: Sequence[str], all_measures: bool=True):
+def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str], all_measures: bool=False):
     entity_data = {
         "cause": {
             "mapping": causes,

@@ -1,6 +1,6 @@
 from datetime import datetime
 import logging
-from typing import NamedTuple, Collection, Any
+from typing import Collection, Any
 
 from vivarium_public_health.dataset_manager import EntityKey, Artifact, hdf
 
@@ -10,18 +10,14 @@ from vivarium_inputs.data_artifact.loaders import loader
 _log = logging.getLogger(__name__)
 
 
-class LoadContext(NamedTuple):
-    location: str
-    modeled_causes: Collection[str]
-
-
 class ArtifactBuilder:
 
     def start_processing(self, path: str, append: bool, location: str, modeled_causes: Collection[str]) -> None:
         hdf.touch(path, append)
 
         self.artifact = Artifact(path)
-        self.load_context = LoadContext(location, modeled_causes)
+        self.location = location
+        self.modeled_causes = modeled_causes
         self.processed_entities = set()
         self.start_time = datetime.now()
 
@@ -36,11 +32,11 @@ class ArtifactBuilder:
 
     def process(self, entity_key: EntityKey) -> None:
         if (entity_key.type, entity_key.name) not in self.processed_entities:
-            _worker(entity_key, self.load_context, self.artifact)
+            _worker(entity_key, self.location, self.modeled_causes, self.artifact)
             self.processed_entities.add((entity_key.type, entity_key.name))
 
 
-def _worker(entity_key: EntityKey, load_context: LoadContext, artifact: Artifact) -> None:
-    for measure, data in loader(entity_key, load_context):
+def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str], artifact: Artifact) -> None:
+    for measure, data in loader(entity_key, location, modeled_causes, all_measures=True):
         key = entity_key.with_measure(measure)
         artifact.write(key, data)
