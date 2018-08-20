@@ -1,3 +1,3 @@
-from .builder import ArtifactBuilder, EntityConfig
-from .loaders import LOADERS
-from .utilities import nor
+from .builder import ArtifactBuilder
+from .passthrough import ArtifactPassthrough
+from .utilities import normalize

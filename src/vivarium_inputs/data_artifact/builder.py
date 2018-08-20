@@ -3,6 +3,7 @@ import logging
 from typing import Collection, Any
 
 from vivarium_public_health.dataset_manager import EntityKey, Artifact, hdf
+from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
 
@@ -12,14 +13,20 @@ _log = logging.getLogger(__name__)
 
 class ArtifactBuilder:
 
-    def start_processing(self, path: str, append: bool, location: str, modeled_causes: Collection[str]) -> None:
+    def setup(self, builder):
+        path = builder.configuration.input_data.artifact_path
+        append = builder.configuration.input_data.append_to_artifact
         hdf.touch(path, append)
 
         self.artifact = Artifact(path)
-        self.location = location
-        self.modeled_causes = modeled_causes
+        self.location = builder.configuration.input_data.location
+        self.modeled_causes = builder.components.get_components(DiseaseModel)
         self.processed_entities = set()
         self.start_time = datetime.now()
+
+        self.load("dimensions.full_space")
+
+        builder.event.register_listener('post_setup', self.end_processing)
 
     def load(self, entity_key: str, *_, **__) -> Any:
         entity_key = EntityKey(entity_key)
@@ -27,7 +34,7 @@ class ArtifactBuilder:
             self.process(entity_key)
         return self.artifact.load(entity_key)
 
-    def end_processing(self) -> None:
+    def end_processing(self, event) -> None:
         _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
 
     def process(self, entity_key: EntityKey) -> None:

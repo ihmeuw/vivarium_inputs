@@ -6,7 +6,7 @@ from hypothesis.extra.pandas import data_frames, column
 from gbd_mapping import Cause, Risk, Etiology, Sequela
 
 from vivarium_inputs.utilities import get_age_group_midpoint_from_age_group_id
-from vivarium_inputs.data_artifact import _normalize
+from vivarium_inputs.data_artifact import normalize
 
 CAUSE_MEASURES = ["death", "prevalence", "incidence", "population_attributable_fraction",
                   "cause_specific_mortality", "excess_mortality", "remission"]
@@ -47,7 +47,7 @@ def measure_dataframes(draw):
 @pytest.mark.skip("Cluster")
 @given(measure_dataframes())
 def test__normalize(data):
-    normed = _normalize(data)
+    normed = normalize(data)
 
     original_draw_count = len([c for c in data.columns if c.startswith("draw_")])
     normalized_draw_count = len(normed.draw.unique())

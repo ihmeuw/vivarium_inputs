@@ -10,7 +10,6 @@ from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.plugins import PluginManager
 from vivarium.interface.interactive import InteractiveContext
 from vivarium.config_tree import ConfigTree
-from vivarium_public_health.disease import DiseaseModel
 
 
 @click.command()
@@ -153,22 +152,14 @@ def _build_artifact():
     simulation_config.input_data.location = get_location(args.location, simulation_config)
     simulation_config.input_data.artifact_path = get_output_path(args.simulation_configuration,
                                                                  args.output_root, args.location)
-
-    output_path = simulation_config.input_data.artifact_path
+    simulation_config.input_data.append_to_artifact = not args.from_scratch
 
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
 
-    simulation = InteractiveContext(simulation_config, components,
-                                    plugin_manager)
-    modeled_causes = {c.cause for c in simulation.component_manager._components if isinstance(c, DiseaseModel)}
-    simulation.data.start_processing(modeled_causes, output_path,
-                                     [simulation.configuration.input_data.location],
-                                     incremental=not args.from_scratch)
-    simulation.data.load("dimensions.full_space")
+    simulation = InteractiveContext(simulation_config, components, plugin_manager)
     simulation.setup()
-    simulation.data.end_processing()
 
 
 def get_location(location_arg: str, configuration: ConfigTree) -> str:
