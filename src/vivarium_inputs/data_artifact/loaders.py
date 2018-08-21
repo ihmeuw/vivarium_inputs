@@ -64,7 +64,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str]
             "measures": ["population_attributable_fraction"],
         },
         "population": {
-            "mapping": {None: None},
+            "mapping": {'': None},
             "getter": get_population_data,
             "measures": ["structure", "age_bins", "theoretical_minimum_risk_life_expectancy"],
         },
@@ -74,27 +74,30 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str]
             "measures": ["estimate"]
         },
         "subregions": {
-            "mapping": {None, None},
+            "mapping": {'', None},
             "getter": get_subregion_data,
             "measures": ["sub_region_ids"],
         },
         "dimensions": {
-            "mapping": {None, None},
+            "mapping": {'', None},
             "getter": get_dimension_data,
             "measures": ["full_space"]
         },
     }
-    mapping, getter, measures = entity_data[entity_key.type]
+    mapping, getter, measures = entity_data[entity_key.type].values()
     entity = mapping[entity_key.name]
-
-    if all_measures:
-        for measure in measures:
-            data = getter(entity, measure, location, modeled_causes)
-            if data is not None:
-                yield measure, data
-                del data
-    else:
+    if not all_measures:
         return getter(entity, entity_key.measure, location, modeled_causes)
+    else:
+        return _data_generator(entity, measures, location, modeled_causes, getter)
+
+
+def _data_generator(entity, measures, location, modeled_causes, getter):
+    for measure in measures:
+        data = getter(entity, measure, location, modeled_causes)
+        if data is not None:
+            yield measure, data
+            del data
 
 
 def get_cause_data(cause, measure, location, _):
