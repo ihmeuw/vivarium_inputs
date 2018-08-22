@@ -171,7 +171,7 @@ def get_healthcare_entity_data(healthcare_entity, measure, location, _):
 def get_health_technology_data(healthcare_technology, measure, location, _):
     if measure == "cost":
         data = core.get_draws([healthcare_technology], ["cost"], [location])
-        data = normalize(data)[["year", "location", "draw", "value"]]
+        data = normalize(data)[["year", "location", "draw", "value", "health_technology"]]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for healthcare_entity {healthcare_technology.name}")
     return data
@@ -181,7 +181,7 @@ def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
     if measure in ["affected_causes", "restrictions", "distribution", "levels"]:
         data = _get_coverage_gap_metadata(coverage_gap, measure, modeled_causes)
     elif measure == "exposure":
-        data = core.get_draws([coverage_gap], ["exposure"], [location])
+        data = _get_coverage_gap_exposure(coverage_gap, location)
     elif measure == "relative_risk":
         data = core.get_draws([coverage_gap], ["relative_risk"], [location])
         data = normalize(data)
@@ -398,6 +398,20 @@ def _get_coverage_gap_metadata(coverage_gap, measure, modeled_causes):
     return data
 
 
+def _get_coverage_gap_exposure(coverage_gap, location):
+    exposures = core.get_draws([coverage_gap], ["exposure"], [location])
+    normalized = []
+    for key, group in exposures.groupby(["parameter"]):
+        group = group.drop(["parameter"], axis=1)
+        group = normalize(group)
+        group["parameter"] = key
+        dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "parameter"]
+        normalized.append(group.set_index(dims))
+    result = pd.concat(normalized).reset_index()
+    result = result[["year", "location", "sex", "age", "draw", "value", "parameter"]]
+    return result
+
+
 def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
     data = core.get_draws([coverage_gap], ["population_attributable_fraction"], [location])
     if data.empty:
@@ -405,4 +419,5 @@ def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
     else:
         data = normalize(data)
         data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name).drop('cause_id', axis=1)
+        data = data[["year", "location", "cause", "sex", "age", "draw", "value"]]
     return data
