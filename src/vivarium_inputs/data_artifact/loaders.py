@@ -106,7 +106,7 @@ def _data_generator(entity, measures, location, modeled_causes, getter):
 
 
 def get_cause_data(cause, measure, location, _):
-    if measure in ["sequela", "etiologies", "restrictions"]:
+    if measure in ["sequelae", "etiologies", "restrictions"]:
         data = _get_cause_metadata(cause, measure)
     elif measure in ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]:
         data = core.get_draws([cause], [measure], [location])
