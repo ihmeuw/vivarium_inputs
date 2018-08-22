@@ -79,12 +79,12 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str]
             "measures": ["estimate"]
         },
         "subregions": {
-            "mapping": {'', None},
+            "mapping": {'': None},
             "getter": get_subregion_data,
             "measures": ["sub_region_ids"],
         },
         "dimensions": {
-            "mapping": {'', None},
+            "mapping": {'': None},
             "getter": get_dimension_data,
             "measures": ["full_space"]
         },
@@ -251,7 +251,7 @@ def get_dimension_data(_, measure, location, __):
         age_bins = core.get_age_bins()
         estimation_years = core.get_estimation_years()
         data = [range(min(estimation_years), max(estimation_years) + 1),
-                ["Male", "Female"], age_bins.age_group_id, location]
+                ["Male", "Female"], age_bins.age_group_id, [location]]
         data = pd.MultiIndex.from_product(data, names=["year", "sex", "age_group_id", "location"])
         data = data.to_frame().reset_index(drop=True)
     else:
