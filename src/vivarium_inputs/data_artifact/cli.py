@@ -1,9 +1,10 @@
 import os
+from bdb import BdbQuit
+import logging
 import getpass
 import pathlib
 import argparse
 import subprocess
-import time
 
 import click
 
@@ -14,7 +15,7 @@ from vivarium.config_tree import ConfigTree
 
 
 @click.command()
-@click.argument('simulation_configuration', type=click.Path(dir_okay=False,
+@click.argument('model_specification', type=click.Path(dir_okay=False,
                 readable=True))
 @click.argument('project')
 @click.argument('locations', nargs=-1)
@@ -22,7 +23,7 @@ from vivarium.config_tree import ConfigTree
               help="Directory to save artifact result in")
 @click.option('--from_scratch', type=click.BOOL, default=True,
               help="Do not reuse any data in the artifact, if any exists")
-def build_artifact(simulation_configuration, project, locations,
+def build_artifact(model_specification, project, locations,
                    output_root, from_scratch):
     """
     build_artifact is a program for building data artifacts from a
@@ -35,7 +36,7 @@ def build_artifact(simulation_configuration, project, locations,
     based on user: /ihme/scratch/{user}/vivarium_artifacts
     """
 
-    config_path = pathlib.Path(simulation_configuration).resolve()
+    config_path = pathlib.Path(model_specification).resolve()
     python_context_path = pathlib.Path(subprocess.getoutput("which python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
 
@@ -126,20 +127,41 @@ def _build_artifact():
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('simulation_configuration', type=str,
-                        help="path to a simulation configuration file")
+    parser.add_argument('model_specification', type=str,
+                        help="path to a model_specification file")
     parser.add_argument('--output_root', type=str, required=False,
                         help="directory to save artifact to. "
-                             "Overwrites configuration file")
+                             "Overwrites model_specification file")
     parser.add_argument('--location', type=str, required=False,
                         help="location to get data for. "
-                             "Overwrites configuration file")
+                             "Overwrites model_specification file")
     parser.add_argument('--from_scratch', '-s', action="store_true",
                         help="Do not reuse any data in the artifact, "
                              "if any exists")
+    parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument('--pdb', action='store_true')
     args = parser.parse_args()
 
-    model_specification = build_model_specification(args.simulation_configuration)
+    log_level = logging.DEBUG if args.verbose else logging.ERROR
+    logging.basicConfig(level=log_level)
+
+    try:
+        main(args.model_specification, args.output_root, args.location, args.from_scratch)
+    except (BdbQuit, KeyboardInterrupt):
+        raise
+    except Exception as e:
+        if args.pdb:
+            import pdb
+            import traceback
+            traceback.print_exc()
+            pdb.post_mortem()
+        else:
+            logging.exception("Uncaught exception {}".format(e))
+            raise
+
+
+def main(model_specification_file, output_root, location, from_scratch):
+    model_specification = build_model_specification(model_specification_file)
     model_specification.plugins.optional.update({
         "data": {
             "controller": "vivarium_inputs.data_artifact.ArtifactBuilder",
@@ -150,23 +172,17 @@ def _build_artifact():
     component_config = model_specification.components
     simulation_config = model_specification.configuration
 
-    simulation_config.input_data.location = get_location(args.location, simulation_config)
-    simulation_config.artifact.path = get_output_path(args.simulation_configuration,
-                                                      args.output_root, args.location)
-
-    output_path = simulation_config.artifact.path
+    simulation_config.input_data.location = get_location(location, simulation_config)
+    simulation_config.input_data.artifact_path = get_output_path(model_specification_file,
+                                                                 output_root, location)
+    simulation_config.input_data.append_to_artifact = not from_scratch
 
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
 
-    simulation = InteractiveContext(simulation_config, components,
-                                    plugin_manager)
-    simulation.data.start_processing(simulation.component_manager, output_path,
-                                     [simulation.configuration.input_data.location],
-                                     incremental=not args.from_scratch)
+    simulation = InteractiveContext(simulation_config, components, plugin_manager)
     simulation.setup()
-    simulation.data.end_processing()
 
 
 def get_location(location_arg: str, configuration: ConfigTree) -> str:
@@ -218,7 +234,7 @@ def contains_location(configuration: ConfigTree) -> bool:
 
 
 def get_output_path(configuration_arg: str, output_root_arg: str,
-                    location_arg: str) -> os.PathLike:
+                    location_arg: str) -> str:
     """Resolve the correct model output path
 
     Takes in to account the model specification and passed arguments.
@@ -251,9 +267,10 @@ def get_output_path(configuration_arg: str, output_root_arg: str,
                        getpass.getuser() / 'vivarium_artifacts')
 
     if location_arg:
-        return output_base / (configuration_path.stem + f'_{location_arg}.hdf')
+        output_path = output_base / (configuration_path.stem + f'_{location_arg}.hdf')
     else:
-        return output_base / (configuration_path.stem + '.hdf')
+        output_path = output_base / (configuration_path.stem + '.hdf')
+    return str(output_path)
 
 
 if __name__ == "__main__":
