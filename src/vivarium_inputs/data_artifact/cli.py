@@ -13,7 +13,7 @@ from vivarium.config_tree import ConfigTree
 
 
 @click.command()
-@click.argument('simulation_configuration', type=click.Path(dir_okay=False,
+@click.argument('model_specification', type=click.Path(dir_okay=False,
                 readable=True))
 @click.argument('project')
 @click.argument('locations', nargs=-1)
@@ -125,14 +125,14 @@ def _build_artifact():
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('simulation_configuration', type=str,
-                        help="path to a simulation configuration file")
+    parser.add_argument('model_specification', type=str,
+                        help="path to a model_specification file")
     parser.add_argument('--output_root', type=str, required=False,
                         help="directory to save artifact to. "
-                             "Overwrites configuration file")
+                             "Overwrites model_specification file")
     parser.add_argument('--location', type=str, required=False,
                         help="location to get data for. "
-                             "Overwrites configuration file")
+                             "Overwrites model_specification file")
     parser.add_argument('--from_scratch', '-s', action="store_true",
                         help="Do not reuse any data in the artifact, "
                              "if any exists")
