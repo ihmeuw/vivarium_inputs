@@ -33,7 +33,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str]
             "getter": get_cause_data,
             "measures": ["death", "prevalence", "incidence", "cause_specific_mortality",
                          "excess_mortality", "population_attributable_fraction", "remission",
-                         "sequela", "etiologies", "restrictions"]
+                         "sequelae", "etiologies", "restrictions"]
         },
         "risk_factor": {
             "mapping": risk_factors,
