@@ -1,7 +1,7 @@
 from typing import Collection
 import warnings
 
-from gbd_mapping import causes, risks, sequelae, coverage_gaps, covariates, etiologies
+from gbd_mapping import causes, risk_factors, sequelae, coverage_gaps, covariates, etiologies
 import pandas as pd
 
 from vivarium_public_health.dataset_manager import EntityKey
@@ -9,7 +9,7 @@ from vivarium_public_health.dataset_manager import EntityKey
 from vivarium_inputs import core
 from vivarium_inputs.data_artifact.utilities import normalize
 from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
-from vivarium_inputs.mapping_extension import healthcare_entities
+from vivarium_inputs.mapping_extension import healthcare_entities, health_technologies
 
 
 class DataArtifactError(Exception):
@@ -23,7 +23,7 @@ class EntityError(DataArtifactError):
 
 
 CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
-RISK_BY_ID = {r.gbd_id: r for r in risks}
+RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
 
 
 def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str], all_measures: bool=False):
@@ -35,8 +35,8 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str]
                          "excess_mortality", "population_attributable_fraction", "remission",
                          "sequela", "etiologies", "restrictions"]
         },
-        "risk": {
-            "mapping": risks,
+        "risk_factor": {
+            "mapping": risk_factors,
             "getter": get_risk_data,
             "measures": ["affected_causes", "restrictions", "distribution", "exposure_parameters",
                          "levels", "tmred", "exposure", "exposure_standard_deviation", "relative_risk",
@@ -51,6 +51,11 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str]
             "mapping": healthcare_entities,
             "getter": get_healthcare_entity_data,
             "measures": ["cost", "annual_visits"]
+        },
+        "health_technology": {
+            "mapping": health_technologies,
+            "getter": get_health_technology_data,
+            "measures": ["cost"]
         },
         "coverage_gap": {
             "mapping": coverage_gaps,
@@ -160,6 +165,15 @@ def get_healthcare_entity_data(healthcare_entity, measure, location, _):
         data = data[["year", "sex", "age", "value", "draw"]]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for healthcare_entity {healthcare_entity.name}")
+    return data
+
+
+def get_health_technology_data(healthcare_technology, measure, location, _):
+    if measure == "cost":
+        data = core.get_draws([healthcare_technology], ["cost"], [location])
+        data = normalize(data)[["year", "location", "draw", "value"]]
+    else:
+        raise NotImplementedError(f"Unknown measure {measure} for healthcare_entity {healthcare_technology.name}")
     return data
 
 

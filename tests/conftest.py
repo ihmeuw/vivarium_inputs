@@ -1,6 +1,6 @@
 import pytest
 
-from gbd_mapping import causes, risks, etiologies
+from gbd_mapping import causes, risk_factors, etiologies
 
 
 
@@ -30,7 +30,7 @@ def etiology_list():
 
 @pytest.fixture
 def risk_list():
-    return [r for r in risks]
+    return [r for r in risk_factors]
 
 
 @pytest.fixture

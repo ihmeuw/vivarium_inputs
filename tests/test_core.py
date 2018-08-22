@@ -6,7 +6,7 @@ import pytest
 
 from gbd_mapping.id import reiid
 from gbd_mapping.cause import causes
-from gbd_mapping.risk import risks
+from gbd_mapping.risk import risk_factors
 
 from vivarium_inputs import core
 
@@ -114,7 +114,7 @@ def mock_pafs(mocker, cause_list):
                 # TODO This assumes that all non-cause entities are diarrhea etiologies
                 cids = [causes.diarrheal_diseases.gbd_id]
             else:
-                rids = {r.gbd_id for r in risks if gbd_id in [cc.gbd_id for cc in r.affected_causes]}
+                rids = {r.gbd_id for r in risk_factors if gbd_id in [cc.gbd_id for cc in r.affected_causes]}
                 cids = [gbd_id]
             for c in cids:
                 for r in rids:
@@ -179,7 +179,7 @@ def test__compute_paf_for_special_cases(mock_rrs, mock_exposures, locations):
 
     # TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction
     # where it isn't really accessible for tests. Should probably clean that up.
-    special_risks = [risks.unsafe_water_source]
+    special_risks = [risk_factors.unsafe_water_source]
 
     location_ids = [core.get_location_ids_by_name()[name] for name in locations]
     for risk in special_risks:
@@ -225,7 +225,7 @@ def test_get_relative_risk(mocker):
     rr_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*rr_maps.values()], names=[*rr_maps.keys()]))
     rr_[draw_cols] = np.random.random_sample((len(rr_), 10)) * 10
     gbd_mock.get_relative_risks.return_value = rr_.reset_index()
-    get_rr = core._get_relative_risk([risks.child_wasting], [1])
+    get_rr = core._get_relative_risk([risk_factors.child_wasting], [1])
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(rr_maps['age_group_id']))
     missing_rr_maps = rr_maps.copy()

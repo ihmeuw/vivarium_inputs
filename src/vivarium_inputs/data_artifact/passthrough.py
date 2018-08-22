@@ -1,5 +1,6 @@
 from typing import Any
 
+import pandas as pd
 from vivarium_public_health.dataset_manager import EntityKey, filter_data
 from vivarium_public_health.disease import DiseaseModel
 
@@ -19,7 +20,10 @@ class ArtifactPassthrough:
     def load(self, entity_key: str, keep_age_group_edges: bool=False, **column_filters: str) -> Any:
         entity_key = EntityKey(entity_key)
         data = loader(entity_key, self.location, self.modeled_causes)
-        for key, val in self.base_filter.items():
-            if key in data.columns:
-                column_filters[key] = val
-        return filter_data(data, keep_age_group_edges, **column_filters)
+
+        if isinstance(data, pd.DataFrame):
+            for key, val in self.base_filter.items():
+                if key in data.columns:
+                    column_filters[key] = val
+            data = filter_data(data, keep_age_group_edges, **column_filters)
+        return data
