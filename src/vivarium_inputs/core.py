@@ -288,7 +288,8 @@ def _get_remission(entities, location_ids):
 
 def _get_prevalence(entities, location_ids):
     measure_ids = _get_ids_for_measure(entities, 'prevalence')
-    measure_data = gbd.get_como_draws(entity_ids=measure_ids, location_ids=location_ids)
+    entity_type = "cause" if isinstance(entities[0], Cause) else "sequela"
+    measure_data = gbd.get_como_draws(entity_ids=measure_ids, location_ids=location_ids, entity_type=entity_type)
 
     # FIXME: The year filtering should happen in the reshaping step.
     correct_measure = measure_data['measure_id'] == name_measure_map['prevalence']
@@ -298,7 +299,8 @@ def _get_prevalence(entities, location_ids):
 
 def _get_incidence(entities, location_ids):
     measure_ids = _get_ids_for_measure(entities, 'incidence')
-    measure_data = gbd.get_como_draws(entity_ids=measure_ids, location_ids=location_ids)
+    entity_type = "cause" if isinstance(entities[0], Cause) else "sequela"
+    measure_data = gbd.get_como_draws(entity_ids=measure_ids, location_ids=location_ids, entity_type=entity_type)
 
     # FIXME: The year filtering should happen in the reshaping step.
     correct_measure = measure_data['measure_id'] == name_measure_map['incidence']
