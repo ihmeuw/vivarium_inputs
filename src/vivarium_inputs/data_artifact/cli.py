@@ -21,10 +21,10 @@ from vivarium.config_tree import ConfigTree
 @click.option('--project', default='proj_cost_effect')
 @click.option('--output_root', type=click.Path(file_okay=False, writable=True),
               help="Directory to save artifact result in")
-@click.option('--overwrite', type=click.BOOL, default=True,
-              help="Completely overwrite artifact if it exists")
+@click.option('--append', type=click.BOOL, default=False,
+              help="Preserve existing artifact and append to it")
 def build_artifact(model_specification, locations, project,
-                   output_root, overwrite):
+                   output_root, append):
     """
     build_artifact is a program for building data artifacts from a
     SIMULATION_CONFIGURATION file. The work is offloaded to the cluster
@@ -44,8 +44,8 @@ def build_artifact(model_specification, locations, project,
     script_args = f"{script_path} {config_path} "
     if output_root:
         script_args += f"--output_root {output_root} "
-    if overwrite:
-        script_args += f"--overwrite "
+    if append:
+        script_args += f"--append "
 
     if len(locations) > 0:
         script_args += "--location {}"
@@ -136,8 +136,8 @@ def _build_artifact():
     parser.add_argument('--location', type=str, required=False,
                         help="location to get data for. "
                              "Overwrites model_specification file")
-    parser.add_argument('--overwrite', action="store_true",
-                        help="Completely overwrite artifact if it exists")
+    parser.add_argument('--append', action="store_true",
+                        help="Append to an artifact if it exists")
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--pdb', action='store_true')
     args = parser.parse_args()
@@ -146,7 +146,7 @@ def _build_artifact():
     logging.basicConfig(level=log_level)
 
     try:
-        main(args.model_specification, args.output_root, args.location, args.overwrite)
+        main(args.model_specification, args.output_root, args.location, args.append)
     except (BdbQuit, KeyboardInterrupt):
         raise
     except Exception as e:
@@ -160,7 +160,7 @@ def _build_artifact():
             raise
 
 
-def main(model_specification_file, output_root, location, overwrite):
+def main(model_specification_file, output_root, location, append):
     model_specification = build_model_specification(model_specification_file)
     model_specification.plugins.optional.update({
         "data": {
@@ -175,7 +175,7 @@ def main(model_specification_file, output_root, location, overwrite):
     simulation_config.input_data.location = get_location(location, simulation_config)
     simulation_config.input_data.artifact_path = get_output_path(model_specification_file,
                                                                  output_root, location)
-    simulation_config.input_data.overwrite = overwrite
+    simulation_config.input_data.append = append
 
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')

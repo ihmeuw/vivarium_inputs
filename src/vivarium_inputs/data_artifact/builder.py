@@ -15,8 +15,8 @@ class ArtifactBuilder:
 
     def setup(self, builder):
         path = builder.configuration.input_data.artifact_path
-        overwrite = builder.configuration.input_data.overwrite
-        hdf.touch(path, overwrite)
+        append = builder.configuration.input_data.append
+        hdf.touch(path, append)
 
         self.artifact = Artifact(path)
         self.location = builder.configuration.input_data.location
