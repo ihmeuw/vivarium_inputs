@@ -17,13 +17,14 @@ from vivarium.config_tree import ConfigTree
 @click.command()
 @click.argument('model_specification', type=click.Path(dir_okay=False,
                 readable=True))
-@click.argument('project')
 @click.argument('locations', nargs=-1)
+@click.option('--project', default='proj_cost_effect')
 @click.option('--output_root', type=click.Path(file_okay=False, writable=True),
               help="Directory to save artifact result in")
 @click.option('--from_scratch', type=click.BOOL, default=True,
               help="Do not reuse any data in the artifact, if any exists")
 def build_artifact(model_specification, project, locations,
+def build_artifact(model_specification, locations, project,
                    output_root, from_scratch):
     """
     build_artifact is a program for building data artifacts from a
