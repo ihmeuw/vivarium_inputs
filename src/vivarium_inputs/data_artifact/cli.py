@@ -21,16 +21,16 @@ from vivarium.config_tree import ConfigTree
 @click.option('--project', default='proj_cost_effect')
 @click.option('--output_root', type=click.Path(file_okay=False, writable=True),
               help="Directory to save artifact result in")
-@click.option('--from_scratch', type=click.BOOL, default=True,
-              help="Do not reuse any data in the artifact, if any exists")
-def build_artifact(model_specification, project, locations,
+@click.option('--overwrite', type=click.BOOL, default=True,
+              help="Completely overwrite artifact if it exists")
 def build_artifact(model_specification, locations, project,
-                   output_root, from_scratch):
+                   output_root, overwrite):
     """
     build_artifact is a program for building data artifacts from a
-    SIMULATION_CONFIGURATION file. The work is offloaded to the cluster under
-    the provided PROJECT. Multiple, optional LOCATIONS can be provided to
-    overwrite the configuration file.
+    SIMULATION_CONFIGURATION file. The work is offloaded to the cluster
+    under the "proj_cost_effect" project unless otherwise specified. 
+    Multiple, optional LOCATIONS can be provided to overwrite the configuration
+    file.
 
     Any artifact.path specified in the configuration file is guaranteed to
     be overwritten either by the optional output_root or a predetermined path
@@ -44,8 +44,8 @@ def build_artifact(model_specification, locations, project,
     script_args = f"{script_path} {config_path} "
     if output_root:
         script_args += f"--output_root {output_root} "
-    if from_scratch:
-        script_args += f"--from_scratch "
+    if overwrite:
+        script_args += f"--overwrite "
 
     if len(locations) > 0:
         script_args += "--location {}"
@@ -136,9 +136,8 @@ def _build_artifact():
     parser.add_argument('--location', type=str, required=False,
                         help="location to get data for. "
                              "Overwrites model_specification file")
-    parser.add_argument('--from_scratch', '-s', action="store_true",
-                        help="Do not reuse any data in the artifact, "
-                             "if any exists")
+    parser.add_argument('--overwrite', action="store_true",
+                        help="Completely overwrite artifact if it exists")
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--pdb', action='store_true')
     args = parser.parse_args()
@@ -147,7 +146,7 @@ def _build_artifact():
     logging.basicConfig(level=log_level)
 
     try:
-        main(args.model_specification, args.output_root, args.location, args.from_scratch)
+        main(args.model_specification, args.output_root, args.location, args.overwrite)
     except (BdbQuit, KeyboardInterrupt):
         raise
     except Exception as e:
@@ -161,7 +160,7 @@ def _build_artifact():
             raise
 
 
-def main(model_specification_file, output_root, location, from_scratch):
+def main(model_specification_file, output_root, location, overwrite):
     model_specification = build_model_specification(model_specification_file)
     model_specification.plugins.optional.update({
         "data": {
@@ -176,7 +175,7 @@ def main(model_specification_file, output_root, location, from_scratch):
     simulation_config.input_data.location = get_location(location, simulation_config)
     simulation_config.input_data.artifact_path = get_output_path(model_specification_file,
                                                                  output_root, location)
-    simulation_config.input_data.append_to_artifact = not from_scratch
+    simulation_config.input_data.overwrite = overwrite
 
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
