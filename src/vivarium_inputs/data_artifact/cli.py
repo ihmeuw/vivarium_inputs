@@ -46,18 +46,22 @@ def build_artifact(model_specification, project, locations,
     if from_scratch:
         script_args += f"--from_scratch "
 
-    if len(locations) > 0:
+    num_locations = len(locations)
+    if num_locations > 0:
         script_args += "--location {}"
-        for location in locations:
+        for i in range(num_locations):
+            location = locations[i]
             job_name = f"{config_path.stem}_{location}_build_artifact"
             command = build_submit_command(python_context_path, job_name,
                                            project,
                                            script_args.format(location))
+            click.echo(f"submitting job {i} of {num_locations} ({job_name})")
             submit_job(command, job_name)
     else:
         job_name = f"{config_path.stem}_build_artifact"
         command = build_submit_command(python_context_path, job_name,
                                        project, script_args)
+        click.echo(f"submitting job {job_name}")
         submit_job(command, job_name)
 
 
