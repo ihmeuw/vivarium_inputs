@@ -147,7 +147,10 @@ def _build_artifact():
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.ERROR
-    logging.basicConfig(level=log_level)
+    log_name = f"{pathlib.Path(args.model_specification).resolve().stem}_{args.location}.log"
+    logging.basicConfig(level=log_level,
+                        filename=log_name,
+                        filemode='w')
 
     try:
         main(args.model_specification, args.output_root, args.location, args.from_scratch)
@@ -165,6 +168,7 @@ def _build_artifact():
 
 
 def main(model_specification_file, output_root, location, from_scratch):
+    logging.debug("Building model specification from %s", model_specification_file)
     model_specification = build_model_specification(model_specification_file)
     model_specification.plugins.optional.update({
         "data": {
