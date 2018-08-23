@@ -82,10 +82,10 @@ def submit_job(command: str, name: str):
 
     exitcode, response = subprocess.getstatusoutput(command)
     if exitcode:
-        click.secho(f"submitting {name} failed with exit code {exitcode}: {response}",
+        click.secho(f"submission of {name} failed with exit code {exitcode}: {response}",
                     fg='red')
     else:
-        click.secho(f"submitting {name} succeeded: {response}", fg='green')
+        click.secho(f"submission of {name} succeeded: {response}", fg='green')
 
 
 def build_submit_command(python_context_path: str, job_name: str, project: str,
