@@ -33,7 +33,7 @@ def build_artifact(model_specification, project, locations,
 
     Any artifact.path specified in the configuration file is guaranteed to
     be overwritten either by the optional output_root or a predetermined path
-    based on user: /ihme/scratch/{user}/vivarium_artifacts
+    based on user: /ihme/scratch/users/{user}/vivarium_artifacts
     """
 
     config_path = pathlib.Path(model_specification).resolve()
