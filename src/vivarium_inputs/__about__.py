@@ -7,9 +7,9 @@ __title__ = "vivarium_inputs"
 __summary__ = "Transformations and artifact building for the vivarium microsimulation project."
 __uri__ = "https://github.com/ihmeuw/vivarium_inputs"
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
-__author__ = "The vivarium_public_health developers"
+__author__ = "The vivarium developers"
 __email__ = "collijk@uw.edu"
 
 __license__ = "GNU GPLv3"
