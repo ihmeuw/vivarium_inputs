@@ -147,24 +147,31 @@ def _build_artifact():
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.ERROR
-    logging.basicConfig(level=log_level)
+    log_tag = "_{}".format(args.location) if args.location is not None else ""
+    log_name = "{}{}_build_artifact.log".format(pathlib.Path(args.model_specification).resolve().stem, log_tag)
+    logging.basicConfig(level=log_level,
+                        format='%(asctime)s %(levelname)-8s %(message)s',
+                        datefmt="%m-%d-%y %H:%M",
+                        filename=log_name,
+                        filemode='w' if args.from_scratch else 'a')
 
     try:
         main(args.model_specification, args.output_root, args.location, args.from_scratch)
     except (BdbQuit, KeyboardInterrupt):
         raise
     except Exception as e:
+        logging.exception("Uncaught exception: {}".format(e))
         if args.pdb:
             import pdb
             import traceback
             traceback.print_exc()
             pdb.post_mortem()
         else:
-            logging.exception("Uncaught exception {}".format(e))
             raise
 
 
 def main(model_specification_file, output_root, location, from_scratch):
+    logging.debug("Building model specification from %s", model_specification_file)
     model_specification = build_model_specification(model_specification_file)
     model_specification.plugins.optional.update({
         "data": {
@@ -184,7 +191,7 @@ def main(model_specification_file, output_root, location, from_scratch):
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
-
+    
     simulation = InteractiveContext(simulation_config, components, plugin_manager)
     simulation.setup()
 
