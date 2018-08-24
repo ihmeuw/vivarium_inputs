@@ -175,7 +175,7 @@ def main(model_specification_file, output_root, location, append):
     simulation_config.input_data.location = get_location(location, simulation_config)
     simulation_config.input_data.artifact_path = get_output_path(model_specification_file,
                                                                  output_root, location)
-    simulation_config.input_data.append = append
+    simulation_config.input_data.append_to_artifact = append
 
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')

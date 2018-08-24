@@ -15,7 +15,7 @@ class ArtifactBuilder:
 
     def setup(self, builder):
         path = builder.configuration.input_data.artifact_path
-        append = builder.configuration.input_data.append
+        append = builder.configuration.input_data.append_to_artifact
         hdf.touch(path, append)
 
         self.artifact = Artifact(path)
