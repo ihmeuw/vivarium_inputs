@@ -246,7 +246,7 @@ def get_output_path(configuration_arg: str, output_root_arg: str,
     """Resolve the correct model output path
 
     Takes in to account the model specification and passed arguments.
-    User-passed arguments supercede the configuration. Gauranteed to
+    User-passed arguments supercede the configuration. Guaranteed to
     clobber the configuration output path with either what the user
     provided or a default. The file name is taken from the model
     configuration file name. Location info is added if a location argument
@@ -268,17 +268,72 @@ def get_output_path(configuration_arg: str, output_root_arg: str,
 
     configuration_path = pathlib.Path(configuration_arg)
 
-    if output_root_arg:
-        output_base = pathlib.Path(output_root_arg).resolve()
-    else:
-        output_base = (pathlib.Path('/share') / 'scratch' / 'users' /
-                       getpass.getuser() / 'vivarium_artifacts')
+    output_base = get_output_base(output_root_arg)
 
     if location_arg:
         output_path = output_base / (configuration_path.stem + f'_{location_arg}.hdf')
     else:
         output_path = output_base / (configuration_path.stem + '.hdf')
     return str(output_path)
+
+
+def get_output_base(output_root_arg: str) -> str:
+    """Resolve the correct output directory
+
+    Defaults to /ihme/scratch/users/{user}/vivarium_artifacts/
+    if no user passed output directory. Makes default directory
+    if doesn't already exist.
+
+    Parameters
+    ----------
+    output_root_arg
+        The output_root argument passed to the click executable
+
+    Returns
+    -------
+        A PathLike object containing the path to the output directory
+    """
+
+    if output_root_arg:
+        output_base = pathlib.Path(output_root_arg).resolve()
+        if not os.isdir(output_base):
+            raise FileNotFoundError("The passed output directory %s does not exist", output_base)
+    else:
+        output_base = (pathlib.Path('/share') / 'scratch' / 'users' /
+                       getpass.getuser() / 'vivarium_artifacts')
+
+        if not os.isdir(output_base):
+            os.makedirs(output_base)
+
+    return str(output_base)
+
+
+def _setup_logging(output_root_arg, verbose_arg, location_arg,
+                   model_specification_arg, from_scratch_arg):
+    """ Setup logging to write to a file in the output directory
+
+    Log file named as {model_specification}_{location}_build_artifact.log
+    to match naming format of qsubbed jobs. File saved in output directory
+    (either passed by user or default)/logs. Raises error if that output
+    directory is not found.
+
+    """
+
+    # this will throw an error if the passed output path doesn't exist but the log hasn't been set up yet
+    output_log_dir = pathlib.Path(get_output_base(output_root_arg)) / 'logs'
+    if not os.isdir(output_log_dir):
+        os.makedirs(output_log_dir)
+
+    log_level = logging.DEBUG if verbose_arg else logging.ERROR
+    log_tag = "_{}".format(location_arg) if location_arg is not None else ""
+    log_name = "{}/{}{}_build_artifact.log".format(str(output_log_dir),
+                                                   pathlib.Path(model_specification_arg).resolve().stem,
+                                                   log_tag)
+    logging.basicConfig(level=log_level,
+                        format='%(asctime)s %(levelname)-8s %(message)s',
+                        datefmt="%m-%d-%y %H:%M",
+                        filename=log_name,
+                        filemode='w' if from_scratch_arg else 'a')
 
 
 if __name__ == "__main__":
