@@ -17,23 +17,24 @@ from vivarium.config_tree import ConfigTree
 @click.command()
 @click.argument('model_specification', type=click.Path(dir_okay=False,
                 readable=True))
-@click.argument('project')
 @click.argument('locations', nargs=-1)
-@click.option('--output_root', type=click.Path(file_okay=False, writable=True),
+@click.option('--project', default='proj_cost_effect')
+@click.option('--output-root', type=click.Path(file_okay=False, writable=True),
               help="Directory to save artifact result in")
-@click.option('--from_scratch', type=click.BOOL, default=True,
-              help="Do not reuse any data in the artifact, if any exists")
-def build_artifact(model_specification, project, locations,
-                   output_root, from_scratch):
+@click.option('--append', type=click.BOOL, default=False,
+              help="Preserve existing artifact and append to it")
+def build_artifact(model_specification, locations, project,
+                   output_root, append):
     """
     build_artifact is a program for building data artifacts from a
-    SIMULATION_CONFIGURATION file. The work is offloaded to the cluster under
-    the provided PROJECT. Multiple, optional LOCATIONS can be provided to
-    overwrite the configuration file.
+    SIMULATION_CONFIGURATION file. The work is offloaded to the cluster
+    under the "proj_cost_effect" project unless otherwise specified. 
+    Multiple, optional LOCATIONS can be provided to overwrite the configuration
+    file.
 
     Any artifact.path specified in the configuration file is guaranteed to
     be overwritten either by the optional output_root or a predetermined path
-    based on user: /ihme/scratch/{user}/vivarium_artifacts
+    based on user: /ihme/scratch/users/{user}/vivarium_artifacts
     """
 
     config_path = pathlib.Path(model_specification).resolve()
@@ -43,8 +44,8 @@ def build_artifact(model_specification, project, locations,
     script_args = f"{script_path} {config_path} "
     if output_root:
         script_args += f"--output_root {output_root} "
-    if from_scratch:
-        script_args += f"--from_scratch "
+    if append:
+        script_args += f"--append "
 
     num_locations = len(locations)
     if num_locations > 0:
@@ -133,15 +134,14 @@ def _build_artifact():
     parser = argparse.ArgumentParser()
     parser.add_argument('model_specification', type=str,
                         help="path to a model_specification file")
-    parser.add_argument('--output_root', type=str, required=False,
+    parser.add_argument('--output-root', type=str, required=False,
                         help="directory to save artifact to. "
                              "Overwrites model_specification file")
     parser.add_argument('--location', type=str, required=False,
                         help="location to get data for. "
                              "Overwrites model_specification file")
-    parser.add_argument('--from_scratch', '-s', action="store_true",
-                        help="Do not reuse any data in the artifact, "
-                             "if any exists")
+    parser.add_argument('--append', action="store_true",
+                        help="Append to an artifact if it exists")
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--pdb', action='store_true')
     args = parser.parse_args()
@@ -156,7 +156,7 @@ def _build_artifact():
                         filemode='w' if args.from_scratch else 'a')
 
     try:
-        main(args.model_specification, args.output_root, args.location, args.from_scratch)
+        main(args.model_specification, args.output_root, args.location, args.append)
     except (BdbQuit, KeyboardInterrupt):
         raise
     except Exception as e:
@@ -170,8 +170,8 @@ def _build_artifact():
             raise
 
 
-def main(model_specification_file, output_root, location, from_scratch):
-    logging.debug("Building model specification from %s", model_specification_file)
+
+def main(model_specification_file, output_root, location, append):
     model_specification = build_model_specification(model_specification_file)
     model_specification.plugins.optional.update({
         "data": {
@@ -186,7 +186,7 @@ def main(model_specification_file, output_root, location, from_scratch):
     simulation_config.input_data.location = get_location(location, simulation_config)
     simulation_config.input_data.artifact_path = get_output_path(model_specification_file,
                                                                  output_root, location)
-    simulation_config.input_data.append_to_artifact = not from_scratch
+    simulation_config.input_data.append_to_artifact = append
 
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
