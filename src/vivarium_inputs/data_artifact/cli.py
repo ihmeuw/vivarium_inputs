@@ -21,7 +21,7 @@ from vivarium.config_tree import ConfigTree
 @click.option('--project', '-P', default='proj_cost_effect',
               help='Cluster project under which the job will '
                    'be submitted. Defaults to proj_cost_effect')
-@click.option('--output-root', '-o', type=click.Path(file_okay=False, writable=True),
+@click.option('--output-root', '-o', type=click.Path(exists=True, file_okay=False, writable=True),
               help="Directory to save artifact to. "
                    "Overwrites model specification file")
 @click.option('--append', '-a', type=click.BOOL, default=False,
