@@ -150,7 +150,7 @@ def _build_artifact():
     args = parser.parse_args()
 
     _setup_logging(args.output_root, args.verbose, args.location,
-                    args.model_specification, args.append)
+                   args.model_specification, args.append)
 
     try:
         main(args.model_specification, args.output_root, args.location, args.append)
@@ -165,7 +165,6 @@ def _build_artifact():
             pdb.post_mortem()
         else:
             raise
-
 
 
 def main(model_specification_file, output_root, location, append):
