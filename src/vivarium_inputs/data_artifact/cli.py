@@ -173,6 +173,7 @@ def main(model_specification_file, output_root, location, from_scratch):
             "builder_interface": "vivarium_public_health.dataset_manager.ArtifactManagerInterface",
         }})
 
+    logging.debug("Configuring simulation")
     plugin_config = model_specification.plugins
     component_config = model_specification.components
     simulation_config = model_specification.configuration
@@ -186,6 +187,7 @@ def main(model_specification_file, output_root, location, from_scratch):
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
     
+    logging.debug("Setting up simulation")
     simulation = InteractiveContext(simulation_config, components, plugin_manager)
     simulation.setup()
 
@@ -265,7 +267,7 @@ def get_output_path(configuration_arg: str, output_root_arg: str,
 
     configuration_path = pathlib.Path(configuration_arg)
 
-    output_base = get_output_base(output_root_arg)
+    output_base = pathlib.Path(get_output_base(output_root_arg))
 
     if location_arg:
         output_path = output_base / (configuration_path.stem + f'_{location_arg}.hdf')
@@ -293,13 +295,13 @@ def get_output_base(output_root_arg: str) -> str:
 
     if output_root_arg:
         output_base = pathlib.Path(output_root_arg).resolve()
-        if not os.isdir(output_base):
-            raise FileNotFoundError("The passed output directory %s does not exist", output_base)
+        if not os.path.isdir(output_base):
+            raise FileNotFoundError("The passed output directory {} does not exist".format(output_base))
     else:
         output_base = (pathlib.Path('/share') / 'scratch' / 'users' /
                        getpass.getuser() / 'vivarium_artifacts')
 
-        if not os.isdir(output_base):
+        if not os.path.isdir(output_base):
             os.makedirs(output_base)
 
     return str(output_base)
@@ -316,9 +318,11 @@ def _setup_logging(output_root_arg, verbose_arg, location_arg,
 
     """
 
-    # this will throw an error if the passed output path doesn't exist but the log hasn't been set up yet
+    # this will raise an error if the passed output_root doesn't exist which gets
+    # printed to console b/c logging isn't set up yet
     output_log_dir = pathlib.Path(get_output_base(output_root_arg)) / 'logs'
-    if not os.isdir(output_log_dir):
+
+    if not os.path.exists(output_log_dir):
         os.makedirs(output_log_dir)
 
     log_level = logging.DEBUG if verbose_arg else logging.ERROR
