@@ -18,10 +18,13 @@ from vivarium.config_tree import ConfigTree
 @click.argument('model_specification', type=click.Path(dir_okay=False,
                 readable=True))
 @click.argument('locations', nargs=-1)
-@click.option('--project', default='proj_cost_effect')
-@click.option('--output-root', type=click.Path(file_okay=False, writable=True),
-              help="Directory to save artifact result in")
-@click.option('--append', type=click.BOOL, default=False,
+@click.option('--project', '-P', default='proj_cost_effect',
+              help='Cluster project under which the job will '
+                   'be submitted. Defaults to proj_cost_effect')
+@click.option('--output-root', '-o', type=click.Path(file_okay=False, writable=True),
+              help="Directory to save artifact to. "
+                   "Overwrites model specification file")
+@click.option('--append', '-a', type=click.BOOL, default=False,
               help="Preserve existing artifact and append to it")
 def build_artifact(model_specification, locations, project,
                    output_root, append):
@@ -134,14 +137,14 @@ def _build_artifact():
     parser = argparse.ArgumentParser()
     parser.add_argument('model_specification', type=str,
                         help="path to a model_specification file")
-    parser.add_argument('--output-root', type=str, required=False,
+    parser.add_argument('--output-root', '-o', type=str, required=False,
                         help="directory to save artifact to. "
                              "Overwrites model_specification file")
     parser.add_argument('--location', type=str, required=False,
                         help="location to get data for. "
                              "Overwrites model_specification file")
-    parser.add_argument('--append', action="store_true",
-                        help="Append to an artifact if it exists")
+    parser.add_argument('--append', '-a', action="store_true",
+                        help="Preserve existing artifact and append to it")
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--pdb', action='store_true')
     args = parser.parse_args()
