@@ -255,6 +255,11 @@ def _validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
         raise DuplicateDataError()
 
 
+def _get_cause_ids():
+    causes_list = [causes.__getitem__(c) for c in causes.__slots__]
+    ids = [c.gbd_id for c in causes_list if c is not None]
+    return ids
+
 #####################
 # get_draws helpers #
 #####################
@@ -422,6 +427,9 @@ def _get_relative_risk(entities, location_ids):
         draw_cols = [f'draw_{i}' for i in range(1000)]
         measure_data.loc[:, draw_cols] = 1/measure_data.loc[:, draw_cols]
         measure_data = _handle_coverage_gap_data(entities, measure_data, 1)
+
+    valid_cause_ids = [c for c in measure_data['cause_id'].unique() if c in _get_cause_ids()]
+    measure_data = measure_data[measure_data['cause_id'].isin(valid_cause_ids)]
 
     # FIXME: I'm passing because this is broken for zinc_deficiency, and I don't have time to investigate -J.C.
     # err_msg = ("Not all relative risk data has both the 'mortality' and 'morbidity' flag "
