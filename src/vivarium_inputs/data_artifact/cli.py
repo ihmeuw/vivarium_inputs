@@ -1,4 +1,3 @@
-import os
 from bdb import BdbQuit
 import logging
 import getpass
@@ -21,13 +20,15 @@ from vivarium.config_tree import ConfigTree
 @click.option('--project', '-P', default='proj_cost_effect',
               help='Cluster project under which the job will '
                    'be submitted. Defaults to proj_cost_effect')
-@click.option('--output-root', '-o', type=click.Path(exists=True, file_okay=False, writable=True),
+@click.option('--output-root', '-o', type=click.Path(file_okay=False, writable=True),
               help="Directory to save artifact to. "
                    "Overwrites model specification file")
-@click.option('--append', '-a', type=click.BOOL, default=False,
+@click.option('--append', '-a', is_flag=True,
               help="Preserve existing artifact and append to it")
+@click.option('--verbose', '-v', is_flag=True,
+              help="Turn on debug mode for logging")
 def build_artifact(model_specification, locations, project,
-                   output_root, append):
+                   output_root, append, verbose):
     """
     build_artifact is a program for building data artifacts from a
     SIMULATION_CONFIGURATION file. The work is offloaded to the cluster
@@ -49,12 +50,13 @@ def build_artifact(model_specification, locations, project,
         script_args += f"--output_root {output_root} "
     if append:
         script_args += f"--append "
+    if verbose:
+        script_args += f"--verbose "
 
     num_locations = len(locations)
     if num_locations > 0:
         script_args += "--location {}"
-        for i in range(num_locations):
-            location = locations[i]
+        for i, location in enumerate(locations):
             job_name = f"{config_path.stem}_{location}_build_artifact"
             command = build_submit_command(python_context_path, job_name,
                                            project,
@@ -145,7 +147,8 @@ def _build_artifact():
                              "Overwrites model_specification file")
     parser.add_argument('--append', '-a', action="store_true",
                         help="Preserve existing artifact and append to it")
-    parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help="Turn on debug mode for logging")
     parser.add_argument('--pdb', action='store_true')
     args = parser.parse_args()
 
@@ -157,7 +160,7 @@ def _build_artifact():
     except (BdbQuit, KeyboardInterrupt):
         raise
     except Exception as e:
-        logging.exception("Uncaught exception: {}".format(e))
+        logging.exception("Uncaught exception: %s", e)
         if args.pdb:
             import pdb
             import traceback
@@ -269,7 +272,7 @@ def get_output_path(configuration_arg: str, output_root_arg: str,
 
     configuration_path = pathlib.Path(configuration_arg)
 
-    output_base = pathlib.Path(get_output_base(output_root_arg))
+    output_base = get_output_base(output_root_arg)
 
     if location_arg:
         output_path = output_base / (configuration_path.stem + f'_{location_arg}.hdf')
@@ -278,11 +281,11 @@ def get_output_path(configuration_arg: str, output_root_arg: str,
     return str(output_path)
 
 
-def get_output_base(output_root_arg: str) -> str:
+def get_output_base(output_root_arg: str) -> pathlib.Path:
     """Resolve the correct output directory
 
     Defaults to /ihme/scratch/users/{user}/vivarium_artifacts/
-    if no user passed output directory. Makes default directory
+    if no user passed output directory. Makes output directory
     if doesn't already exist.
 
     Parameters
@@ -297,20 +300,18 @@ def get_output_base(output_root_arg: str) -> str:
 
     if output_root_arg:
         output_base = pathlib.Path(output_root_arg).resolve()
-        if not os.path.isdir(output_base):
-            raise FileNotFoundError("The passed output directory {} does not exist".format(output_base))
     else:
         output_base = (pathlib.Path('/share') / 'scratch' / 'users' /
                        getpass.getuser() / 'vivarium_artifacts')
 
-        if not os.path.isdir(output_base):
-            os.makedirs(output_base)
+    if not output_base.is_dir():
+        output_base.mkdir(parents=True)
 
-    return str(output_base)
+    return output_base
 
 
-def _setup_logging(output_root_arg, verbose_arg, location_arg,
-                   model_specification_arg, append_arg):
+def _setup_logging(output_root, verbose, location,
+                   model_specification, append):
     """ Setup logging to write to a file in the output directory
 
     Log file named as {model_specification}_{location}_build_artifact.log
@@ -322,21 +323,21 @@ def _setup_logging(output_root_arg, verbose_arg, location_arg,
 
     # this will raise an error if the passed output_root doesn't exist which gets
     # printed to console b/c logging isn't set up yet
-    output_log_dir = pathlib.Path(get_output_base(output_root_arg)) / 'logs'
+    output_log_dir = get_output_base(output_root) / 'logs'
 
-    if not os.path.exists(output_log_dir):
-        os.makedirs(output_log_dir)
+    if not output_log_dir.is_dir():
+        output_log_dir.mkdir()
 
-    log_level = logging.DEBUG if verbose_arg else logging.ERROR
-    log_tag = "_{}".format(location_arg) if location_arg is not None else ""
-    log_name = "{}/{}{}_build_artifact.log".format(str(output_log_dir),
-                                                   pathlib.Path(model_specification_arg).resolve().stem,
-                                                   log_tag)
+    log_level = logging.DEBUG if verbose else logging.ERROR
+    log_tag = f'_{location}' if location is not None else ''
+    spec_name = pathlib.Path(model_specification).resolve().stem
+    log_name = f'{output_log_dir}/{spec_name}{log_tag}_build_artifact.log'
+
     logging.basicConfig(level=log_level,
                         format='%(asctime)s %(levelname)-8s %(message)s',
                         datefmt="%m-%d-%y %H:%M",
                         filename=log_name,
-                        filemode='a' if append_arg else 'w')
+                        filemode='a' if append else 'w')
 
 
 if __name__ == "__main__":
