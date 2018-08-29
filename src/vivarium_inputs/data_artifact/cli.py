@@ -21,7 +21,7 @@ from vivarium.config_tree import ConfigTree
 @click.option('--project', '-P', default='proj_cost_effect',
               help='Cluster project under which the job will '
                    'be submitted. Defaults to proj_cost_effect')
-@click.option('--output-root', '-o', type=click.Path(file_okay=False, writable=True),
+@click.option('--output-root', '-o', type=click.Path(exists=True, file_okay=False, writable=True),
               help="Directory to save artifact to. "
                    "Overwrites model specification file")
 @click.option('--append', '-a', type=click.BOOL, default=False,
@@ -50,18 +50,22 @@ def build_artifact(model_specification, locations, project,
     if append:
         script_args += f"--append "
 
-    if len(locations) > 0:
+    num_locations = len(locations)
+    if num_locations > 0:
         script_args += "--location {}"
-        for location in locations:
+        for i in range(num_locations):
+            location = locations[i]
             job_name = f"{config_path.stem}_{location}_build_artifact"
             command = build_submit_command(python_context_path, job_name,
                                            project,
                                            script_args.format(location))
+            click.echo(f"submitting job {i} of {num_locations} ({job_name})")
             submit_job(command, job_name)
     else:
         job_name = f"{config_path.stem}_build_artifact"
         command = build_submit_command(python_context_path, job_name,
                                        project, script_args)
+        click.echo(f"submitting job {job_name}")
         submit_job(command, job_name)
 
 
@@ -82,10 +86,10 @@ def submit_job(command: str, name: str):
 
     exitcode, response = subprocess.getstatusoutput(command)
     if exitcode:
-        click.secho(f"{name} failed with exit code {exitcode}: {response}",
+        click.secho(f"submission of {name} failed with exit code {exitcode}: {response}",
                     fg='red')
     else:
-        click.secho(f"{name} succeeded: {response}", fg='green')
+        click.secho(f"submission of {name} succeeded: {response}", fg='green')
 
 
 def build_submit_command(python_context_path: str, job_name: str, project: str,
@@ -145,21 +149,21 @@ def _build_artifact():
     parser.add_argument('--pdb', action='store_true')
     args = parser.parse_args()
 
-    log_level = logging.DEBUG if args.verbose else logging.ERROR
-    logging.basicConfig(level=log_level)
+    _setup_logging(args.output_root, args.verbose, args.location,
+                   args.model_specification, args.append)
 
     try:
         main(args.model_specification, args.output_root, args.location, args.append)
     except (BdbQuit, KeyboardInterrupt):
         raise
     except Exception as e:
+        logging.exception("Uncaught exception: {}".format(e))
         if args.pdb:
             import pdb
             import traceback
             traceback.print_exc()
             pdb.post_mortem()
         else:
-            logging.exception("Uncaught exception {}".format(e))
             raise
 
 
@@ -171,6 +175,7 @@ def main(model_specification_file, output_root, location, append):
             "builder_interface": "vivarium_public_health.dataset_manager.ArtifactManagerInterface",
         }})
 
+    logging.debug("Configuring simulation")
     plugin_config = model_specification.plugins
     component_config = model_specification.components
     simulation_config = model_specification.configuration
@@ -183,7 +188,8 @@ def main(model_specification_file, output_root, location, append):
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
-
+    
+    logging.debug("Setting up simulation")
     simulation = InteractiveContext(simulation_config, components, plugin_manager)
     simulation.setup()
 
@@ -241,7 +247,7 @@ def get_output_path(configuration_arg: str, output_root_arg: str,
     """Resolve the correct model output path
 
     Takes in to account the model specification and passed arguments.
-    User-passed arguments supercede the configuration. Gauranteed to
+    User-passed arguments supercede the configuration. Guaranteed to
     clobber the configuration output path with either what the user
     provided or a default. The file name is taken from the model
     configuration file name. Location info is added if a location argument
@@ -263,17 +269,74 @@ def get_output_path(configuration_arg: str, output_root_arg: str,
 
     configuration_path = pathlib.Path(configuration_arg)
 
-    if output_root_arg:
-        output_base = pathlib.Path(output_root_arg).resolve()
-    else:
-        output_base = (pathlib.Path('/share') / 'scratch' / 'users' /
-                       getpass.getuser() / 'vivarium_artifacts')
+    output_base = pathlib.Path(get_output_base(output_root_arg))
 
     if location_arg:
         output_path = output_base / (configuration_path.stem + f'_{location_arg}.hdf')
     else:
         output_path = output_base / (configuration_path.stem + '.hdf')
     return str(output_path)
+
+
+def get_output_base(output_root_arg: str) -> str:
+    """Resolve the correct output directory
+
+    Defaults to /ihme/scratch/users/{user}/vivarium_artifacts/
+    if no user passed output directory. Makes default directory
+    if doesn't already exist.
+
+    Parameters
+    ----------
+    output_root_arg
+        The output_root argument passed to the click executable
+
+    Returns
+    -------
+        A PathLike object containing the path to the output directory
+    """
+
+    if output_root_arg:
+        output_base = pathlib.Path(output_root_arg).resolve()
+        if not os.path.isdir(output_base):
+            raise FileNotFoundError("The passed output directory {} does not exist".format(output_base))
+    else:
+        output_base = (pathlib.Path('/share') / 'scratch' / 'users' /
+                       getpass.getuser() / 'vivarium_artifacts')
+
+        if not os.path.isdir(output_base):
+            os.makedirs(output_base)
+
+    return str(output_base)
+
+
+def _setup_logging(output_root_arg, verbose_arg, location_arg,
+                   model_specification_arg, append_arg):
+    """ Setup logging to write to a file in the output directory
+
+    Log file named as {model_specification}_{location}_build_artifact.log
+    to match naming format of qsubbed jobs. File saved in output directory
+    (either passed by user or default)/logs. Raises error if that output
+    directory is not found.
+
+    """
+
+    # this will raise an error if the passed output_root doesn't exist which gets
+    # printed to console b/c logging isn't set up yet
+    output_log_dir = pathlib.Path(get_output_base(output_root_arg)) / 'logs'
+
+    if not os.path.exists(output_log_dir):
+        os.makedirs(output_log_dir)
+
+    log_level = logging.DEBUG if verbose_arg else logging.ERROR
+    log_tag = "_{}".format(location_arg) if location_arg is not None else ""
+    log_name = "{}/{}{}_build_artifact.log".format(str(output_log_dir),
+                                                   pathlib.Path(model_specification_arg).resolve().stem,
+                                                   log_tag)
+    logging.basicConfig(level=log_level,
+                        format='%(asctime)s %(levelname)-8s %(message)s',
+                        datefmt="%m-%d-%y %H:%M",
+                        filename=log_name,
+                        filemode='a' if append_arg else 'w')
 
 
 if __name__ == "__main__":
