@@ -422,7 +422,7 @@ def _get_relative_risk(entities, location_ids):
         measure_data.loc[:, draw_cols] = 1/measure_data.loc[:, draw_cols]
         measure_data = _handle_coverage_gap_data(entities, measure_data, 1)
 
-    cause_ids = [causes.__getitem__(c).gbd_id for c in causes.__slots__]
+    cause_ids = [c.gbd_id for c in causes]
     valid_cause_ids = [c for c in measure_data['cause_id'].unique() if c in cause_ids]
     measure_data = measure_data[measure_data['cause_id'].isin(valid_cause_ids)]
 
