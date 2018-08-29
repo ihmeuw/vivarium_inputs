@@ -23,12 +23,12 @@ from vivarium.config_tree import ConfigTree
 @click.option('--output-root', '-o', type=click.Path(file_okay=False, writable=True),
               help="Directory to save artifact to. "
                    "Overwrites model specification file")
-@click.option('--append', '-a', type=click.BOOL, default=False,
+@click.option('--append', '-a', is_flag=True,
               help="Preserve existing artifact and append to it")
-@click.option('--verbose', '-v', type=click.BOOL, default=False,
+@click.option('--verbose', '-v', is_flag=True,
               help="Turn on debug mode for logging")
 def build_artifact(model_specification, locations, project,
-                   output_root, append):
+                   output_root, append, verbose):
     """
     build_artifact is a program for building data artifacts from a
     SIMULATION_CONFIGURATION file. The work is offloaded to the cluster
@@ -147,7 +147,8 @@ def _build_artifact():
                              "Overwrites model_specification file")
     parser.add_argument('--append', '-a', action="store_true",
                         help="Preserve existing artifact and append to it")
-    parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help="Turn on debug mode for logging")
     parser.add_argument('--pdb', action='store_true')
     args = parser.parse_args()
 
