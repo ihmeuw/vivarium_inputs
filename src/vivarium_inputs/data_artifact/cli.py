@@ -25,6 +25,8 @@ from vivarium.config_tree import ConfigTree
                    "Overwrites model specification file")
 @click.option('--append', '-a', type=click.BOOL, default=False,
               help="Preserve existing artifact and append to it")
+@click.option('--verbose', '-v', type=click.BOOL, default=False,
+              help="Turn on debug mode for logging")
 def build_artifact(model_specification, locations, project,
                    output_root, append):
     """
@@ -48,6 +50,8 @@ def build_artifact(model_specification, locations, project,
         script_args += f"--output_root {output_root} "
     if append:
         script_args += f"--append "
+    if verbose:
+        script_args += f"--verbose "
 
     num_locations = len(locations)
     if num_locations > 0:
