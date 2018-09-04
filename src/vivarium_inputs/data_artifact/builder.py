@@ -1,8 +1,9 @@
 from datetime import datetime
 import logging
 from typing import Collection, Any
+import pandas as pd
 
-from vivarium_public_health.dataset_manager import EntityKey, Artifact, hdf
+from vivarium_public_health.dataset_manager import EntityKey, Artifact, hdf, get_location_term, filter_data
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
@@ -18,8 +19,9 @@ class ArtifactBuilder:
         append = builder.configuration.input_data.append_to_artifact
         hdf.touch(path, append)
 
-        self.artifact = Artifact(path)
         self.location = builder.configuration.input_data.location
+        self.draw = builder.configuration.input_data.input_draw_number
+        self.artifact = Artifact(path, filter_terms=[f'draw == {self.draw}', get_location_term(self.location)])
         self.modeled_causes = builder.components.get_components(DiseaseModel)
         self.processed_entities = set()
         self.start_time = datetime.now()
@@ -28,11 +30,12 @@ class ArtifactBuilder:
 
         builder.event.register_listener('post_setup', self.end_processing)
 
-    def load(self, entity_key: str, *_, **__) -> Any:
+    def load(self, entity_key: str, keep_age_group_edges=False, **__) -> Any:
         entity_key = EntityKey(entity_key)
         if entity_key not in self.artifact:
             self.process(entity_key)
-        return self.artifact.load(entity_key)
+        data = self.artifact.load(entity_key)
+        return filter_data(data, keep_age_group_edges, **__) if isinstance(data, pd.DataFrame) else data
 
     def end_processing(self, event) -> None:
         _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
