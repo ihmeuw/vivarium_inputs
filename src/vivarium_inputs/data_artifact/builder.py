@@ -18,10 +18,10 @@ class ArtifactBuilder:
         path = builder.configuration.input_data.artifact_path
         append = builder.configuration.input_data.append_to_artifact
         hdf.touch(path, append)
+        draw = builder.configuration.input_data.input_draw_number
 
         self.location = builder.configuration.input_data.location
-        self.draw = builder.configuration.input_data.input_draw_number
-        self.artifact = Artifact(path, filter_terms=[f'draw == {self.draw}', get_location_term(self.location)])
+        self.artifact = Artifact(path, filter_terms=[f'draw == {draw}', get_location_term(self.location)])
         self.modeled_causes = builder.components.get_components(DiseaseModel)
         self.processed_entities = set()
         self.start_time = datetime.now()
