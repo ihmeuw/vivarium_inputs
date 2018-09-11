@@ -248,7 +248,8 @@ def _validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
     DuplicatedDataError
         If the provided key columns are insufficient to uniquely identify a record in the data table.
     """
-    if np.any(data.isnull()):
+    draw_cols = [f'draw_{i}' for i in range(1000)]
+    if np.any(data[draw_cols].isnull()):
         raise DataMissingError()
 
     if key_columns and np.any(data.duplicated(key_columns)):
@@ -413,17 +414,41 @@ def _standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
     return new_data.reset_index()
 
 
-def _get_relative_risk(entities, location_ids):
-    measure_ids = _get_ids_for_measure(entities, 'relative_risk')
-    measure_data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
-    measure_data = measure_data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
-    if isinstance(entities[0], CoverageGap):
-        draw_cols = [f'draw_{i}' for i in range(1000)]
-        measure_data.loc[:, draw_cols] = 1/measure_data.loc[:, draw_cols]
-        measure_data = _handle_coverage_gap_data(entities, measure_data, 1)
+def _get_relative_risk_for_coverage_gap(entities, location_ids):
+    SPECIAL = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
+    rr = pd.DataFrame()
+    for entity in entities:
+        if entity in SPECIAL:
+            measure_ids = _get_ids_for_measure([entity], 'relative_risk')
+            measure_data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
+            measure_data = measure_data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
+            draw_cols = [f'draw_{i}' for i in range(1000)]
+            measure_data.loc[:, draw_cols] = 1 / measure_data.loc[:, draw_cols]
+            measure_data = _handle_measles_coverage_gap_data([entity], measure_data, 1)
+            measure_data['rei_id'] = np.NaN
+            measure_data['coverage_gap'] = entity.name
+            del measure_data['metric_id']
+            del measure_data['modelable_entity_id']
+            rr = rr.append(measure_data)
+        else:
+            measure_data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
+            measure_data['coverage_gap_id'] = np.NaN
+            del measure_data['measure']
+            rr = rr.append(measure_data)
+    return rr
 
-    most_detailed_causes = measure_data['cause_id'].isin([c.gbd_id for c in causes])
-    measure_data = measure_data[most_detailed_causes]
+
+def _get_relative_risk(entities, location_ids):
+    if isinstance(entities[0], CoverageGap):
+        return _get_relative_risk_for_coverage_gap(entities, location_ids)
+
+    else:
+        measure_ids = _get_ids_for_measure(entities, 'relative_risk')
+        measure_data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
+        measure_data = measure_data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
+
+        most_detailed_causes = measure_data['cause_id'].isin([c.gbd_id for c in causes])
+        measure_data = measure_data[most_detailed_causes]
 
     # FIXME: I'm passing because this is broken for zinc_deficiency, and I don't have time to investigate -J.C.
     # err_msg = ("Not all relative risk data has both the 'mortality' and 'morbidity' flag "
@@ -431,12 +456,11 @@ def _get_relative_risk(entities, location_ids):
     #            + "If you need this risk, come talk to one of the programmers.")
     # assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), err_msg
 
-    measure_data = measure_data[measure_data['morbidity'] == 1]  # FIXME: HACK
-
-    del measure_data['mortality']
-    del measure_data['morbidity']
-    del measure_data['metric_id']
-    del measure_data['modelable_entity_id']
+        measure_data = measure_data[measure_data['morbidity'] == 1]  # FIXME: HACK
+        del measure_data['mortality']
+        del measure_data['morbidity']
+        del measure_data['metric_id']
+        del measure_data['modelable_entity_id']
 
     measure_data = _standardize_data(measure_data, 1)
     return measure_data
@@ -482,6 +506,36 @@ def _compute_paf_for_special_cases(cause, risk, location_ids):
     return paf
 
 
+def _compute_paf_for_coverage_gaps(entities, location_ids):
+    draw_cols = [f'draw_{i}' for i in range(1000)]
+    key_cols = ['age_group_id', 'sex_id', 'parameter', 'year_id', 'coverage_gap', 'coverage_gap_id']
+    exposure = _get_exposure(entities, location_ids)
+    relative_risk = _get_relative_risk_for_coverage_gap(entities, location_ids)
+    valid_years = set(relative_risk.year_id.unique()).intersection(set(exposure.year_id.unique()))
+    exposure = exposure[exposure['year_id'].isin(valid_years)]
+    relative_risk = relative_risk[relative_risk['year_id'].isin(valid_years)]
+    affected_entity = dict()
+    affected_entity['cause_id'] = [int(i) for i in relative_risk.cause_id.dropna().unique()]
+    affected_entity['rei_id'] = [int(i) for i in relative_risk.rei_id.dropna().unique()]
+
+    paf = pd.DataFrame()
+
+    for entity, ids in affected_entity.items():
+        if ids:
+            for i in ids:
+                rr = relative_risk[relative_risk[entity] == i]
+                rr = rr.set_index(key_cols)
+                ex = exposure.set_index(key_cols)
+                temp = ex[draw_cols] * rr[draw_cols]
+                temp_sum = temp.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
+                data = ((temp_sum - 1) / temp_sum)
+                data = data.reset_index()
+                data[entity] = i
+                paf = paf.append(data)
+    paf['coverage_gap_id'] = np.NaN
+    return paf
+
+
 def _get_population_attributable_fraction(entities, location_ids):
     SPECIAL = [risk_factors.unsafe_water_source]
     measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
@@ -508,8 +562,7 @@ def _get_population_attributable_fraction(entities, location_ids):
         measure_data = _filter_to_most_detailed(measure_data)
 
     elif isinstance(entities[0], CoverageGap):
-        # Directly compute.
-        raise NotImplementedError()
+        return _compute_paf_for_coverage_gaps(entities, location_ids)
     else:
         raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'population_attributable_fraction'")
 
@@ -533,29 +586,51 @@ def _get_population_attributable_fraction(entities, location_ids):
 
 
 def _get_exposure(entities, location_ids):
-    if isinstance(entities[0], (Risk, Etiology, CoverageGap)):
-        measure_ids = _get_ids_for_measure(entities, 'exposure')
-        measure_data = gbd.get_exposures(risk_ids=measure_ids, location_ids=location_ids)
 
-        if isinstance(entities[0], (Risk, Etiology)):
-            measure_data = _handle_weird_exposure_measures(measure_data)
-        if isinstance(entities[0], CoverageGap):
-            measure_data = _handle_coverage_gap_data(entities, measure_data, 0)
+    SPECIAL = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
 
-        # FIXME: The sex filtering should happen in the reshaping step.
+    def handle_exposure_from_gbd(measure_data):
         is_categorical_exposure = measure_data.measure_id == name_measure_map['proportion']
         is_continuous_exposure = measure_data.measure_id == name_measure_map['continuous']
         measure_data = measure_data[is_categorical_exposure | is_continuous_exposure]
+        # FIXME: The sex filtering should happen in the reshaping step.
         measure_data = measure_data[measure_data['sex_id'] != COMBINED]
 
         # FIXME: Is this the only data we need to delete measure id for?
         del measure_data['measure_id']
         return measure_data
+
+    if isinstance(entities[0], (Risk, Etiology)):
+        measure_ids = _get_ids_for_measure(entities, 'exposure')
+        measure_data = gbd.get_exposures(risk_ids=measure_ids, location_ids=location_ids)
+        measure_data = _handle_weird_exposure_measures(measure_data)
+        return handle_exposure_from_gbd(measure_data)
+
+    elif isinstance(entities[0], CoverageGap):
+        exposure_data = pd.DataFrame()
+        for entity in entities:
+            if entity in SPECIAL:
+                measure_id = _get_ids_for_measure([entity], 'exposure')
+                measure_data = gbd.get_exposures(risk_ids=measure_id, location_ids=location_ids)
+                measure_data = _handle_measles_coverage_gap_data([entity], measure_data, 0)
+                measure_data = handle_exposure_from_gbd(measure_data)
+                measure_data['coverage_gap'] = entity.name
+                del measure_data['modelable_entity_id']
+                del measure_data['metric_id']
+                exposure_data = exposure_data.append(measure_data)
+
+            else:
+                measure_data = gbd.get_auxiliary_data('exposure', 'coverage_gap', entity.name)
+                measure_data = measure_data[measure_data.location_id.isin(location_ids)]
+                measure_data['coverage_gap_id'] = np.NaN
+                del measure_data['measure']
+                exposure_data = exposure_data.append(measure_data)
+        return exposure_data
     else:
         raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'exposure'")
 
 
-def _handle_coverage_gap_data(entities, measure_data, fill_value):
+def _handle_measles_coverage_gap_data(entities, measure_data, fill_value):
     # We pulled coverage, not exposure, so invert the categories.
     coverage = measure_data['parameter'] == 'cat1'
     exposure = measure_data['parameter'] == 'cat2'
@@ -592,6 +667,7 @@ def _handle_weird_exposure_measures(measure_data):
 
     measure_data = measure_data.set_index(key_cols)
     measure_data = measure_data[draw_cols + ['risk_id', 'measure_id', 'parameter']]
+    exposure_data = pd.DataFrame()
 
     for risk_id in measure_data.risk_id.unique():
         # We need to handle this juggling risk by risk because the data is heterogeneous by risk id.
@@ -609,11 +685,12 @@ def _handle_weird_exposure_measures(measure_data):
             total_prevalence = risk_data[draw_cols].reset_index().groupby(key_cols).sum()
             for parameter in risk_data['parameter'].unique():
                 correct_parameter = risk_data['parameter'] == parameter
-                measure_data.loc[correct_risk & correct_parameter, draw_cols] /= total_prevalence
+                risk_data.loc[correct_parameter, draw_cols] /= total_prevalence
+            risk_data = risk_data.reset_index()
+            risk_data['measure_id'] = name_measure_map['proportion']
 
-            measure_data.loc[correct_risk, 'measure_id'] = name_measure_map['proportion']
-
-    return measure_data.reset_index()
+        exposure_data = exposure_data.append(risk_data.reset_index())
+    return exposure_data
 
 
 def _get_exposure_measure_id(data):
