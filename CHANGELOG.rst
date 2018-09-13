@@ -1,3 +1,9 @@
+**1.0.2 - 09/12/18**
+
+ - Add logging to artifact builder.
+ - Various bugfixes in artifact builder.
+ - Bugfix for smoking prevalence w/r/t tuberculosis
+
 **1.0.1 - 8/22/18**
 
  - Move all file handling to artifact in public health
