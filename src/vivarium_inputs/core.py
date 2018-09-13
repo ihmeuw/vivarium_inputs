@@ -513,11 +513,13 @@ def _compute_paf_for_coverage_gaps(entities, location_ids):
     for location_id in location_ids:
         draw_cols = [f'draw_{i}' for i in range(1000)]
         key_cols = ['age_group_id', 'sex_id', 'parameter', 'year_id', 'coverage_gap', 'coverage_gap_id']
+
         exposure = _get_exposure(entities, [location_id])
         relative_risk = _get_relative_risk_for_coverage_gap(entities, [location_id])
         valid_years = set(relative_risk.year_id.unique()).intersection(set(exposure.year_id.unique()))
         exposure = exposure[exposure['year_id'].isin(valid_years)]
         relative_risk = relative_risk[relative_risk['year_id'].isin(valid_years)]
+
         affected_entity = dict()
         affected_entity['cause_id'] = [int(i) for i in relative_risk.cause_id.dropna().unique()]
         affected_entity['rei_id'] = [int(i) for i in relative_risk.rei_id.dropna().unique()]
@@ -595,7 +597,6 @@ def _get_population_attributable_fraction(entities, location_ids):
 
 
 def _get_exposure(entities, location_ids):
-
     SPECIAL = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
 
     def handle_exposure_from_gbd(measure_data):

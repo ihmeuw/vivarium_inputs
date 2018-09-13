@@ -184,15 +184,7 @@ def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
     elif measure == "exposure":
         data = _get_coverage_gap_exposure(coverage_gap, location)
     elif measure == "relative_risk":
-        data = core.get_draws([coverage_gap], ["relative_risk"], [location])
-        data = normalize(data)
-        data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk'})
-        if data['cause'].dropna().unique().size > 0:
-            for cid in data['cause'].dropna().unique():
-                data.cause.loc[data.cause == cid].apply(lambda cause: CAUSE_BY_ID[cause].name)
-        if data['risk'].dropna().unique().size > 0:
-            for rid in data['risk'].dropna().unique():
-                data.risk.loc[data.risk == rid].apply(lambda risk: RISK_BY_ID[risk].name)
+        data = _get_coverage_gap_relative_risk(coverage_gap, location)
     elif measure == "population_attributable_fraction":
         data = _get_coverage_gap_population_attributable_fraction(coverage_gap, location)
     else:
@@ -412,11 +404,21 @@ def _get_coverage_gap_exposure(coverage_gap, location):
         group = group.drop(["parameter"], axis=1)
         group = normalize(group)
         group["parameter"] = key
-        dims = ["year", "sex", "measure", "location", "draw", "parameter", "age_group_start", "age_group_end", 'age']
+        dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
-    result = result[['year', 'location', 'sex', 'draw', 'value', 'parameter', 'age']]
+    result = result[["year", "location", "sex", "age", "draw", "value", "parameter"]]
     return result
+
+
+def _get_coverage_gap_relative_risk(coverage_gap, location):
+    data = core.get_draws([coverage_gap], ["relative_risk"], [location])
+    if data.empty:
+        data = None
+    else:
+        data = _handle_coverage_gap_rr_paf(data)
+        data = data[['year', 'location', 'cause', 'risk', 'sex', 'draw', 'value', 'parameter', 'age']]
+    return data
 
 
 def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
@@ -424,13 +426,18 @@ def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
     if data.empty:
         data = None
     else:
-        data = normalize(data)
-        data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk'})
-        if data['cause'].dropna().unique().size > 0 :
-            for cid in data['cause'].dropna().unique():
-                data.cause.loc[data.cause == cid].apply(lambda cause: CAUSE_BY_ID[cause].name)
-        if data['risk'].dropna().unique().size > 0:
-            for rid in data['risk'].dropna().unique():
-                data.risk.loc[data.risk == rid].apply(lambda risk: RISK_BY_ID[risk].name)
+        data = _handle_coverage_gap_rr_paf(data)
         data = data[["year", "location", "cause", "risk", "sex", "draw", "value", "age"]]
+    return data
+
+
+def _handle_coverage_gap_rr_paf(data):
+    data = normalize(data)
+    data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk'})
+    if data['cause'].dropna().unique().size > 0:
+        for cid in data['cause'].dropna().unique():
+            data.cause.loc[data.cause == cid].apply(lambda cause: CAUSE_BY_ID[cause].name)
+    if data['risk'].dropna().unique().size > 0:
+        for rid in data['risk'].dropna().unique():
+            data.risk.loc[data.risk == rid].apply(lambda risk: RISK_BY_ID[risk].name)
     return data
