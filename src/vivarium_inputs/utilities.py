@@ -202,7 +202,7 @@ def get_age_group_midpoint_from_age_group_id(df):
         df['age'] = 0
         return df
     if set(df['age_group_id']) == {22}:
-        del df['age_group_id']
+        df['age'], df['age_group_start'], df['age_group_end'] = 125/2, 0, 125
         return df
 
     df = df.copy()

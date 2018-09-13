@@ -3,6 +3,7 @@ import warnings
 
 from gbd_mapping import causes, risk_factors, sequelae, coverage_gaps, covariates, etiologies
 import pandas as pd
+import numpy as np
 
 from vivarium_public_health.dataset_manager import EntityKey
 
@@ -185,7 +186,13 @@ def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
     elif measure == "relative_risk":
         data = core.get_draws([coverage_gap], ["relative_risk"], [location])
         data = normalize(data)
-        data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name).drop('cause_id', axis=1)
+        data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk'})
+        if data['cause'].dropna().unique().size > 0:
+            for cid in data['cause'].dropna().unique():
+                data.cause.loc[data.cause == cid].apply(lambda cause: CAUSE_BY_ID[cause].name)
+        if data['risk'].dropna().unique().size > 0:
+            for rid in data['risk'].dropna().unique():
+                data.risk.loc[data.risk == rid].apply(lambda risk: RISK_BY_ID[risk].name)
     elif measure == "population_attributable_fraction":
         data = _get_coverage_gap_population_attributable_fraction(coverage_gap, location)
     else:
@@ -405,10 +412,10 @@ def _get_coverage_gap_exposure(coverage_gap, location):
         group = group.drop(["parameter"], axis=1)
         group = normalize(group)
         group["parameter"] = key
-        dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "parameter"]
+        dims = ["year", "sex", "measure", "location", "draw", "parameter", "age_group_start", "age_group_end", 'age']
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
-    result = result[["year", "location", "sex", "age", "draw", "value", "parameter"]]
+    result = result[['year', 'location', 'sex', 'draw', 'value', 'parameter', 'age']]
     return result
 
 
@@ -418,6 +425,12 @@ def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
         data = None
     else:
         data = normalize(data)
-        data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name).drop('cause_id', axis=1)
-        data = data[["year", "location", "cause", "sex", "age", "draw", "value"]]
+        data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk'})
+        if data['cause'].dropna().unique().size > 0 :
+            for cid in data['cause'].dropna().unique():
+                data.cause.loc[data.cause == cid].apply(lambda cause: CAUSE_BY_ID[cause].name)
+        if data['risk'].dropna().unique().size > 0:
+            for rid in data['risk'].dropna().unique():
+                data.risk.loc[data.risk == rid].apply(lambda risk: RISK_BY_ID[risk].name)
+        data = data[["year", "location", "cause", "risk", "sex", "draw", "value", "age"]]
     return data

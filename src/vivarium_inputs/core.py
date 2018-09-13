@@ -134,7 +134,8 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
     data = pd.concat(data)
 
     id_cols |= _get_additional_id_columns(data, entities)
-
+    if measure in ['population_attributable_fraction', 'relative_risk'] and isinstance(entities[0], CoverageGap):
+        id_cols.add('rei_id')
     key_columns = ['measure']
     for column in ['year_id', 'sex_id', 'age_group_id', 'location_id']:
         if column in data:
@@ -507,32 +508,40 @@ def _compute_paf_for_special_cases(cause, risk, location_ids):
 
 
 def _compute_paf_for_coverage_gaps(entities, location_ids):
-    draw_cols = [f'draw_{i}' for i in range(1000)]
-    key_cols = ['age_group_id', 'sex_id', 'parameter', 'year_id', 'coverage_gap', 'coverage_gap_id']
-    exposure = _get_exposure(entities, location_ids)
-    relative_risk = _get_relative_risk_for_coverage_gap(entities, location_ids)
-    valid_years = set(relative_risk.year_id.unique()).intersection(set(exposure.year_id.unique()))
-    exposure = exposure[exposure['year_id'].isin(valid_years)]
-    relative_risk = relative_risk[relative_risk['year_id'].isin(valid_years)]
-    affected_entity = dict()
-    affected_entity['cause_id'] = [int(i) for i in relative_risk.cause_id.dropna().unique()]
-    affected_entity['rei_id'] = [int(i) for i in relative_risk.rei_id.dropna().unique()]
-
     paf = pd.DataFrame()
 
-    for entity, ids in affected_entity.items():
-        if ids:
-            for i in ids:
-                rr = relative_risk[relative_risk[entity] == i]
-                rr = rr.set_index(key_cols)
-                ex = exposure.set_index(key_cols)
-                temp = ex[draw_cols] * rr[draw_cols]
-                temp_sum = temp.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
-                data = ((temp_sum - 1) / temp_sum)
-                data = data.reset_index()
-                data[entity] = i
-                paf = paf.append(data)
-    paf['coverage_gap_id'] = np.NaN
+    for location_id in location_ids:
+        draw_cols = [f'draw_{i}' for i in range(1000)]
+        key_cols = ['age_group_id', 'sex_id', 'parameter', 'year_id', 'coverage_gap', 'coverage_gap_id']
+        exposure = _get_exposure(entities, [location_id])
+        relative_risk = _get_relative_risk_for_coverage_gap(entities, [location_id])
+        valid_years = set(relative_risk.year_id.unique()).intersection(set(exposure.year_id.unique()))
+        exposure = exposure[exposure['year_id'].isin(valid_years)]
+        relative_risk = relative_risk[relative_risk['year_id'].isin(valid_years)]
+        affected_entity = dict()
+        affected_entity['cause_id'] = [int(i) for i in relative_risk.cause_id.dropna().unique()]
+        affected_entity['rei_id'] = [int(i) for i in relative_risk.rei_id.dropna().unique()]
+        df = pd.DataFrame()
+        for entity, ids in affected_entity.items():
+            if ids:
+                for i in ids:
+                    rr = relative_risk[relative_risk[entity] == i]
+                    rr = rr.set_index(key_cols)
+                    ex = exposure.set_index(key_cols)
+                    temp = ex[draw_cols] * rr[draw_cols]
+                    temp_sum = temp.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
+                    data = ((temp_sum - 1) / temp_sum)
+                    data = data.reset_index()
+                    data[entity] = i
+
+                    df = df.append(data)
+        missing_cols = {'cause_id', 'rei_id'}.difference(set([c for c in df.columns if 'draw' not in c]))
+        if missing_cols:
+            df[f'{missing_cols.pop()}'] = np.NaN
+        df['coverage_gap_id'] = np.NaN
+        df['measure'] = 'population_attributable_fraction'
+        df['location_id'] = location_id
+        paf = paf.append(df)
     return paf
 
 
