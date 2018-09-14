@@ -61,7 +61,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str]
         "coverage_gap": {
             "mapping": coverage_gaps,
             "getter": get_coverage_gap_data,
-            "measures": ["affected_causes", "restrictions", "distribution", "levels",
+            "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels",
                          "population_attributable_fraction", "relative_risk", "exposure"]
         },
         "etiology": {
@@ -179,7 +179,7 @@ def get_health_technology_data(healthcare_technology, measure, location, _):
 
 
 def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
-    if measure in ["affected_causes", "restrictions", "distribution", "levels"]:
+    if measure in ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels"]:
         data = _get_coverage_gap_metadata(coverage_gap, measure, modeled_causes)
     elif measure == "exposure":
         data = _get_coverage_gap_exposure(coverage_gap, location)
@@ -392,6 +392,8 @@ def _get_coverage_gap_metadata(coverage_gap, measure, modeled_causes):
         data = coverage_gap[measure].to_dict()
     elif measure == "affected_causes":
         data = [c.name for c in coverage_gap.affected_causes if c in modeled_causes]
+    elif measure == "affected_risk_factors":
+        data = [r.name for r in coverage_gap.affected_risk_factors]
     else:  # measure == "distribution"
         data = coverage_gap[measure]
     return data
@@ -436,8 +438,8 @@ def _handle_coverage_gap_rr_paf(data):
     data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk'})
     if data['cause'].dropna().unique().size > 0:
         for cid in data['cause'].dropna().unique():
-            data.cause.loc[data.cause == cid].apply(lambda cause: CAUSE_BY_ID[cause].name)
+            data['cause'] = data['cause'].applyl(lambda c: CAUSE_BY_ID[c].name if c == cid else c)
     if data['risk'].dropna().unique().size > 0:
         for rid in data['risk'].dropna().unique():
-            data.risk.loc[data.risk == rid].apply(lambda risk: RISK_BY_ID[risk].name)
+            data['risk'] = data['risk'].apply(lambda r: RISK_BY_ID[r].name if r == rid else r)
     return data
