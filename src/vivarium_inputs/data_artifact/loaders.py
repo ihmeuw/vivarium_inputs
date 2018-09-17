@@ -419,7 +419,7 @@ def _get_coverage_gap_relative_risk(coverage_gap, location):
         data = None
     else:
         data = _handle_coverage_gap_rr_paf(data)
-        data = data[['year', 'location', 'cause', 'risk', 'sex', 'draw', 'value', 'parameter', 'age']]
+        data = data[['year', 'location', 'cause', 'risk_factor', 'sex', 'draw', 'value', 'parameter', 'age']]
     return data
 
 
@@ -429,17 +429,17 @@ def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
         data = None
     else:
         data = _handle_coverage_gap_rr_paf(data)
-        data = data[["year", "location", "cause", "risk", "sex", "draw", "value", "age"]]
+        data = data[["year", "location", "cause", "risk_factor", "sex", "draw", "value", "age"]]
     return data
 
 
 def _handle_coverage_gap_rr_paf(data):
     data = normalize(data)
-    data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk'})
+    data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk_factor'})
     if data['cause'].dropna().unique().size > 0:
         for cid in data['cause'].dropna().unique():
             data['cause'] = data['cause'].applyl(lambda c: CAUSE_BY_ID[c].name if c == cid else c)
-    if data['risk'].dropna().unique().size > 0:
-        for rid in data['risk'].dropna().unique():
-            data['risk'] = data['risk'].apply(lambda r: RISK_BY_ID[r].name if r == rid else r)
+    if data['risk_factor'].dropna().unique().size > 0:
+        for rid in data['risk_factor'].dropna().unique():
+            data['risk_factor'] = data['risk_factor'].apply(lambda r: RISK_BY_ID[r].name if r == rid else r)
     return data
