@@ -225,7 +225,7 @@ def _get_additional_id_columns(data, entities):
     }
     out = set()
     out.add(id_column_map[type(entities[0])])
-    if isinstance(entities[0], CoverageGap) and data['measure'] in ['relative_risk', 'population_attributable_fraction']:
+    if isinstance(entities[0], CoverageGap) and data['measure'].all() in ['relative_risk', 'population_attributable_fraction']:
         out.add('rei_id')
     out |= set(data.columns) & set(id_column_map.values())
     return out
