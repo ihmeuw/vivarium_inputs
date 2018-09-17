@@ -418,6 +418,8 @@ def _standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
 
 
 def _standardize_all_age_groups(data: pd.DataFrame):
+    if set(data.age_group_id) != {22}:
+        return data
     whole_age_groups = gbd.get_age_group_id()
     missing_age_groups = set(whole_age_groups).difference(set(data.age_group_id))
     df = []
@@ -486,8 +488,7 @@ def _get_relative_risk(entities: Iterable[Union[Risk, CoverageGap]], location_id
                 df.append(measure_data)
         measure_data = pd.concat(df)
 
-    if set(measure_data.age_group_id) == {22}:
-        measure_data = _standardize_all_age_groups(measure_data)
+    measure_data = _standardize_all_age_groups(measure_data)
     measure_data = _standardize_data(measure_data, 1)
     return measure_data
 
