@@ -3,6 +3,7 @@ import warnings
 
 from gbd_mapping import causes, risk_factors, sequelae, coverage_gaps, covariates, etiologies
 import pandas as pd
+import numpy as np
 
 from vivarium_public_health.dataset_manager import EntityKey
 
@@ -60,7 +61,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str]
         "coverage_gap": {
             "mapping": coverage_gaps,
             "getter": get_coverage_gap_data,
-            "measures": ["affected_causes", "restrictions", "distribution", "levels",
+            "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels",
                          "population_attributable_fraction", "relative_risk", "exposure"]
         },
         "etiology": {
@@ -178,14 +179,12 @@ def get_health_technology_data(healthcare_technology, measure, location, _):
 
 
 def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
-    if measure in ["affected_causes", "restrictions", "distribution", "levels"]:
+    if measure in ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels"]:
         data = _get_coverage_gap_metadata(coverage_gap, measure, modeled_causes)
     elif measure == "exposure":
         data = _get_coverage_gap_exposure(coverage_gap, location)
     elif measure == "relative_risk":
-        data = core.get_draws([coverage_gap], ["relative_risk"], [location])
-        data = normalize(data)
-        data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name).drop('cause_id', axis=1)
+        data = _get_coverage_gap_relative_risk(coverage_gap, location)
     elif measure == "population_attributable_fraction":
         data = _get_coverage_gap_population_attributable_fraction(coverage_gap, location)
     else:
@@ -393,6 +392,8 @@ def _get_coverage_gap_metadata(coverage_gap, measure, modeled_causes):
         data = coverage_gap[measure].to_dict()
     elif measure == "affected_causes":
         data = [c.name for c in coverage_gap.affected_causes if c in modeled_causes]
+    elif measure == "affected_risk_factors":
+        data = [r.name for r in coverage_gap.affected_risk_factors]
     else:  # measure == "distribution"
         data = coverage_gap[measure]
     return data
@@ -412,12 +413,33 @@ def _get_coverage_gap_exposure(coverage_gap, location):
     return result
 
 
+def _get_coverage_gap_relative_risk(coverage_gap, location):
+    data = core.get_draws([coverage_gap], ["relative_risk"], [location])
+    if data.empty:
+        data = None
+    else:
+        data = _handle_coverage_gap_rr_paf(data)
+        data = data[['year', 'location', 'cause', 'risk_factor', 'sex', 'draw', 'value', 'parameter', 'age']]
+    return data
+
+
 def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
     data = core.get_draws([coverage_gap], ["population_attributable_fraction"], [location])
     if data.empty:
         data = None
     else:
-        data = normalize(data)
-        data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name).drop('cause_id', axis=1)
-        data = data[["year", "location", "cause", "sex", "age", "draw", "value"]]
+        data = _handle_coverage_gap_rr_paf(data)
+        data = data[["year", "location", "cause", "risk_factor", "sex", "draw", "value", "age"]]
+    return data
+
+
+def _handle_coverage_gap_rr_paf(data):
+    data = normalize(data)
+    data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk_factor'})
+    if data['cause'].dropna().unique().size > 0:
+        for cid in data['cause'].dropna().unique():
+            data['cause'] = data['cause'].applyl(lambda c: CAUSE_BY_ID[c].name if c == cid else c)
+    if data['risk_factor'].dropna().unique().size > 0:
+        for rid in data['risk_factor'].dropna().unique():
+            data['risk_factor'] = data['risk_factor'].apply(lambda r: RISK_BY_ID[r].name if r == rid else r)
     return data
