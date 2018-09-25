@@ -308,7 +308,13 @@ def _get_incidence(entities, location_ids):
     # FIXME: The year filtering should happen in the reshaping step.
     correct_measure = measure_data['measure_id'] == name_measure_map['incidence']
     correct_years = measure_data['year_id'].isin(gbd.get_estimation_years(gbd.GBD_ROUND_ID))
-    return measure_data[correct_measure & correct_years]
+
+    pop_incidence = measure_data[correct_measure & correct_years]
+    pop_prevalence = _get_prevalence(entities, location_ids)
+
+    hazard_incidence = pop_incidence / (1 - pop_prevalence)
+
+    return hazard_incidence
 
 
 def _get_cause_specific_mortality(entities, location_ids):
