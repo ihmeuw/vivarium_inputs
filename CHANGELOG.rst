@@ -1,3 +1,9 @@
+**1.0.3 - 09/25/18**
+
+ - Update for coverage gap exposure/rr/paf
+ - Add support for building artifacts for locations with spaces.
+ - Bugfixes around measles
+
 **1.0.2 - 09/12/18**
 
  - Add logging to artifact builder.
