@@ -309,12 +309,22 @@ def _get_incidence(entities, location_ids):
     correct_measure = measure_data['measure_id'] == name_measure_map['incidence']
     correct_years = measure_data['year_id'].isin(gbd.get_estimation_years(gbd.GBD_ROUND_ID))
 
-    pop_incidence = measure_data[correct_measure & correct_years]
-    pop_prevalence = _get_prevalence(entities, location_ids)
+    # get_draws returns "total incidence." We want hazard incidence.
+    # scale by the number of people not sick to convert.
 
-    hazard_incidence = pop_incidence / (1 - pop_prevalence)
+    incidence = measure_data[correct_measure & correct_years]
+    prevalence = _get_prevalence(entities, location_ids)
 
-    return hazard_incidence
+    draw_columns = [col for col in incidence.columns if col.startswith('draw_')]
+
+    incidence.set_index(['age_group_id', 'location_id', 'cause_id',
+                             'sex_id', 'year_id'], inplace=True)
+    prevalence.set_index(['age_group_id', 'location_id', 'cause_id',
+                              'sex_id', 'year_id'], inplace=True)
+
+    incidence[draw_columns] = incidence[draw_columns]/ (1 - prevalence[draw_columns])
+
+    return incidence.reset_index()
 
 
 def _get_cause_specific_mortality(entities, location_ids):
