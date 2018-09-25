@@ -159,7 +159,8 @@ def get_sequela_data(sequela, measure, location, _):
 def get_healthcare_entity_data(healthcare_entity, measure, location, _):
     if measure == "cost":
         data = core.get_draws([healthcare_entity], ["cost"], [location])
-        data = normalize(data)[["year", "location", "draw", "value"]]
+        data = normalize(data)
+        data = data.loc[data.sex == 'Male', ["year", "location", "draw", "value"]]
     elif measure == "annual_visits":
         data = core.get_draws([healthcare_entity], ["annual_visits"], [location])
         data = normalize(data)

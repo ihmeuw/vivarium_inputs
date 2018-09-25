@@ -636,7 +636,7 @@ def _get_exposure(entities, location_ids):
         SPECIAL = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
         special_cases = set(SPECIAL).intersection(set(entities))
         if special_cases:
-            measure_data = gbd.get_exposures(risk_ids=special_cases, location_ids=location_ids)
+            measure_data = gbd.get_exposures(risk_ids=[s.gbd_id for s in special_cases], location_ids=location_ids)
             measure_data = _handle_special_coverage_gap_data(special_cases, measure_data, 0)
             measure_data = handle_exposure_from_gbd(measure_data)
             del measure_data['modelable_entity_id']
@@ -683,8 +683,8 @@ def _handle_special_coverage_gap_data(entities, measure_data, fill_value):
 
         coverage_gap_data = measure_data['coverage_gap_id'] == coverage_gap.gbd_id
         correct_age_groups = measure_data['age_group_id'].isin(good_age_groups)
-        coverage_gap_data['rei_id'] = np.NaN
-        coverage_gap_data['coverage_gap'] = coverage_gap.name
+        measure_data['rei_id'] = np.NaN
+        measure_data['coverage_gap'] = coverage_gap.name
         draw_cols = [f'draw_{i}' for i in range(1000)]
         measure_data.loc[coverage_gap_data & ~correct_age_groups, draw_cols] = fill_value
 
