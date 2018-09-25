@@ -322,7 +322,7 @@ def _get_incidence(entities, location_ids):
     prevalence.set_index(['age_group_id', 'location_id', 'cause_id',
                               'sex_id', 'year_id'], inplace=True)
 
-    incidence[draw_columns] = incidence[draw_columns]/ (1 - prevalence[draw_columns])
+    incidence[draw_columns] = incidence[draw_columns] / (1 - prevalence[draw_columns])
 
     return incidence.reset_index()
 
