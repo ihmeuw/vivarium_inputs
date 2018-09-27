@@ -269,6 +269,7 @@ def _validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
 # Cause-like stuff #
 ####################
 
+
 def _get_death(entities, location_ids):
     measure_ids = _get_ids_for_measure(entities, 'death')
     death_data = gbd.get_codcorrect_draws(cause_ids=measure_ids, location_ids=location_ids)
@@ -379,6 +380,7 @@ def _get_disability_weight(entities, _):
         data.append(df)
 
     data = pd.concat(data, ignore_index=True)
+
     return data.reset_index(drop=True)
 
 
@@ -540,6 +542,7 @@ def _compute_paf_for_special_cases(affected_entity: Union[Cause, Risk], entity: 
         temp = relative_risk[draw_columns]*exposure[draw_columns]
         temp_sum = temp.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
         temp_result = ((temp_sum-1)/temp_sum)
+        temp_result = temp_result.replace(-np.inf, 0)  # Rows with zero exposure.
         temp_result['cause_id'] = cause_id
         temp_result['location_id'] = location_id
         temp_result['risk_id'] = risk_id
@@ -547,6 +550,11 @@ def _compute_paf_for_special_cases(affected_entity: Union[Cause, Risk], entity: 
         paf.append(temp_result.reset_index())
 
     paf_data = pd.concat(paf)
+
+    if entity == coverage_gaps.low_measles_vaccine_coverage_first_dose:
+        paf_data['rei_id'] = entity.gbd_id
+        paf_data['coverage_gap_id'] = entity.gbd_id
+
     return paf_data
 
 
@@ -583,8 +591,7 @@ def _get_population_attributable_fraction(entities, location_ids):
             paf.extend([_compute_paf_for_special_cases(cause, entity, location_ids) for cause
                         in affected_causes if affected_causes])
             paf.extend([_compute_paf_for_special_cases(risk_factor, entity, location_ids) for risk_factor
-                        in affected_risk_factors if
-                        affected_risk_factors])
+                        in affected_risk_factors if affected_risk_factors])
         measure_data = pd.concat(paf)
 
     else:
@@ -820,7 +827,7 @@ def get_covariate_estimates(covariates, locations):
 
 
 def get_location_ids_by_name():
-    return  {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}
+    return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}
 
 
 def get_location_names_by_id():
