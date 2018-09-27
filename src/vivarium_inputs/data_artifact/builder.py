@@ -49,4 +49,5 @@ class ArtifactBuilder:
 def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str], artifact: Artifact) -> None:
     for measure, data in loader(entity_key, location, modeled_causes, all_measures=True):
         key = entity_key.with_measure(measure)
-        artifact.write(key, data)
+        if key not in artifact:
+            artifact.write(key, data)

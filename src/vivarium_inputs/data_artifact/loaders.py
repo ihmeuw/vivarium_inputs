@@ -439,8 +439,11 @@ def _handle_coverage_gap_rr_paf(data):
     data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk_factor'})
     if data['cause'].dropna().unique().size > 0:
         for cid in data['cause'].dropna().unique():
-            data['cause'] = data['cause'].applyl(lambda c: CAUSE_BY_ID[c].name if c == cid else c)
+            data['cause'] = data['cause'].apply(lambda c: CAUSE_BY_ID[c].name if c == cid else c)
     if data['risk_factor'].dropna().unique().size > 0:
         for rid in data['risk_factor'].dropna().unique():
-            data['risk_factor'] = data['risk_factor'].apply(lambda r: RISK_BY_ID[r].name if r == rid else r)
+            if rid == 318:  # measles
+                data.loc[data['risk_factor'] == rid, 'risk_factor'] = 'low_measles_vaccine_coverage_first_dose'
+            else:
+                data['risk_factor'] = data['risk_factor'].apply(lambda r: RISK_BY_ID[r].name if r == rid else r)
     return data
