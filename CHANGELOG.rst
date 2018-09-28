@@ -1,3 +1,7 @@
+**1.0.4 - 09/28/18**
+
+ - Added measles covariates
+
 **1.0.3 - 09/25/18**
 
  - Update for coverage gap exposure/rr/paf
