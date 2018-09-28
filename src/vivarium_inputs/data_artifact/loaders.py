@@ -226,7 +226,8 @@ def get_covariate_data(covariate, measure, location, _):
             columns = ["location", "mean_value", "lower_value", "upper_value", "sex_id", "year_id", "age_group_id"]
             data = data[columns]
             data = get_age_group_midpoint_from_age_group_id(data)
-        elif covariate.name in ["live_births_by_sex", "dtp3_coverage_proportion"]:
+        elif covariate.name in ["live_births_by_sex", "dtp3_coverage_proportion",
+                                "measles_vaccine_coverage_proportion", "measles_vaccine_coverage_2_doses_proportion"]:
             columns = ["location", "mean_value", "lower_value", "upper_value", "sex_id", "year_id"]
             data = data[columns]
         else:
