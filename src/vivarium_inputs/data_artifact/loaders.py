@@ -437,7 +437,7 @@ def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
 
 def _handle_coverage_gap_rr_paf(data):
     data = normalize(data)
-    data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk_factor'})
+    data = data.rename(columns={'cause_id': 'cause', 'risk_id': 'risk_factor'})
     if data['cause'].dropna().unique().size > 0:
         for cid in data['cause'].dropna().unique():
             data['cause'] = data['cause'].apply(lambda c: CAUSE_BY_ID[c].name if c == cid else c)

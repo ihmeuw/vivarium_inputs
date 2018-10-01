@@ -219,14 +219,14 @@ def _get_additional_id_columns(data, entities):
         Covariate: 'covariate_id',
         Risk: 'risk_id',
         Etiology: 'etiology_id',
-        CoverageGap: 'coverage_gap_id',
+        CoverageGap: 'coverage_gap',
         HealthcareEntity: 'healthcare_entity',
         HealthTechnology: 'health_technology',
     }
     out = set()
     out.add(id_column_map[type(entities[0])])
-    if isinstance(entities[0], CoverageGap) and data['measure'].all() in ['relative_risk', 'population_attributable_fraction']:
-        out.add('rei_id')
+    if isinstance(entities[0], CoverageGap) and data['measure'].all() in ['relative_risk']:
+        out.add('risk_id')
     out |= set(data.columns) & set(id_column_map.values())
     return out
 
@@ -471,6 +471,7 @@ def _get_relative_risk(entities: Iterable[Union[Risk, CoverageGap]], location_id
             draw_cols = [f'draw_{i}' for i in range(1000)]
             measure_data.loc[:, draw_cols] = 1 / measure_data.loc[:, draw_cols]
             measure_data = _handle_special_coverage_gap_data(special_cases, measure_data, 1)
+            measure_data = measure_data.rename(columns={"rei_id": "risk_id"})
             df.append(measure_data)
 
         # any coverage_gap from aux_data
@@ -485,7 +486,8 @@ def _get_relative_risk(entities: Iterable[Union[Risk, CoverageGap]], location_id
                     data['year_id'] = id
                     missing_data = missing_data.append(data)
                 measure_data = pd.concat([measure_data] + missing_data)
-                measure_data['coverage_gap_id'] = np.NaN
+                measure_data['coverage_gap'] = entity.name
+                measure_data = measure_data.rename(columns={"rei_id": "risk_id"})
                 del measure_data['measure']
                 df.append(measure_data)
         measure_data = pd.concat(df)
@@ -525,7 +527,7 @@ def _compute_paf_for_special_cases(affected_entity: Union[Cause, Risk], entity: 
             rr = rr[(rr.cause_id == cause_id)]
         elif isinstance(affected_entity, Risk):
             risk_id, cause_id = affected_entity.gbd_id, np.nan
-            rr = rr[(rr.rei_id == risk_id)]
+            rr = rr[(rr.risk_id == risk_id)]
         else:
             raise InvalidQueryError(f'You requested the non-valid PAF data for {entity}-{affected_entity} pair')
 
@@ -547,12 +549,14 @@ def _compute_paf_for_special_cases(affected_entity: Union[Cause, Risk], entity: 
         temp_result['location_id'] = location_id
         temp_result['risk_id'] = risk_id
         temp_result['measure_id'] = 3
+        if isinstance(entity, CoverageGap):
+            temp_result['coverage_gap'] = entity.name
         paf.append(temp_result.reset_index())
 
     paf_data = pd.concat(paf)
 
     if entity == coverage_gaps.low_measles_vaccine_coverage_first_dose:
-        paf_data['rei_id'] = entity.gbd_id
+        paf_data['risk_id'] = entity.gbd_id
         paf_data['coverage_gap_id'] = entity.gbd_id
 
     return paf_data
@@ -655,7 +659,7 @@ def _get_exposure(entities, location_ids):
             for entity in entities:
                 measure_data = gbd.get_auxiliary_data('exposure', 'coverage_gap', entity.name)
                 measure_data = measure_data[measure_data.location_id.isin(location_ids)]
-                measure_data['coverage_gap_id'] = np.NaN
+                measure_data['coverage_gap'] = entity.name
                 del measure_data['measure']
                 df.append(measure_data)
         exposure_data = pd.concat(df)

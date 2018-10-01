@@ -163,7 +163,7 @@ def _build_artifact():
     _setup_logging(args.output_root, args.verbose, args.location,
                    args.model_specification, args.append)
 
-    formatted_location = args.location.replace('_', ' ')
+    formatted_location = args.location.replace('_', ' ') if args.location else args.location
     try:
         main(args.model_specification, args.output_root, formatted_location, args.append)
     except (BdbQuit, KeyboardInterrupt):
