@@ -1,4 +1,4 @@
-from typing import Collection
+from typing import Set
 import warnings
 
 from gbd_mapping import causes, risk_factors, sequelae, coverage_gaps, covariates, etiologies
@@ -27,7 +27,7 @@ CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
 RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
 
 
-def loader(entity_key: EntityKey, location: str, modeled_causes: Collection[str], all_measures: bool=False):
+def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool=False):
     entity_data = {
         "cause": {
             "mapping": causes,
@@ -327,7 +327,7 @@ def _get_risk_metadata(risk, measure, modeled_causes):
         else:
             data = None
     elif measure == "affected_causes":
-        data = [c.name for c in risk.affected_causes if c in modeled_causes]
+        data = [c.name for c in risk.affected_causes if c.name in modeled_causes]
     else:  # measure == "distribution"
         data = risk[measure]
     return data
@@ -393,7 +393,7 @@ def _get_coverage_gap_metadata(coverage_gap, measure, modeled_causes):
     if measure in ["restrictions", "levels"]:
         data = coverage_gap[measure].to_dict()
     elif measure == "affected_causes":
-        data = [c.name for c in coverage_gap.affected_causes if c in modeled_causes]
+        data = [c.name for c in coverage_gap.affected_causes if c.name in modeled_causes]
     elif measure == "affected_risk_factors":
         data = [r.name for r in coverage_gap.affected_risk_factors]
     else:  # measure == "distribution"
@@ -437,7 +437,7 @@ def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
 
 def _handle_coverage_gap_rr_paf(data):
     data = normalize(data)
-    data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk_factor'})
+    data = data.rename(columns={'cause_id': 'cause', 'risk_id': 'risk_factor'})
     if data['cause'].dropna().unique().size > 0:
         for cid in data['cause'].dropna().unique():
             data['cause'] = data['cause'].apply(lambda c: CAUSE_BY_ID[c].name if c == cid else c)
