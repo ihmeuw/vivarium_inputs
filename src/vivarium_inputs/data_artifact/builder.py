@@ -22,7 +22,7 @@ class ArtifactBuilder:
 
         self.location = builder.configuration.input_data.location
         self.artifact = Artifact(path, filter_terms=[f'draw == {draw}', get_location_term(self.location)])
-        self.modeled_causes = builder.components.get_components(DiseaseModel)
+        self.modeled_causes = {c.cause for c in builder.components.get_components(DiseaseModel)}
         self.processed_entities = set()
         self.start_time = datetime.now()
 
@@ -49,4 +49,5 @@ class ArtifactBuilder:
 def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str], artifact: Artifact) -> None:
     for measure, data in loader(entity_key, location, modeled_causes, all_measures=True):
         key = entity_key.with_measure(measure)
-        artifact.write(key, data)
+        if key not in artifact:
+            artifact.write(key, data)

@@ -31,14 +31,22 @@ def build_artifact(model_specification, locations, project,
                    output_root, append, verbose):
     """
     build_artifact is a program for building data artifacts from a
-    SIMULATION_CONFIGURATION file. The work is offloaded to the cluster
-    under the "proj_cost_effect" project unless otherwise specified. 
-    Multiple, optional LOCATIONS can be provided to overwrite the configuration
-    file.
+    MODEL_SPECIFICATION file. The work is offloaded to the cluster
+    under the "proj_cost_effect" project unless a different project is
+    specified. Multiple, optional LOCATIONS can be provided to overwrite
+    the configuration file. For locations containing spaces, replace the
+    space with an underscore, e.g.:
+
+    build_artifact examply.yaml Virginia Pennsylvania New_York New_Jersey
 
     Any artifact.path specified in the configuration file is guaranteed to
     be overwritten either by the optional output_root or a predetermined path
     based on user: /ihme/scratch/users/{user}/vivarium_artifacts
+
+    This script necessarily offloads work to the cluster, and so requires being
+    run in the cluster environment. To run locally, execute this script directly,
+    as in `python cli.py`. The API is the same, and help can be accessed using
+    -h / --help.
     """
 
     config_path = pathlib.Path(model_specification).resolve()
@@ -155,8 +163,9 @@ def _build_artifact():
     _setup_logging(args.output_root, args.verbose, args.location,
                    args.model_specification, args.append)
 
+    formatted_location = args.location.replace('_', ' ') if args.location else args.location
     try:
-        main(args.model_specification, args.output_root, args.location, args.append)
+        main(args.model_specification, args.output_root, formatted_location, args.append)
     except (BdbQuit, KeyboardInterrupt):
         raise
     except Exception as e:
