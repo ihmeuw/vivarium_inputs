@@ -1,3 +1,9 @@
+**1.0.5 - 10/09/18**
+
+ - Switch from true incidence to incidence hazard
+ - Fix in artifact builder to get correct causes
+ - Add affected_risk_factors to risks
+
 **1.0.4 - 09/28/18**
 
  - Added measles covariates
