@@ -221,20 +221,26 @@ def get_population_data(_, measure, location, __):
 
 def get_covariate_data(covariate, measure, location, _):
     if measure == "estimate":
-        data = core.get_covariate_estimates([covariate], [location])
-        if covariate.name == "age_specific_fertility_rate":
-            columns = ["location", "mean_value", "lower_value", "upper_value", "sex_id", "year_id", "age_group_id"]
+        if covariate.name in ["age_specific_fertility_rate", "live_births_by_sex",
+                              "dtp3_coverage_proportion", "measles_vaccine_coverage_proportion",
+                              "measles_vaccine_coverage_2_doses_proportion",
+                              "antenatal_care_1_visit_coverage_proportion",
+                              "antenatal_care_4_visits_coverage_proportion",
+                              "urbanicity", "in_facility_delivery_proportion",
+                              "skilled_birth_attendance_proportion",
+                              "socio_demographic_index", "maternal_education_years_per_capita"]:
+            data = core.get_covariate_estimates([covariate], [location])
+            # these columns are common to all the covariates listed above
+            columns = ["location", "mean_value", "lower_value", "upper_value",
+                       "sex_id", "year_id", "age_group_id"]
             data = data[columns]
             data = get_age_group_midpoint_from_age_group_id(data)
-        elif covariate.name in ["live_births_by_sex", "dtp3_coverage_proportion",
-                                "measles_vaccine_coverage_proportion", "measles_vaccine_coverage_2_doses_proportion"]:
-            columns = ["location", "mean_value", "lower_value", "upper_value", "sex_id", "year_id"]
-            data = data[columns]
         else:
-            raise NotImplementedError(f"Unknown covariate {covariate.name}")
+            raise NotImplementedError(f"Unknown or unsupported covariate {covariate.name}")
         data = normalize_for_simulation(data)
     else:
-        raise NotImplementedError(f"Unknown measure {measure} for covariate {covariate.name}")
+        raise NotImplementedError((f"Unknown measure or unsupported {measure} for ")
+                                  (f"covariate {covariate.name}"))
     return data
 
 
