@@ -1,3 +1,7 @@
+**1.0.6 - 10/09/18**
+
+ - Update dependencies
+
 **1.0.5 - 10/09/18**
 
  - Switch from true incidence to incidence hazard
