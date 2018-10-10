@@ -39,9 +39,9 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "risk_factor": {
             "mapping": risk_factors,
             "getter": get_risk_data,
-            "measures": ["affected_causes", "restrictions", "distribution", "exposure_parameters",
-                         "levels", "tmred", "exposure", "exposure_standard_deviation", "relative_risk",
-                         "ensemble_weights"],
+            "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution",
+                         "exposure_parameters", "levels", "tmred", "exposure", "exposure_standard_deviation",
+                         "relative_risk", "ensemble_weights"],
         },
         "sequela": {
             "mapping": sequelae,
@@ -123,7 +123,8 @@ def get_cause_data(cause, measure, location, _):
 
 
 def get_risk_data(risk, measure, location, modeled_causes):
-    if measure in ["affected_causes", "restrictions", "distribution", "exposure_parameters", "levels", "tmred"]:
+    if measure in ["affected_causes", "affected_risk_factors", "restrictions",
+                   "distribution", "exposure_parameters", "levels", "tmred"]:
         data = _get_risk_metadata(risk, measure, modeled_causes)
     elif measure == "exposure":
         data = _get_risk_exposure(risk, location)
@@ -334,6 +335,9 @@ def _get_risk_metadata(risk, measure, modeled_causes):
             data = None
     elif measure == "affected_causes":
         data = [c.name for c in risk.affected_causes if c.name in modeled_causes]
+    elif measure == "affected_risk_factors":
+        # FIXME: Update mapping to include affected risks (mediation)
+        data = []
     else:  # measure == "distribution"
         data = risk[measure]
     return data
