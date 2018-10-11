@@ -226,7 +226,7 @@ def get_covariate_data(covariate, measure, location, _):
         expected_columns = ["location", "mean_value", "lower_value", "upper_value",
                             "sex_id", "year_id", "age_group_id"]
 
-        if columns not in data.columns():
+        if expected_columns not in data.columns():
             raise NotImplementedError(f"Unsupported covariate {covariate.name}. It does not not "
                                        f"contain the columns {expected_columns}.")
 
