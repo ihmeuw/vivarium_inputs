@@ -226,7 +226,7 @@ def get_covariate_data(covariate, measure, location, _):
         expected_columns = ["location", "mean_value", "lower_value", "upper_value",
                             "sex_id", "year_id", "age_group_id"]
 
-        if set(expected_columns).issubset(data.columns):
+        if not set(expected_columns).issubset(data.columns):
             raise NotImplementedError(f"Unsupported covariate {covariate.name}. It does not not "
                                        f"contain the columns {expected_columns}.")
 
