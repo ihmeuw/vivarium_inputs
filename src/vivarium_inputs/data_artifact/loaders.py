@@ -290,15 +290,15 @@ def _get_cause_population_attributable_fraction(cause, location):
                 group = group.drop(["risk_id"], axis=1)
                 group = normalize(group)
                 if key in RISK_BY_ID:
-                    group["risk"] = RISK_BY_ID[key].name
+                    group["risk_factor"] = RISK_BY_ID[key].name
                     dims = ["year", "sex", "measure", "age", "age_group_start",
-                            "age_group_end", "location", "draw", "risk"]
+                            "age_group_end", "location", "draw", "risk_factor"]
                     normalized.append(group.set_index(dims))
                 else:
                     warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause "
                                   f"'{cause.name}' but that risk is missing from the gbd mapping")
             data = pd.concat(normalized).reset_index()
-            data = data[["year", "location", "sex", "age", "draw", "value", "risk"]]
+            data = data[["year", "location", "sex", "age", "draw", "value", "risk_factor"]]
     return data
 
 
