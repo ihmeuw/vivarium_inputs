@@ -226,14 +226,14 @@ def get_covariate_data(covariate, measure, location, _):
         expected_columns = ["location", "mean_value", "lower_value", "upper_value",
                             "sex_id", "year_id", "age_group_id"]
 
-        if expected_columns not in data.columns():
+        if expected_columns not in data.columns:
             raise NotImplementedError(f"Unsupported covariate {covariate.name}. It does not not "
                                        f"contain the columns {expected_columns}.")
 
         data = data[expected_columns]
         data = get_age_group_midpoint_from_age_group_id(data)
     else:
-        raise NotImplementedError((f"Unknown measure or unsupported {measure} for ")
+        raise NotImplementedError((f"Unknown or unsupported measure {measure} for ")
                                   (f"covariate {covariate.name}"))
     return data
 
