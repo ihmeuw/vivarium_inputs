@@ -149,7 +149,8 @@ def normalize_for_simulation(df):
 
     Returns
     -------
-    Returns a df with column year_id changed to year,
+    Returns a df with column year_id changed to year, and year_start and year_end
+    created as bin ends around year_id with year_start set to year_id;
     sex_id changed to sex, and sex values changed from 1 and 2 to Male and Female
 
     Notes
@@ -174,7 +175,11 @@ def normalize_for_simulation(df):
                 pd.api.types.CategoricalDtype(categories=["Male", "Female", "Both"], ordered=False))
 
         df = df.drop("sex_id", axis=1)
+    if "year_id" in df:
         df = df.rename(columns={"year_id": "year"})
+
+        df['year_start'] = df['year']
+        df['year_end'] = df['year'].shift(-1).fillna(df.year.max()+1)
     return df
 
 
