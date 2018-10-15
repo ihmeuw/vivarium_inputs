@@ -26,6 +26,7 @@ class EntityError(DataArtifactError):
 CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
 RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
 
+AGE_COLS = ['age', 'age_group_start', 'age_group_end']
 
 def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool=False):
     entity_data = {
@@ -111,7 +112,7 @@ def get_cause_data(cause, measure, location, _):
         data = _get_cause_metadata(cause, measure)
     elif measure in ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]:
         data = core.get_draws([cause], [measure], [location])
-        data = normalize(data)[["year", "location", "sex", "age", "draw", "value"]]
+        data = normalize(data)[["year", "location", "sex", "draw", "value"] + AGE_COLS]
     elif measure == "population_attributable_fraction":
         data = _get_cause_population_attributable_fraction(cause, location)
     elif measure == "remission":
@@ -144,7 +145,7 @@ def get_sequela_data(sequela, measure, location, _):
         data = sequela.healthstate.name
     elif measure in ["incidence", "prevalence"]:
         data = core.get_draws([sequela], [measure], [location]).drop("sequela_id", axis=1)
-        data = normalize(data)[["year", "location", "sex", "age", "draw", "value"]]
+        data = normalize(data)[["year", "location", "sex", "draw", "value"] + AGE_COLS]
         data["sequela_id"] = sequela.gbd_id
     elif measure == "disability_weight":
         data = core.get_draws([sequela], ["disability_weight"], [location])
@@ -165,7 +166,7 @@ def get_healthcare_entity_data(healthcare_entity, measure, location, _):
     elif measure == "annual_visits":
         data = core.get_draws([healthcare_entity], ["annual_visits"], [location])
         data = normalize(data)
-        data = data[["year", "sex", "age", "value", "draw"]]
+        data = data[["year", "sex", "value", "draw"] + AGE_COLS]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for healthcare_entity {healthcare_entity.name}")
     return data
@@ -199,7 +200,7 @@ def get_etiology_data(etiology, measure, location, _):
         data = core.get_draws([etiology], ["population_attributable_fraction"], [location])
         data = normalize(data)
         data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        data = data[["year", "location", "cause", "sex", "age", "draw", "value"]]
+        data = data[["year", "location", "cause", "sex", "draw", "value"] + AGE_COLS]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for etiology {etiology.name}")
     return data
@@ -299,7 +300,7 @@ def _get_cause_population_attributable_fraction(cause, location):
                     warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause "
                                   f"'{cause.name}' but that risk is missing from the gbd mapping")
             data = pd.concat(normalized).reset_index()
-            data = data[["year", "location", "sex", "age", "draw", "value", "risk_factor"]]
+            data = data[["year", "location", "sex", "draw", "value", "risk_factor"] + AGE_COLS]
     return data
 
 
@@ -307,7 +308,7 @@ def _get_cause_remission(cause, location):
     try:
         result = core.get_draws([cause], ["remission"], [location])
         if not result.empty:
-            data = normalize(result)[["year", "location", "sex", "age", "draw", "value"]]
+            data = normalize(result)[["year", "location", "sex", "draw", "value"] + AGE_COLS]
         else:
             data = None
     except core.InvalidQueryError:
@@ -347,7 +348,7 @@ def _get_risk_exposure(risk, location):
         dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
-    result = result[["year", "location", "sex", "age", "draw", "value", "parameter"]]
+    result = result[["year", "location", "sex", "draw", "value", "parameter"] + AGE_COLS]
     return result
 
 
@@ -355,7 +356,7 @@ def _get_risk_exposure_standard_deviation(risk, location):
     if risk.exposure_parameters is not None:
         exposure_sds = core.get_draws([risk], ["exposure_standard_deviation"], [location])
         exposure_sds = normalize(exposure_sds)
-        data = exposure_sds[["year", "location", "sex", "age", "draw", "value"]]
+        data = exposure_sds[["year", "location", "sex", "draw", "value"] + AGE_COLS]
     else:
         data = None
     return data
@@ -373,7 +374,7 @@ def _get_risk_relative_risk(risk, location):
                 "age_group_end", "location", "draw", "cause", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
-    result = result[["year", "location", "sex", "age", "draw", "value", "parameter", "cause"]]
+    result = result[["year", "location", "sex", "draw", "value", "parameter", "cause"] + AGE_COLS]
     return result
 
 
@@ -415,7 +416,7 @@ def _get_coverage_gap_exposure(coverage_gap, location):
         dims = ["year", "sex", "measure", "age", "age_group_start", "age_group_end", "location", "draw", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
-    result = result[["year", "location", "sex", "age", "draw", "value", "parameter"]]
+    result = result[["year", "location", "sex", "draw", "value", "parameter"] + AGE_COLS]
     return result
 
 
@@ -425,7 +426,7 @@ def _get_coverage_gap_relative_risk(coverage_gap, location):
         data = None
     else:
         data = _handle_coverage_gap_rr_paf(data)
-        data = data[['year', 'location', 'cause', 'risk_factor', 'sex', 'draw', 'value', 'parameter', 'age']]
+        data = data[['year', 'location', 'cause', 'risk_factor', 'sex', 'draw', 'value', 'parameter'] + AGE_COLS]
     return data
 
 
@@ -435,7 +436,7 @@ def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
         data = None
     else:
         data = _handle_coverage_gap_rr_paf(data)
-        data = data[["year", "location", "cause", "risk_factor", "sex", "draw", "value", "age"]]
+        data = data[["year", "location", "cause", "risk_factor", "sex", "draw", "value",] + AGE_COLS]
     return data
 
 
