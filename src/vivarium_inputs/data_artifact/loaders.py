@@ -229,9 +229,12 @@ def get_covariate_data(covariate, measure, location, _):
         if not set(expected_columns).issubset(data.columns):
             raise NotImplementedError(f"Unsupported covariate {covariate.name}. It does not not "
                                        f"contain the columns {expected_columns}.")
-
         data = data[expected_columns]
-        data = get_age_group_midpoint_from_age_group_id(data)
+        if (data['age_group_id'] == 22).all():
+            data = data.drop(['age_group_id'], axis=1)
+        else:
+            data = get_age_group_midpoint_from_age_group_id(data)
+        data = normalize_for_simulation(data)
     else:
         raise NotImplementedError((f"Unknown or unsupported measure {measure} for ")
                                   (f"covariate {covariate.name}"))
