@@ -223,19 +223,21 @@ def get_population_data(_, measure, location, __):
 def get_covariate_data(covariate, measure, location, _):
     if measure == "estimate":
         data = core.get_covariate_estimates([covariate], [location])
-        if covariate.name == "age_specific_fertility_rate":
-            columns = ["location", "mean_value", "lower_value", "upper_value", "sex_id", "year_id", "age_group_id"]
-            data = data[columns]
-            data = get_age_group_midpoint_from_age_group_id(data)
-        elif covariate.name in ["live_births_by_sex", "dtp3_coverage_proportion",
-                                "measles_vaccine_coverage_proportion", "measles_vaccine_coverage_2_doses_proportion"]:
-            columns = ["location", "mean_value", "lower_value", "upper_value", "sex_id", "year_id"]
-            data = data[columns]
+        expected_columns = ["location", "mean_value", "lower_value", "upper_value",
+                            "sex_id", "year_id", "age_group_id"]
+
+        if not set(expected_columns).issubset(data.columns):
+            raise NotImplementedError(f"Unsupported covariate {covariate.name}. It does not not "
+                                       f"contain the columns {expected_columns}.")
+        data = data[expected_columns]
+        if (data['age_group_id'] == 22).all():
+            data = data.drop(['age_group_id'], axis=1)
         else:
-            raise NotImplementedError(f"Unknown covariate {covariate.name}")
+            data = get_age_group_midpoint_from_age_group_id(data)
         data = normalize_for_simulation(data)
     else:
-        raise NotImplementedError(f"Unknown measure {measure} for covariate {covariate.name}")
+        raise NotImplementedError((f"Unknown or unsupported measure {measure} for ")
+                                  (f"covariate {covariate.name}"))
     return data
 
 
@@ -291,15 +293,15 @@ def _get_cause_population_attributable_fraction(cause, location):
                 group = group.drop(["risk_id"], axis=1)
                 group = normalize(group)
                 if key in RISK_BY_ID:
-                    group["risk"] = RISK_BY_ID[key].name
+                    group["risk_factor"] = RISK_BY_ID[key].name
                     dims = ["year", "sex", "measure", "age", "age_group_start",
-                            "age_group_end", "location", "draw", "risk"]
+                            "age_group_end", "location", "draw", "risk_factor"]
                     normalized.append(group.set_index(dims))
                 else:
                     warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause "
                                   f"'{cause.name}' but that risk is missing from the gbd mapping")
             data = pd.concat(normalized).reset_index()
-            data = data[["year", "location", "sex", "age", "draw", "value", "risk"]]
+            data = data[["year", "location", "sex", "age", "draw", "value", "risk_factor"]]
     return data
 
 
