@@ -30,7 +30,7 @@ class ArtifactBuilder:
 
         builder.event.register_listener('post_setup', self.end_processing)
 
-    def load(self, entity_key: str, keep_age_group_edges=False, **__) -> Any:
+    def load(self, entity_key: str, keep_age_group_edges=True, **__) -> Any:
         entity_key = EntityKey(entity_key)
         if entity_key not in self.artifact:
             self.process(entity_key)
