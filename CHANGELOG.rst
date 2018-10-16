@@ -1,3 +1,8 @@
+**1.0.7 - 10/16/18**
+
+ - Add support for arbitrary covariates.
+ - PAF naming bugfix
+
 **1.0.6 - 10/09/18**
 
  - Update dependencies
