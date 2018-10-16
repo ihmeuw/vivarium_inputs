@@ -83,15 +83,15 @@ class DuplicateDataError(DataError):
     pass
 
 
-def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
+def get_draws(entity: ModelableEntity, measures: Iterable[str],
               locations: Iterable[str]) -> pd.DataFrame:
     """Gets draw level gbd data for each specified measure and entity.
 
     Parameters
     ----------
-    entities:
-        A list of data containers from the `gbd_mapping` package. The entities must all be the same
-        type (e.g. all `gbd_mapping.Cause` objects or all `gbd_mapping.Risk` objects, etc.
+    entity:
+        A data container from the `gbd_mapping` package.
+        (e.g. `gbd_mapping.Cause` object or `gbd_mapping.Risk` object, etc.
     measures:
         A list of the GBD measures requested for the provided entities.
     locations:
@@ -127,13 +127,13 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
             handler, id_columns = measure_handlers[measure]
         except KeyError:
             raise InvalidQueryError(f'No functions are available to pull data for measure {measure}')
-        measure_data = handler(entities, location_ids)
+        measure_data = handler(entity, location_ids)
         measure_data['measure'] = measure
         id_cols |= id_columns
         data.append(measure_data)
     data = pd.concat(data)
 
-    id_cols |= _get_additional_id_columns(data, entities)
+    id_cols |= _get_additional_id_columns(data, entity)
     key_columns = ['measure']
     for column in ['year_id', 'sex_id', 'age_group_id', 'location_id']:
         if column in data:
@@ -152,7 +152,7 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
 
 
 # TODO: Move to utilities.py
-def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> List:
+def _get_ids_for_measure(entity: ModelableEntity, measure: str) -> List:
     """Selects the appropriate gbd id type for each entity and measure pair.
 
     Parameters
@@ -189,30 +189,25 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'cost': ((HealthcareEntity, HealthTechnology), 'cost'),
     }
 
-    if not all([isinstance(e, type(entities[0])) for e in entities]):
-        raise InvalidQueryError("All entities must be of the same type")
     if measure not in measure_types.keys():
         raise InvalidQueryError(f"You've requested an invalid measure: {measure}")
 
     valid_types, id_attr = measure_types[measure]
-    out = []
-    for entity in entities:
-        if isinstance(entity, valid_types):
-            value = entity
-            for sub_id in id_attr.split('.'):
-                if value[sub_id] is not UNKNOWN:
-                    value = value[sub_id]
-                else:
-                    raise InvalidQueryError(f"Entity {entity.name} has no data for measure '{measure}'")
-            out.append(value)
-        else:
-            raise InvalidQueryError(f"Entity {entity.name} has no data for measure '{measure}'")
 
-    return out
+    if isinstance(entity, valid_types):
+        value = entity
+        for sub_id in id_attr.split('.'):
+            if value[sub_id] is not UNKNOWN:
+                value = value[sub_id]
+            else:
+                raise InvalidQueryError(f"Entity {entity.name} has no data for measure '{measure}'")
+        return [value]
+    else:
+        raise InvalidQueryError(f"Entity {entity.name} has no data for measure '{measure}'")
 
 
 # TODO: Move to utilities.py
-def _get_additional_id_columns(data, entities):
+def _get_additional_id_columns(data, entity):
     id_column_map = {
         Cause: 'cause_id',
         Sequela: 'sequela_id',
@@ -224,8 +219,8 @@ def _get_additional_id_columns(data, entities):
         HealthTechnology: 'health_technology',
     }
     out = set()
-    out.add(id_column_map[type(entities[0])])
-    if isinstance(entities[0], CoverageGap) and data['measure'].all() in ['relative_risk']:
+    out.add(id_column_map[type(entity)])
+    if isinstance(entity, CoverageGap) and data['measure'].all() in ['relative_risk']:
         out.add('risk_id')
     out |= set(data.columns) & set(id_column_map.values())
     return out
@@ -270,18 +265,18 @@ def _validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
 ####################
 
 
-def _get_death(entities, location_ids):
-    measure_ids = _get_ids_for_measure(entities, 'death')
-    death_data = gbd.get_codcorrect_draws(cause_ids=measure_ids, location_ids=location_ids)
+def _get_death(entity, location_ids):
+    measure_id = _get_ids_for_measure(entity, 'death')
+    death_data = gbd.get_codcorrect_draws(cause_ids=measure_id, location_ids=location_ids)
 
     return death_data[death_data['measure_id'] == name_measure_map['death']]
 
 
-def _get_remission(entities, location_ids):
-    measure_ids = _get_ids_for_measure(entities, 'remission')
-    remission_data = gbd.get_modelable_entity_draws(me_ids=measure_ids, location_ids=location_ids)
+def _get_remission(entity, location_ids):
+    measure_id = _get_ids_for_measure(entity, 'remission')
+    remission_data = gbd.get_modelable_entity_draws(me_ids=measure_id, location_ids=location_ids)
 
-    id_map = {entity.dismod_id: entity.gbd_id for entity in entities}
+    id_map = {entity.dismod_id: entity.gbd_id}
     remission_data['cause_id'] = remission_data['modelable_entity_id'].replace(id_map)
 
     # FIXME: The sex filtering should happen in the reshaping step.
@@ -290,10 +285,10 @@ def _get_remission(entities, location_ids):
     return remission_data[correct_measure & correct_sex]
 
 
-def _get_prevalence(entities, location_ids):
-    measure_ids = _get_ids_for_measure(entities, 'prevalence')
-    entity_type = "cause" if isinstance(entities[0], Cause) else "sequela"
-    measure_data = gbd.get_como_draws(entity_ids=measure_ids, location_ids=location_ids, entity_type=entity_type)
+def _get_prevalence(entity, location_ids):
+    measure_id = _get_ids_for_measure(entity, 'prevalence')
+    entity_type = "cause" if isinstance(entity, Cause) else "sequela"
+    measure_data = gbd.get_como_draws(entity_ids=measure_id, location_ids=location_ids, entity_type=entity_type)
 
     # FIXME: The year filtering should happen in the reshaping step.
     correct_measure = measure_data['measure_id'] == name_measure_map['prevalence']
@@ -301,10 +296,10 @@ def _get_prevalence(entities, location_ids):
     return measure_data[correct_measure & correct_years]
 
 
-def _get_incidence(entities, location_ids):
-    measure_ids = _get_ids_for_measure(entities, 'incidence')
-    entity_type = "cause" if isinstance(entities[0], Cause) else "sequela"
-    measure_data = gbd.get_como_draws(entity_ids=measure_ids, location_ids=location_ids, entity_type=entity_type)
+def _get_incidence(entity, location_ids):
+    measure_id = _get_ids_for_measure(entity, 'incidence')
+    entity_type = "cause" if isinstance(entity, Cause) else "sequela"
+    measure_data = gbd.get_como_draws(entity_ids=measure_id, location_ids=location_ids, entity_type=entity_type)
 
     # FIXME: The year filtering should happen in the reshaping step.
     correct_measure = measure_data['measure_id'] == name_measure_map['incidence']
@@ -314,7 +309,7 @@ def _get_incidence(entities, location_ids):
     # scale by the number of people not sick to convert.
 
     incidence = measure_data[correct_measure & correct_years]
-    prevalence = _get_prevalence(entities, location_ids)
+    prevalence = _get_prevalence(entity, location_ids)
 
     draw_columns = [col for col in incidence.columns if col.startswith('draw_')]
 
@@ -326,10 +321,10 @@ def _get_incidence(entities, location_ids):
     return incidence.reset_index()
 
 
-def _get_cause_specific_mortality(entities, location_ids):
+def _get_cause_specific_mortality(entity, location_ids):
     # FIXME: Mapping backword to name like this is awkward
     locations = [get_location_names_by_id()[location_id] for location_id in location_ids]
-    deaths = get_draws(entities, ["death"], locations)
+    deaths = get_draws(entity, ["death"], locations)
     deaths["location_id"] = deaths.location.apply(get_location_ids_by_name().get)
     deaths = deaths.drop("location", "columns")
 
@@ -350,11 +345,11 @@ def _get_cause_specific_mortality(entities, location_ids):
     return csmr
 
 
-def _get_excess_mortality(entities, location_ids):
+def _get_excess_mortality(entity, location_ids):
     # FIXME: Mapping backword to name like this is awkward
     locations = [get_location_names_by_id()[location_id] for location_id in location_ids]
-    prevalences = get_draws(entities, ['prevalence'], locations).drop('measure', 'columns')
-    csmrs = get_draws(entities, ['cause_specific_mortality'], locations).drop('measure', 'columns')
+    prevalences = get_draws(entity, ['prevalence'], locations).drop('measure', 'columns')
+    csmrs = get_draws(entity, ['cause_specific_mortality'], locations).drop('measure', 'columns')
 
     key_columns = ['year_id', 'sex_id', 'age_group_id', 'location', 'cause_id']
     prevalences = prevalences.set_index(key_columns)
@@ -376,26 +371,20 @@ def _get_excess_mortality(entities, location_ids):
 
 
 # TODO This should probably use the _get_ids_for_measure function but it doesn't quite fit
-def _get_disability_weight(entities, _):
-    if isinstance(entities[0], Sequela):
+def _get_disability_weight(entity, _):
+    if isinstance(entity, Sequela):
         disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
     else:
         raise InvalidQueryError("Only sequela have disability weights associated with them.")
 
-    data = []
-    for s in entities:
+    if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
+        df = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
+    else:
+        raise DataMissingError(f"No disability weight available for the sequela {entity.name}")
 
-        if s.healthstate.gbd_id in disability_weights['healthstate_id'].values:
-            df = disability_weights.loc[disability_weights.healthstate_id == s.healthstate.gbd_id, :]
-        else:
-            raise DataMissingError(f"No disability weight available for the sequela {s.name}")
+    df['sequela_id'] = entity.gbd_id
 
-        df['sequela_id'] = s.gbd_id
-        data.append(df)
-
-    data = pd.concat(data, ignore_index=True)
-
-    return data.reset_index(drop=True)
+    return df.reset_index(drop=True)
 
 
 ###################
@@ -447,11 +436,11 @@ def _standardize_all_age_groups(data: pd.DataFrame):
     return pd.concat(df, ignore_index=True)
 
 
-def _get_relative_risk(entities: Iterable[Union[Risk, CoverageGap]], location_ids: Iterable[int]):
+def _get_relative_risk(entity: Union[Risk, CoverageGap], location_ids: Iterable[int]):
 
     # common pre-processing for entities from GBD
-    def _pull_rr_data_from_gbd(measure_ids):
-        data = gbd.get_relative_risks(risk_ids=measure_ids, location_ids=location_ids)
+    def _pull_rr_data_from_gbd(measure_id):
+        data = gbd.get_relative_risks(risk_ids=measure_id, location_ids=location_ids)
         data = data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
 
         # FIXME: I'm passing because this is broken for zinc_deficiency, and I don't have time to investigate -J.C.
@@ -467,47 +456,38 @@ def _get_relative_risk(entities: Iterable[Union[Risk, CoverageGap]], location_id
         del data['modelable_entity_id']
         return data
 
-    measure_ids = _get_ids_for_measure(entities, 'relative_risk')
+    measure_id = _get_ids_for_measure(entity, 'relative_risk')
 
-    if isinstance(entities[0], Risk):
-        if None in measure_ids:
+    if isinstance(entity, Risk):
+        if None in measure_id:
             raise InvalidQueryError(f'There is no relative risk for the entity that you requested')
-        measure_data = _pull_rr_data_from_gbd(measure_ids)
+        measure_data = _pull_rr_data_from_gbd(measure_id)
         most_detailed_causes = measure_data['cause_id'].isin([c.gbd_id for c in causes])
         measure_data = measure_data[most_detailed_causes]
 
-    elif isinstance(entities[0], CoverageGap):
-        df = []
+    elif isinstance(entity, CoverageGap):
         SPECIAL = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
-        special_cases = set(SPECIAL).intersection(set(entities))
-        if special_cases:
-            measure_data = _pull_rr_data_from_gbd([i for i in measure_ids if i is not None])
+        special_cases = set(SPECIAL).intersection(set(entity))
+        if entity in SPECIAL:
+            measure_data = _pull_rr_data_from_gbd([i for i in measure_id if i is not None])
             draw_cols = [f'draw_{i}' for i in range(1000)]
             measure_data.loc[:, draw_cols] = 1 / measure_data.loc[:, draw_cols]
             measure_data = _handle_special_coverage_gap_data(special_cases, measure_data, 1)
             measure_data = measure_data.rename(columns={"rei_id": "risk_id"})
-            df.append(measure_data)
 
         # any coverage_gap from aux_data
-        if set(entities).difference(special_cases):
-            for entity in entities:
+        else:
+            try:
                 measure_data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
-                exposure_data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
-                missing_year_ids = set(exposure_data.year_id.unique()).difference(measure_data.year_id.unique())
-                missing_data = []
-                for id in missing_year_ids:
-                    data = measure_data.copy()
-                    data['year_id'] = id
-                    missing_data = missing_data.append(data)
-                measure_data = pd.concat([measure_data] + missing_data)
                 measure_data['coverage_gap'] = entity.name
                 measure_data = measure_data.rename(columns={"rei_id": "risk_id"})
                 del measure_data['measure']
-                df.append(measure_data)
-        measure_data = pd.concat(df)
+            except NotADirectoryError:
+                measure_data = pd.DataFrame([])
 
-    measure_data = _standardize_all_age_groups(measure_data)
-    measure_data = _standardize_data(measure_data, 1)
+    if not measure_data.empty:
+        measure_data = _standardize_all_age_groups(measure_data)
+        measure_data = _standardize_data(measure_data, 1)
     return measure_data
 
 
@@ -529,8 +509,12 @@ def _compute_paf_for_special_cases(affected_entity: Union[Cause, Risk], entity: 
 
     :param affected_entity: which entity is affected by this entity
     """
-    ex = _get_exposure([entity], location_ids)
-    rr = _get_relative_risk([entity], location_ids)
+    ex = _get_exposure(entity, location_ids)
+    rr = _get_relative_risk(entity, location_ids)
+
+    # coverage gap data from auxiliary folder may not have rr but will still call for paf
+    if ex.empty or rr.empty:
+        raise InvalidQueryError(f'You requested the PAF for the entity that may not have necessary data')
 
     if isinstance(entity, (Risk, Etiology)):
         cause_id, risk_id = affected_entity.gbd_id, entity.gbd_id
@@ -576,12 +560,12 @@ def _compute_paf_for_special_cases(affected_entity: Union[Cause, Risk], entity: 
     return paf_data
 
 
-def _get_population_attributable_fraction(entities, location_ids):
+def _get_population_attributable_fraction(entity, location_ids):
     SPECIAL = [risk_factors.unsafe_water_source]
-    measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
+    measure_id = _get_ids_for_measure(entity, 'population_attributable_fraction')
 
-    if isinstance(entities[0], Cause):
-        measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids)
+    if isinstance(entity, Cause):
+        measure_data = gbd.get_pafs(entity_ids=measure_id, location_ids=location_ids)
         measure_data = measure_data.rename(columns={"rei_id": "risk_id"})
         measure_data = _filter_to_most_detailed(measure_data)
 
@@ -596,24 +580,24 @@ def _get_population_attributable_fraction(entities, location_ids):
                 measure_data = measure_data.query("risk_id != @risk.gbd_id or cause_id != @cause.gbd_id")
                 measure_data = measure_data.append(special_paf)
 
-    elif isinstance(entities[0], Etiology):
-        measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids, entity_type='etiology')
+    elif isinstance(entity, Etiology):
+        measure_data = gbd.get_pafs(entity_ids=measure_id, location_ids=location_ids, entity_type='etiology')
         measure_data = measure_data.rename(columns={"rei_id": "etiology_id"})
         measure_data = _filter_to_most_detailed(measure_data)
 
-    elif isinstance(entities[0], CoverageGap):
+    elif isinstance(entity, CoverageGap):
         paf = []
-        for entity in entities:
-            affected_risk_factors = entity.affected_risk_factors
-            affected_causes = entity.affected_causes
-            paf.extend([_compute_paf_for_special_cases(cause, entity, location_ids) for cause
-                        in affected_causes if affected_causes])
-            paf.extend([_compute_paf_for_special_cases(risk_factor, entity, location_ids) for risk_factor
-                        in affected_risk_factors if affected_risk_factors])
+
+        affected_risk_factors = entity.affected_risk_factors
+        affected_causes = entity.affected_causes
+        paf.extend([_compute_paf_for_special_cases(cause, entity, location_ids) for cause
+                    in affected_causes if affected_causes])
+        paf.extend([_compute_paf_for_special_cases(risk_factor, entity, location_ids) for risk_factor
+                    in affected_risk_factors if affected_risk_factors])
         measure_data = pd.concat(paf)
 
     else:
-        raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'population_attributable_fraction'")
+        raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
 
     # FIXME: We currently do not handle the case where PAF==1 so we just dump those rows.
     draws = [c for c in measure_data.columns if 'draw_' in c]
@@ -634,7 +618,7 @@ def _get_population_attributable_fraction(entities, location_ids):
     return measure_data
 
 
-def _get_exposure(entities, location_ids):
+def _get_exposure(entity, location_ids):
 
     def handle_exposure_from_gbd(measure_data):
         is_categorical_exposure = measure_data.measure_id == name_measure_map['proportion']
@@ -647,43 +631,41 @@ def _get_exposure(entities, location_ids):
         del measure_data['measure_id']
         return measure_data
 
-    measure_ids = _get_ids_for_measure(entities, 'exposure')
+    measure_id = _get_ids_for_measure(entity, 'exposure')
 
-    if isinstance(entities[0], (Risk, Etiology)):
-        if None in measure_ids:
+    if isinstance(entity, (Risk, Etiology)):
+        if None in measure_id:
             raise InvalidQueryError(f'There is no exposure data for the entity that you requested')
-        measure_data = gbd.get_exposures(risk_ids=measure_ids, location_ids=location_ids)
+        measure_data = gbd.get_exposures(risk_ids=measure_id, location_ids=location_ids)
         measure_data = _handle_weird_exposure_measures(measure_data)
         exposure_data = handle_exposure_from_gbd(measure_data)
 
-    elif isinstance(entities[0], CoverageGap):
+    elif isinstance(entity, CoverageGap):
         df = []
         SPECIAL = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
-        special_cases = set(SPECIAL).intersection(set(entities))
-        if special_cases:
-            measure_data = gbd.get_exposures(risk_ids=[s.gbd_id for s in special_cases], location_ids=location_ids)
-            measure_data = _handle_special_coverage_gap_data(special_cases, measure_data, 0)
+        if entity in SPECIAL:
+            measure_data = gbd.get_exposures(risk_ids=[entity.gbd_id], location_ids=location_ids)
+            measure_data = _handle_special_coverage_gap_data(entity, measure_data, 0)
             measure_data = handle_exposure_from_gbd(measure_data)
             del measure_data['modelable_entity_id']
             del measure_data['metric_id']
             df.append(measure_data)
 
         # any coverage_gap from aux_data
-        if set(entities).difference(special_cases):
-            for entity in entities:
-                measure_data = gbd.get_auxiliary_data('exposure', 'coverage_gap', entity.name)
-                measure_data = measure_data[measure_data.location_id.isin(location_ids)]
-                measure_data['coverage_gap'] = entity.name
-                del measure_data['measure']
-                df.append(measure_data)
+        else:
+            measure_data = gbd.get_auxiliary_data('exposure', 'coverage_gap', entity.name)
+            measure_data = measure_data[measure_data.location_id.isin(location_ids)]
+            measure_data['coverage_gap'] = entity.name
+            del measure_data['measure']
+            df.append(measure_data)
         exposure_data = pd.concat(df)
     else:
-        raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'exposure'")
+        raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'exposure'")
 
     return _standardize_all_age_groups(exposure_data)
 
 
-def _handle_special_coverage_gap_data(entities, measure_data, fill_value):
+def _handle_special_coverage_gap_data(entity, measure_data, fill_value):
     # We pulled coverage, not exposure, so invert the categories.
     coverage = measure_data['parameter'] == 'cat1'
     exposure = measure_data['parameter'] == 'cat2'
@@ -691,27 +673,26 @@ def _handle_special_coverage_gap_data(entities, measure_data, fill_value):
     measure_data.loc[exposure, 'parameter'] = 'cat1'
     measure_data = measure_data.rename(columns={'risk_id': 'coverage_gap_id'})
 
-    for coverage_gap in entities:
-        affected_causes = coverage_gap.affected_causes
-        if len(affected_causes) != 1:
-            raise UnhandledDataError("We only handle coverage gaps affecting a single cause. "
-                                     "Tell James if you see this error.")
-        restrictions = affected_causes[0].restrictions
-        if restrictions.yll_only:
-            raise UnhandledDataError("The PAFs we use are for YLDs, so causes with no attributable YLDs should not"
-                                     "have associated exposures or RRs.")
-        age_start, age_end = restrictions.yld_age_start, restrictions.yld_age_end
-        min_age_group = age_restriction_map[age_start][0]
-        max_age_group = age_restriction_map[age_end][1]
+    affected_causes = entity.affected_causes
+    if len(affected_causes) != 1:
+        raise UnhandledDataError("We only handle coverage gaps affecting a single cause. "
+                                 "Tell James if you see this error.")
+    restrictions = affected_causes[0].restrictions
+    if restrictions.yll_only:
+        raise UnhandledDataError("The PAFs we use are for YLDs, so causes with no attributable YLDs should not"
+                                 "have associated exposures or RRs.")
+    age_start, age_end = restrictions.yld_age_start, restrictions.yld_age_end
+    min_age_group = age_restriction_map[age_start][0]
+    max_age_group = age_restriction_map[age_end][1]
 
-        good_age_groups = range(min_age_group, max_age_group+1)
+    good_age_groups = range(min_age_group, max_age_group+1)
 
-        coverage_gap_data = measure_data['coverage_gap_id'] == coverage_gap.gbd_id
-        correct_age_groups = measure_data['age_group_id'].isin(good_age_groups)
-        measure_data['rei_id'] = np.NaN
-        measure_data['coverage_gap'] = coverage_gap.name
-        draw_cols = [f'draw_{i}' for i in range(1000)]
-        measure_data.loc[coverage_gap_data & ~correct_age_groups, draw_cols] = fill_value
+    coverage_gap_data = measure_data['coverage_gap_id'] == entity.gbd_id
+    correct_age_groups = measure_data['age_group_id'].isin(good_age_groups)
+    measure_data['rei_id'] = np.NaN
+    measure_data['coverage_gap'] = entity.name
+    draw_cols = [f'draw_{i}' for i in range(1000)]
+    measure_data.loc[coverage_gap_data & ~correct_age_groups, draw_cols] = fill_value
 
     return measure_data
 
@@ -757,9 +738,9 @@ def _get_exposure_measure_id(data):
     return int(measure_ids)
 
 
-def _get_exposure_standard_deviation(entities, location_ids):
-    ids = dict(zip(_get_ids_for_measure(entities, 'exposure_standard_deviation'), [e.gbd_id for e in entities]))
-    df = gbd.get_exposure_standard_deviations(list(ids.keys()), location_ids)
+def _get_exposure_standard_deviation(entity, location_ids):
+    id = _get_ids_for_measure(entity, 'exposure_standard_deviation')
+    df = gbd.get_exposure_standard_deviations(id, location_ids)
     key_cols = ['age_group_id', 'location_id', 'sex_id', 'year_id', 'risk_id']
     draw_cols = [f'draw_{i}' for i in range(1000)]
     df = df[df['sex_id'] != 3]
@@ -770,14 +751,13 @@ def _get_exposure_standard_deviation(entities, location_ids):
 # Other stuff #
 ###############
 
-def _get_annual_visits(entities, location_ids):
-    measure_ids = _get_ids_for_measure(entities, 'annual_visits')
-    measure_data = gbd.get_modelable_entity_draws(me_ids=measure_ids, location_ids=location_ids)
+def _get_annual_visits(entity, location_ids):
+    measure_id = _get_ids_for_measure(entity, 'annual_visits')
+    measure_data = gbd.get_modelable_entity_draws(me_ids=measure_id, location_ids=location_ids)
 
     measure_data['treatment_technology'] = 'temp'
-    for entity in entities:
-        correct_entity = measure_data['modelable_entity_id'] == entity.utilization
-        measure_data.loc[correct_entity, 'healthcare_entity'] = entity.name
+    correct_entity = measure_data['modelable_entity_id'] == entity.utilization
+    measure_data.loc[correct_entity, 'healthcare_entity'] = entity.name
 
     correct_measure = measure_data['measure_id'] == name_measure_map['continuous']
     correct_sex = measure_data['sex_id'] != COMBINED
@@ -785,18 +765,15 @@ def _get_annual_visits(entities, location_ids):
     return measure_data[correct_measure & correct_sex]
 
 
-def _get_cost(entities, location_ids):
-    data = []
-    if isinstance(entities[0], HealthcareEntity):
-        for entity in entities:
-            df = gbd.get_auxiliary_data('cost', 'healthcare_entity', entity.name)
-            df = df[df['location_id'].isin(location_ids)]
-            data.append(df)
+def _get_cost(entity, location_ids):
+    if isinstance(entity, HealthcareEntity):
+        df = gbd.get_auxiliary_data('cost', 'healthcare_entity', entity.name)
+        df = df[df['location_id'].isin(location_ids)]
+
     else:
-        for entity in entities:
-            df = gbd.get_auxiliary_data('cost', 'health_technology', entity.name)
-            data.append(df)
-    return pd.concat(data)
+        df = gbd.get_auxiliary_data('cost', 'health_technology', entity.name)
+
+    return df
 
 
 ####################################
