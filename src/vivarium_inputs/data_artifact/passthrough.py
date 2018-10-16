@@ -17,7 +17,7 @@ class ArtifactPassthrough:
         self.base_filter = {'draw': draw,
                             'location': [self.location, 'Global']}
 
-    def load(self, entity_key: str, keep_age_group_edges: bool=False, **column_filters: str) -> Any:
+    def load(self, entity_key: str, keep_age_group_edges: bool=True, **column_filters: str) -> Any:
         entity_key = EntityKey(entity_key)
         data = loader(entity_key, self.location, self.modeled_causes)
 
