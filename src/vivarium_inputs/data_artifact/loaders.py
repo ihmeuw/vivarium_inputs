@@ -372,7 +372,7 @@ def _get_risk_relative_risk(risk, location):
         group = normalize(group)
         group["parameter"] = key[0]
         group["cause"] = CAUSE_BY_ID[key[1]].name
-        dims = ["year", "year_starT", "year_end", "sex", "measure", "age", "age_group_start",
+        dims = ["year", "year_start", "year_end", "sex", "measure", "age", "age_group_start",
                 "age_group_end", "location", "draw", "cause", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
