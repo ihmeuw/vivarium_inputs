@@ -177,6 +177,10 @@ def normalize_for_simulation(df):
         df = df.drop("sex_id", axis=1)
 
     if "year_id" in df:
+        # FIXME: use central comp interpolation tools
+        if 2006 in df.year_id.unique() and 2007 not in df.year_id.unique():
+            df = df.loc[(df.year_id != 2006)]
+
         df = df.rename(columns={"year_id": "year"})
         idx = df.index
 
