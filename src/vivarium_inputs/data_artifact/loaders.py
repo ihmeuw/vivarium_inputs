@@ -432,12 +432,12 @@ def _get_coverage_gap_relative_risk(coverage_gap, location):
 
 
 def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
-    data = core.get_draws([coverage_gap], ["population_attributable_fraction"], [location])
-    if data.empty:
-        data = None
-    else:
+    try:
+        data = core.get_draws([coverage_gap], ["population_attributable_fraction"], [location])
         data = _handle_coverage_gap_rr_paf(data)
         data = data[["year", "location", "cause", "risk_factor", "sex", "draw", "value", "age"]]
+    except core.InvalidQueryError:
+        data = None
     return data
 
 

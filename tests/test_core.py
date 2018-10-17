@@ -17,61 +17,69 @@ def test_get_ids_for_inconsistent_entities(cause_list, sequela_list):
 
 
 def test_get_ids_for_death(cause_list, sequela_list):
-    ids = core._get_ids_for_measure(cause_list, 'death')
+    ids = [core._get_ids_for_measure(c, 'death')[0] for c in cause_list]
     assert set(ids) == {c.gbd_id for c in cause_list}
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure(sequela_list, 'death')
+        for sequela in sequela_list:
+            core._get_ids_for_measure(sequela, 'death')
 
 
 def test_get_ids_for_remission(sequela_list):
     cause_list = [causes.diarrheal_diseases, causes.tetanus, causes.diabetes_mellitus]
-    ids = core._get_ids_for_measure(cause_list, 'remission')
+    ids = [core._get_ids_for_measure(c, 'remission')[0] for c in cause_list]
     assert set(ids) == {c.dismod_id for c in cause_list}
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure(sequela_list, 'remission')
+        for sequela in sequela_list:
+            core._get_ids_for_measure(sequela, 'remission')
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure([causes.age_related_and_other_hearing_loss], 'remission')
+        core._get_ids_for_measure(causes.age_related_and_other_hearing_loss, 'remission')
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure([causes.ischemic_heart_disease], 'remission')
+        core._get_ids_for_measure(causes.ischemic_heart_disease, 'remission')
 
 
 def test_get_ids_for_prevalence(cause_list, sequela_list, etiology_list):
-    ids = core._get_ids_for_measure(cause_list, 'prevalence')
+    ids = [core._get_ids_for_measure(c, 'prevalence')[0] for c in cause_list]
     assert set(ids) == {c.gbd_id for c in cause_list}
-    ids = core._get_ids_for_measure(sequela_list, 'prevalence')
+    ids = [core._get_ids_for_measure(s, 'prevalence')[0] for s in sequela_list]
     assert set(ids) == {s.gbd_id for s in sequela_list}
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure(etiology_list, 'prevalence')
+        for etiology in etiology_list:
+            core._get_ids_for_measure(etiology, 'prevalence')
 
 
 def test_get_ids_for_incidence(cause_list, sequela_list, etiology_list):
-    ids = core._get_ids_for_measure(cause_list, 'incidence')
+    ids = [core._get_ids_for_measure(c, 'incidence')[0] for c in cause_list]
     assert set(ids) == {c.gbd_id for c in cause_list}
-    ids = core._get_ids_for_measure(sequela_list, 'incidence')
+
+    ids = [core._get_ids_for_measure(s, 'incidence')[0] for s in sequela_list]
     assert set(ids) == {s.gbd_id for s in sequela_list}
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure(etiology_list, 'incidence')
+        for etiology in etiology_list:
+            core._get_ids_for_measure(etiology, 'incidence')
 
 
 def test_get_ids_for_exposure(cause_list, risk_list):
-    ids = core._get_ids_for_measure(risk_list, 'exposure')
+    ids = [core._get_ids_for_measure(r, 'exposure')[0] for r in risk_list]
     assert set(ids) == {r.gbd_id for r in risk_list}
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure(cause_list, 'exposure')
+        for cause in cause_list:
+            core._get_ids_for_measure(cause, 'exposure')
 
 
 def test_get_ids_for_relative_risk(cause_list, risk_list):
-    ids = core._get_ids_for_measure(risk_list, 'relative_risk')
+    ids = [core._get_ids_for_measure(r, 'relative_risk')[0] for r in risk_list]
     assert set(ids) == {r.gbd_id for r in risk_list}
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure(cause_list, 'relative_risk')
+        for cause in cause_list:
+            core._get_ids_for_measure(cause, 'relative_risk')
 
 
 def test_get_ids_for_population_attributable_fraction(cause_list, risk_list):
-    ids = core._get_ids_for_measure(cause_list, 'population_attributable_fraction')
+    ids = [core._get_ids_for_measure(c,'population_attributable_fraction')[0] for c in cause_list]
     assert set(ids) == {r.gbd_id for r in cause_list}
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure(risk_list, 'population_attributable_fraction')
+        for risk in risk_list:
+            core._get_ids_for_measure(risk, 'population_attributable_fraction')
 
 
 # TODO there's a bunch of repeated code in the next three functions but I'm not sure what the general form should be yet
@@ -225,7 +233,7 @@ def test_get_relative_risk(mocker):
     rr_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*rr_maps.values()], names=[*rr_maps.keys()]))
     rr_[draw_cols] = np.random.random_sample((len(rr_), 10)) * 10
     gbd_mock.get_relative_risks.return_value = rr_.reset_index()
-    get_rr = core._get_relative_risk([risk_factors.child_wasting], [1])
+    get_rr = core._get_relative_risk(risk_factors.child_wasting, [1])
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(rr_maps['age_group_id']))
     missing_rr_maps = rr_maps.copy()
@@ -260,7 +268,7 @@ def test_get_population_attributable_fraction(mocker):
     paf_[draw_cols] = np.random.random_sample((len(paf_), 10))
     gbd_mock.get_pafs.return_value = paf_.reset_index()
 
-    get_paf = core._get_population_attributable_fraction([causes.diarrheal_diseases], [1])
+    get_paf = core._get_population_attributable_fraction(causes.diarrheal_diseases, [1])
 
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(paf_maps['age_group_id']))
