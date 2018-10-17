@@ -232,6 +232,8 @@ def get_covariate_data(covariate, measure, location, _):
         data = data[expected_columns]
         if (data['age_group_id'] == 22).all():
             data = data.drop(['age_group_id'], axis=1)
+            warnings.warn(f"Covariate \"{covariate.name}\" contains data for the age group all ages, "
+                           "so the age column is being dropped.")
         else:
             data = get_age_group_midpoint_from_age_group_id(data)
         data = normalize_for_simulation(data)
