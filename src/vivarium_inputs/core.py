@@ -347,7 +347,7 @@ def _get_cause_specific_mortality(entities, location_ids):
     csmr = csmr[key_columns + draw_columns]
     _validate_data(csmr, key_columns)
 
-    return csmr
+    return _standardize_data(csmr, 0)
 
 
 def _get_excess_mortality(entities, location_ids):
@@ -372,7 +372,7 @@ def _get_excess_mortality(entities, location_ids):
     em["location_id"] = em.location.apply(get_location_ids_by_name().get)
     em = em.drop("location", "columns")
 
-    return em.dropna()
+    return _standardize_data(em.dropna(), 0)
 
 
 # TODO This should probably use the _get_ids_for_measure function but it doesn't quite fit
