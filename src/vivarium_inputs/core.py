@@ -467,12 +467,11 @@ def _get_relative_risk(entity: Union[Risk, CoverageGap], location_ids: Iterable[
 
     elif isinstance(entity, CoverageGap):
         SPECIAL = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
-        special_cases = set(SPECIAL).intersection(set(entity))
         if entity in SPECIAL:
             measure_data = _pull_rr_data_from_gbd([i for i in measure_id if i is not None])
             draw_cols = [f'draw_{i}' for i in range(1000)]
             measure_data.loc[:, draw_cols] = 1 / measure_data.loc[:, draw_cols]
-            measure_data = _handle_special_coverage_gap_data(special_cases, measure_data, 1)
+            measure_data = _handle_special_coverage_gap_data(entity, measure_data, 1)
             measure_data = measure_data.rename(columns={"rei_id": "risk_id"})
 
         # any coverage_gap from aux_data
@@ -514,7 +513,7 @@ def _compute_paf_for_special_cases(affected_entity: Union[Cause, Risk], entity: 
 
     # coverage gap data from auxiliary folder may not have rr but will still call for paf
     if ex.empty or rr.empty:
-        raise InvalidQueryError(f'You requested the PAF for the entity that may not have necessary data')
+        raise InvalidQueryError(f'You requested the PAF for the {entity.name} that may not have necessary data')
 
     if isinstance(entity, (Risk, Etiology)):
         cause_id, risk_id = affected_entity.gbd_id, entity.gbd_id
@@ -641,7 +640,6 @@ def _get_exposure(entity, location_ids):
         exposure_data = handle_exposure_from_gbd(measure_data)
 
     elif isinstance(entity, CoverageGap):
-        df = []
         SPECIAL = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
         if entity in SPECIAL:
             measure_data = gbd.get_exposures(risk_ids=[entity.gbd_id], location_ids=location_ids)
@@ -649,7 +647,6 @@ def _get_exposure(entity, location_ids):
             measure_data = handle_exposure_from_gbd(measure_data)
             del measure_data['modelable_entity_id']
             del measure_data['metric_id']
-            df.append(measure_data)
 
         # any coverage_gap from aux_data
         else:
@@ -657,12 +654,11 @@ def _get_exposure(entity, location_ids):
             measure_data = measure_data[measure_data.location_id.isin(location_ids)]
             measure_data['coverage_gap'] = entity.name
             del measure_data['measure']
-            df.append(measure_data)
-        exposure_data = pd.concat(df)
+
     else:
         raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'exposure'")
 
-    return _standardize_all_age_groups(exposure_data)
+    return _standardize_all_age_groups(measure_data)
 
 
 def _handle_special_coverage_gap_data(entity, measure_data, fill_value):

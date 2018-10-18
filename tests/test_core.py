@@ -19,8 +19,8 @@ def test_get_ids_for_inconsistent_entities(cause_list, sequela_list):
 def test_get_ids_for_death(cause_list, sequela_list):
     ids = [core._get_ids_for_measure(c, 'death')[0] for c in cause_list]
     assert set(ids) == {c.gbd_id for c in cause_list}
-    with pytest.raises(core.InvalidQueryError):
-        for sequela in sequela_list:
+    for sequela in sequela_list:
+        with pytest.raises(core.InvalidQueryError):
             core._get_ids_for_measure(sequela, 'death')
 
 
@@ -28,8 +28,8 @@ def test_get_ids_for_remission(sequela_list):
     cause_list = [causes.diarrheal_diseases, causes.tetanus, causes.diabetes_mellitus]
     ids = [core._get_ids_for_measure(c, 'remission')[0] for c in cause_list]
     assert set(ids) == {c.dismod_id for c in cause_list}
-    with pytest.raises(core.InvalidQueryError):
-        for sequela in sequela_list:
+    for sequela in sequela_list:
+        with pytest.raises(core.InvalidQueryError):
             core._get_ids_for_measure(sequela, 'remission')
     with pytest.raises(core.InvalidQueryError):
         core._get_ids_for_measure(causes.age_related_and_other_hearing_loss, 'remission')
@@ -42,8 +42,8 @@ def test_get_ids_for_prevalence(cause_list, sequela_list, etiology_list):
     assert set(ids) == {c.gbd_id for c in cause_list}
     ids = [core._get_ids_for_measure(s, 'prevalence')[0] for s in sequela_list]
     assert set(ids) == {s.gbd_id for s in sequela_list}
-    with pytest.raises(core.InvalidQueryError):
-        for etiology in etiology_list:
+    for etiology in etiology_list:
+        with pytest.raises(core.InvalidQueryError):
             core._get_ids_for_measure(etiology, 'prevalence')
 
 
@@ -53,32 +53,32 @@ def test_get_ids_for_incidence(cause_list, sequela_list, etiology_list):
 
     ids = [core._get_ids_for_measure(s, 'incidence')[0] for s in sequela_list]
     assert set(ids) == {s.gbd_id for s in sequela_list}
-    with pytest.raises(core.InvalidQueryError):
-        for etiology in etiology_list:
+    for etiology in etiology_list:
+        with pytest.raises(core.InvalidQueryError):
             core._get_ids_for_measure(etiology, 'incidence')
 
 
 def test_get_ids_for_exposure(cause_list, risk_list):
     ids = [core._get_ids_for_measure(r, 'exposure')[0] for r in risk_list]
     assert set(ids) == {r.gbd_id for r in risk_list}
-    with pytest.raises(core.InvalidQueryError):
-        for cause in cause_list:
+    for cause in cause_list:
+        with pytest.raises(core.InvalidQueryError):
             core._get_ids_for_measure(cause, 'exposure')
 
 
 def test_get_ids_for_relative_risk(cause_list, risk_list):
     ids = [core._get_ids_for_measure(r, 'relative_risk')[0] for r in risk_list]
     assert set(ids) == {r.gbd_id for r in risk_list}
-    with pytest.raises(core.InvalidQueryError):
-        for cause in cause_list:
-            core._get_ids_for_measure(cause, 'relative_risk')
+    for cause in cause_list:
+        with pytest.raises(core.InvalidQueryError):
+           core._get_ids_for_measure(cause, 'relative_risk')
 
 
 def test_get_ids_for_population_attributable_fraction(cause_list, risk_list):
     ids = [core._get_ids_for_measure(c,'population_attributable_fraction')[0] for c in cause_list]
     assert set(ids) == {r.gbd_id for r in cause_list}
-    with pytest.raises(core.InvalidQueryError):
-        for risk in risk_list:
+    for risk in risk_list:
+        with pytest.raises(core.InvalidQueryError):
             core._get_ids_for_measure(risk, 'population_attributable_fraction')
 
 
