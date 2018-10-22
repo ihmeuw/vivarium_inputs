@@ -35,9 +35,10 @@ def build_artifact(model_specification, locations, project,
     under the "proj_cost_effect" project unless a different project is
     specified. Multiple, optional LOCATIONS can be provided to overwrite
     the configuration file. For locations containing spaces, replace the
-    space with an underscore, e.g.:
+    space with an underscore and surround any locations containing 
+    apostrophes with double quotes, e.g.:
 
-    build_artifact examply.yaml Virginia Pennsylvania New_York New_Jersey
+    build_artifact examply.yaml Virginia Pennsylvania New_York "Cote_d'Ivoire"
 
     Any artifact.path specified in the configuration file is guaranteed to
     be overwritten either by the optional output_root or a predetermined path
@@ -65,11 +66,12 @@ def build_artifact(model_specification, locations, project,
     if num_locations > 0:
         script_args += "--location {}"
         for i, location in enumerate(locations):
+            location = location.replace("'", "-")
             job_name = f"{config_path.stem}_{location}_build_artifact"
             command = build_submit_command(python_context_path, job_name,
                                            project,
                                            script_args.format(location))
-            click.echo(f"submitting job {i} of {num_locations} ({job_name})")
+            click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
             submit_job(command, job_name)
     else:
         job_name = f"{config_path.stem}_build_artifact"
@@ -163,9 +165,8 @@ def _build_artifact():
     _setup_logging(args.output_root, args.verbose, args.location,
                    args.model_specification, args.append)
 
-    formatted_location = args.location.replace('_', ' ') if args.location else args.location
     try:
-        main(args.model_specification, args.output_root, formatted_location, args.append)
+        main(args.model_specification, args.output_root, args.location, args.append)
     except (BdbQuit, KeyboardInterrupt):
         raise
     except Exception as e:
@@ -226,7 +227,7 @@ def get_location(location_arg: str, configuration: ConfigTree) -> str:
     """
 
     if location_arg:
-        return location_arg
+        return location_arg.replace('_', ' ').replace("-", "'")
     elif contains_location(configuration):
         return configuration.input_data.location
     else:
