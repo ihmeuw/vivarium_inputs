@@ -20,15 +20,17 @@ from vivarium.config_tree import ConfigTree
 @click.option('--project', '-P', default='proj_cost_effect',
               help='Cluster project under which the job will '
                    'be submitted. Defaults to proj_cost_effect')
-@click.option('--output-root', '-o', type=click.Path(file_okay=False, writable=True),
+@click.option('--output_root', '-o', type=click.Path(file_okay=False, writable=True),
               help="Directory to save artifact to. "
                    "Overwrites model specification file")
 @click.option('--append', '-a', is_flag=True,
               help="Preserve existing artifact and append to it")
 @click.option('--verbose', '-v', is_flag=True,
               help="Turn on debug mode for logging")
+@click.option('--error_logs', '-e', is_flag=True,
+              help="Write SGE error logs to output location")
 def build_artifact(model_specification, locations, project,
-                   output_root, append, verbose):
+                   output_root, append, verbose, error_logs):
     """
     build_artifact is a program for building data artifacts from a
     MODEL_SPECIFICATION file. The work is offloaded to the cluster
@@ -62,9 +64,7 @@ def build_artifact(model_specification, locations, project,
     if verbose:
         script_args += f"--verbose "
 
-    # make directory if it doesn't exist up front because jobs fail before getting
-    # to making it later
-    get_output_base(output_root)
+    error_log_dir = _make_log_dir(output_root) if error_logs else None
 
     num_locations = len(locations)
     if num_locations > 0:
@@ -73,14 +73,14 @@ def build_artifact(model_specification, locations, project,
             location = location.replace("'", "-")
             job_name = f"{config_path.stem}_{location}_build_artifact"
             command = build_submit_command(python_context_path, job_name,
-                                           project,
+                                           project, error_log_dir,
                                            script_args.format(location))
             click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
             submit_job(command, job_name)
     else:
         job_name = f"{config_path.stem}_build_artifact"
         command = build_submit_command(python_context_path, job_name,
-                                       project, script_args)
+                                       project, error_log_dir, script_args)
         click.echo(f"submitting job {job_name}")
         submit_job(command, job_name)
 
@@ -108,7 +108,7 @@ def submit_job(command: str, name: str):
         click.secho(f"submission of {name} succeeded: {response}", fg='green')
 
 
-def build_submit_command(python_context_path: str, job_name: str, project: str,
+def build_submit_command(python_context_path: str, job_name: str, project: str, error_log_dir: str,
                          script_args: str, slots: int = 2) -> str:
     """Construct a valid qsub job command string.
 
@@ -132,8 +132,8 @@ def build_submit_command(python_context_path: str, job_name: str, project: str,
     str
         A valid qsub command string
     """
-
-    return (f"qsub -N {job_name} -P {project} -pe multi_slot {slots} " +
+    logs = f"-e {str(error_log_dir)}" if error_log_dir else ""
+    return (f"qsub -N {job_name} -P {project} {logs} -pe multi_slot {slots} " +
             f"-b y {python_context_path} " + script_args)
 
 
@@ -153,7 +153,7 @@ def _build_artifact():
     parser = argparse.ArgumentParser()
     parser.add_argument('model_specification', type=str,
                         help="path to a model_specification file")
-    parser.add_argument('--output-root', '-o', type=str, required=False,
+    parser.add_argument('--output_root', '-o', type=str, required=False,
                         help="directory to save artifact to. "
                              "Overwrites model_specification file")
     parser.add_argument('--location', type=str, required=False,
@@ -324,6 +324,15 @@ def get_output_base(output_root_arg: str) -> pathlib.Path:
     return output_base
 
 
+def _make_log_dir(output_root):
+    output_log_dir = get_output_base(output_root) / 'logs'
+
+    if not output_log_dir.is_dir():
+        output_log_dir.mkdir()
+
+    return output_log_dir
+
+
 def _setup_logging(output_root, verbose, location,
                    model_specification, append):
     """ Setup logging to write to a file in the output directory
@@ -335,10 +344,7 @@ def _setup_logging(output_root, verbose, location,
 
     """
 
-    output_log_dir = get_output_base(output_root) / 'logs'
-
-    if not output_log_dir.is_dir():
-        output_log_dir.mkdir()
+    output_log_dir = _make_log_dir(output_root)
 
     log_level = logging.DEBUG if verbose else logging.ERROR
     log_tag = f'_{location}' if location is not None else ''
