@@ -1,3 +1,10 @@
+**1.0.8 - 10/26/18**
+
+ - Fix bug in artifact builder to properly store processed keys.
+ - Switch artifact builder to only load needed data.
+ - Return age_group_start and age_group_end to support order0 interpolation
+ - Bugfix in locations with apostrophes
+
 **1.0.7 - 10/16/18**
 
  - Add support for arbitrary covariates.
