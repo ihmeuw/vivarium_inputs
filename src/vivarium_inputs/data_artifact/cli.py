@@ -56,14 +56,15 @@ def build_artifact(model_specification, locations, project,
 
     script_args = f"{script_path} {config_path} "
     if output_root:
-        output_base = pathlib.Path(output_root).resolve()
-        if not output_base.is_dir():
-            output_base.mkdir(parents=True)
         script_args += f"--output_root {output_root} "
     if append:
         script_args += f"--append "
     if verbose:
         script_args += f"--verbose "
+
+    # make directory if it doesn't exist up front because jobs fail before getting
+    # to making it later
+    get_output_base(output_root)
 
     num_locations = len(locations)
     if num_locations > 0:
