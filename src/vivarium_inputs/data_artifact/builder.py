@@ -41,9 +41,9 @@ class ArtifactBuilder:
         _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
 
     def process(self, entity_key: EntityKey) -> None:
-        if (entity_key.type, entity_key.name) not in self.processed_entities:
+        if entity_key not in self.processed_entities:
             _worker(entity_key, self.location, self.modeled_causes, self.artifact)
-            self.processed_entities.add((entity_key.type, entity_key.name))
+            self.processed_entities.add(entity_key)
 
 
 def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str], artifact: Artifact) -> None:
