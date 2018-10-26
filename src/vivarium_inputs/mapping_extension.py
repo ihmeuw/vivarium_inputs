@@ -6,14 +6,15 @@ from gbd_mapping.base_template import GbdRecord, ModelableEntity
 
 class HealthcareEntity(ModelableEntity):
     """Container for healthcare system GBD ids and data."""
-    __slots__ = ('name', 'gbd_id', 'utilization', 'cost')
+    __slots__ = ('name', 'kind', 'gbd_id', 'utilization', 'cost')
 
     def __init__(self,
                  name: str,
+                 kind: str,
                  gbd_id: Union[meid, None],
                  utilization: meid=None,
                  ):
-        super().__init__(name=name, gbd_id=gbd_id)
+        super().__init__(name=name, kind=kind, gbd_id=gbd_id)
         self.utilization = utilization
 
 
@@ -32,7 +33,7 @@ class HealthcareEntities(GbdRecord):
 
 class HealthTechnology(ModelableEntity):
     """Container for health technology ids and data."""
-    __slots__ = ('name', 'gbd_id')
+    __slots__ = ('name', 'kind', 'gbd_id')
 
 
 class HealthTechnologies(GbdRecord):
@@ -47,11 +48,13 @@ class HealthTechnologies(GbdRecord):
 healthcare_entities = HealthcareEntities(
     outpatient_visits=HealthcareEntity(
         name='outpatient_visits',
+        kind='healthcare_entity',
         gbd_id=meid(10333),
         utilization=meid(10333),
     ),
     inpatient_visits=HealthcareEntity(
         name='inpatient_visits',
+        kind='healthcare_entity',
         gbd_id=meid(10334),
         utilization=meid(10334),
     )
@@ -60,6 +63,7 @@ healthcare_entities = HealthcareEntities(
 health_technologies = HealthTechnologies(
     hypertension_drugs=HealthTechnology(
         name='hypertension_drugs',
+        kind='health_technology',
         gbd_id=None,
     )
 )

@@ -1,3 +1,7 @@
+**1.0.9 - 10/26/18**
+
+ - Added kind attribute to mapping objects
+
 **1.0.8 - 10/26/18**
 
  - Fix bug in artifact builder to properly store processed keys.
