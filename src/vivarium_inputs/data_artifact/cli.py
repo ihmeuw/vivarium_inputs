@@ -56,6 +56,9 @@ def build_artifact(model_specification, locations, project,
 
     script_args = f"{script_path} {config_path} "
     if output_root:
+        output_base = pathlib.Path(output_root).resolve()
+        if not output_base.is_dir():
+            output_base.mkdir(parents=True)
         script_args += f"--output_root {output_root} "
     if append:
         script_args += f"--append "
@@ -331,8 +334,6 @@ def _setup_logging(output_root, verbose, location,
 
     """
 
-    # this will raise an error if the passed output_root doesn't exist which gets
-    # printed to console b/c logging isn't set up yet
     output_log_dir = get_output_base(output_root) / 'logs'
 
     if not output_log_dir.is_dir():
