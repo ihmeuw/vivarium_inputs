@@ -7,6 +7,7 @@ import pytest
 from gbd_mapping.id import reiid
 from gbd_mapping.cause import causes
 from gbd_mapping.risk import risk_factors
+from gbd_mapping.coverage_gap import coverage_gaps
 
 from vivarium_inputs import core
 
@@ -68,10 +69,10 @@ def test_get_ids_for_relative_risk(cause_list, risk_list):
 
 
 def test_get_ids_for_population_attributable_fraction(cause_list, risk_list):
-    ids = core._get_ids_for_measure(cause_list, 'population_attributable_fraction')
-    assert set(ids) == {r.gbd_id for r in cause_list}
+    ids = core._get_ids_for_measure(risk_list, 'population_attributable_fraction')
+    assert set(ids) == {r.gbd_id for r in risk_list}
     with pytest.raises(core.InvalidQueryError):
-        core._get_ids_for_measure(risk_list, 'population_attributable_fraction')
+        core._get_ids_for_measure(cause_list, 'population_attributable_fraction')
 
 
 # TODO there's a bunch of repeated code in the next three functions but I'm not sure what the general form should be yet
@@ -172,33 +173,13 @@ def mock_exposures(mocker):
     return exposures_mock, exposure_map
 
 
-@pytest.mark.skip("Cluster")
-def test__compute_paf_for_special_cases(mock_rrs, mock_exposures, locations):
-    _, rrs = mock_rrs
-    _, exposures = mock_exposures
-
-    # TODO: This list is canonically specified as a constant inside _get_population_attributable_fraction
-    # where it isn't really accessible for tests. Should probably clean that up.
-    special_risks = [risk_factors.unsafe_water_source]
-
-    location_ids = [core.get_location_ids_by_name()[name] for name in locations]
-    for risk in special_risks:
-        for cause in risk.affected_causes:
-            paf = core._compute_paf_for_special_cases(cause, risk, location_ids)
-            assert cause.gbd_id in paf.cause_id.values
-            assert risk.gbd_id in paf.risk_id.values
-            e = exposures[risk.gbd_id]
-            rr = rrs[(risk.gbd_id, cause.gbd_id)]
-            true_paf = (rr*e - 1) / (rr*e)
-            assert all(paf[[f"draw_{i}" for i in range(1000)]] == true_paf)
-
-
 @pytest.fixture(params=["cause", "etiology"])
 def cause_like_entities(request, cause_list, etiology_list):
     if request.param == "cause":
         return cause_list
     elif request.param == "etiology":
         return etiology_list
+
 
 @pytest.mark.skip("Cluster")
 def test_get_draws_bad_args(cause_list, risk_list, locations):
@@ -249,18 +230,26 @@ def test_get_relative_risk(mocker):
 
 
 def test_get_population_attributable_fraction(mocker):
-    id_mock = mocker.patch("vivarium_inputs.core._get_ids_for_measure")
+    categorical_risk = [r for r in risk_factors if r.distribution in ['polytomous','dichotomous']]
+    coverage_gap_list = [c for c in coverage_gaps]
+
+    with pytest.raises(core.InvalidQueryError):
+        core._get_population_attributable_fraction(categorical_risk, [180])
+
+    with pytest.raises(core.InvalidQueryError):
+        core._get_population_attributable_fraction(coverage_gap_list, [180])
+
     gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
     gbd_mock.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     draw_cols = [f"draw_{i}" for i in range(10)]
     paf_maps = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2], 'age_group_id': [4, 5],
-                'rei_id': [84, 339, 238, 136, 240], 'cause_id': [302], 'measure_id':[3]}
+                'rei_id': [106], 'cause_id': [493, 495], 'measure_id': [3]}
 
     paf_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*paf_maps.values()], names=[*paf_maps.keys()]))
     paf_[draw_cols] = np.random.random_sample((len(paf_), 10))
     gbd_mock.get_pafs.return_value = paf_.reset_index()
 
-    get_paf = core._get_population_attributable_fraction([causes.diarrheal_diseases], [1])
+    get_paf = core._get_population_attributable_fraction([risk_factors.high_total_cholesterol], [1])
 
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(paf_maps['age_group_id']))

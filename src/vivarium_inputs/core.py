@@ -108,7 +108,7 @@ def get_draws(entities: Sequence[ModelableEntity], measures: Iterable[str],
         'prevalence': (_get_prevalence, set()),
         'incidence': (_get_incidence, set()),
         'relative_risk': (_get_relative_risk, {'cause_id', 'parameter', }),
-        'population_attributable_fraction': (_get_population_attributable_fraction, {'cause_id', }),
+        'population_attributable_fraction': (_get_population_attributable_fraction, {'risk_id', }),
         'cause_specific_mortality': (_get_cause_specific_mortality, set()),
         'excess_mortality': (_get_excess_mortality, set()),
         'exposure': (_get_exposure, {'parameter', }),
@@ -180,7 +180,7 @@ def _get_ids_for_measure(entities: Sequence[ModelableEntity], measure: str) -> L
         'exposure': ((Risk, CoverageGap), 'gbd_id'),
         'exposure_standard_deviation': ((Risk, CoverageGap), 'gbd_id'),
         'relative_risk': ((Risk, CoverageGap), 'gbd_id'),
-        'population_attributable_fraction': ((Cause, Etiology, CoverageGap), 'gbd_id'),
+        'population_attributable_fraction': ((Etiology, Risk), 'gbd_id'),
         'cause_specific_mortality': ((Cause,), 'gbd_id'),
         'excess_mortality': ((Cause,), 'gbd_id'),
         'annual_visits': (HealthcareEntity, 'utilization'),
@@ -512,108 +512,28 @@ def _get_relative_risk(entities: Iterable[Union[Risk, CoverageGap]], location_id
 
 
 def _filter_to_most_detailed(data):
-    for column, entity_list in [('cause_id', causes), ('etiology_id', etiologies),
-                                ('risk_id', risk_factors), ('coverage_gap_id', coverage_gaps)]:
+    for column, entity_list in [('cause_id', causes), ('etiology_id', etiologies), ('risk_id', risk_factors)]:
         if column in data:
             most_detailed = {e.gbd_id for e in entity_list if e is not None}
             data = data.query(f"{column} in @most_detailed")
     return data
 
 
-def _compute_paf_for_special_cases(affected_entity: Union[Cause, Risk], entity: Union[CoverageGap, Risk, Etiology],
-                                   location_ids: Iterable[int]):
-    """Computes pafs in cases where rr and exposure data is inconsistent with available pafs.
-
-    e.g., Paf for unsafe_water_source from central_comp is lower than what it is
-    supposed to be and does not assign correct incidence rates equivalent to gbd
-
-    :param affected_entity: which entity is affected by this entity
-    """
-    ex = _get_exposure([entity], location_ids)
-    rr = _get_relative_risk([entity], location_ids)
-
-    if isinstance(entity, (Risk, Etiology)):
-        cause_id, risk_id = affected_entity.gbd_id, entity.gbd_id
-        rr = rr[(rr.cause_id == cause_id) & (rr.rei_id == risk_id)]
-    elif isinstance(entity, CoverageGap):
-        if isinstance(affected_entity, Cause):
-            cause_id, risk_id = affected_entity.gbd_id, np.nan
-            rr = rr[(rr.cause_id == cause_id)]
-        elif isinstance(affected_entity, Risk):
-            risk_id, cause_id = affected_entity.gbd_id, np.nan
-            rr = rr[(rr.risk_id == risk_id)]
-        else:
-            raise InvalidQueryError(f'You requested the non-valid PAF data for {entity}-{affected_entity} pair')
-
-    paf = []
-
-    for location_id in location_ids:
-        key_cols = ['age_group_id', 'year_id', 'sex_id', 'parameter']
-        ex = ex[ex.location_id == location_id]
-        years = rr.year_id.unique()
-        relative_risk = rr.set_index(key_cols)
-
-        exposure = ex[ex['year_id'].isin(years)].set_index(key_cols)
-        draw_columns = ['draw_{}'.format(i) for i in range(1000)]
-        temp = relative_risk[draw_columns]*exposure[draw_columns]
-        temp_sum = temp.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
-        temp_result = ((temp_sum-1)/temp_sum)
-        temp_result = temp_result.replace(-np.inf, 0)  # Rows with zero exposure.
-        temp_result['cause_id'] = cause_id
-        temp_result['location_id'] = location_id
-        temp_result['risk_id'] = risk_id
-        temp_result['measure_id'] = 3
-        if isinstance(entity, CoverageGap):
-            temp_result['coverage_gap'] = entity.name
-        paf.append(temp_result.reset_index())
-
-    paf_data = pd.concat(paf)
-
-    if entity == coverage_gaps.low_measles_vaccine_coverage_first_dose:
-        paf_data['risk_id'] = entity.gbd_id
-        paf_data['coverage_gap_id'] = entity.gbd_id
-
-    return paf_data
-
-
 def _get_population_attributable_fraction(entities, location_ids):
-    SPECIAL = [risk_factors.unsafe_water_source]
     measure_ids = _get_ids_for_measure(entities, 'population_attributable_fraction')
 
-    if isinstance(entities[0], Cause):
+    if entities[0].kind == 'etiology':
+        measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids)
+        measure_data = measure_data.rename(columns={"rei_id": "etiology_id"})
+        measure_data = _filter_to_most_detailed(measure_data)
+
+    elif entities[0].kind == 'risk_factor' and entities[0].distribution in ['ensemble', 'normal', 'lognormal']:
         measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids)
         measure_data = measure_data.rename(columns={"rei_id": "risk_id"})
         measure_data = _filter_to_most_detailed(measure_data)
 
-        risks_in_result = measure_data.risk_id.unique()
-        special_cases = [r for r in SPECIAL if r.gbd_id in risks_in_result]
-        for risk in special_cases:
-            special_causes = measure_data[measure_data.risk_id == risk.gbd_id].cause_id.unique()
-            special_causes = [cause for cause in causes if
-                              cause and cause.gbd_id in special_causes and cause is not causes.all_causes]
-            for cause in special_causes:
-                special_paf = _compute_paf_for_special_cases(cause, risk, location_ids)
-                measure_data = measure_data.query("risk_id != @risk.gbd_id or cause_id != @cause.gbd_id")
-                measure_data = measure_data.append(special_paf)
-
-    elif isinstance(entities[0], Etiology):
-        measure_data = gbd.get_pafs(entity_ids=measure_ids, location_ids=location_ids, entity_type='etiology')
-        measure_data = measure_data.rename(columns={"rei_id": "etiology_id"})
-        measure_data = _filter_to_most_detailed(measure_data)
-
-    elif isinstance(entities[0], CoverageGap):
-        paf = []
-        for entity in entities:
-            affected_risk_factors = entity.affected_risk_factors
-            affected_causes = entity.affected_causes
-            paf.extend([_compute_paf_for_special_cases(cause, entity, location_ids) for cause
-                        in affected_causes if affected_causes])
-            paf.extend([_compute_paf_for_special_cases(risk_factor, entity, location_ids) for risk_factor
-                        in affected_risk_factors if affected_risk_factors])
-        measure_data = pd.concat(paf)
-
     else:
-        raise InvalidQueryError(f"Entity {entities[0].name} has no data for measure 'population_attributable_fraction'")
+        raise InvalidQueryError(f"{entities[0].name} has no data for population_attributable_fraction")
 
     # FIXME: We currently do not handle the case where PAF==1 so we just dump those rows.
     draws = [c for c in measure_data.columns if 'draw_' in c]
