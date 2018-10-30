@@ -3,7 +3,6 @@ import warnings
 
 from gbd_mapping import causes, risk_factors, sequelae, coverage_gaps, covariates, etiologies
 import pandas as pd
-import numpy as np
 
 from vivarium_public_health.dataset_manager import EntityKey
 
@@ -28,6 +27,7 @@ RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
 
 AGE_COLS = ['age', 'age_group_start', 'age_group_end']
 YEAR_COLS = ['year', 'year_start', 'year_end']
+
 
 def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool=False):
     entity_data = {
@@ -97,10 +97,10 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
     if not all_measures:
         return getter(entity, entity_key.measure, location, modeled_causes)
     else:
-        return _data_generator(entity, measures, location, modeled_causes, getter)
+        return data_generator(entity, measures, location, modeled_causes, getter)
 
 
-def _data_generator(entity, measures, location, modeled_causes, getter):
+def data_generator(entity, measures, location, modeled_causes, getter):
     for measure in measures:
         data = getter(entity, measure, location, modeled_causes)
         if data is not None:
@@ -112,12 +112,12 @@ def get_cause_data(cause, measure, location, _):
     if measure in ["sequelae", "etiologies", "restrictions"]:
         data = _get_cause_metadata(cause, measure)
     elif measure in ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]:
-        data = core.get_draws([cause], [measure], [location])
+        data = core.get_draws(cause, measure, location)
         data = normalize(data)[["location", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
     elif measure == "population_attributable_fraction":
-        data = _get_cause_population_attributable_fraction(cause, location)
+        data = get_cause_population_attributable_fraction(cause, location)
     elif measure == "remission":
-        data = _get_cause_remission(cause, location)
+        data = get_cause_remission(cause, location)
     else:
         raise NotImplementedError(f"Unknown measure {measure} for cause {cause.name}")
 
@@ -145,11 +145,11 @@ def get_sequela_data(sequela, measure, location, _):
     if measure == "healthstate":
         data = sequela.healthstate.name
     elif measure in ["incidence", "prevalence"]:
-        data = core.get_draws([sequela], [measure], [location]).drop("sequela_id", axis=1)
+        data = core.get_draws(sequela, measure, location).drop("sequela_id", axis=1)
         data = normalize(data)[["location", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
         data["sequela_id"] = sequela.gbd_id
     elif measure == "disability_weight":
-        data = core.get_draws([sequela], ["disability_weight"], [location])
+        data = core.get_draws(sequela, "disability_weight", location)
         index_columns = [c for c in data.columns if "draw_" not in c]
         draw_columns = [c for c in data.columns if "draw_" in c]
         data = pd.melt(data, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
@@ -161,11 +161,11 @@ def get_sequela_data(sequela, measure, location, _):
 
 def get_healthcare_entity_data(healthcare_entity, measure, location, _):
     if measure == "cost":
-        data = core.get_draws([healthcare_entity], ["cost"], [location])
+        data = core.get_draws(healthcare_entity, "cost", location)
         data = normalize(data)
         data = data.loc[data.sex == 'Male', ["location", "draw", "value"] + YEAR_COLS]
     elif measure == "annual_visits":
-        data = core.get_draws([healthcare_entity], ["annual_visits"], [location])
+        data = core.get_draws(healthcare_entity, "annual_visits", location)
         data = normalize(data)
         data = data[["sex", "value", "draw"] + AGE_COLS + YEAR_COLS]
     else:
@@ -175,7 +175,7 @@ def get_healthcare_entity_data(healthcare_entity, measure, location, _):
 
 def get_health_technology_data(healthcare_technology, measure, location, _):
     if measure == "cost":
-        data = core.get_draws([healthcare_technology], ["cost"], [location])
+        data = core.get_draws(healthcare_technology, "cost", location)
         data = normalize(data)[["location", "draw", "value", "health_technology"] + YEAR_COLS]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for healthcare_entity {healthcare_technology.name}")
@@ -198,7 +198,7 @@ def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
 
 def get_etiology_data(etiology, measure, location, _):
     if measure == "population_attributable_fraction":
-        data = core.get_draws([etiology], ["population_attributable_fraction"], [location])
+        data = core.get_draws(etiology, "population_attributable_fraction", location)
         data = normalize(data)
         data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
         data = data[["location", "cause", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
@@ -209,7 +209,7 @@ def get_etiology_data(etiology, measure, location, _):
 
 def get_population_data(_, measure, location, __):
     if measure == "structure":
-        data = core.get_populations([location])
+        data = core.get_population(location)
         data = normalize_for_simulation(data)
         data = get_age_group_midpoint_from_age_group_id(data)
     elif measure == "age_bins":
@@ -224,7 +224,7 @@ def get_population_data(_, measure, location, __):
 
 def get_covariate_data(covariate, measure, location, _):
     if measure == "estimate":
-        data = core.get_covariate_estimates([covariate], [location])
+        data = core.get_covariate_estimate(covariate, location)
         expected_columns = ["location", "mean_value", "lower_value", "upper_value",
                             "sex_id", "year_id", "age_group_id"]
 
@@ -235,13 +235,12 @@ def get_covariate_data(covariate, measure, location, _):
         if (data['age_group_id'] == 22).all():
             data = data.drop(['age_group_id'], axis=1)
             warnings.warn(f"Covariate \"{covariate.name}\" contains data for the age group all ages, "
-                           "so the age column is being dropped.")
+                          f"so the age column is being dropped.")
         else:
             data = get_age_group_midpoint_from_age_group_id(data)
         data = normalize_for_simulation(data)
     else:
-        raise NotImplementedError((f"Unknown or unsupported measure {measure} for ")
-                                  (f"covariate {covariate.name}"))
+        raise NotImplementedError(f"Unknown or unsupported measure {measure} for covariate {covariate.name}.")
     return data
 
 
@@ -287,7 +286,7 @@ def _get_cause_population_attributable_fraction(cause, location):
     if cause.name == "all_causes":
         data = None
     else:
-        pafs = core.get_draws([cause], ["population_attributable_fraction"], [location])
+        pafs = core.get_draws(cause, "population_attributable_fraction", location)
         if pafs.empty:
             warnings.warn(f"No Population Attributable Fraction data found for cause '{cause.name}'")
             data = None
@@ -310,16 +309,9 @@ def _get_cause_population_attributable_fraction(cause, location):
 
 
 def _get_cause_remission(cause, location):
-    try:
-        result = core.get_draws([cause], ["remission"], [location])
-        if not result.empty:
-            data = normalize(result)[["location", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
-        else:
-            data = None
-    except core.InvalidQueryError:
-        data = None
-
-    return data
+    result = core.get_draws(cause, "remission", location)
+    result = normalize(result)[["location", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
+    return result
 
 
 #########
@@ -344,7 +336,7 @@ def _get_risk_metadata(risk, measure, modeled_causes):
 
 
 def _get_risk_exposure(risk, location):
-    exposures = core.get_draws([risk], ["exposure"], [location])
+    exposures = core.get_draws(risk, "exposure", location)
     normalized = []
     for key, group in exposures.groupby(["parameter"]):
         group = group.drop(["parameter"], axis=1)
@@ -360,7 +352,7 @@ def _get_risk_exposure(risk, location):
 
 def _get_risk_exposure_standard_deviation(risk, location):
     if risk.exposure_parameters is not None:
-        exposure_sds = core.get_draws([risk], ["exposure_standard_deviation"], [location])
+        exposure_sds = core.get_draws(risk, "exposure_standard_deviation", location)
         exposure_sds = normalize(exposure_sds)
         data = exposure_sds[["location", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
     else:
@@ -369,7 +361,7 @@ def _get_risk_exposure_standard_deviation(risk, location):
 
 
 def _get_risk_relative_risk(risk, location):
-    rrs = core.get_draws([risk], ["relative_risk"], [location])
+    rrs = core.get_draws(risk, "relative_risk", location)
     normalized = []
     for key, group in rrs.groupby(["parameter", "cause_id"]):
         group = group.drop(["cause_id", "parameter"], axis=1)
@@ -413,7 +405,7 @@ def _get_coverage_gap_metadata(coverage_gap, measure, modeled_causes):
 
 
 def _get_coverage_gap_exposure(coverage_gap, location):
-    exposures = core.get_draws([coverage_gap], ["exposure"], [location])
+    exposures = core.get_draws(coverage_gap, "exposure", location)
     normalized = []
     for key, group in exposures.groupby(["parameter"]):
         group = group.drop(["parameter"], axis=1)
@@ -428,7 +420,7 @@ def _get_coverage_gap_exposure(coverage_gap, location):
 
 
 def _get_coverage_gap_relative_risk(coverage_gap, location):
-    data = core.get_draws([coverage_gap], ["relative_risk"], [location])
+    data = core.get_draws(coverage_gap, "relative_risk", location)
     if data.empty:
         data = None
     else:
@@ -438,7 +430,7 @@ def _get_coverage_gap_relative_risk(coverage_gap, location):
 
 
 def _get_coverage_gap_population_attributable_fraction(coverage_gap, location):
-    data = core.get_draws([coverage_gap], ["population_attributable_fraction"], [location])
+    data = core.get_draws(coverage_gap, "population_attributable_fraction", location)
     if data.empty:
         data = None
     else:
