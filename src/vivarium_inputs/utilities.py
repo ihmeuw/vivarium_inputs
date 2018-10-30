@@ -7,9 +7,16 @@ import numpy as np
 from gbd_mapping import (causes, risk_factors, etiologies, coverage_gaps,
                          Cause, Risk, Sequela, CoverageGap, Etiology, ModelableEntity)
 from gbd_mapping.id import scalar, UNKNOWN
-from vivarium_gbd_access import gbd
 
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
+
+try:
+    import vivarium_gbd_access.gbd as gbd
+except ModuleNotFoundError:
+    class GbdDummy:
+        def __getattr__(self, item):
+            raise ModuleNotFoundError("Required package vivarium_gbd_access not found.")
+    gbd = GbdDummy()
 
 GBD_ROUND_ID_MAP = {3: 'GBD_2015', 4: 'GBD_2016'}
 

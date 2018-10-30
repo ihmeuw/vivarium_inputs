@@ -10,18 +10,10 @@ from gbd_mapping.risk import Risk, risk_factors
 from gbd_mapping.etiology import Etiology
 from gbd_mapping.coverage_gap import CoverageGap, coverage_gaps
 
-try:
-    import vivarium_gbd_access.gbd as gbd
-except ModuleNotFoundError:
-    class GbdDummy:
-        def __getattr__(self, item):
-            raise ModuleNotFoundError("Required package vivarium_gbd_access not found.")
-    gbd = GbdDummy()
-
 from vivarium_inputs.utilities import (InvalidQueryError, UnhandledDataError, DataMissingError,
                                        get_additional_id_columns, validate_data, get_measure_id, get_id_for_measure,
                                        standardize_all_age_groups, get_age_group_ids, filter_to_most_detailed,
-                                       standardize_data)
+                                       standardize_data, gbd)
 
 
 def get_draws(entity: ModelableEntity, measure: str, location: str) -> pd.DataFrame:
