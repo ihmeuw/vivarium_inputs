@@ -1,9 +1,11 @@
 """Module containing functions that standardize the format of GBD outputs."""
-from typing import Mapping
+from typing import Mapping, Iterable
 from itertools import chain
 
 import pandas as pd
-from gbd_mapping import causes, risk_factors, etiologies, coverage_gaps
+import numpy as np
+from gbd_mapping import (causes, risk_factors, etiologies, coverage_gaps,
+                         Cause, Risk, Sequela, CoverageGap, Etiology, ModelableEntity)
 from gbd_mapping.id import scalar, UNKNOWN
 from vivarium_gbd_access import gbd
 
