@@ -31,7 +31,7 @@ __all__ = [
     "get_theoretical_minimum_risk_life_expectancy", "get_subregions", "get_outpatient_visit_costs",
     "get_inpatient_visit_costs", "get_inpatient_visit_costs",
     "get_age_specific_fertility_rates", "get_live_births_by_sex", "get_dtp3_coverage",
-    "get_protection", "get_healthcare_annual_visits",
+    "get_healthcare_annual_visits",
 ]
 
 

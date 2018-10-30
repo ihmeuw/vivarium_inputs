@@ -331,7 +331,7 @@ def get_additional_id_columns(data, entity):
         'healthcare_entity': 'healthcare_entity',
         'health_technology': 'health_technology',
     }
-    out = set(id_column_map[entity.kind])
+    out = {id_column_map[entity.kind]}
     if entity.kind == 'coverage_gap' and 'relative_risk' in data['measure'].unique():
         out.add('rei_id')
     # TODO: Why?

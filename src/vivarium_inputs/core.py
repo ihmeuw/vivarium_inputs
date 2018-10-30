@@ -163,7 +163,7 @@ def get_excess_mortality(entity, location_id):
     prevalence = get_draws(entity, 'prevalence', get_location_name(location_id)).drop('measure', 'columns')
     csmr = get_draws(entity, 'cause_specific_mortality', get_location_name(location_id)).drop('measure', 'columns')
 
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'cause_id']
+    key_columns = ['year_id', 'sex_id', 'age_group_id', 'cause_id', 'location']
     prevalences = prevalence.set_index(key_columns)
     csmrs = csmr.set_index(key_columns)
 
@@ -224,7 +224,7 @@ def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int):
 
 
 def pull_rr_data_from_gbd(measure_id, location_id):
-    data = gbd.get_relative_risks(risk_id=measure_id, location_ids=location_id)
+    data = gbd.get_relative_risk(risk_id=measure_id, location_id=location_id)
     data = data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
 
     # FIXME: I'm passing because this is broken for zinc_deficiency, and I don't have time to investigate -J.C.
@@ -242,7 +242,7 @@ def pull_rr_data_from_gbd(measure_id, location_id):
 
 
 def get_population_attributable_fraction(entity, location_id):
-    special_cases = set(risk_factors.unsafe_water_source.gbd_id)
+    special_cases = {risk_factors.unsafe_water_source}
     entity_id = get_id_for_measure(entity, 'population_attributable_fraction')
 
     if entity.kind == 'cause':
@@ -313,7 +313,7 @@ def compute_paf_manually(affected_entity: Union[Cause, Risk], entity: Union[Cove
     relative_risk = rr.set_index(key_cols)
     exposure = ex[ex['year_id'].isin(years)].set_index(key_cols)
 
-    weighted_rr  = relative_risk[draw_columns]*exposure[draw_columns]
+    weighted_rr = relative_risk[draw_columns]*exposure[draw_columns]
     mean_rr = weighted_rr.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
     paf = (mean_rr - 1) / mean_rr
     paf = paf.replace(-np.inf, 0)  # Rows with zero exposure.
@@ -324,7 +324,7 @@ def compute_paf_manually(affected_entity: Union[Cause, Risk], entity: Union[Cove
     if entity.kind == 'coverage_gap':
         paf['coverage_gap'] = entity.name
 
-    return paf
+    return paf.reset_index()
 
 
 def get_exposure(entity, location_id):
@@ -365,7 +365,7 @@ def convert_exposure_prevalence_to_proportion(data):
     draw_cols = [f'draw_{i}' for i in range(1000)]
 
     data = data.set_index(key_cols)
-    data = data[draw_cols + ['risk_id', 'measure_id', 'parameter']]
+    data = data[draw_cols + ['rei_id', 'measure_id', 'parameter']]
 
     total_prevalence = data[draw_cols].reset_index().groupby(key_cols).sum()
     for parameter in data['parameter'].unique():
@@ -465,7 +465,7 @@ def get_ensemble_weights(risk):
 
 
 def get_population(location):
-    population = gbd.get_populations(get_location_id(location))
+    population = gbd.get_population(get_location_id(location))
     population["location"] = location
     keep_columns = ['age_group_id', 'location', 'year_id', 'sex_id', 'population']
     return population[keep_columns]
@@ -490,7 +490,7 @@ def get_subregions(location):
 
 def get_covariate_estimate(covariate, location):
     location_id = get_location_id(location)
-    data = gbd.get_covariate_estimates(covariate.gbd_id, location_id)
+    data = gbd.get_covariate_estimate(covariate.gbd_id, location_id)
     data['location'] = location
     data = data.drop('location_id', 'columns')
     return data
