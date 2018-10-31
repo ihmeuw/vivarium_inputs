@@ -11,7 +11,7 @@ from gbd_mapping.id import scalar, UNKNOWN
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
 
 try:
-    import vivarium_gbd_access.gbd as gbd
+    from vivarium_gbd_access import gbd
 except ModuleNotFoundError:
     class GbdDummy:
         def __getattr__(self, item):
