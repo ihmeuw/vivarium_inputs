@@ -393,8 +393,8 @@ def get_risk_population_attributable_fraction(risk, location):
 
 def get_risk_ensemble_weights(risk):
     if risk.distribution == "ensemble":
-        weights = core.get_ensemble_weights([risk])
-        weights = weights.drop(["location_id", "rei_id"], axis=1)
+        weights = core.get_ensemble_weights(risk)
+        weights = weights.drop(["location_id", "risk_id"], axis=1)
         weights = normalize_for_simulation(weights)
         data = get_age_group_midpoint_from_age_group_id(weights)
     else:
