@@ -153,7 +153,8 @@ def test_get_relative_risk(mocker):
 
 def test_get_population_attributable_fraction(mocker):
     gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
-    gbd_mock.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
+    gbd_mock_utilities = mocker.patch("vivarium_inputs.utilities.gbd")
+    gbd_mock_utilities.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     draw_cols = [f"draw_{i}" for i in range(10)]
     paf_maps = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2], 'age_group_id': [4, 5],
                 'rei_id': [84, 339, 238, 136, 240], 'cause_id': [302], 'measure_id':[3]}
