@@ -119,7 +119,8 @@ def cause_like_entities(request, cause_list, etiology_list):
 
 def test_get_relative_risk(mocker):
     gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
-    gbd_mock.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
+    gbd_mock_utilities = mocker.patch("vivarium_inputs.utilities.gbd")
+    gbd_mock_utilities.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     draw_cols = [f"rr_{i}" for i in range(10)]
     rr_maps = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2], 'age_group_id': [4, 5],
                'risk_id': [240], 'cause_id': [302], 'parameter': ['cat1', 'cat2', 'cat3', 'cat4'],
