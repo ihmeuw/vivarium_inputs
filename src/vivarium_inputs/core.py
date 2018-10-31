@@ -1,6 +1,5 @@
 """This module performs the core data transformations on GBD data and provides a basic API for data access."""
 from typing import Union
-from itertools import chain
 
 import numpy as np
 import pandas as pd
@@ -39,7 +38,7 @@ def get_draws(entity: ModelableEntity, measure: str, location: str) -> pd.DataFr
         'prevalence': (get_prevalence, set()),
         'incidence': (get_incidence, set()),
         'relative_risk': (get_relative_risk, {'cause_id', 'parameter', }),
-        'population_attributable_fraction': (get_population_attributable_fraction, {'cause_id', }),
+        'population_attributable_fraction': (get_population_attributable_fraction, {'rei_id', }),
         'cause_specific_mortality': (get_cause_specific_mortality, set()),
         'excess_mortality': (get_excess_mortality, set()),
         'exposure': (get_exposure, {'parameter', }),
@@ -234,23 +233,17 @@ def pull_rr_data_from_gbd(measure_id, location_id):
 
 
 def get_population_attributable_fraction(entity, location_id):
-    special_cases = {risk_factors.unsafe_water_source}
     entity_id = get_id_for_measure(entity, 'population_attributable_fraction')
 
-    if entity.kind == 'cause':
+    if entity.kind == 'etiology':
         data = gbd.get_paf(entity_id=entity_id, location_id=location_id)
+        data = data.rename(columns={"rei_id": "etiology_id"})
         data = filter_to_most_detailed(data)
-        compute_manually = [r for r in special_cases if r.gbd_id in data['rei_id'].unique()]
-        for risk in compute_manually:
-            data = data[data.rei_id != risk.gbd_id]
-            risk_data = compute_paf_manually(entity, risk, location_id)
-            data = data.append(risk_data, ignore_index=True)
-    elif entity.kind == 'etiology':
-        data = gbd.get_paf(entity_id=entity_id, location_id=location_id, entity_type='etiology')
+
+    elif entity.kind == 'risk_factor' and entity.distribution in ['ensemble', 'normal', 'lognormal']:
+        data = gbd.get_paf(entity_ids=entity_id, location_ids=location_id)
         data = filter_to_most_detailed(data)
-    elif entity.kind == 'coverage_gap':
-        data = pd.concat([compute_paf_manually(affected_entity, entity, location_id)
-                          for affected_entity in chain(entity.affected_risk_factors, entity.affected_causes)])
+
     else:
         raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
 
@@ -262,7 +255,6 @@ def get_population_attributable_fraction(entity, location_id):
     draws = [c for c in data.columns if 'draw_' in c]
     data = data.loc[~(data[draws] == 1).any(axis=1)]
 
-
     # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
     # measure_ids = {name_measure_map[m] for m in ['death', 'DALY', 'YLD', 'YLL']}
     # err_msg = ("Not all PAF data has values for deaths, DALYs, YLDs and YLLs. "
@@ -273,50 +265,6 @@ def get_population_attributable_fraction(entity, location_id):
 
     data = standardize_data(data, 0)
     return data
-
-
-def compute_paf_manually(affected_entity: Union[Cause, Risk], entity: Union[CoverageGap, Risk, Etiology],
-                         location_id: int):
-    """Computes pafs in cases where rr and exposure data is inconsistent with available pafs.
-
-    e.g., Paf for unsafe_water_source from central_comp is lower than what it is
-    supposed to be and does not assign correct incidence rates equivalent to gbd
-    """
-    ex = get_exposure(entity, location_id)
-    rr = get_relative_risk(entity, location_id)
-
-    if entity.kind == 'risk_factor':
-        cause_id, risk_id = affected_entity.gbd_id, entity.gbd_id
-        rr = rr[(rr.cause_id == cause_id) & (rr.rei_id == risk_id)]
-    elif entity.kind == 'coverage_gap' and affected_entity.kind == 'cause':
-        cause_id, risk_id = affected_entity.gbd_id, np.nan
-        rr = rr[(rr.cause_id == cause_id)]
-    elif entity.kind == 'coverage_gap' and affected_entity.kind == 'risk_factor':
-        risk_id, cause_id = affected_entity.gbd_id, np.nan
-        rr = rr[(rr.risk_id == risk_id)]
-    else:
-        raise InvalidQueryError(f'You requested the non-valid PAF data for {entity}-{affected_entity} pair')
-
-    key_cols = ['age_group_id', 'year_id', 'sex_id', 'parameter']
-    draw_columns = ['draw_{}'.format(i) for i in range(1000)]
-
-    years = rr.year_id.unique()
-
-    relative_risk = rr.set_index(key_cols)
-    exposure = ex[ex['year_id'].isin(years)].set_index(key_cols)
-
-    weighted_rr = relative_risk[draw_columns]*exposure[draw_columns]
-    mean_rr = weighted_rr.groupby(['age_group_id', 'year_id', 'sex_id']).sum()
-    paf = (mean_rr - 1) / mean_rr
-    paf = paf.replace(-np.inf, 0)  # Rows with zero exposure.
-    paf['cause_id'] = cause_id
-    paf['location_id'] = location_id
-    paf['rei_id'] = risk_id
-    paf['measure_id'] = 3
-    if entity.kind == 'coverage_gap':
-        paf['coverage_gap'] = entity.name
-
-    return paf.reset_index()
 
 
 def get_exposure(entity, location_id):

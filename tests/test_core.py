@@ -128,7 +128,7 @@ def test_get_relative_risk(mocker):
 
     rr_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*rr_maps.values()], names=[*rr_maps.keys()]))
     rr_[draw_cols] = np.random.random_sample((len(rr_), 10)) * 10
-    gbd_mock.get_relative_risks.return_value = rr_.reset_index()
+    gbd_mock.get_relative_risk.return_value = rr_.reset_index()
     get_rr = core.get_relative_risk(risk_factors.child_wasting, 1)
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(rr_maps['age_group_id']))
@@ -157,11 +157,13 @@ def test_get_population_attributable_fraction(mocker):
     categorical_risk = [r for r in risk_factors if r.distribution in ['polytomous','dichotomous']]
     coverage_gap_list = [c for c in coverage_gaps]
 
-    with pytest.raises(core.InvalidQueryError):
-        core._get_population_attributable_fraction(categorical_risk, [180])
+    for risk in categorical_risk:
+        with pytest.raises(core.InvalidQueryError):
+            core.get_population_attributable_fraction(risk, 180)
 
-    with pytest.raises(core.InvalidQueryError):
-        core._get_population_attributable_fraction(coverage_gap_list, [180])
+    for cg in coverage_gap_list:
+        with pytest.raises(core.InvalidQueryError):
+            core.get_population_attributable_fraction(cg, 180)
 
     gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
     gbd_mock.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
@@ -173,7 +175,7 @@ def test_get_population_attributable_fraction(mocker):
     paf_[draw_cols] = np.random.random_sample((len(paf_), 10))
     gbd_mock.get_paf.return_value = paf_.reset_index()
 
-    get_paf = core._get_population_attributable_fraction(risk_factors.high_total_cholesterol, 1)
+    get_paf = core.get_population_attributable_fraction(risk_factors.high_total_cholesterol, 1)
 
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(paf_maps['age_group_id']))

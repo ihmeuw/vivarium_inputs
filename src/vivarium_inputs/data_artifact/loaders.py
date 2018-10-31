@@ -377,7 +377,7 @@ def get_risk_population_attributable_fraction(risk, location):
     if risk.distribution not in ['lognormal', 'normal', 'ensemble']:
         result = None
     else:
-        paf = core.get_draws([risk], ['population_attributable_fraction'], [location])
+        paf = core.get_draws(risk, 'population_attributable_fraction', location)
         normalized = []
         for key, group in paf.groupby(["cause_id"]):
             group = group.drop(["cause_id"], axis=1)
