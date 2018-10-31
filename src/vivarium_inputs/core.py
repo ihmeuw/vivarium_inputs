@@ -412,7 +412,7 @@ def get_exposure_standard_deviation(entity, location_id):
     entity_id = get_id_for_measure(entity, 'exposure_standard_deviation')
     data = gbd.get_exposure_standard_deviation(entity_id, location_id)
 
-    key_cols = ['age_group_id', 'location_id', 'sex_id', 'year_id', 'risk_id']
+    key_cols = ['age_group_id', 'location_id', 'sex_id', 'year_id', 'rei_id']
     draw_cols = [f'draw_{i}' for i in range(1000)]
 
     return data[key_cols + draw_cols]
