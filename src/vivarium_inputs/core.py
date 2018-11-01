@@ -239,9 +239,8 @@ def get_population_attributable_fraction(entity, location_id):
         data = gbd.get_paf(entity_id=entity_id, location_id=location_id)
         data = data.rename(columns={"rei_id": "etiology_id"})
         data = filter_to_most_detailed(data)
-
     elif entity.kind == 'risk_factor' and entity.distribution in ['ensemble', 'normal', 'lognormal']:
-        data = gbd.get_paf(entity_ids=entity_id, location_ids=location_id)
+        data = gbd.get_paf(entity_id=entity_id, location_id=location_id)
         data = filter_to_most_detailed(data)
 
     else:
@@ -272,7 +271,7 @@ def get_exposure(entity, location_id):
     entity_id = get_id_for_measure(entity, 'exposure')
 
     if entity.kind in ['risk_factor', 'etiology']:
-        data = gbd.get_exposure(entity_id=entity_id, location_id=location_id)
+        data = gbd.get_exposure(risk_id=entity_id, location_id=location_id)
         measure_id = get_exposure_measure_id(data)
         if measure_id == get_measure_id('prevalence'):
             data = convert_exposure_prevalence_to_proportion(data)
