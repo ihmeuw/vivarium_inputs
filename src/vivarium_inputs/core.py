@@ -435,7 +435,7 @@ def get_annual_visits(entity, location_id):
 
 def get_cost(entity, location_id):
     cost_data = gbd.get_auxiliary_data('cost', entity.kind, entity.name)
-    if location_id in cost_data.columns:
+    if 'location_id' in cost_data.columns:
         cost_data = cost_data[cost_data['location_id'] == location_id]
     return cost_data
 
