@@ -128,7 +128,7 @@ def test_get_relative_risk(mocker):
 
     rr_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*rr_maps.values()], names=[*rr_maps.keys()]))
     rr_[draw_cols] = np.random.random_sample((len(rr_), 10)) * 10
-    gbd_mock.get_relative_risks.return_value = rr_.reset_index()
+    gbd_mock.get_relative_risk.return_value = rr_.reset_index()
     get_rr = core.get_relative_risk(risk_factors.child_wasting, 1)
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(rr_maps['age_group_id']))
