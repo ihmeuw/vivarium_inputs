@@ -7,6 +7,7 @@ import pytest
 from gbd_mapping.id import reiid
 from gbd_mapping.cause import causes
 from gbd_mapping.risk import risk_factors
+from gbd_mapping.coverage_gap import coverage_gaps
 
 from vivarium_inputs import core
 
@@ -153,18 +154,30 @@ def test_get_relative_risk(mocker):
 
 
 def test_get_population_attributable_fraction(mocker):
+
+    categorical_risk = [r for r in risk_factors if r.distribution in ['polytomous','dichotomous']]
+    coverage_gap_list = [c for c in coverage_gaps]
+
+    for risk in categorical_risk:
+        with pytest.raises(core.InvalidQueryError):
+            core.get_population_attributable_fraction(risk, 180)
+
+    for cg in coverage_gap_list:
+        with pytest.raises(core.InvalidQueryError):
+            core.get_population_attributable_fraction(cg, 180)
+
     gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
     gbd_mock_utilities = mocker.patch("vivarium_inputs.utilities.gbd")
     gbd_mock_utilities.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     draw_cols = [f"draw_{i}" for i in range(10)]
     paf_maps = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2], 'age_group_id': [4, 5],
-                'rei_id': [84, 339, 238, 136, 240], 'cause_id': [302], 'measure_id':[3]}
+                'rei_id': [106], 'cause_id': [493, 495], 'measure_id': [3]}
 
     paf_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*paf_maps.values()], names=[*paf_maps.keys()]))
     paf_[draw_cols] = np.random.random_sample((len(paf_), 10))
     gbd_mock.get_paf.return_value = paf_.reset_index()
 
-    get_paf = core.get_population_attributable_fraction(causes.diarrheal_diseases, 1)
+    get_paf = core.get_population_attributable_fraction(risk_factors.high_total_cholesterol, 1)
 
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(paf_maps['age_group_id']))

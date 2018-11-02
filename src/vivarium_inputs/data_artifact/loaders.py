@@ -35,15 +35,14 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
             "mapping": causes,
             "getter": get_cause_data,
             "measures": ["death", "prevalence", "incidence", "cause_specific_mortality",
-                         "excess_mortality", "population_attributable_fraction", "remission",
-                         "sequelae", "etiologies", "restrictions"]
+                         "excess_mortality", "remission", "sequelae", "etiologies", "restrictions"]
         },
         "risk_factor": {
             "mapping": risk_factors,
             "getter": get_risk_data,
             "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution",
                          "exposure_parameters", "levels", "tmred", "exposure", "exposure_standard_deviation",
-                         "relative_risk", "ensemble_weights"],
+                         "relative_risk", "population_attributable_fraction", "ensemble_weights"],
         },
         "sequela": {
             "mapping": sequelae,
@@ -64,7 +63,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
             "mapping": coverage_gaps,
             "getter": get_coverage_gap_data,
             "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels",
-                         "population_attributable_fraction", "relative_risk", "exposure"]
+                         "relative_risk", "exposure"]
         },
         "etiology": {
             "mapping": etiologies,
@@ -114,8 +113,6 @@ def get_cause_data(cause, measure, location, _):
     elif measure in ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]:
         data = core.get_draws(cause, measure, location)
         data = normalize(data)[["location", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
-    elif measure == "population_attributable_fraction":
-        data = get_cause_population_attributable_fraction(cause, location)
     elif measure == "remission":
         data = get_cause_remission(cause, location)
     else:
@@ -134,6 +131,8 @@ def get_risk_data(risk, measure, location, modeled_causes):
         data = get_risk_exposure_standard_deviation(risk, location)
     elif measure == "relative_risk":
         data = get_risk_relative_risk(risk, location)
+    elif measure == "population_attributable_fraction":
+        data = get_risk_population_attributable_fraction(risk, location)
     elif measure == "ensemble_weights":
         data = get_risk_ensemble_weights(risk)
     else:
@@ -189,8 +188,6 @@ def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
         data = get_coverage_gap_exposure(coverage_gap, location)
     elif measure == "relative_risk":
         data = get_coverage_gap_relative_risk(coverage_gap, location)
-    elif measure == "population_attributable_fraction":
-        data = get_coverage_gap_population_attributable_fraction(coverage_gap, location)
     else:
         raise NotImplementedError(f"Unknown measure {measure} for coverage_gap {coverage_gap.name}")
     return data
@@ -376,6 +373,24 @@ def get_risk_relative_risk(risk, location):
     return result
 
 
+def get_risk_population_attributable_fraction(risk, location):
+    if risk.distribution not in ['lognormal', 'normal', 'ensemble']:
+        result = None
+    else:
+        paf = core.get_draws(risk, 'population_attributable_fraction', location)
+        normalized = []
+        for key, group in paf.groupby(["cause_id"]):
+            group = group.drop(["cause_id"], axis=1)
+            group = normalize(group)
+            group["cause"] = CAUSE_BY_ID[key].name
+            dims = ["year", "year_start", "year_end", "sex", "measure", "age", "age_group_start",
+                    "age_group_end", "location", "draw", "cause"]
+            normalized.append(group.set_index(dims))
+        result = pd.concat(normalized).reset_index()
+        result = result[["location", "sex", "draw", "value", "cause"] + AGE_COLS + YEAR_COLS]
+    return result
+
+
 def get_risk_ensemble_weights(risk):
     if risk.distribution == "ensemble":
         weights = core.get_ensemble_weights(risk)
@@ -424,31 +439,17 @@ def get_coverage_gap_relative_risk(coverage_gap, location):
     if data.empty:
         data = None
     else:
-        data = handle_coverage_gap_rr_paf(data)
+        data = normalize(data)
+        data = data.rename(columns={'cause_id': 'cause', 'risk_id': 'risk_factor'})
+        if data['cause'].dropna().unique().size > 0:
+            for cid in data['cause'].dropna().unique():
+                data['cause'] = data['cause'].apply(lambda c: CAUSE_BY_ID[c].name if c == cid else c)
+        if data['risk_factor'].dropna().unique().size > 0:
+            for rid in data['risk_factor'].dropna().unique():
+                if rid == 318:  # measles
+                    data.loc[data['risk_factor'] == rid, 'risk_factor'] = 'low_measles_vaccine_coverage_first_dose'
+                else:
+                    data['risk_factor'] = data['risk_factor'].apply(lambda r: RISK_BY_ID[r].name if r == rid else r)
         data = data[['location', 'cause', 'risk_factor', 'sex', 'draw', 'value', 'parameter'] + AGE_COLS + YEAR_COLS]
     return data
 
-
-def get_coverage_gap_population_attributable_fraction(coverage_gap, location):
-    data = core.get_draws(coverage_gap, "population_attributable_fraction", location)
-    if data.empty:
-        data = None
-    else:
-        data = handle_coverage_gap_rr_paf(data)
-        data = data[["location", "cause", "risk_factor", "sex", "draw", "value",] + AGE_COLS + YEAR_COLS]
-    return data
-
-
-def handle_coverage_gap_rr_paf(data):
-    data = normalize(data)
-    data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk_factor'})
-    if data['cause'].dropna().unique().size > 0:
-        for cid in data['cause'].dropna().unique():
-            data['cause'] = data['cause'].apply(lambda c: CAUSE_BY_ID[c].name if c == cid else c)
-    if data['risk_factor'].dropna().unique().size > 0:
-        for rid in data['risk_factor'].dropna().unique():
-            if rid == 318:  # measles
-                data.loc[data['risk_factor'] == rid, 'risk_factor'] = 'low_measles_vaccine_coverage_first_dose'
-            else:
-                data['risk_factor'] = data['risk_factor'].apply(lambda r: RISK_BY_ID[r].name if r == rid else r)
-    return data
