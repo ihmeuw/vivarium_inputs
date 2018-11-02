@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 
 
 from vivarium_inputs import core
-from vivarium_inputs.utilities import (select_draw_data, get_age_group_midpoint_from_age_group_id,
+from vivarium_inputs.utilities import (select_draw_data, get_age_group_bins_from_age_group_id,
                                        normalize_for_simulation)
 from vivarium_inputs.mapping_extension import healthcare_entities
 
@@ -38,7 +38,7 @@ __all__ = [
 def _clean_and_filter_data(data, draw_number, column_name):
     key_cols = [c for c in data.columns if 'draw' not in c]
     data = data[key_cols + [f'draw_{draw_number}']]
-    data = get_age_group_midpoint_from_age_group_id(data)
+    data = get_age_group_bins_from_age_group_id(data)
     return select_draw_data(data, draw_number, column_name)
 
 
@@ -137,7 +137,7 @@ def get_populations(override_config=None, location=None):
         data = core.get_population(location)
     else:
         data = core.get_population(config.input_data.location)
-    data = get_age_group_midpoint_from_age_group_id(data)
+    data = get_age_group_bins_from_age_group_id(data)
     data = normalize_for_simulation(data)
     return data
 
@@ -160,7 +160,8 @@ def get_outpatient_visit_costs(override_config=None):
     data = core.get_draws(healthcare_entities.outpatient_visits,
                           'cost', config.input_data.location).drop('measure', 'columns')
     data = data[['year_id', f'draw_{config.input_data.input_draw_number}']]
-    return data.rename(columns={'year_id':'year', f'draw_{config.input_data.input_draw_number}': 'cost'})
+    data = normalize_for_simulation(data)
+    return data.rename(columns={f'draw_{config.input_data.input_draw_number}': 'cost'})
 
 
 def get_inpatient_visit_costs(override_config=None):
@@ -168,15 +169,17 @@ def get_inpatient_visit_costs(override_config=None):
     data = core.get_draws(healthcare_entities.inpatient_visits,
                           'cost', config.input_data.location).drop('measure', 'columns')
     data = data[['year_id', f'draw_{config.input_data.input_draw_number}']]
-    return data.rename(columns={'year_id':'year', f'draw_{config.input_data.input_draw_number}': 'cost'})
+    data = normalize_for_simulation(data)
+    return data.rename(columns={f'draw_{config.input_data.input_draw_number}': 'cost'})
 
 
 def get_age_specific_fertility_rates(override_config=None):
     config = get_input_config(override_config)
     data = core.get_covariate_estimate(covariates.age_specific_fertility_rate, config.input_data.location)
-    data = get_age_group_midpoint_from_age_group_id(data)
+    data = get_age_group_bins_from_age_group_id(data)
     data = normalize_for_simulation(data)
-    return data.loc[data.sex == 'Female', ['age', 'year', 'mean_value']].rename(columns={'mean_value': 'rate'})
+    return data.loc[data.sex == 'Female', ['age_group_start', 'age_group_end',
+                                           'year_start', 'year_end', 'mean_value']].rename(columns={'mean_value': 'rate'})
 
 
 def get_live_births_by_sex(override_config=None):

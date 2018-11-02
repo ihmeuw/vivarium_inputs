@@ -5,7 +5,7 @@ from hypothesis.extra.pandas import data_frames, column
 
 from gbd_mapping import Cause, Risk, Etiology, Sequela
 
-from vivarium_inputs.utilities import get_age_group_midpoint_from_age_group_id
+from vivarium_inputs.utilities import get_age_group_bins_from_age_group_id
 from vivarium_inputs.data_artifact import normalize
 
 CAUSE_MEASURES = ["death", "prevalence", "incidence", "population_attributable_fraction",
@@ -54,10 +54,10 @@ def test__normalize(data):
     assert original_draw_count == normalized_draw_count
 
     if "age_group_ids" in data:
-        assert "age" in normed
+        assert "age" not in normed
         assert "age_group_start" in normed
         assert "age_group_end" in normed
         no_draw_orig = data[[c for c in data.columns if not c.startswith("draw_")]].unique()
         no_draw_norm = normed[[c for c in normed.columns if c != "draw"]].unique()
-        assert no_draw_norm == get_age_group_midpoint_from_age_group_id(no_draw_orig)
+        assert no_draw_norm == get_age_group_bins_from_age_group_id(no_draw_orig)
 

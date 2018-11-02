@@ -8,7 +8,7 @@ from vivarium_public_health.dataset_manager import EntityKey
 
 from vivarium_inputs import core
 from vivarium_inputs.data_artifact.utilities import normalize
-from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_midpoint_from_age_group_id
+from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_bins_from_age_group_id
 from vivarium_inputs.mapping_extension import healthcare_entities, health_technologies
 
 
@@ -25,8 +25,8 @@ class EntityError(DataArtifactError):
 CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
 RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
 
-AGE_COLS = ['age', 'age_group_start', 'age_group_end']
-YEAR_COLS = ['year', 'year_start', 'year_end']
+AGE_COLS = ['age_group_start', 'age_group_end']
+YEAR_COLS = ['year_start', 'year_end']
 
 
 def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool=False):
@@ -208,7 +208,7 @@ def get_population_data(_, measure, location, __):
     if measure == "structure":
         data = core.get_population(location)
         data = normalize_for_simulation(data)
-        data = get_age_group_midpoint_from_age_group_id(data)
+        data = get_age_group_bins_from_age_group_id(data)
     elif measure == "age_bins":
         data = core.get_age_bins()[["age_group_years_start", "age_group_years_end", "age_group_name"]]
         data = data.rename(columns={"age_group_years_start": "age_group_start", "age_group_years_end": "age_group_end"})
@@ -234,7 +234,7 @@ def get_covariate_data(covariate, measure, location, _):
             warnings.warn(f"Covariate \"{covariate.name}\" contains data for the age group all ages, "
                           f"so the age column is being dropped.")
         else:
-            data = get_age_group_midpoint_from_age_group_id(data)
+            data = get_age_group_bins_from_age_group_id(data)
         data = normalize_for_simulation(data)
     else:
         raise NotImplementedError(f"Unknown or unsupported measure {measure} for covariate {covariate.name}.")
@@ -294,7 +294,7 @@ def get_cause_population_attributable_fraction(cause, location):
                 group = normalize(group)
                 if key in RISK_BY_ID:
                     group["risk_factor"] = RISK_BY_ID[key].name
-                    dims = ["year", "year_start", "year_end", "sex", "measure", "age", "age_group_start",
+                    dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
                             "age_group_end", "location", "draw", "risk_factor"]
                     normalized.append(group.set_index(dims))
                 else:
@@ -339,7 +339,7 @@ def get_risk_exposure(risk, location):
         group = group.drop(["parameter"], axis=1)
         group = normalize(group)
         group["parameter"] = key
-        dims = ["year", "year_start", "year_end", "sex", "measure", "age", "age_group_start",
+        dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
                 "age_group_end", "location", "draw", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
@@ -365,7 +365,7 @@ def get_risk_relative_risk(risk, location):
         group = normalize(group)
         group["parameter"] = key[0]
         group["cause"] = CAUSE_BY_ID[key[1]].name
-        dims = ["year", "year_start", "year_end", "sex", "measure", "age", "age_group_start",
+        dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
                 "age_group_end", "location", "draw", "cause", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()
@@ -383,7 +383,7 @@ def get_risk_population_attributable_fraction(risk, location):
             group = group.drop(["cause_id"], axis=1)
             group = normalize(group)
             group["cause"] = CAUSE_BY_ID[key].name
-            dims = ["year", "year_start", "year_end", "sex", "measure", "age", "age_group_start",
+            dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
                     "age_group_end", "location", "draw", "cause"]
             normalized.append(group.set_index(dims))
         result = pd.concat(normalized).reset_index()
@@ -396,7 +396,7 @@ def get_risk_ensemble_weights(risk):
         weights = core.get_ensemble_weights(risk)
         weights = weights.drop(["location_id", "risk_id"], axis=1)
         weights = normalize_for_simulation(weights)
-        data = get_age_group_midpoint_from_age_group_id(weights)
+        data = get_age_group_bins_from_age_group_id(weights)
     else:
         data = None
     return data
@@ -426,7 +426,7 @@ def get_coverage_gap_exposure(coverage_gap, location):
         group = group.drop(["parameter"], axis=1)
         group = normalize(group)
         group["parameter"] = key
-        dims = ["year", "year_start", "year_end", "sex", "measure", "age", "age_group_start",
+        dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
                 "age_group_end", "location", "draw", "parameter"]
         normalized.append(group.set_index(dims))
     result = pd.concat(normalized).reset_index()

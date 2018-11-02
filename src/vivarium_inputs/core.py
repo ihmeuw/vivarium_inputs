@@ -417,8 +417,8 @@ def get_theoretical_minimum_risk_life_expectancy():
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
     # TODO: Figure out a more rigorous way to handle generating age bins
     # (esp. last edge) from precise ages
-    data['age_group_start'] = data['age']
-    data['age_group_end'] = data.age.shift(-1).fillna(125)
+    data = data.rename(columns={'age': 'age_group_start'})
+    data['age_group_end'] = data.age_group_start.shift(-1).fillna(125)
     return data
 
 
