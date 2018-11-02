@@ -270,13 +270,13 @@ def get_exposure(entity, location_id):
     entity_id = get_id_for_measure(entity, 'exposure')
 
     if entity.kind in ['risk_factor', 'etiology']:
-        data = gbd.get_exposure(risk_id=entity_id, location_id=location_id)
+        data = gbd.get_exposure(entity_id=entity_id, location_id=location_id)
         measure_id = get_exposure_measure_id(data)
         if measure_id == get_measure_id('prevalence'):
             data = convert_exposure_prevalence_to_proportion(data)
         data = handle_exposure_from_gbd(data)
     elif entity in special_cases:
-        data = gbd.get_exposure(risk_id=entity_id, location_id=location_id)
+        data = gbd.get_exposure(entity_id=entity_id, location_id=location_id)
         data = handle_gbd_coverage_gap_data(entity, data, 0)
         data = handle_exposure_from_gbd(data)
         del data['modelable_entity_id']
