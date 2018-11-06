@@ -211,6 +211,8 @@ def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int):
 
     data = standardize_all_age_groups(data)
     data = standardize_data(data, 1)
+    if 318 in data['rei_id']:
+        data.loc[data['rei_id'] == 318, 'rei_id'] = 'low_measles_vaccine_coverage_first_dose'
     return data
 
 
@@ -235,10 +237,8 @@ def pull_rr_data_from_gbd(measure_id, location_id):
 def get_population_attributable_fraction(entity, location_id):
     entity_id = get_id_for_measure(entity, 'population_attributable_fraction')
 
-    if entity.kind == 'etiology':
-        data = gbd.get_paf(entity_id=entity_id, location_id=location_id)
-        data = filter_to_most_detailed(data)
-    elif entity.kind == 'risk_factor' and entity.distribution in ['ensemble', 'normal', 'lognormal']:
+    if entity.kind == 'etiology' or \
+            (entity.kind == 'risk_factor' and entity.distribution in ['ensemble', 'normal', 'lognormal']):
         data = gbd.get_paf(entity_id=entity_id, location_id=location_id)
         data = filter_to_most_detailed(data)
 
