@@ -132,7 +132,11 @@ def get_risk_data(risk, measure, location, modeled_causes):
     elif measure == "relative_risk":
         data = get_risk_relative_risk(risk, location)
     elif measure == "population_attributable_fraction":
-        data = get_risk_population_attributable_fraction(risk, location)
+        if risk.distribution not in ['normal', 'lognormal', 'ensemble']:
+            raise DataArtifactError(f"PAF for {risk.name} should not be loaded from the artifact. PAF for "
+                                    f"Categorical risk should be computed directly ")
+        else:
+            data = get_risk_population_attributable_fraction(risk, location)
     elif measure == "ensemble_weights":
         data = get_risk_ensemble_weights(risk)
     else:
@@ -333,16 +337,11 @@ def get_risk_relative_risk(risk, location):
 
 
 def get_risk_population_attributable_fraction(risk, location):
-    if risk.distribution not in ['normal', 'lognormal', 'ensemble']:
-        raise DataArtifactError(f"PAF for {risk.name} should not be loaded from the artifact. PAF for "
-                                f"Categorical risk should be computed directly ")
-    else:
-        paf = core.get_draws(risk, 'population_attributable_fraction', location)
-        paf = normalize(paf)
-        paf['cause'] = paf['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        paf.drop(['cause_id'], axis=1, inplace=True)
-        result = paf[["location", "sex", "draw", "value", "cause"] + AGE_COLS + YEAR_COLS]
-
+    paf = core.get_draws(risk, 'population_attributable_fraction', location)
+    paf = normalize(paf)
+    paf['cause'] = paf['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+    paf.drop(['cause_id'], axis=1, inplace=True)
+    result = paf[["location", "sex", "draw", "value", "cause"] + AGE_COLS + YEAR_COLS]
     return result
 
 
