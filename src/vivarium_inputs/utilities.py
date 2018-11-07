@@ -305,7 +305,7 @@ def get_id_for_measure(entity: ModelableEntity, measure: str) -> int:
         'exposure': ((Risk, CoverageGap), 'gbd_id'),
         'exposure_standard_deviation': ((Risk, CoverageGap), 'gbd_id'),
         'relative_risk': ((Risk, CoverageGap), 'gbd_id'),
-        'population_attributable_fraction': ((Cause, Etiology, CoverageGap), 'gbd_id'),
+        'population_attributable_fraction': ((Risk, Etiology, CoverageGap), 'gbd_id'),
         'cause_specific_mortality': ((Cause,), 'gbd_id'),
         'excess_mortality': ((Cause,), 'gbd_id'),
         'annual_visits': (HealthcareEntity, 'utilization'),
@@ -391,7 +391,7 @@ def get_age_group_ids(restrictions, measure='yld'):
                            scalar(65.0): [18, 17],
                            scalar(95.0): [235, 32], }
 
-    age_start, age_end = restrictions[f'{measure}_age_start'], restrictions['{measure}_age_end']
+    age_start, age_end = restrictions[f'{measure}_age_start'], restrictions[f'{measure}_age_end']
     min_age_group = age_restriction_map[age_start][0]
     max_age_group = age_restriction_map[age_end][1]
     return list(range(min_age_group, max_age_group + 1))
@@ -428,7 +428,6 @@ def standardize_all_age_groups(data: pd.DataFrame):
 def standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
     # age_groups that we expect to exist for each risk
     whole_age_groups = gbd.get_age_group_id()
-
     sex_id = data.sex_id.unique()
     year_id = data.year_id.unique()
     location_id = data.location_id.unique()
