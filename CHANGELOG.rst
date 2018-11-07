@@ -1,3 +1,7 @@
+**1.0.11 - 11/07/18**
+
+    - Pull pafs by risk instead of by cause.
+
 **1.0.10 - 11/05/18**
 
  - Make entity/location/measure arguments to functions in core singular.
