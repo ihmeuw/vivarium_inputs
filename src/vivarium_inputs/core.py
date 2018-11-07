@@ -202,6 +202,7 @@ def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int):
         draw_cols = [f'draw_{i}' for i in range(1000)]
         data.loc[:, draw_cols] = 1 / data.loc[:, draw_cols]
         data = handle_gbd_coverage_gap_data(entity, data, 1)
+        data['coverage_gap'] = entity.name
     elif entity.kind == 'coverage_gap':
         data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
         data['coverage_gap'] = entity.name
@@ -211,8 +212,6 @@ def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int):
 
     data = standardize_all_age_groups(data)
     data = standardize_data(data, 1)
-    if 318 in data['rei_id']:
-        data.loc[data['rei_id'] == 318, 'rei_id'] = 'low_measles_vaccine_coverage_first_dose'
     return data
 
 

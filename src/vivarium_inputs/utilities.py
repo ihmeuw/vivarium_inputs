@@ -391,7 +391,7 @@ def get_age_group_ids(restrictions, measure='yld'):
                            scalar(65.0): [18, 17],
                            scalar(95.0): [235, 32], }
 
-    age_start, age_end = restrictions[f'{measure}_age_start'], restrictions['{measure}_age_end']
+    age_start, age_end = restrictions[f'{measure}_age_start'], restrictions[f'{measure}_age_end']
     min_age_group = age_restriction_map[age_start][0]
     max_age_group = age_restriction_map[age_end][1]
     return list(range(min_age_group, max_age_group + 1))
