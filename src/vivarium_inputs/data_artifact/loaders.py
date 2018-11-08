@@ -132,7 +132,11 @@ def get_risk_data(risk, measure, location, modeled_causes):
     elif measure == "relative_risk":
         data = get_risk_relative_risk(risk, location)
     elif measure == "population_attributable_fraction":
-        data = get_risk_population_attributable_fraction(risk, location)
+        if risk.distribution not in ['normal', 'lognormal', 'ensemble']:
+            raise DataArtifactError(f"PAF for {risk.name} should not be loaded from the artifact. PAF for "
+                                    f"Categorical risk should be computed directly ")
+        else:
+            data = get_risk_population_attributable_fraction(risk, location)
     elif measure == "ensemble_weights":
         data = get_risk_ensemble_weights(risk)
     else:
@@ -279,32 +283,6 @@ def get_cause_metadata(entity, field):
     return data
 
 
-def get_cause_population_attributable_fraction(cause, location):
-    if cause.name == "all_causes":
-        data = None
-    else:
-        pafs = core.get_draws(cause, "population_attributable_fraction", location)
-        if pafs.empty:
-            warnings.warn(f"No Population Attributable Fraction data found for cause '{cause.name}'")
-            data = None
-        else:
-            normalized = []
-            for key, group in pafs.groupby(["rei_id"]):
-                group = group.drop(["rei_id"], axis=1)
-                group = normalize(group)
-                if key in RISK_BY_ID:
-                    group["risk_factor"] = RISK_BY_ID[key].name
-                    dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
-                            "age_group_end", "location", "draw", "risk_factor"]
-                    normalized.append(group.set_index(dims))
-                else:
-                    warnings.warn(f"Found risk_id {key} in population attributable fraction data for cause "
-                                  f"'{cause.name}' but that risk is missing from the gbd mapping")
-            data = pd.concat(normalized).reset_index()
-            data = data[["location", "sex", "draw", "value", "risk_factor"] + AGE_COLS + YEAR_COLS]
-    return data
-
-
 def get_cause_remission(cause, location):
     result = core.get_draws(cause, "remission", location)
     result = normalize(result)[["location", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
@@ -333,16 +311,8 @@ def get_risk_metadata(risk, measure, modeled_causes):
 
 
 def get_risk_exposure(risk, location):
-    exposures = core.get_draws(risk, "exposure", location)
-    normalized = []
-    for key, group in exposures.groupby(["parameter"]):
-        group = group.drop(["parameter"], axis=1)
-        group = normalize(group)
-        group["parameter"] = key
-        dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
-                "age_group_end", "location", "draw", "parameter"]
-        normalized.append(group.set_index(dims))
-    result = pd.concat(normalized).reset_index()
+    exposure = core.get_draws(risk, "exposure", location)
+    result = normalize(exposure)
     result = result[["location", "sex", "draw", "value", "parameter"] + AGE_COLS + YEAR_COLS]
     return result
 
@@ -359,35 +329,19 @@ def get_risk_exposure_standard_deviation(risk, location):
 
 def get_risk_relative_risk(risk, location):
     rrs = core.get_draws(risk, "relative_risk", location)
-    normalized = []
-    for key, group in rrs.groupby(["parameter", "cause_id"]):
-        group = group.drop(["cause_id", "parameter"], axis=1)
-        group = normalize(group)
-        group["parameter"] = key[0]
-        group["cause"] = CAUSE_BY_ID[key[1]].name
-        dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
-                "age_group_end", "location", "draw", "cause", "parameter"]
-        normalized.append(group.set_index(dims))
-    result = pd.concat(normalized).reset_index()
-    result = result[["location", "sex", "draw", "value", "parameter", "cause"] + AGE_COLS + YEAR_COLS]
+    rrs = normalize(rrs)
+    rrs['cause'] = rrs['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+    rrs.drop(['cause_id'], axis=1, inplace=True)
+    result = rrs[["location", "sex", "draw", "value", "parameter", "cause"] + AGE_COLS + YEAR_COLS]
     return result
 
 
 def get_risk_population_attributable_fraction(risk, location):
-    if risk.distribution not in ['lognormal', 'normal', 'ensemble']:
-        result = None
-    else:
-        paf = core.get_draws(risk, 'population_attributable_fraction', location)
-        normalized = []
-        for key, group in paf.groupby(["cause_id"]):
-            group = group.drop(["cause_id"], axis=1)
-            group = normalize(group)
-            group["cause"] = CAUSE_BY_ID[key].name
-            dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
-                    "age_group_end", "location", "draw", "cause"]
-            normalized.append(group.set_index(dims))
-        result = pd.concat(normalized).reset_index()
-        result = result[["location", "sex", "draw", "value", "cause"] + AGE_COLS + YEAR_COLS]
+    paf = core.get_draws(risk, 'population_attributable_fraction', location)
+    paf = normalize(paf)
+    paf['cause'] = paf['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+    paf.drop(['cause_id'], axis=1, inplace=True)
+    result = paf[["location", "sex", "draw", "value", "cause"] + AGE_COLS + YEAR_COLS]
     return result
 
 
@@ -420,16 +374,8 @@ def get_coverage_gap_metadata(coverage_gap, measure, modeled_causes):
 
 
 def get_coverage_gap_exposure(coverage_gap, location):
-    exposures = core.get_draws(coverage_gap, "exposure", location)
-    normalized = []
-    for key, group in exposures.groupby(["parameter"]):
-        group = group.drop(["parameter"], axis=1)
-        group = normalize(group)
-        group["parameter"] = key
-        dims = ["year_start", "year_end", "sex", "measure", "age_group_start",
-                "age_group_end", "location", "draw", "parameter"]
-        normalized.append(group.set_index(dims))
-    result = pd.concat(normalized).reset_index()
+    exposure = core.get_draws(coverage_gap, "exposure", location)
+    result = normalize(exposure)
     result = result[["location", "sex", "draw", "value", "parameter"] + AGE_COLS + YEAR_COLS]
     return result
 
@@ -440,16 +386,9 @@ def get_coverage_gap_relative_risk(coverage_gap, location):
         data = None
     else:
         data = normalize(data)
-        data = data.rename(columns={'cause_id': 'cause', 'risk_id': 'risk_factor'})
-        if data['cause'].dropna().unique().size > 0:
-            for cid in data['cause'].dropna().unique():
-                data['cause'] = data['cause'].apply(lambda c: CAUSE_BY_ID[c].name if c == cid else c)
-        if data['risk_factor'].dropna().unique().size > 0:
-            for rid in data['risk_factor'].dropna().unique():
-                if rid == 318:  # measles
-                    data.loc[data['risk_factor'] == rid, 'risk_factor'] = 'low_measles_vaccine_coverage_first_dose'
-                else:
-                    data['risk_factor'] = data['risk_factor'].apply(lambda r: RISK_BY_ID[r].name if r == rid else r)
+        data = data.rename(columns={'cause_id': 'cause', 're_id': 'risk_factor'})
+        data['cause'] = data['cause'].apply(lambda c:CAUSE_BY_ID[c].name if c in CAUSE_BY_ID else c)
+        data['risk_factor'] = data['risk_factor'].apply(lambda c:RISK_BY_ID[c].name if c in RISK_BY_ID else c)
         data = data[['location', 'cause', 'risk_factor', 'sex', 'draw', 'value', 'parameter'] + AGE_COLS + YEAR_COLS]
     return data
 
