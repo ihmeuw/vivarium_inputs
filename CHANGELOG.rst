@@ -1,3 +1,7 @@
+**1.0.12 - 11/08/18**
+
+    - Include a new version of vivarium_gbd_access version
+
 **1.0.11 - 11/07/18**
 
     - Pull pafs by risk instead of by cause.
