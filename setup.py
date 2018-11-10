@@ -69,6 +69,7 @@ if __name__ == "__main__":
         entry_points='''
             [console_scripts]
             build_artifact=vivarium_inputs.data_artifact.cli:build_artifact
+            multi_build_artifact=vivarium_inputs.data_artifact.cli:multi_build_artifact
         ''',
 
         zip_safe=False,
