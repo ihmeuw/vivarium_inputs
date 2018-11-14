@@ -116,7 +116,7 @@ def normalize_for_simulation(df):
         idx = df.index
 
         mapping = df[['year_start']].drop_duplicates().sort_values(by="year_start")
-        mapping['year_end'] = mapping['year_start'].shift(-1).fillna(mapping.year.max()+1)
+        mapping['year_end'] = mapping['year_start'].shift(-1).fillna(mapping.year.max()+1).astype(int)
 
         df = df.set_index("year_start", drop=False)
         mapping = mapping.set_index("year_start", drop=False)
