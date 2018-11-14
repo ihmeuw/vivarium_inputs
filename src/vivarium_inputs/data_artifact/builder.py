@@ -35,7 +35,7 @@ class ArtifactBuilder:
         if entity_key not in self.artifact:
             self.process(entity_key)
         data = self.artifact.load(entity_key)
-        return filter_data(data, keep_age_group_edges, **__) if isinstance(data, pd.DataFrame) else data
+        return filter_data(data, **__) if isinstance(data, pd.DataFrame) else data
 
     def end_processing(self, event) -> None:
         _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
