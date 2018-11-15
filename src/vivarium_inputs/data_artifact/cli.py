@@ -28,8 +28,18 @@ from vivarium.config_tree import ConfigTree
               help="Turn on debug mode for logging")
 @click.option('--pdb', 'debugger', is_flag=True, help='Drop the debugger if an error occurs')
 def build_artifact(model_specification, output_root, append, verbose, debugger):
-    """ On the new cluster, this requires specifically requesting J drive access in your
-    qlogin by adding the flag -l archive=TRUE"""
+    """
+    build_artifact is a program for building data artifacts locally
+    from a MODEL_SPECIFICATION file.  It requires access to the J drive and,
+    depending on where the output is sent, /ihme as well.
+
+    Any artifact.path specified in the configuration file is guaranteed to
+    be overwritten either by the optional output_root option or a predetermined
+    path based on username: /ihme/scratch/users/{user}/vivarium_artifacts
+
+    If you are running this job from a qlogin on the new cluster, you must
+    specifically request J drive access when you qlogin by adding "-l archive=TRUE"
+    to your qsub command."""
     _build_artifact()
 
 
@@ -54,24 +64,27 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
 def multi_build_artifact(model_specification, locations, project,
                    output_root, append, verbose, error_logs, memory):
     """
-    build_artifact is a program for building data artifacts from a
-    MODEL_SPECIFICATION file. The work is offloaded to the cluster
+    multi_build_artifact is a program for building data artifacts on the cluster
+    from a MODEL_SPECIFICATION file.
+
+    This script necessarily offloads work to the cluster, and so requires being
+    run in the cluster environment.  It will qsub jobs for building artifacts
     under the "proj_cost_effect" project unless a different project is
     specified. Multiple, optional LOCATIONS can be provided to overwrite
     the configuration file. For locations containing spaces, replace the
     space with an underscore and surround any locations containing 
     apostrophes with double quotes, e.g.:
 
-    build_artifact examply.yaml Virginia Pennsylvania New_York "Cote_d'Ivoire"
+    build_artifact example.yaml Virginia Pennsylvania New_York "Cote_d'Ivoire"
 
     Any artifact.path specified in the configuration file is guaranteed to
     be overwritten either by the optional output_root or a predetermined path
     based on user: /ihme/scratch/users/{user}/vivarium_artifacts
 
-    This script necessarily offloads work to the cluster, and so requires being
-    run in the cluster environment. To run locally, execute this script directly,
-    as in `python cli.py`. The API is the same, and help can be accessed using
-    -h / --help.
+    If you are running this on the new cluster and find your jobs failing with no
+    messages in the log files, consider the memory usage of the job by typing
+    "qacct -j <job_id>" and the default memory usage used by this script of 10G.
+    The new cluster will kill jobs that go over memory without giving a useful message.
     """
 
     config_path = pathlib.Path(model_specification).resolve()
