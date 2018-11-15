@@ -1,10 +1,18 @@
+**1.0.13 - 11/15/18**
+
+ - Add tool to locally build artifacts
+ - Setup artifact filter terms in configuration.
+ - Remove mean columns for age and year.
+ - Allow paf of 1 data.
+ - Allow artifact building on the new cluster.
+
 **1.0.12 - 11/08/18**
 
-    - Include a new version of vivarium_gbd_access version
+ - Include a new version of vivarium_gbd_access version
 
 **1.0.11 - 11/07/18**
 
-    - Pull pafs by risk instead of by cause.
+ - Pull pafs by risk instead of by cause.
 
 **1.0.10 - 11/05/18**
 
