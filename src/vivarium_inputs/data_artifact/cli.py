@@ -47,8 +47,10 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
               help="Turn on debug mode for logging")
 @click.option('--error_logs', '-e', is_flag=True,
               help="Write SGE error logs to output location")
+@click.option('--memory', '-m', default=10, help="Specifies the amount of memory in G that will be requested for a "
+                                                 "job. Defaults to 10.")
 def multi_build_artifact(model_specification, locations, project,
-                   output_root, append, verbose, error_logs):
+                   output_root, append, verbose, error_logs, memory):
     """
     build_artifact is a program for building data artifacts from a
     MODEL_SPECIFICATION file. The work is offloaded to the cluster
@@ -91,13 +93,13 @@ def multi_build_artifact(model_specification, locations, project,
             location = location.replace("'", "-")
             job_name = f"{config_path.stem}_{location}_build_artifact"
             command = build_submit_command(python_context_path, job_name, project, error_log_dir,
-                                           script_args.format(location), archive=True, queue='all.q')
+                                           script_args.format(location), memory, archive=True, queue='all.q')
             click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
             submit_job(command, job_name)
     else:
         job_name = f"{config_path.stem}_build_artifact"
         command = build_submit_command(python_context_path, job_name, project, error_log_dir, script_args,
-                                       archive=True, queue='all.q')
+                                       memory, archive=True, queue='all.q')
         click.echo(f"submitting job {job_name}")
         submit_job(command, job_name)
 
@@ -126,8 +128,8 @@ def submit_job(command: str, name: str):
 
 
 def build_submit_command(python_context_path: str, job_name: str, project: str,
-                         error_log_dir: Union[str, pathlib.Path], script_args: str, slots: int = 2,
-                         archive: bool = False, queue: str = 'all.q') -> str:
+                         error_log_dir: Union[str, pathlib.Path], script_args: str, memory: int,
+                         slots: int = 2, archive: bool = False, queue: str = 'all.q') -> str:
     """Construct a valid qsub job command string.
 
     Parameters
@@ -160,7 +162,7 @@ def build_submit_command(python_context_path: str, job_name: str, project: str,
 
     if os.environ['SGE_CLUSTER_NAME'] == 'cluster':
         command += f"-l fthread={slots} "
-        command += "-l m_mem_free=4G "
+        command += f"-l m_mem_free={memory}G "
         command += f"-P {project} "
         command += f"-q {queue} "
         if archive:
