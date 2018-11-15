@@ -1,9 +1,12 @@
 from bdb import BdbQuit
+import os
+import shutil
 import logging
 import getpass
 import pathlib
 import argparse
 import subprocess
+from typing import Union
 
 import click
 
@@ -25,6 +28,18 @@ from vivarium.config_tree import ConfigTree
               help="Turn on debug mode for logging")
 @click.option('--pdb', 'debugger', is_flag=True, help='Drop the debugger if an error occurs')
 def build_artifact(model_specification, output_root, append, verbose, debugger):
+    """
+    build_artifact is a program for building data artifacts locally
+    from a MODEL_SPECIFICATION file.  It requires access to the J drive and,
+    depending on where the output is sent, /ihme as well.
+
+    Any artifact.path specified in the configuration file is guaranteed to
+    be overwritten either by the optional output_root option or a predetermined
+    path based on username: /ihme/scratch/users/{user}/vivarium_artifacts
+
+    If you are running this job from a qlogin on the new cluster, you must
+    specifically request J drive access when you qlogin by adding "-l archive=TRUE"
+    to your qsub command."""
     _build_artifact()
 
 
@@ -44,31 +59,36 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
               help="Turn on debug mode for logging")
 @click.option('--error_logs', '-e', is_flag=True,
               help="Write SGE error logs to output location")
+@click.option('--memory', '-m', default=10, help="Specifies the amount of memory in G that will be requested for a "
+                                                 "job. Defaults to 10. Only applies to the new cluster.")
 def multi_build_artifact(model_specification, locations, project,
-                   output_root, append, verbose, error_logs):
+                   output_root, append, verbose, error_logs, memory):
     """
-    build_artifact is a program for building data artifacts from a
-    MODEL_SPECIFICATION file. The work is offloaded to the cluster
+    multi_build_artifact is a program for building data artifacts on the cluster
+    from a MODEL_SPECIFICATION file.
+
+    This script necessarily offloads work to the cluster, and so requires being
+    run in the cluster environment.  It will qsub jobs for building artifacts
     under the "proj_cost_effect" project unless a different project is
     specified. Multiple, optional LOCATIONS can be provided to overwrite
     the configuration file. For locations containing spaces, replace the
     space with an underscore and surround any locations containing 
     apostrophes with double quotes, e.g.:
 
-    build_artifact examply.yaml Virginia Pennsylvania New_York "Cote_d'Ivoire"
+    multi_build_artifact example.yaml Virginia Pennsylvania New_York "Cote_d'Ivoire"
 
     Any artifact.path specified in the configuration file is guaranteed to
     be overwritten either by the optional output_root or a predetermined path
     based on user: /ihme/scratch/users/{user}/vivarium_artifacts
 
-    This script necessarily offloads work to the cluster, and so requires being
-    run in the cluster environment. To run locally, execute this script directly,
-    as in `python cli.py`. The API is the same, and help can be accessed using
-    -h / --help.
+    If you are running this on the new cluster and find your jobs failing with no
+    messages in the log files, consider the memory usage of the job by typing
+    "qacct -j <job_id>" and the default memory usage used by this script of 10G.
+    The new cluster will kill jobs that go over memory without giving a useful message.
     """
 
     config_path = pathlib.Path(model_specification).resolve()
-    python_context_path = pathlib.Path(subprocess.getoutput("which python")).resolve()
+    python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
 
     script_args = f"{script_path} {config_path} "
@@ -83,19 +103,18 @@ def multi_build_artifact(model_specification, locations, project,
 
     num_locations = len(locations)
     if num_locations > 0:
-        script_args += "--location {}"
+        script_args += "--location {} "
         for i, location in enumerate(locations):
             location = location.replace("'", "-")
             job_name = f"{config_path.stem}_{location}_build_artifact"
-            command = build_submit_command(python_context_path, job_name,
-                                           project, error_log_dir,
-                                           script_args.format(location))
+            command = build_submit_command(python_context_path, job_name, project, error_log_dir,
+                                           script_args.format(location), memory, archive=True, queue='all.q')
             click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
             submit_job(command, job_name)
     else:
         job_name = f"{config_path.stem}_build_artifact"
-        command = build_submit_command(python_context_path, job_name,
-                                       project, error_log_dir, script_args)
+        command = build_submit_command(python_context_path, job_name, project, error_log_dir, script_args,
+                                       memory, archive=True, queue='all.q')
         click.echo(f"submitting job {job_name}")
         submit_job(command, job_name)
 
@@ -123,8 +142,9 @@ def submit_job(command: str, name: str):
         click.secho(f"submission of {name} succeeded: {response}", fg='green')
 
 
-def build_submit_command(python_context_path: str, job_name: str, project: str, error_log_dir: str,
-                         script_args: str, slots: int = 2) -> str:
+def build_submit_command(python_context_path: str, job_name: str, project: str,
+                         error_log_dir: Union[str, pathlib.Path], script_args: str, memory: int,
+                         slots: int = 2, archive: bool = False, queue: str = 'all.q') -> str:
     """Construct a valid qsub job command string.
 
     Parameters
@@ -136,20 +156,43 @@ def build_submit_command(python_context_path: str, job_name: str, project: str, 
         The name of the job
     project
         The cluster project to run the job under
+    error_log_dir
+        The directory to save error logs from the build process to
     script_args
         A string comprised of the full path to the script to be executed
         followed by its arguments
     slots
         The number of slots with which to execute the job
+    archive
+        toggles the archive flag. When true, J drive access will be provided.
 
     Returns
     -------
     str
         A valid qsub command string
     """
+
     logs = f"-e {str(error_log_dir)}" if error_log_dir else ""
-    return (f"qsub -N {job_name} -P {project} {logs} -pe multi_slot {slots} " +
-            f"-b y {python_context_path} " + script_args)
+    command = f"qsub -N {job_name} {logs} "
+
+    if os.environ['SGE_CLUSTER_NAME'] == 'cluster':
+        command += f"-l fthread={slots} "
+        command += f"-l m_mem_free={memory}G "
+        command += f"-P {project} "
+        command += f"-q {queue} "
+        if archive:
+            command += '-l archive=TRUE '
+        else:
+            command += '-l archive=FALSE '
+    elif os.environ['SGE_CLUSTER_NAME'] == 'prod':
+        command += f"-pe multi_slot {slots} "
+        command += f"-P {project} "
+    else:  # dev
+        command += f"-pe multi_slot {slots} "
+
+    command += f"-b y {python_context_path} "
+
+    return command + script_args
 
 
 def _build_artifact():
