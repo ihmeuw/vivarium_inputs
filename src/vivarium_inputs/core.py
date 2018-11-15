@@ -248,10 +248,6 @@ def get_population_attributable_fraction(entity, location_id):
     data = data[data['measure_id'] == get_measure_id('YLD')]
     del data['measure_id']
 
-    # FIXME: We currently do not handle the case where PAF==1 so we just dump those rows.
-    draws = [c for c in data.columns if 'draw_' in c]
-    data = data.loc[~(data[draws] == 1).any(axis=1)]
-
     # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
     # measure_ids = {name_measure_map[m] for m in ['death', 'DALY', 'YLD', 'YLL']}
     # err_msg = ("Not all PAF data has values for deaths, DALYs, YLDs and YLLs. "
