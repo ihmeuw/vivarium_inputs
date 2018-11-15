@@ -28,6 +28,8 @@ from vivarium.config_tree import ConfigTree
               help="Turn on debug mode for logging")
 @click.option('--pdb', 'debugger', is_flag=True, help='Drop the debugger if an error occurs')
 def build_artifact(model_specification, output_root, append, verbose, debugger):
+    """ On the new cluster, this requires specifically requesting J drive access in your
+    qlogin by adding the flag -l archive=TRUE"""
     _build_artifact()
 
 
@@ -48,7 +50,7 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
 @click.option('--error_logs', '-e', is_flag=True,
               help="Write SGE error logs to output location")
 @click.option('--memory', '-m', default=10, help="Specifies the amount of memory in G that will be requested for a "
-                                                 "job. Defaults to 10.")
+                                                 "job. Defaults to 10. Only applies to the new cluster.")
 def multi_build_artifact(model_specification, locations, project,
                    output_root, append, verbose, error_logs, memory):
     """
