@@ -27,7 +27,7 @@ if __name__ == "__main__":
     ]
 
     data_requires = [
-        'vivarium-gbd-access>=1.0.7',
+        'vivarium-gbd-access>=1.0.8',
     ]
 
     test_requirements = [
@@ -69,6 +69,7 @@ if __name__ == "__main__":
         entry_points='''
             [console_scripts]
             build_artifact=vivarium_inputs.data_artifact.cli:build_artifact
+            multi_build_artifact=vivarium_inputs.data_artifact.cli:multi_build_artifact
         ''',
 
         zip_safe=False,

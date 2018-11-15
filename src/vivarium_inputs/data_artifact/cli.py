@@ -16,11 +16,26 @@ from vivarium.config_tree import ConfigTree
 @click.command()
 @click.argument('model_specification', type=click.Path(dir_okay=False,
                 readable=True))
+@click.option('--output-root', '-o', type=click.Path(file_okay=False, writable=True),
+              help="Directory to save artifact to. "
+                   "Overwrites model specification file")
+@click.option('--append', '-a', is_flag=True,
+              help="Preserve existing artifact and append to it")
+@click.option('--verbose', '-v', is_flag=True,
+              help="Turn on debug mode for logging")
+@click.option('--pdb', 'debugger', is_flag=True, help='Drop the debugger if an error occurs')
+def build_artifact(model_specification, output_root, append, verbose, debugger):
+    _build_artifact()
+
+
+@click.command()
+@click.argument('model_specification', type=click.Path(dir_okay=False,
+                readable=True))
 @click.argument('locations', nargs=-1)
 @click.option('--project', '-P', default='proj_cost_effect',
               help='Cluster project under which the job will '
                    'be submitted. Defaults to proj_cost_effect')
-@click.option('--output_root', '-o', type=click.Path(file_okay=False, writable=True),
+@click.option('--output-root', '-o', type=click.Path(file_okay=False, writable=True),
               help="Directory to save artifact to. "
                    "Overwrites model specification file")
 @click.option('--append', '-a', is_flag=True,
@@ -29,7 +44,7 @@ from vivarium.config_tree import ConfigTree
               help="Turn on debug mode for logging")
 @click.option('--error_logs', '-e', is_flag=True,
               help="Write SGE error logs to output location")
-def build_artifact(model_specification, locations, project,
+def multi_build_artifact(model_specification, locations, project,
                    output_root, append, verbose, error_logs):
     """
     build_artifact is a program for building data artifacts from a
@@ -58,7 +73,7 @@ def build_artifact(model_specification, locations, project,
 
     script_args = f"{script_path} {config_path} "
     if output_root:
-        script_args += f"--output_root {output_root} "
+        script_args += f"--output-root {output_root} "
     if append:
         script_args += f"--append "
     if verbose:
@@ -153,7 +168,7 @@ def _build_artifact():
     parser = argparse.ArgumentParser()
     parser.add_argument('model_specification', type=str,
                         help="path to a model_specification file")
-    parser.add_argument('--output_root', '-o', type=str, required=False,
+    parser.add_argument('--output-root', '-o', type=str, required=False,
                         help="directory to save artifact to. "
                              "Overwrites model_specification file")
     parser.add_argument('--location', type=str, required=False,
