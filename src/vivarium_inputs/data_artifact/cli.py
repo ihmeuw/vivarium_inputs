@@ -74,11 +74,6 @@ def multi_build_artifact(model_specification, locations, project,
     python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
 
-    if (output_root) and (output_root.startswith("/home/j/") or output_root.startswith('/snfs1/')):
-        archive = True
-    else:
-        archive = False
-
     script_args = f"{script_path} {config_path} "
     if output_root:
         script_args += f"--output-root {output_root} "
@@ -95,15 +90,14 @@ def multi_build_artifact(model_specification, locations, project,
         for i, location in enumerate(locations):
             location = location.replace("'", "-")
             job_name = f"{config_path.stem}_{location}_build_artifact"
-            command = build_submit_command(python_context_path, job_name,
-                                           project, error_log_dir,
-                                           script_args.format(location), archive=archive)
+            command = build_submit_command(python_context_path, job_name, project, error_log_dir,
+                                           script_args.format(location), archive=True, queue='all.q')
             click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
             submit_job(command, job_name)
     else:
         job_name = f"{config_path.stem}_build_artifact"
-        command = build_submit_command(python_context_path, job_name,
-                                       project, error_log_dir, script_args, archive=archive)
+        command = build_submit_command(python_context_path, job_name, project, error_log_dir, script_args,
+                                       archive=True, queue='all.q')
         click.echo(f"submitting job {job_name}")
         submit_job(command, job_name)
 
@@ -131,8 +125,9 @@ def submit_job(command: str, name: str):
         click.secho(f"submission of {name} succeeded: {response}", fg='green')
 
 
-def build_submit_command(python_context_path: str, job_name: str, project: str, error_log_dir: Union[str, pathlib.Path],
-                         script_args: str, slots: int = 2, archive: bool = False) -> str:
+def build_submit_command(python_context_path: str, job_name: str, project: str,
+                         error_log_dir: Union[str, pathlib.Path], script_args: str, slots: int = 2,
+                         archive: bool = False, queue: str = 'all.q') -> str:
     """Construct a valid qsub job command string.
 
     Parameters
@@ -167,6 +162,7 @@ def build_submit_command(python_context_path: str, job_name: str, project: str, 
         command += f"-l fthread={slots} "
         command += "-l m_mem_free=4G "
         command += f"-P {project} "
+        command += f"-q {queue} "
         if archive:
             command += '-l archive=TRUE '
         else:
