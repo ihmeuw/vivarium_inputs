@@ -1,9 +1,12 @@
 from bdb import BdbQuit
+import os
+import shutil
 import logging
 import getpass
 import pathlib
 import argparse
 import subprocess
+from typing import Union
 
 import click
 
@@ -68,8 +71,13 @@ def multi_build_artifact(model_specification, locations, project,
     """
 
     config_path = pathlib.Path(model_specification).resolve()
-    python_context_path = pathlib.Path(subprocess.getoutput("which python")).resolve()
+    python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
+
+    if output_root.startswith("/home/j/") or output_root.startswith('/snfs1/'):
+        archive = True
+    else:
+        archive = False
 
     script_args = f"{script_path} {config_path} "
     if output_root:
@@ -89,13 +97,13 @@ def multi_build_artifact(model_specification, locations, project,
             job_name = f"{config_path.stem}_{location}_build_artifact"
             command = build_submit_command(python_context_path, job_name,
                                            project, error_log_dir,
-                                           script_args.format(location))
+                                           script_args.format(location), archive=archive)
             click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
             submit_job(command, job_name)
     else:
         job_name = f"{config_path.stem}_build_artifact"
         command = build_submit_command(python_context_path, job_name,
-                                       project, error_log_dir, script_args)
+                                       project, error_log_dir, script_args, archive=archive)
         click.echo(f"submitting job {job_name}")
         submit_job(command, job_name)
 
@@ -123,8 +131,8 @@ def submit_job(command: str, name: str):
         click.secho(f"submission of {name} succeeded: {response}", fg='green')
 
 
-def build_submit_command(python_context_path: str, job_name: str, project: str, error_log_dir: str,
-                         script_args: str, slots: int = 2) -> str:
+def build_submit_command(python_context_path: str, job_name: str, project: str, error_log_dir: Union[str, pathlib.Path],
+                         script_args: str, slots: int = 2, archive: bool = False) -> str:
     """Construct a valid qsub job command string.
 
     Parameters
@@ -136,20 +144,40 @@ def build_submit_command(python_context_path: str, job_name: str, project: str, 
         The name of the job
     project
         The cluster project to run the job under
+    error_log_dir
+        The directory to save error logs from the build process to
     script_args
         A string comprised of the full path to the script to be executed
         followed by its arguments
     slots
         The number of slots with which to execute the job
+    archive
+        toggles the archive flag. When true, J drive access will be provided.
 
     Returns
     -------
     str
         A valid qsub command string
     """
+
     logs = f"-e {str(error_log_dir)}" if error_log_dir else ""
-    return (f"qsub -N {job_name} -P {project} {logs} -pe multi_slot {slots} " +
-            f"-b y {python_context_path} " + script_args)
+    command = f"qsub -N {job_name} {logs} -b y {python_context_path}"
+
+    if os.environ['SGE_CLUSTER_NAME'] == 'cluster':
+        command += f" -l fthread={slots}"
+        command += ' -l m_mem_free=4G'
+        command += f" -P {project}"
+        if archive:
+            command += ' -l archive=TRUE'
+        else:
+            command += ' -l archive=FALSE'
+    elif os.environ['SGE_CLUSTER_NAME'] == "prod":
+        command += f" -pe multi_slot {slots}"
+        command += f" -P {project}"
+    else:  # dev
+        command += f" -pe multi_slot {slots}"
+
+    return command + script_args
 
 
 def _build_artifact():
