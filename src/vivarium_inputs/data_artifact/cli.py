@@ -74,7 +74,7 @@ def multi_build_artifact(model_specification, locations, project,
     python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
 
-    if output_root.startswith("/home/j/") or output_root.startswith('/snfs1/'):
+    if (output_root) and (output_root.startswith("/home/j/") or output_root.startswith('/snfs1/')):
         archive = True
     else:
         archive = False
@@ -91,7 +91,7 @@ def multi_build_artifact(model_specification, locations, project,
 
     num_locations = len(locations)
     if num_locations > 0:
-        script_args += "--location {}"
+        script_args += "--location {} "
         for i, location in enumerate(locations):
             location = location.replace("'", "-")
             job_name = f"{config_path.stem}_{location}_build_artifact"
@@ -161,21 +161,23 @@ def build_submit_command(python_context_path: str, job_name: str, project: str, 
     """
 
     logs = f"-e {str(error_log_dir)}" if error_log_dir else ""
-    command = f"qsub -N {job_name} {logs} -b y {python_context_path}"
+    command = f"qsub -N {job_name} {logs} "
 
     if os.environ['SGE_CLUSTER_NAME'] == 'cluster':
-        command += f" -l fthread={slots}"
-        command += ' -l m_mem_free=4G'
-        command += f" -P {project}"
+        command += f"-l fthread={slots} "
+        command += "-l m_mem_free=4G "
+        command += f"-P {project} "
         if archive:
-            command += ' -l archive=TRUE'
+            command += '-l archive=TRUE '
         else:
-            command += ' -l archive=FALSE'
-    elif os.environ['SGE_CLUSTER_NAME'] == "prod":
-        command += f" -pe multi_slot {slots}"
-        command += f" -P {project}"
+            command += '-l archive=FALSE '
+    elif os.environ['SGE_CLUSTER_NAME'] == 'prod':
+        command += f"-pe multi_slot {slots} "
+        command += f"-P {project} "
     else:  # dev
-        command += f" -pe multi_slot {slots}"
+        command += f"-pe multi_slot {slots} "
+
+    command += f"-b y {python_context_path} "
 
     return command + script_args
 
