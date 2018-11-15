@@ -18,7 +18,7 @@ class ArtifactPassthrough:
                             'location': [self.location, 'Global']}
         self.config_filter_term = validate_filter_term(builder.configuration.input_data.artifact_filter_term)
 
-    def load(self, entity_key: str, keep_age_group_edges: bool=True, **column_filters: str) -> Any:
+    def load(self, entity_key: str, **column_filters: str) -> Any:
         entity_key = EntityKey(entity_key)
         data = loader(entity_key, self.location, self.modeled_causes)
 
@@ -26,5 +26,6 @@ class ArtifactPassthrough:
             for key, val in self.base_filter.items():
                 if key in data.columns:
                     column_filters[key] = val
-            data = filter_data(data, keep_age_group_edges, self.config_filter_term, **column_filters)
+
+            data = filter_data(data, self.config_filter_term, **column_filters)
         return data
