@@ -1,3 +1,7 @@
+**1.0.15 - 11/16/18**
+
+ - Dependency mismatch
+
 **1.0.14 - 11/15/18**
 
  - Update documentation dependencies
