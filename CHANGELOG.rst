@@ -1,3 +1,7 @@
+**1.0.14 - 11/15/18**
+
+ - Update documentation dependencies
+
 **1.0.13 - 11/15/18**
 
  - Add tool to locally build artifacts
