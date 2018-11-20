@@ -17,6 +17,6 @@ def normalize(data: pd.DataFrame) -> pd.DataFrame:
 
     estimation_years = core.get_estimation_years()
     year_start, year_end = min(estimation_years), max(estimation_years)
-    if "year" in data:
-        data = data.loc[(data.year >= year_start) & (data.year <= year_end)]
+    if "year_start" in data:
+        data = data.loc[(data.year_start >= year_start) & (data.year_end <= year_end)]
     return data
