@@ -12,6 +12,13 @@ def get_forecast(measure: str, location_id: int, entity: ModelableEntity=None) -
     # asfr and population require special names for value columns
     if measure == 'asfr':
         value_column = 'mean_value'
+        # forecasting data doesn't have fertility rate for all ages (in gbd it's 0 for young ages) so we need to fill it
+        past = standardize_data(past, 0)
+        future = standardize_data(future, 0)
+    elif measure == 'cause_specific_mortality':
+        value_column = 'value'
+        past = standardize_data(past, 0)
+        future = standardize_data(future, 0)
     elif measure == 'population':
         value_column = 'population'
     else:
@@ -56,15 +63,49 @@ def normalize_forecasting(data: pd.DataFrame, value_column='value') -> pd.DataFr
 
 
 def combine_past_future(past: pd.DataFrame, future: pd.DataFrame) -> pd.DataFrame:
-    # if we have draws for a forecast measure where we don't have draws for past - replicate past for all draws
-    if 'draw' in future and 'draw' not in past:  # population
+    # if we have draws for a forecast where we don't have draws for past (population) - replicate past for all draws
+    if 'draw' in future and 'draw' not in past:
         draws = pd.DataFrame({'draw': future.draw.unique(), 'key': 1})
         past = past.assign(key=1).merge(draws, how='outer').drop('key', 'columns')
 
     last_past_year = past.year_start.max()
+    # any 'past' years in the future dataset are predicted past so we don't want to use them
     future = future[future.year_start > last_past_year]
     return past.append(future).reset_index(drop=True)
 
+
+def standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
+    # because forecasting data is already in long format, we need a custom standardize method
+
+    # age_groups that we expect to exist for each entity
+    whole_age_groups = gbd.get_age_group_id()
+    sex_id = data.sex_id.unique()
+    year_id = data.year_id.unique()
+    location_id = data.location_id.unique()
+    draw = data.draw.unique()
+
+    index_cols = ['year_id', 'location_id', 'sex_id', 'age_group_id', 'draw']
+    expected_indices = [year_id, location_id, sex_id, whole_age_groups, draw]
+
+    # if 'draw' in data:
+    #     index_cols += ['draw']
+    #     expected_indices += [data.draw.unique()]
+
+    value_cols = {c for c in data.dropna(axis=1).columns if c not in index_cols}
+    data = data.set_index(index_cols)
+
+    # expected indexes to be in the data
+    expected = pd.MultiIndex.from_product(expected_indices, names=index_cols)
+
+    new_data = data.copy()
+    missing = expected.difference(data.index)
+
+    # assign dtype=float to prevent the artifact error with mixed dtypes
+    to_add = pd.DataFrame({column: fill_value for column in value_cols}, index=missing, dtype=float)
+
+    new_data = new_data.append(to_add).sort_index()
+
+    return new_data.reset_index()
 
 
 # just patching in forecasting data to replace existing gbd data - we have to work out the full mapping between
