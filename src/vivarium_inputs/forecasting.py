@@ -85,17 +85,12 @@ def standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
     draw = data.draw.unique()
 
     index_cols = ['year_id', 'location_id', 'sex_id', 'age_group_id', 'draw']
-    expected_indices = [year_id, location_id, sex_id, whole_age_groups, draw]
-
-    # if 'draw' in data:
-    #     index_cols += ['draw']
-    #     expected_indices += [data.draw.unique()]
 
     value_cols = {c for c in data.dropna(axis=1).columns if c not in index_cols}
     data = data.set_index(index_cols)
 
     # expected indexes to be in the data
-    expected = pd.MultiIndex.from_product(expected_indices, names=index_cols)
+    expected = pd.MultiIndex.from_product([year_id, location_id, sex_id, whole_age_groups, draw], names=index_cols)
 
     new_data = data.copy()
     missing = expected.difference(data.index)
