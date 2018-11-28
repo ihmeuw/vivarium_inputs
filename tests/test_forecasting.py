@@ -43,7 +43,11 @@ def test_normalize_forecasting():
     assert normalized.equals(expected)
 
 
-def test_standardize_data():
+def test_standardize_data(mocker):
+    gbd_mock_utilities = mocker.patch("vivarium_inputs.utilities.gbd")
+    gbd_mock_utilities.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+                                                        20, 30, 31, 32, 235]
+
     data = pd.DataFrame({'year_id': [1990, 2000, 2010, 2020], 'scenario': [0]*4,
                          'sex_id': 1, 'location_id': 102,
                          'value': range(1, 5), 'age_group_id': 2, 'draw': 1})
@@ -52,4 +56,4 @@ def test_standardize_data():
 
     assert 0 in standardized.value
 
-    assert set(standardized.age_group_id) > set(data.age_group_id)
+    assert set(standardized.age_group_id) == set(gbd.get_age_group_id())
