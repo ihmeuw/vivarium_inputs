@@ -2,7 +2,6 @@ import pandas as pd
 import pytest
 
 from vivarium_inputs import forecasting
-from vivarium_inputs.utilities import gbd
 
 
 def test_combine_past_future():
@@ -44,7 +43,7 @@ def test_normalize_forecasting():
 
 
 def test_standardize_data(mocker):
-    gbd_mock_utilities = mocker.patch("vivarium_inputs.utilities.gbd")
+    gbd_mock_utilities = mocker.patch("vivarium_inputs.forecasting.gbd")
     gbd_mock_utilities.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
                                                         20, 30, 31, 32, 235]
 
@@ -56,4 +55,4 @@ def test_standardize_data(mocker):
 
     assert 0 in standardized.value
 
-    assert set(standardized.age_group_id) == set(gbd.get_age_group_id())
+    assert set(standardized.age_group_id) == set(forecasting.gbd.get_age_group_id())
