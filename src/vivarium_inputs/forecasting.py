@@ -101,26 +101,3 @@ def standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
     new_data = new_data.append(to_add).sort_index()
 
     return new_data.reset_index()
-
-
-# just patching in forecasting data to replace existing gbd data - we have to work out the full mapping between
-# entity keys and forecasting files at some point
-
-# from vivarium_public_health.dataset_manager.artifact import Artifact
-# from vivarium_inputs.forecasting import get_forecasting_data
-# from gbd_mapping.cause import causes
-#
-# art = Artifact('/home/kate/vivarium_artifacts/forecasting_test.hdf')
-#
-# keys = ['cause.all_causes.cause_specific_mortality', 'population.structure',
-#         'covariate.age_specific_fertility_rate.estimate', 'cause.peripheral_artery_disease.cause_specific_mortality']
-# measures = ['death', 'population', 'asfr', 'cause_specific_mortality']
-# entities = [None, None, None, causes.peripheral_artery_disease]
-#
-# for key, measure, entity in zip(keys, measures, entities):
-#     print(f'Working on measure {measure}')
-#     gbd = art.load(key)
-#     art.write(f'{key}_gbd', gbd)
-#
-#     forecast = get_forecasting_data(measure, 102, entity)
-#     art.replace(key, forecast)
