@@ -38,14 +38,7 @@ def get_forecast(measure: str, location_id: int, entity: ModelableEntity=None) -
 def normalize_forecasting(data: pd.DataFrame, value_column='value') -> pd.DataFrame:
     assert not data.empty
 
-    if not ('value' in data or 'mean_value' in data):
-        # we need to rename the value column to match vivarium_inputs convention
-        col = set(data.columns) - {'year_id', 'sex_id', 'age_group_id', 'draw', 'scenario', 'location_id'}
-        if len(col) > 1:
-            raise ValueError(f"You have multiple value columns in your data.")
-        data = data.rename(columns={col.pop(): value_column})
-
-    data = normalize_for_simulation(data)
+    data = normalize_for_simulation(rename_value_columns(data, value_column))
 
     if "age_group_id" in data:
         if (data["age_group_id"] == 22).all():  # drop age if data is for all ages
@@ -59,6 +52,16 @@ def normalize_forecasting(data: pd.DataFrame, value_column='value') -> pd.DataFr
 
     if 'scenario' in data:
         data = data.drop("scenario", "columns")
+    return data
+
+
+def rename_value_columns(data: pd.DataFrame, value_column: str='value') -> pd.DataFrame:
+    if not ('value' in data or 'mean_value' in data):
+        # we need to rename the value column to match vivarium_inputs convention
+        col = set(data.columns) - {'year_id', 'sex_id', 'age_group_id', 'draw', 'scenario', 'location_id'}
+        if len(col) > 1:
+            raise ValueError(f"You have multiple value columns in your data.")
+        data = data.rename(columns={col.pop(): value_column})
     return data
 
 
