@@ -52,4 +52,4 @@ def test_standardize_data():
 
     assert 0 in standardized.value
 
-    assert set(standardized.age_group_id) == set(gbd.get_age_group_id())
+    assert set(standardized.age_group_id) > set(data.age_group_id)
