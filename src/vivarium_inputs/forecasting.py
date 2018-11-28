@@ -1,13 +1,12 @@
 import pandas as pd
 
-from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_bins_from_age_group_id, gbd
-from vivarium_gbd_access.forecasting import get_forecasting_data
+from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_bins_from_age_group_id, gbd, forecasting
 from vivarium_inputs.core import get_location_name
 from gbd_mapping.base_template import ModelableEntity
 
 
 def get_forecast(measure: str, location_id: int, entity: ModelableEntity=None) -> pd.DataFrame:
-    past, future = get_forecasting_data(measure, location_id, entity)
+    past, future = forecasting.get_forecasting_data(measure, location_id, entity)
 
     # asfr and population require special names for value columns
     if measure == 'asfr':
