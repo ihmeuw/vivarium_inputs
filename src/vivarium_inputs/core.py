@@ -278,7 +278,7 @@ def get_exposure(entity, location_id):
         del data['metric_id']
     elif entity.kind == 'coverage_gap':
         data = gbd.get_auxiliary_data('exposure', entity.kind, entity.name)
-        data = data[data.location_id == location_id]
+        data = data[data.location_id == location_id] if set(data.location_id) != {1} else data
         data['coverage_gap'] = entity.name
         del data['measure']
     else:
