@@ -18,6 +18,14 @@ except ModuleNotFoundError:
             raise ModuleNotFoundError("Required package vivarium_gbd_access not found.")
     gbd = GbdDummy()
 
+try:
+    from vivarium_gbd_access import forecasting
+except ModuleNotFoundError:
+    class ForecastingDummy:
+        def __getattr__(self, item):
+            raise ModuleNotFoundError("Required module vivarium_gbd_access.forecasting not found.")
+    forecasting = ForecastingDummy()
+
 GBD_ROUND_ID_MAP = {3: 'GBD_2015', 4: 'GBD_2016'}
 
 
