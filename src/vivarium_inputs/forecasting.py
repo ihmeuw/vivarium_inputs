@@ -10,7 +10,7 @@ NUM_DRAWS = 1000
 FERTILE_AGE_GROUP_IDS = list(range(7, 15 + 1))  # need for calc live births by sex
 
 
-def get_forecast(entity_key: EntityKey, location: str):
+def load_forecast(entity_key: EntityKey, location: str):
     entity_data = {
         "cause": {
             "mapping": causes,
@@ -65,10 +65,10 @@ def get_covariate_data(covariate, measure, location_id):
         raise ValueError(f"The only measure that can be retrieved for covariates is estimate. You requested {measure}.")
     if covariate.name == 'live_births_by_sex':  # we have to calculate
         data = _get_live_births_by_sex(location_id)
-        data = standardize_data(data, 0)
-        normalize_forecasting(data, value_column='mean_value')
     else:
         data = forecasting.get_entity_measure(covariate, measure, location_id)
+        data = standardize_data(data, 0)
+        data = normalize_forecasting(data, value_column='mean_value')
     return data
 
 
