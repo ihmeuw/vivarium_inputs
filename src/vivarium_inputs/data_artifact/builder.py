@@ -14,7 +14,9 @@ _log = logging.getLogger(__name__)
 
 class ArtifactBuilder:
     configuration_defaults = {
-        'forecast': False
+        'input_data': {
+            'forecast': False
+        }
     }
 
     def setup(self, builder):
