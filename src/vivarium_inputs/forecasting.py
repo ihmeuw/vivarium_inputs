@@ -8,6 +8,7 @@ from vivarium_public_health.dataset_manager import EntityKey
 
 NUM_DRAWS = 1000
 FERTILE_AGE_GROUP_IDS = list(range(7, 15 + 1))  # need for calc live births by sex
+BASE_COLUMNS = ['year_start', 'year_end', 'age_group_start', 'age_group_end', 'draw', 'location', 'sex']
 
 
 def load_forecast(entity_key: EntityKey, location: str):
@@ -43,19 +44,25 @@ def load_forecast(entity_key: EntityKey, location: str):
 def get_cause_data(cause, measure, location_id):
     data = forecasting.get_entity_measure(cause, measure, location_id)
     data = standardize_data(data, 0)
-    return normalize_forecasting(data, value_column='value')
+    value_column = 'value'
+    data = normalize_forecasting(data, value_column)
+    return data[BASE_COLUMNS + [value_column]]
 
 
 def get_etiology_data(etiology, measure, location_id):
     data = forecasting.get_entity_measure(etiology, measure, location_id)
     data = standardize_data(data, 0)
-    return normalize_forecasting(data, value_column='value')
+    value_column = 'value'
+    data = normalize_forecasting(data, value_column)
+    return data[BASE_COLUMNS + [value_column]]
 
 
 def get_population_data(_, measure, location_id):
     if measure == 'structure':
         data = forecasting.get_population(location_id)
-        return normalize_forecasting(data, value_column='population')
+        value_column = 'population'
+        data = normalize_forecasting(data, value_column)
+        return data[BASE_COLUMNS + [value_column]]
     else:
         raise ValueError(f"Only population.structure is supported from forecasting. You requested {measure}.")
 
@@ -63,13 +70,14 @@ def get_population_data(_, measure, location_id):
 def get_covariate_data(covariate, measure, location_id):
     if measure != 'estimate':
         raise ValueError(f"The only measure that can be retrieved for covariates is estimate. You requested {measure}.")
+    value_column = 'mean_value'
     if covariate.name == 'live_births_by_sex':  # we have to calculate
         data = _get_live_births_by_sex(location_id)
     else:
         data = forecasting.get_entity_measure(covariate, measure, location_id)
         data = standardize_data(data, 0)
-        data = normalize_forecasting(data, value_column='mean_value')
-    return data
+        data = normalize_forecasting(data, value_column)
+    return data[BASE_COLUMNS + [value_column]]
 
 
 def _get_live_births_by_sex(location_id):
