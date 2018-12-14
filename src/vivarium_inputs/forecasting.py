@@ -38,7 +38,7 @@ def load_forecast(entity_key: EntityKey, location: str):
     entity = mapping[entity_key.name]
     data = getter(entity, entity_key.measure, get_location_id(location))
     data['location'] = location
-    return data.drop('location_id', 'columns')
+    return data
 
 
 def get_cause_data(cause, measure, location_id):
