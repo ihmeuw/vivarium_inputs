@@ -8,7 +8,7 @@ from vivarium_public_health.dataset_manager import EntityKey
 
 NUM_DRAWS = 1000
 FERTILE_AGE_GROUP_IDS = list(range(7, 15 + 1))  # need for calc live births by sex
-BASE_COLUMNS = ['year_start', 'year_end', 'age_group_start', 'age_group_end', 'draw', 'location', 'sex']
+BASE_COLUMNS = ['year_start', 'year_end', 'age_group_start', 'age_group_end', 'draw', 'sex']
 
 
 def load_forecast(entity_key: EntityKey, location: str):
