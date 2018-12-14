@@ -131,15 +131,19 @@ def standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
     sex_id = data.sex_id.unique()
     year_id = data.year_id.unique()
     location_id = data.location_id.unique()
-    draw = data.draw.unique()
 
-    index_cols = ['year_id', 'location_id', 'sex_id', 'age_group_id', 'draw']
+    index_cols = ['year_id', 'location_id', 'sex_id', 'age_group_id']
+    expected_list = [year_id, location_id, sex_id, whole_age_groups]
+
+    if 'draw' in data:
+        index_cols += ['draw']
+        expected_list += [data.draw.unique()]
 
     value_cols = {c for c in data.dropna(axis=1).columns if c not in index_cols}
     data = data.set_index(index_cols)
 
     # expected indexes to be in the data
-    expected = pd.MultiIndex.from_product([year_id, location_id, sex_id, whole_age_groups, draw], names=index_cols)
+    expected = pd.MultiIndex.from_product(expected_list, names=index_cols)
 
     new_data = data.copy()
     missing = expected.difference(data.index)
@@ -156,6 +160,9 @@ def replicate_data(data):
     """If data has fewer than NUM_DRAWS draws, duplicate to have the full set.
     Assumes draws in data are sequential and start at 0
     """
+    if 'draw' not in data:  # for things with only 1 draw, draw isn't included as a col
+        data['draw'] = 0
+
     full_data = data.copy()
     og_draws = data.draw.unique()
     n_draws = len(og_draws)
