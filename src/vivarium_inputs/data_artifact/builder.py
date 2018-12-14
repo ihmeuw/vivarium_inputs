@@ -7,6 +7,7 @@ from vivarium_public_health.dataset_manager import EntityKey, Artifact, hdf, get
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
+from vivarium_inputs.forecasting import load_forecast
 
 
 _log = logging.getLogger(__name__)
@@ -47,9 +48,14 @@ class ArtifactBuilder:
 
     def process(self, entity_key: EntityKey, future=False) -> None:
         if entity_key not in self.processed_entities:
-            _worker(entity_key, self.location, self.modeled_causes, self.artifact)
+            _worker(entity_key, self.location, self.modeled_causes, self.artifact, future)
             self.processed_entities.add(entity_key)
 
 
-def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str], artifact: Artifact) -> None:
-    artifact.write(entity_key, loader(entity_key, location, modeled_causes, all_measures=False))
+def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str],
+            artifact: Artifact, future: bool) -> None:
+    if future:
+        data = load_forecast(entity_key, location)
+    else:
+        data = loader(entity_key, location, modeled_causes, all_measures=False)
+    artifact.write(entity_key, data)
