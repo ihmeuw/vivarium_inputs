@@ -77,7 +77,7 @@ def get_covariate_data(covariate, measure, location_id):
         data = forecasting.get_entity_measure(covariate, measure, location_id)
         data = standardize_data(data, 0)
         data = normalize_forecasting(data, value_column)
-    return data[BASE_COLUMNS + [value_column]]
+    return data
 
 
 def _get_live_births_by_sex(location_id):
