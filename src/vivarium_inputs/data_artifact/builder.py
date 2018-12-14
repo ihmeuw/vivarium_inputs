@@ -13,6 +13,9 @@ _log = logging.getLogger(__name__)
 
 
 class ArtifactBuilder:
+    configuration_defaults = {
+        'forecast': False
+    }
 
     def setup(self, builder):
         path = builder.configuration.input_data.artifact_path
@@ -30,17 +33,17 @@ class ArtifactBuilder:
 
         builder.event.register_listener('post_setup', self.end_processing)
 
-    def load(self, entity_key: str, keep_age_group_edges=True, **__) -> Any:
+    def load(self, entity_key: str, future=False, **__) -> Any:
         entity_key = EntityKey(entity_key)
         if entity_key not in self.artifact:
-            self.process(entity_key)
-        data = self.artifact.load(entity_key)
+            self.process(entity_key, future)
+        data = self.artifact.load(entity_key, future)
         return filter_data(data, **__) if isinstance(data, pd.DataFrame) else data
 
     def end_processing(self, event) -> None:
         _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
 
-    def process(self, entity_key: EntityKey) -> None:
+    def process(self, entity_key: EntityKey, future=False) -> None:
         if entity_key not in self.processed_entities:
             _worker(entity_key, self.location, self.modeled_causes, self.artifact)
             self.processed_entities.add(entity_key)
