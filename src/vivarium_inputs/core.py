@@ -171,17 +171,42 @@ def get_excess_mortality(entity, location_id):
     return standardize_data(em.dropna(), 0)
 
 
-def get_disability_weight(entity, _):
-    if entity.kind != 'sequela':
-        raise InvalidQueryError("Only sequela have disability weights associated with them.")
+def get_disability_weight(entity, location_id):
+    if entity.kind == 'sequela':
+        disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
+        if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
+            data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
+        else:
+            raise DataMissingError(f"No disability weight available for the sequela {entity.name}")
+        data['sequela_id'] = entity.gbd_id
 
-    disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
-    if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
-        data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
+    elif entity.kind == "cause":
+
+        id_columns = ['age_group_id', 'year_id', 'sex_id', 'location_id']
+        draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+
+        disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
+        sequelae = entity.sequelae
+
+        aggregate_dw = []
+        for seq in sequelae:
+            seq_prevalence = get_prevalence(seq, location_id).reset_index(drop=True)
+            seq_disability = disability_weights.loc[seq.healthstate.gbd_id == disability_weights.healthstate_id]
+            seq_disability = pd.concat([seq_disability[draw_columns]] * seq_prevalence.shape[0], ignore_index=True)
+            seq_prevalence[draw_columns] = seq_prevalence[draw_columns].mul(seq_disability, axis='columns')
+            seq_prevalence = seq_prevalence[id_columns + draw_columns]
+            melted_seq_prevalence = seq_prevalence.melt(id_vars=id_columns, var_name='draw')
+
+            aggregate_dw.append(melted_seq_prevalence)
+
+        aggregate_dw = pd.concat(aggregate_dw, axis=0)
+        data = aggregate_dw.groupby(by=list(id_columns) + ['draw']).sum()
+        data = data.unstack()  # hierarchical index, value + draw_#
+        data.columns = data.columns.map(lambda x: x[1])  # discard "value"
+        data = data.reset_index()
+        data['cause_id'] = entity.gbd_id
     else:
-        raise DataMissingError(f"No disability weight available for the sequela {entity.name}")
-
-    data['sequela_id'] = entity.gbd_id
+        raise InvalidQueryError("Only sequela and causes have disability weights associated with them.")
 
     return data.reset_index(drop=True)
 
