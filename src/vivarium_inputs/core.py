@@ -43,8 +43,8 @@ def get_draws(entity: ModelableEntity, measure: str, location: str) -> pd.DataFr
         'annual_visits': (get_annual_visits, {'modelable_entity_id', }),
         'disability_weight': (get_disability_weight, set()),
         'cost': (get_cost, set()),
-        'effects': (get_effects, set()),
-        'coverage': (get_coverage, set()),
+        'effects': (get_effects, {'medication', 'dosage'}),
+        'coverage': (get_coverage, {'medication', 'dosage'}),
     }
     location_id = get_location_id(location)
 
@@ -53,7 +53,8 @@ def get_draws(entity: ModelableEntity, measure: str, location: str) -> pd.DataFr
     except KeyError:
         raise InvalidQueryError(f'No functions are available to pull data for measure {measure}')
     data = handler(entity, location_id)
-    data['measure'] = measure
+    if 'measure' not in data:
+        data['measure'] = measure
 
     id_columns |= get_additional_id_columns(data, entity)
     key_columns = ['measure'] + list(id_columns)
@@ -380,9 +381,16 @@ def get_cost(entity, location_id):
     return cost_data
 
 
-def get_effects(entity, location_id):
+def get_effects(entity, _):
     data = gbd.get_auxiliary_data('effects', entity.kind, entity.name)
+    data = data.drop(columns=['year_id', 'sex_id'])
+    return data
+
+
+def get_coverage(entity, location_id):
+    data = gbd.get_auxiliary_data('coverage', entity.kind, entity.name)
     data = data[data['location_id'] == location_id]
+    return data
 
 
 ####################################
