@@ -191,7 +191,7 @@ def get_disability_weight(entity, location_id):
         aggregate_dw = []
         for seq in sequelae:
             seq_prevalence = get_prevalence(seq, location_id).reset_index(drop=True)
-            seq_disability = disability_weights.loc[seq.healthstate.gbd_id == disability_weights.healthstate_id]
+            seq_disability = disability_weights.loc[seq.healthstate.gbd_id == disability_weights.healthstate_id, :]
             seq_disability = pd.concat([seq_disability[draw_columns]] * seq_prevalence.shape[0], ignore_index=True)
             seq_prevalence[draw_columns] = seq_prevalence[draw_columns].mul(seq_disability, axis='columns')
             seq_prevalence = seq_prevalence[id_columns + draw_columns]
