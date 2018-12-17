@@ -171,7 +171,7 @@ def get_excess_mortality(entity, location_id):
     return standardize_data(em.dropna(), 0)
 
 
-def get_disability_weight(entity, location_id):
+def get_disability_weight(entity, location_id: int):
     if entity.kind == 'sequela':
         disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
         if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
@@ -181,7 +181,6 @@ def get_disability_weight(entity, location_id):
         data['sequela_id'] = entity.gbd_id
 
     elif entity.kind == "cause":
-
         id_columns = ['age_group_id', 'year_id', 'sex_id', 'location_id']
         draw_columns = [f'draw_{i}' for i in range(0, 1000)]
 
