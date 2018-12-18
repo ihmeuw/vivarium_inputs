@@ -57,7 +57,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "health_technology": {
             "mapping": health_technologies,
             "getter": get_health_technology_data,
-            "measures": ["cost"]
+            "measures": ["cost", "effects", "coverage"]
         },
         "coverage_gap": {
             "mapping": coverage_gaps,
@@ -181,6 +181,13 @@ def get_health_technology_data(healthcare_technology, measure, location, _):
     if measure == "cost":
         data = core.get_draws(healthcare_technology, "cost", location)
         data = normalize(data)[["location", "draw", "value", "health_technology"] + YEAR_COLS]
+    elif measure == "effects":
+        data = core.get_draws(healthcare_technology, "effects", location)
+        data = normalize(data)[["location", "measure", "medication", "dosage", "draw", "value"]]
+    elif measure == "coverage":
+        data = core.get_draws(healthcare_technology, "coverage", location)
+        data = normalize(data)[AGE_COLS + YEAR_COLS
+                               + ["sex", "location", "measure", "medication", "dosage", "draw", "value"]]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for healthcare_entity {healthcare_technology.name}")
     return data
