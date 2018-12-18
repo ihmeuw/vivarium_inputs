@@ -4,18 +4,6 @@ import pytest
 from vivarium_inputs import forecasting
 
 
-def test_combine_past_future():
-    past = pd.DataFrame({'year_start': [2000, 2005], 'value': [1, 2]})
-    future = pd.DataFrame({'year_start': [2005, 2005, 2020, 2020], 'draw': [0, 1]*2, 'value': range(6, 10)})
-
-    combo = forecasting.combine_past_future(past, future).set_index(['year_start', 'draw'])
-
-    expected = pd.DataFrame({'year_start': [2000, 2000, 2005, 2005, 2020, 2020], 'draw': [0, 1]*3,
-                             'value': [1, 1, 2, 2, 8, 9]}).set_index(['year_start', 'draw'])
-
-    assert combo.equals(expected)
-
-
 def test_rename_value_columns():
     data = pd.DataFrame({'year_id': [1990, 2000, 2010, 2020], 'scenario': 0, 'rename_me': range(0, 4)})
 
@@ -33,11 +21,19 @@ def test_normalize_forecasting():
     data = pd.DataFrame({'year_id': [1990, 2000, 2010, 2020], 'scenario': [0]*4,
                          'value': range(0, 4), 'age_group_id': 22})
 
-    expected = pd.DataFrame({'year_start': [1990, 2000, 2010, 2020],
-                             'year_end': [2000, 2010, 2020, 2021],
-                             'value': range(0, 4)}).set_index(['year_start', 'year_end'])
+    expected_base = pd.DataFrame({'year_start': [1990, 2000, 2010, 2020],
+                             'year_end': [2000, 2010, 2020, 2021], 'draw': 0,
+                             'value': range(0, 4)})
 
-    normalized = forecasting.normalize_forecasting(data).set_index(['year_start', 'year_end'])
+    expected = expected_base.copy()
+    for i in range(1, forecasting.NUM_DRAWS):
+        draw = expected_base.copy()
+        draw['draw'] = i
+        expected = expected.append(draw)
+
+    expected = expected.set_index(['year_start', 'year_end', 'draw'])
+
+    normalized = forecasting.normalize_forecasting(data).set_index(['year_start', 'year_end', 'draw'])
 
     assert normalized.equals(expected)
 

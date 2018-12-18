@@ -1,12 +1,9 @@
 """This module performs the core data transformations on GBD data and provides a basic API for data access."""
 from typing import Union
 
-import numpy as np
 import pandas as pd
 from gbd_mapping.base_template import ModelableEntity
-from gbd_mapping.cause import Cause
-from gbd_mapping.risk import Risk, risk_factors
-from gbd_mapping.etiology import Etiology
+from gbd_mapping.risk import Risk
 from gbd_mapping.coverage_gap import CoverageGap, coverage_gaps
 
 from vivarium_inputs.utilities import (InvalidQueryError, UnhandledDataError, DataMissingError,
@@ -46,6 +43,8 @@ def get_draws(entity: ModelableEntity, measure: str, location: str) -> pd.DataFr
         'annual_visits': (get_annual_visits, {'modelable_entity_id', }),
         'disability_weight': (get_disability_weight, set()),
         'cost': (get_cost, set()),
+        'effects': (get_effects, {'medication', 'dosage'}),
+        'coverage': (get_coverage, {'medication', 'dosage'}),
     }
     location_id = get_location_id(location)
 
@@ -54,7 +53,8 @@ def get_draws(entity: ModelableEntity, measure: str, location: str) -> pd.DataFr
     except KeyError:
         raise InvalidQueryError(f'No functions are available to pull data for measure {measure}')
     data = handler(entity, location_id)
-    data['measure'] = measure
+    if 'measure' not in data:
+        data['measure'] = measure
 
     id_columns |= get_additional_id_columns(data, entity)
     key_columns = ['measure'] + list(id_columns)
@@ -405,6 +405,18 @@ def get_cost(entity, location_id):
     return cost_data
 
 
+def get_effects(entity, _):
+    data = gbd.get_auxiliary_data('effects', entity.kind, entity.name)
+    data = data.drop(columns=['year_id', 'sex_id'])
+    return data
+
+
+def get_coverage(entity, location_id):
+    data = gbd.get_auxiliary_data('coverage', entity.kind, entity.name)
+    data = data[data['location_id'] == location_id]
+    return data
+
+
 ####################################
 # Measures for risk like entities  #
 ####################################
@@ -463,4 +475,7 @@ def get_location_name(location_id):
 
 def get_estimation_years():
     return gbd.get_estimation_years(gbd.GBD_ROUND_ID)
+
+
+
 
