@@ -199,7 +199,7 @@ def get_disability_weight(entity, location_id: int):
             aggregate_dw.append(melted_seq_prevalence)
 
         aggregate_dw = pd.concat(aggregate_dw, axis=0)
-        data = aggregate_dw.groupby(by=list(id_columns) + ['draw']).sum()
+        data = aggregate_dw.groupby(by=id_columns + ['draw']).sum()
         data = data.unstack()  # hierarchical index, value + draw_#
         data.columns = data.columns.map(lambda x: x[1])  # discard "value"
         data = data.reset_index()
