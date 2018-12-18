@@ -29,7 +29,7 @@ AGE_COLS = ['age_group_start', 'age_group_end']
 YEAR_COLS = ['year_start', 'year_end']
 
 
-def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool=False, **kwargs):
+def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool=False):
     entity_data = {
         "cause": {
             "mapping": causes,
@@ -94,14 +94,14 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
     mapping, getter, measures = entity_data[entity_key.type].values()
     entity = mapping[entity_key.name]
     if not all_measures:
-        return getter(entity, entity_key.measure, location, modeled_causes, **kwargs)
+        return getter(entity, entity_key.measure, location, modeled_causes)
     else:
-        return data_generator(entity, measures, location, modeled_causes, getter, **kwargs)
+        return data_generator(entity, measures, location, modeled_causes, getter)
 
 
-def data_generator(entity, measures, location, modeled_causes, getter, **kwargs):
+def data_generator(entity, measures, location, modeled_causes, getter):
     for measure in measures:
-        data = getter(entity, measure, location, modeled_causes, **kwargs)
+        data = getter(entity, measure, location, modeled_causes)
         if data is not None:
             yield measure, data
             del data
@@ -121,7 +121,7 @@ def get_cause_data(cause, measure, location, _):
     return data
 
 
-def get_risk_data(risk, measure, location, modeled_causes, **kwargs):
+def get_risk_data(risk, measure, location, modeled_causes):
     if measure in ["affected_causes", "affected_risk_factors", "restrictions",
                    "distribution", "exposure_parameters", "levels", "tmred"]:
         data = get_risk_metadata(risk, measure, modeled_causes)
@@ -130,13 +130,13 @@ def get_risk_data(risk, measure, location, modeled_causes, **kwargs):
     elif measure == "exposure_standard_deviation":
         data = get_risk_exposure_standard_deviation(risk, location)
     elif measure == "relative_risk":
-        data = get_risk_relative_risk(risk, location, **kwargs)
+        data = get_risk_relative_risk(risk, location,)
     elif measure == "population_attributable_fraction":
         if risk.distribution not in ['normal', 'lognormal', 'ensemble']:
             raise DataArtifactError(f"PAF for {risk.name} should not be loaded from the artifact. PAF for "
                                     f"Categorical risk should be computed directly ")
         else:
-            data = get_risk_population_attributable_fraction(risk, location, **kwargs)
+            data = get_risk_population_attributable_fraction(risk, location)
     elif measure == "ensemble_weights":
         data = get_risk_ensemble_weights(risk)
     else:
@@ -334,21 +334,22 @@ def get_risk_exposure_standard_deviation(risk, location):
     return data
 
 
-def get_risk_relative_risk(risk, location, mortality=False):
-    rrs = core.get_draws(risk, "relative_risk", location, mortality)
+def get_risk_relative_risk(risk, location):
+    rrs = core.get_draws(risk, "relative_risk", location)
     rrs = normalize(rrs)
     rrs['cause'] = rrs['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
     rrs.drop(['cause_id'], axis=1, inplace=True)
-    result = rrs[["location", "sex", "draw", "value", "parameter", "cause"] + AGE_COLS + YEAR_COLS]
+    result = rrs[["location", "sex", "draw", "value", "parameter", "cause", "mortality", "morbidity"]
+                 + AGE_COLS + YEAR_COLS]
     return result
 
 
-def get_risk_population_attributable_fraction(risk, location, mortality=False):
-    paf = core.get_draws(risk, 'population_attributable_fraction', location, mortality)
+def get_risk_population_attributable_fraction(risk, location):
+    paf = core.get_draws(risk, 'population_attributable_fraction', location)
     paf = normalize(paf)
     paf['cause'] = paf['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
     paf.drop(['cause_id'], axis=1, inplace=True)
-    result = paf[["location", "sex", "draw", "value", "cause"] + AGE_COLS + YEAR_COLS]
+    result = paf[["location", "sex", "draw", "value", "cause", "mortality", "morbidity"] + AGE_COLS + YEAR_COLS]
     return result
 
 

@@ -12,7 +12,7 @@ from vivarium_inputs.utilities import (InvalidQueryError, UnhandledDataError, Da
                                        standardize_data, gbd)
 
 
-def get_draws(entity: ModelableEntity, measure: str, location: str, **kwargs) -> pd.DataFrame:
+def get_draws(entity: ModelableEntity, measure: str, location: str) -> pd.DataFrame:
     """Gets draw level gbd data for a measure and entity.
 
     Parameters
@@ -34,8 +34,8 @@ def get_draws(entity: ModelableEntity, measure: str, location: str, **kwargs) ->
         'remission': (get_remission, set()),
         'prevalence': (get_prevalence, set()),
         'incidence': (get_incidence, set()),
-        'relative_risk': (get_relative_risk, {'cause_id', 'parameter', }),
-        'population_attributable_fraction': (get_population_attributable_fraction, {'rei_id', }),
+        'relative_risk': (get_relative_risk, {'cause_id', 'parameter', 'mortality', 'morbidity'}),
+        'population_attributable_fraction': (get_population_attributable_fraction, {'rei_id', 'mortality', 'morbidity'}),
         'cause_specific_mortality': (get_cause_specific_mortality, set()),
         'excess_mortality': (get_excess_mortality, set()),
         'exposure': (get_exposure, {'parameter', }),
@@ -52,7 +52,7 @@ def get_draws(entity: ModelableEntity, measure: str, location: str, **kwargs) ->
         handler, id_columns = measure_handlers[measure]
     except KeyError:
         raise InvalidQueryError(f'No functions are available to pull data for measure {measure}')
-    data = handler(entity, location_id, **kwargs)
+    data = handler(entity, location_id)
     if 'measure' not in data:
         data['measure'] = measure
 
@@ -190,15 +190,15 @@ def get_disability_weight(entity, _):
 # Risk-like stuff #
 ###################
 
-def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int, mortality: bool = False):
+def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int):
     special_cases = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
     entity_id = get_id_for_measure(entity, 'relative_risk')
 
     if entity.kind == 'risk_factor':
-        data = pull_rr_data_from_gbd(entity_id, location_id, mortality)
+        data = pull_rr_data_from_gbd(entity_id, location_id)
         data = filter_to_most_detailed(data)
     elif entity.kind == 'coverage_gap' and entity in special_cases:
-        data = pull_rr_data_from_gbd(entity_id, location_id, mortality)
+        data = pull_rr_data_from_gbd(entity_id, location_id)
         draw_cols = [f'draw_{i}' for i in range(1000)]
         data.loc[:, draw_cols] = 1 / data.loc[:, draw_cols]
         data = handle_gbd_coverage_gap_data(entity, data, 1)
@@ -215,7 +215,7 @@ def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int, mortal
     return data
 
 
-def pull_rr_data_from_gbd(measure_id, location_id, mortality):
+def pull_rr_data_from_gbd(measure_id, location_id):
     data = gbd.get_relative_risk(risk_id=measure_id, location_id=location_id)
     data = data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
 
@@ -224,18 +224,12 @@ def pull_rr_data_from_gbd(measure_id, location_id, mortality):
     #            + "set. This may not indicate an error but it is a case we don't explicitly handle. "
     #            + "If you need this risk, come talk to one of the programmers.")
     # assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), err_msg
-    if mortality:
-        data = data[data['mortality'] == 1]
-    else:
-        data = data[data['morbidity'] == 1]  # FIXME: HACK
-    del data['mortality']
-    del data['morbidity']
     del data['metric_id']
     del data['modelable_entity_id']
     return data
 
 
-def get_population_attributable_fraction(entity, location_id, mortality=False):
+def get_population_attributable_fraction(entity, location_id):
     entity_id = get_id_for_measure(entity, 'population_attributable_fraction')
 
     if entity.kind == 'etiology' or \
@@ -247,10 +241,9 @@ def get_population_attributable_fraction(entity, location_id, mortality=False):
         raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
 
     # TODO: figure out if we need to assert some property of the different PAF measures
-    if mortality:
-        data = data[data['measure_id'] == get_measure_id('YLL')]
-    else:
-        data = data[data['measure_id'] == get_measure_id('YLD')]
+    data['mortality'] = (data['measure_id'] == get_measure_id('YLL')).astype(int)
+    data['morbidity'] = (data['measure_id'] == get_measure_id('YLD')).astype(int)
+    data = data[(data['mortality'] == 1) | (data['morbidity'] == 1)]
     del data['measure_id']
 
     # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
