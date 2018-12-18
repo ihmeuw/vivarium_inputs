@@ -29,7 +29,7 @@ AGE_COLS = ['age_group_start', 'age_group_end']
 YEAR_COLS = ['year_start', 'year_end']
 
 
-def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool=False):
+def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool=False, **kwargs):
     entity_data = {
         "cause": {
             "mapping": causes,
@@ -94,14 +94,14 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
     mapping, getter, measures = entity_data[entity_key.type].values()
     entity = mapping[entity_key.name]
     if not all_measures:
-        return getter(entity, entity_key.measure, location, modeled_causes)
+        return getter(entity, entity_key.measure, location, modeled_causes, **kwargs)
     else:
-        return data_generator(entity, measures, location, modeled_causes, getter)
+        return data_generator(entity, measures, location, modeled_causes, getter, **kwargs)
 
 
-def data_generator(entity, measures, location, modeled_causes, getter):
+def data_generator(entity, measures, location, modeled_causes, getter, **kwargs):
     for measure in measures:
-        data = getter(entity, measure, location, modeled_causes)
+        data = getter(entity, measure, location, modeled_causes, **kwargs)
         if data is not None:
             yield measure, data
             del data
@@ -121,7 +121,7 @@ def get_cause_data(cause, measure, location, _):
     return data
 
 
-def get_risk_data(risk, measure, location, modeled_causes):
+def get_risk_data(risk, measure, location, modeled_causes, **kwargs):
     if measure in ["affected_causes", "affected_risk_factors", "restrictions",
                    "distribution", "exposure_parameters", "levels", "tmred"]:
         data = get_risk_metadata(risk, measure, modeled_causes)
@@ -130,13 +130,13 @@ def get_risk_data(risk, measure, location, modeled_causes):
     elif measure == "exposure_standard_deviation":
         data = get_risk_exposure_standard_deviation(risk, location)
     elif measure == "relative_risk":
-        data = get_risk_relative_risk(risk, location)
+        data = get_risk_relative_risk(risk, location, **kwargs)
     elif measure == "population_attributable_fraction":
         if risk.distribution not in ['normal', 'lognormal', 'ensemble']:
             raise DataArtifactError(f"PAF for {risk.name} should not be loaded from the artifact. PAF for "
                                     f"Categorical risk should be computed directly ")
         else:
-            data = get_risk_population_attributable_fraction(risk, location)
+            data = get_risk_population_attributable_fraction(risk, location, **kwargs)
     elif measure == "ensemble_weights":
         data = get_risk_ensemble_weights(risk)
     else:
@@ -334,8 +334,8 @@ def get_risk_exposure_standard_deviation(risk, location):
     return data
 
 
-def get_risk_relative_risk(risk, location):
-    rrs = core.get_draws(risk, "relative_risk", location)
+def get_risk_relative_risk(risk, location, mortality=False):
+    rrs = core.get_draws(risk, "relative_risk", location, mortality)
     rrs = normalize(rrs)
     rrs['cause'] = rrs['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
     rrs.drop(['cause_id'], axis=1, inplace=True)
@@ -343,8 +343,8 @@ def get_risk_relative_risk(risk, location):
     return result
 
 
-def get_risk_population_attributable_fraction(risk, location):
-    paf = core.get_draws(risk, 'population_attributable_fraction', location)
+def get_risk_population_attributable_fraction(risk, location, mortality=False):
+    paf = core.get_draws(risk, 'population_attributable_fraction', location, mortality)
     paf = normalize(paf)
     paf['cause'] = paf['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
     paf.drop(['cause_id'], axis=1, inplace=True)
