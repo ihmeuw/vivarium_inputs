@@ -130,7 +130,7 @@ def get_risk_data(risk, measure, location, modeled_causes):
     elif measure == "exposure_standard_deviation":
         data = get_risk_exposure_standard_deviation(risk, location)
     elif measure == "relative_risk":
-        data = get_risk_relative_risk(risk, location,)
+        data = get_risk_relative_risk(risk, location)
     elif measure == "population_attributable_fraction":
         if risk.distribution not in ['normal', 'lognormal', 'ensemble']:
             raise DataArtifactError(f"PAF for {risk.name} should not be loaded from the artifact. PAF for "
