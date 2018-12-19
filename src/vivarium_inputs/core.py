@@ -5,6 +5,8 @@ import pandas as pd
 from gbd_mapping.base_template import ModelableEntity
 from gbd_mapping.risk import Risk
 from gbd_mapping.coverage_gap import CoverageGap, coverage_gaps
+from gbd_mapping.cause import Cause
+from gbd_mapping.sequela import Sequela
 
 from vivarium_inputs.utilities import (InvalidQueryError, UnhandledDataError, DataMissingError,
                                        get_additional_id_columns, validate_data, get_measure_id, get_id_for_measure,
@@ -171,7 +173,7 @@ def get_excess_mortality(entity, location_id):
     return standardize_data(em.dropna(), 0)
 
 
-def get_disability_weight(entity, location_id: int):
+def get_disability_weight(entity: Union[Sequela, Cause], location_id: int):
     if entity.kind == 'sequela':
         disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
         if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
