@@ -209,7 +209,7 @@ def get_etiology_data(etiology, measure, location, _):
         data = core.get_draws(etiology, "population_attributable_fraction", location)
         data = normalize(data)
         data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        data = data[["location", "cause", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
+        data = data[["location", "cause", "sex", "draw", "value", "mortality", "morbidity"] + AGE_COLS + YEAR_COLS]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for etiology {etiology.name}")
     return data
