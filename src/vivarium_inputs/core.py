@@ -224,9 +224,10 @@ def pull_rr_data_from_gbd(measure_id, location_id):
     #            + "set. This may not indicate an error but it is a case we don't explicitly handle. "
     #            + "If you need this risk, come talk to one of the programmers.")
     # assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), err_msg
-    del data['metric_id']
-    del data['modelable_entity_id']
-    return data
+    data.loc[data.morbidity == 1, 'affected_measure'] = 'incidence_rate'
+    data.loc[(data.mortality == 1) & (data.morbidity == 0), 'affected_measure'] = 'excess_mortality'
+
+    return data.drop(['metric_id', 'modelable_entity_id', 'mortality', 'morbidity'], 'columns')
 
 
 def get_population_attributable_fraction(entity, location_id):
@@ -254,20 +255,20 @@ def get_population_attributable_fraction(entity, location_id):
     # assert np.all(
     #    measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
 
+    if not morbidity_data.empty and mortality_data.empty:
+        raise DataMissingError(f"Morbidity population attributable fraction data for entity {entity.name} was "
+                               f"retrieved, but no accompanying mortality data was found.")
+
     # standardize mortality and morbidity data separately because any extra cols (e.g., mort, morb) will result in dupes
     mortality_data = standardize_data(mortality_data, 0)
     morbidity_data = standardize_data(morbidity_data, 0)
 
-    mortality_data['mortality'] = 1
-    mortality_data['morbidity'] = 0
-    morbidity_data['mortality'] = 0
-    morbidity_data['morbidity'] = 1
+    mortality_data['affected_measure'] = 'excess_mortality'
+    morbidity_data['affected_measure'] = 'incidence_rate'
 
-    data = mortality_data
-    if not data.empty: # appending if one data set is empty changes dtypes from ints to floats
-        data = data.append(morbidity_data)
-    else:
-        data = morbidity_data
+    data = morbidity_data
+    if not mortality_data.empty: # appending if one data set is empty changes dtypes from ints to floats
+        data = data.append(mortality_data)
     return data
 
 
