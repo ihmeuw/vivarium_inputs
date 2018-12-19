@@ -209,7 +209,7 @@ def get_etiology_data(etiology, measure, location, _):
         data = core.get_draws(etiology, "population_attributable_fraction", location)
         data = normalize(data)
         data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        data = data[["location", "cause", "sex", "draw", "value", "mortality", "morbidity"] + AGE_COLS + YEAR_COLS]
+        data = data[["location", "cause", "sex", "draw", "value", "affected_measure"] + AGE_COLS + YEAR_COLS]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for etiology {etiology.name}")
     return data
@@ -339,7 +339,7 @@ def get_risk_relative_risk(risk, location):
     rrs = normalize(rrs)
     rrs['cause'] = rrs['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
     rrs.drop(['cause_id'], axis=1, inplace=True)
-    result = rrs[["location", "sex", "draw", "value", "parameter", "cause", "mortality", "morbidity"]
+    result = rrs[["location", "sex", "draw", "value", "parameter", "cause", "affected_measure"]
                  + AGE_COLS + YEAR_COLS]
     return result
 
@@ -349,7 +349,7 @@ def get_risk_population_attributable_fraction(risk, location):
     paf = normalize(paf)
     paf['cause'] = paf['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
     paf.drop(['cause_id'], axis=1, inplace=True)
-    result = paf[["location", "sex", "draw", "value", "cause", "mortality", "morbidity"] + AGE_COLS + YEAR_COLS]
+    result = paf[["location", "sex", "draw", "value", "cause", "affected_measure"] + AGE_COLS + YEAR_COLS]
     return result
 
 
