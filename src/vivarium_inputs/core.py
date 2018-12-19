@@ -241,10 +241,10 @@ def get_population_attributable_fraction(entity, location_id):
         raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
 
     # TODO: figure out if we need to assert some property of the different PAF measures
-    data['mortality'] = (data['measure_id'] == get_measure_id('YLL')).astype(int)
-    data['morbidity'] = (data['measure_id'] == get_measure_id('YLD')).astype(int)
-    data = data[(data['mortality'] == 1) | (data['morbidity'] == 1)]
-    del data['measure_id']
+    mortality_data = data[data['measure_id'] == get_measure_id('YLL')]
+    morbidity_data = data[data['measure_id'] == get_measure_id('YLD')]
+    del mortality_data['measure_id']
+    del morbidity_data['measure_id']
 
     # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
     # measure_ids = {name_measure_map[m] for m in ['death', 'DALY', 'YLD', 'YLL']}
@@ -254,8 +254,15 @@ def get_population_attributable_fraction(entity, location_id):
     # assert np.all(
     #    measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
 
-    data = standardize_data(data, 0)
-    return data
+    # standardize mortality and morbidity data separately because any extra cols (e.g., mort, morb) will result in dupes
+    mortality_data = standardize_data(mortality_data, 0)
+    morbidity_data = standardize_data(morbidity_data, 0)
+
+    mortality_data['mortality'] = 1
+    morbidity_data['mortality'] = 0
+    morbidity_data['morbidity'] = 1
+    mortality_data['morbidity'] = 0
+    return morbidity_data.append(mortality_data)
 
 
 def get_exposure(entity, location_id):
