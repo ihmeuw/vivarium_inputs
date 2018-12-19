@@ -259,10 +259,16 @@ def get_population_attributable_fraction(entity, location_id):
     morbidity_data = standardize_data(morbidity_data, 0)
 
     mortality_data['mortality'] = 1
+    mortality_data['morbidity'] = 0
     morbidity_data['mortality'] = 0
     morbidity_data['morbidity'] = 1
-    mortality_data['morbidity'] = 0
-    return morbidity_data.append(mortality_data)
+
+    data = mortality_data
+    if not data.empty: # appending if one data set is empty changes dtypes from ints to floats
+        data = data.append(morbidity_data)
+    else:
+        data = morbidity_data
+    return data
 
 
 def get_exposure(entity, location_id):
