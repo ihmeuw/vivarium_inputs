@@ -72,7 +72,7 @@ def mock_pafs(mocker, cause_list):
                     years = [1990, 1995]
                     sexes = [1, 2]
                     idx = pd.MultiIndex.from_product(
-                        [[c],               [r],      age_groups,     years,     sexes,    [3],          location_ids],
+                        [[c],               [r],      age_groups,     years,     sexes,    [3, 4],        location_ids],
                         names=["cause_id", "rei_id", "age_group_id", "year_id", "sex_id", "measure_id", "location_id"])
                     pafs.append(pd.DataFrame({f"draw_{i}":current_paf for i in range(1000)}, index=idx).reset_index())
         return pd.concat(pafs)
@@ -149,6 +149,7 @@ def test_get_relative_risk(mocker):
     rr_ = rr_.reset_index(['morbidity', 'mortality', 'metric_id', 'modelable_entity_id'])
     rr_ = rr_.drop(['morbidity', 'mortality', 'metric_id', 'modelable_entity_id'], axis=1)
     expected_rr = rr_.append(missing_rr).sort_index().reset_index()
+    expected_rr['affected_measure'] = 'incidence_rate' # every row has morbidity flag on
     get_rr = get_rr[expected_rr.columns]
 
     pd.util.testing.assert_frame_equal(expected_rr, get_rr)
@@ -172,13 +173,13 @@ def test_get_population_attributable_fraction(mocker):
     gbd_mock_utilities.get_age_group_id.return_value = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     draw_cols = [f"draw_{i}" for i in range(10)]
     paf_maps = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2], 'age_group_id': [4, 5],
-                'rei_id': [106], 'cause_id': [493, 495], 'measure_id': [3]}
+                'rei_id': [106], 'cause_id': [493, 495], 'measure_id': [3, 4]}
 
     paf_ = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*paf_maps.values()], names=[*paf_maps.keys()]))
     paf_[draw_cols] = np.random.random_sample((len(paf_), 10))
     gbd_mock.get_paf.return_value = paf_.reset_index()
 
-    get_paf = core.get_population_attributable_fraction(risk_factors.high_total_cholesterol, 1)
+    get_paf = core.get_population_attributable_fraction(risk_factors.high_total_cholesterol, 1).reset_index()
 
     whole_age_groups = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 30, 31, 32, 235]
     missing_age_groups = list(set(whole_age_groups) - set(paf_maps['age_group_id']))
@@ -187,14 +188,19 @@ def test_get_population_attributable_fraction(mocker):
     del missing_paf_maps['measure_id']
 
     missing_paf = pd.DataFrame(0.0, columns=draw_cols,
-                               index=pd.MultiIndex.from_product([*missing_paf_maps.values()],
-                                                                names=[*missing_paf_maps.keys()]))
-    paf_ = paf_.reset_index('measure_id')
-    paf_ = paf_.drop('measure_id', axis=1)
-    expected_paf = paf_.append(missing_paf).sort_index().reset_index()
+                               index=pd.MultiIndex.from_product([*missing_paf_maps.values(),
+                                                                 ['incidence_rate', 'excess_mortality']],
+                                                                names=[*missing_paf_maps.keys(), 'affected_measure'])).reset_index()
+    paf_ = paf_.reset_index()
+    paf_['affected_measure'] = paf_['measure_id'].apply(lambda x: 'incidence_rate' if x == 3 else 'excess_mortality')
+    paf_ = paf_.drop('measure_id', 'columns')
+    expected_paf = paf_.append(missing_paf).sort_index().reset_index(drop=True)
     get_paf = get_paf[expected_paf.columns]
 
-    pd.util.testing.assert_frame_equal(expected_paf, get_paf)
+    index_cols = ['age_group_id', 'cause_id', 'sex_id', 'year_id', 'affected_measure']
+    pd.util.testing.assert_frame_equal(expected_paf.sort_values(index_cols).reset_index(drop=True),
+                                       get_paf.sort_values(index_cols).reset_index(drop=True))
+
 
 
 def mock_sequelae_disability_weights(sequelae, dw_data):
@@ -295,3 +301,4 @@ def test_get_disability_weight_cause(mocker):
     draw_columns = [col for col in cause_disability_weight.columns if col.startswith('draw_')]
 
     pd.testing.assert_frame_equal(expected, cause_disability_weight[draw_columns])
+
