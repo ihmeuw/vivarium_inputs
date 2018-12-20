@@ -204,17 +204,19 @@ def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None
             except DataMissingError:
                 continue  # take disability weight to be zero
 
-            # duplicate disability weight to make multiplication easier.
             draw_columns = [col for col in seq_disability if col.startswith('draw_')]
+
+            # duplicate disability weight to make multiplication easier.
             seq_disability = pd.concat([seq_disability[draw_columns]] * seq_prevalence.shape[0], ignore_index=True)
 
-            seq_prevalence[draw_columns] = seq_prevalence[draw_columns] * seq_disability
+            seq_prevalence.loc[:, draw_columns] = seq_prevalence[draw_columns] * seq_disability
             seq_prevalence = seq_prevalence.set_index(id_columns)
             sequela_level_data.append(seq_prevalence)
 
         data = reduce(lambda x, y: x + y, sequela_level_data)
+        data = data.drop('sequela_id', 'columns')
         data = data.reset_index()
-        data['cause_id'] = entity.gbd_id
+        data.loc[:, 'cause_id'] = entity.gbd_id
 
     else:
         raise InvalidQueryError("Only sequela and causes have disability weights associated with them.")
