@@ -1,5 +1,6 @@
 """This module performs the core data transformations on GBD data and provides a basic API for data access."""
 from typing import Union
+from functools import reduce
 
 import pandas as pd
 from gbd_mapping.base_template import ModelableEntity
@@ -173,43 +174,52 @@ def get_excess_mortality(entity, location_id):
     return standardize_data(em.dropna(), 0)
 
 
-def get_disability_weight(entity: Union[Sequela, Cause], location_id: int):
+def _get_sequela_disability_weights(entity: Sequela):
+    disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
+    if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
+        data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
+    else:
+        raise DataMissingError(f"No disability weight available for the sequela {entity.name}")
+    data.loc[:, 'sequela_id'] = entity.gbd_id
+
+    return data
+
+
+def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None):
     if entity.kind == 'sequela':
-        disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
-        if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
-            data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
-        else:
-            raise DataMissingError(f"No disability weight available for the sequela {entity.name}")
-        data['sequela_id'] = entity.gbd_id
+        data = _get_sequela_disability_weights(entity, location_id)
 
     elif entity.kind == "cause":
-        id_columns = ['age_group_id', 'year_id', 'sex_id', 'location_id']
-        draw_columns = [f'draw_{i}' for i in range(0, 1000)]
+        if location_id is None:
+            raise ValueError("A location id must be specified for a cause-level disability weight.")
 
-        disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
+        id_columns = ['age_group_id', 'year_id', 'sex_id', 'location_id']
         sequelae = entity.sequelae
 
-        aggregate_dw = []
+        sequela_level_data = []
         for seq in sequelae:
             seq_prevalence = get_prevalence(seq, location_id).reset_index(drop=True)
-            seq_disability = disability_weights.loc[seq.healthstate.gbd_id == disability_weights.healthstate_id, :]
+            try:
+                seq_disability = _get_sequela_disability_weights(seq)
+            except DataMissingError:
+                continue  # take disability weight to be zero
+
+            # duplicate disability weight to make multiplication easier.
+            draw_columns = [col for col in seq_disability if col.startswith('draw_')]
             seq_disability = pd.concat([seq_disability[draw_columns]] * seq_prevalence.shape[0], ignore_index=True)
-            seq_prevalence[draw_columns] = seq_prevalence[draw_columns].mul(seq_disability, axis='columns')
-            seq_prevalence = seq_prevalence[id_columns + draw_columns]
-            melted_seq_prevalence = seq_prevalence.melt(id_vars=id_columns, var_name='draw')
 
-            aggregate_dw.append(melted_seq_prevalence)
+            seq_prevalence[draw_columns] = seq_prevalence[draw_columns] * seq_disability
+            seq_prevalence = seq_prevalence.set_index(id_columns)
+            sequela_level_data.append(seq_prevalence)
 
-        aggregate_dw = pd.concat(aggregate_dw, axis=0)
-        data = aggregate_dw.groupby(by=id_columns + ['draw']).sum()
-        data = data.unstack()  # hierarchical index, value + draw_#
-        data.columns = data.columns.map(lambda x: x[1])  # discard "value"
+        data = reduce(lambda x, y: x + y, sequela_level_data)
         data = data.reset_index()
         data['cause_id'] = entity.gbd_id
+
     else:
         raise InvalidQueryError("Only sequela and causes have disability weights associated with them.")
 
-    return data.reset_index(drop=True)
+    return data
 
 
 ###################
