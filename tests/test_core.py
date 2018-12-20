@@ -272,9 +272,6 @@ def test__get_sequela_disability_weights(mocker):
     assert 'sequela_id' in actual.columns, "We assume sequela_id is included with sequela-level disability weights"
     pd.testing.assert_frame_equal(expected, actual.drop('sequela_id', 'columns'))
 
-    with pytest.raises(utilities.DataMissingError):
-        core._get_sequela_disability_weights(causes.diabetes_mellitus.sequelae[0])
-
 
 def test_get_disability_weight_cause(mocker):
     """Test to ensure prevalence weighted sum of disability weights is the cause-level disability weight."""
