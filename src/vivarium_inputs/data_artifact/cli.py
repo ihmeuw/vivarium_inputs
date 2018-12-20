@@ -7,13 +7,15 @@ import pathlib
 import argparse
 import subprocess
 from typing import Union
-
+import tempfile
+import pandas as pd
 import click
 
 from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.plugins import PluginManager
 from vivarium.interface.interactive import InteractiveContext
 from vivarium.config_tree import ConfigTree
+from vivarium_public_health.dataset_manager import Artifact, ArtifactException
 
 
 @click.command()
@@ -88,36 +90,43 @@ def multi_build_artifact(model_specification, locations, project,
     """
 
     config_path = pathlib.Path(model_specification).resolve()
-    python_context_path = pathlib.Path(shutil.which("python")).resolve()
-    script_path = pathlib.Path(__file__).resolve()
 
-    script_args = f"{script_path} {config_path} "
-    if output_root:
-        script_args += f"--output-root {output_root} "
-    if append:
-        script_args += f"--append "
+    script_path = pathlib.Path(__file__).resolve()
+    tempdir = pathlib.Path(tempfile.mkdtemp())
+
+    existing_locations = disaggregate_artifacts(config_path.stem, tempdir, output_root) if append else {}
+    new_locations = set(locations).difference(set(existing_locations)) if set(locations) > set(existing_locations) else {}
+
+    script_args = f"{script_path} {config_path} --output-root {tempdir}"
     if verbose:
         script_args += f"--verbose "
 
     error_log_dir = _make_log_dir(output_root) if error_logs else None
 
-    num_locations = len(locations)
-    if num_locations > 0:
-        script_args += "--location {} "
-        for i, location in enumerate(locations):
-            location = location.replace("'", "-")
-            job_name = f"{config_path.stem}_{location}_build_artifact"
-            command = build_submit_command(python_context_path, job_name, project, error_log_dir,
-                                           script_args.format(location), memory, archive=True, queue='all.q')
-            click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
+    def qsub_jobs(locs, script_arguments):
+        num_locations = len(locs)
+        python_context_path = pathlib.Path(shutil.which("python")).resolve()
+        if num_locations > 0:
+            script_arguments += "--location {} "
+            for i, location in enumerate(locations):
+                location = location.replace("'", "-")
+                job_name = f"{config_path.stem}_{location}_build_artifact"
+                command = build_submit_command(python_context_path, job_name, project, error_log_dir,
+                                               script_args.format(location), memory, archive=True, queue='all.q')
+                click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
+                submit_job(command, job_name)
+        else:
+            job_name = f"{config_path.stem}_build_artifact"
+            command = build_submit_command(python_context_path, job_name, project, error_log_dir, script_args,
+                                           memory, archive=True, queue='all.q')
+            click.echo(f"submitting job {job_name}")
             submit_job(command, job_name)
-    else:
-        job_name = f"{config_path.stem}_build_artifact"
-        command = build_submit_command(python_context_path, job_name, project, error_log_dir, script_args,
-                                       memory, archive=True, queue='all.q')
-        click.echo(f"submitting job {job_name}")
-        submit_job(command, job_name)
 
+    qsub_jobs(existing_locations, script_args + f'--append')
+    qsub_jobs(new_locations, script_args)
+
+
+    #aggregate_artifacts(locations, tempdir, output_root)
 
 def submit_job(command: str, name: str):
     """Submit a qsub command to the shell and report the result.
@@ -414,6 +423,37 @@ def _setup_logging(output_root, verbose, location,
                         datefmt="%m-%d-%y %H:%M",
                         filename=log_name,
                         filemode='a' if append else 'w')
+
+
+def disaggregate_artifacts(config_name, output_root, tempdir):
+    initial_artifact_path = f'{output_root}/ {config_name}.hdf'
+    if not pathlib.Path(initial_artifact_path).is_file():
+        raise ArtifactException('To append it, you should provide the existing artifacts')
+    existing_artifact = Artifact(initial_artifact_path)
+    existing_keys = existing_artifact.load('metadata.keyspace')
+    existing_locations = existing_artifact.load('metadata.location')
+    for loc in existing_locations:
+        temp_path = pathlib.Path(f'{tempdir} / {config_name}_{loc}.hdf')
+        new_artifact = Artifact(temp_path)
+        for e_key in existing_keys:
+            data = existing_artifact.load(e_key)
+            if isinstance(data, pd.DataFrame):
+                data = data[data.location == loc]
+            new_artifact.write(e_key, data)
+    return existing_locations
+
+
+
+
+"""
+def aggregate_artifacts(locations, tempdir, output_root=None):
+    pathlist = tempdir.glob('*.hdf')
+    key_list = [Artifact(str(f)).keys for f in pathlist]
+    keyspace_set = set().union(*key_list)
+
+    for artifact in pathlist:
+
+"""
 
 
 if __name__ == "__main__":

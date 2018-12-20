@@ -20,3 +20,4 @@ def normalize(data: pd.DataFrame) -> pd.DataFrame:
     if "year_start" in data:
         data = data.loc[(data.year_start >= year_start) & (data.year_end <= year_end)]
     return data
+
