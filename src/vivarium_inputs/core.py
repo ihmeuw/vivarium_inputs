@@ -187,7 +187,7 @@ def _get_sequela_disability_weights(entity: Sequela):
 
 def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None):
     if entity.kind == 'sequela':
-        data = _get_sequela_disability_weights(entity, location_id)
+        data = _get_sequela_disability_weights(entity)
 
     elif entity.kind == "cause":
         if location_id is None:
