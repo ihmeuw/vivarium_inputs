@@ -1,3 +1,7 @@
+**1.0.17 - 12/20/18**
+
+ - Bugfix to normalize disability weight data.
+
 **1.0.16 - 12/20/18**
 
  - Build in functionality for pulling forecasting data for demography and diarrhea etiologies.
