@@ -77,9 +77,9 @@ def get_excess_mortality(cause, override_config: ConfigTree=None):
     return _clean_and_filter_data(data, config.input_data.input_draw_number, 'rate')
 
 
-def get_disability_weight(sequela, override_config=None):
+def get_disability_weight(entity, override_config=None):
     config = get_input_config(override_config)
-    data = core.get_draws(sequela, 'disability_weight', config.input_data.location).drop('measure', 'columns')
+    data = core.get_draws(entity, 'disability_weight', config.input_data.location).drop('measure', 'columns')
     return float(data[f'draw_{config.input_data.input_draw_number}'])
 
 

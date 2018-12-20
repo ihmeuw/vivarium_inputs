@@ -34,7 +34,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "cause": {
             "mapping": causes,
             "getter": get_cause_data,
-            "measures": ["death", "prevalence", "incidence", "cause_specific_mortality",
+            "measures": ["death", "prevalence", "incidence", "cause_specific_mortality", "disability_weight",
                          "excess_mortality", "remission", "sequelae", "etiologies", "restrictions"]
         },
         "risk_factor": {
@@ -110,7 +110,8 @@ def data_generator(entity, measures, location, modeled_causes, getter):
 def get_cause_data(cause, measure, location, _):
     if measure in ["sequelae", "etiologies", "restrictions"]:
         data = get_cause_metadata(cause, measure)
-    elif measure in ["death", "prevalence", "incidence", "cause_specific_mortality", "excess_mortality"]:
+    elif measure in ["death", "prevalence", "incidence", "disability_weight", "cause_specific_mortality",
+                     "excess_mortality"]:
         data = core.get_draws(cause, measure, location)
         data = normalize(data)[["location", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
     elif measure == "remission":

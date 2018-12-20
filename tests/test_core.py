@@ -1,4 +1,5 @@
 import hashlib
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -9,7 +10,7 @@ from gbd_mapping.cause import causes
 from gbd_mapping.risk import risk_factors
 from gbd_mapping.coverage_gap import coverage_gaps
 
-from vivarium_inputs import core
+from vivarium_inputs import core, utilities
 
 
 # TODO there's a bunch of repeated code in the next three functions but I'm not sure what the general form should be yet
@@ -199,3 +200,105 @@ def test_get_population_attributable_fraction(mocker):
     index_cols = ['age_group_id', 'cause_id', 'sex_id', 'year_id', 'affected_measure']
     pd.util.testing.assert_frame_equal(expected_paf.sort_values(index_cols).reset_index(drop=True),
                                        get_paf.sort_values(index_cols).reset_index(drop=True))
+
+
+
+def mock_sequelae_disability_weights(sequelae, dw_data):
+    """Returns a mock of the table of disability weights that vivarium_inputs.utilities.gbd.get_auxiliary_data returns.
+     Used to patch that function call. Data is supplied to the function."""
+    healthstate_id_tuples = list(map(lambda s: (s.healthstate.name, s.healthstate.gbd_id), sequelae))
+    healthstates, healthstate_ids = list(zip(*healthstate_id_tuples))
+    data = {'location_id': 1, 'sex_id': 3, 'age_group_id': 22, 'measure': 'disability_weight',
+            'healthstate_id': healthstate_ids, 'healthstate': healthstates}
+
+    sequelae = pd.DataFrame(data=data)
+    combined = pd.concat([sequelae, dw_data], axis=1)
+
+    return combined
+
+
+def mock_sequelae_prevalence(sequela, __, prev_data):
+    """Mocks sequela prevalence data, used to patch the call to get_prevalence from core.py as a side effect. Data is
+    supplied to the function."""
+    sequela_data = prev_data[sequela.name]
+    draw_cols = [f"draw_{i}" for i in range(sequela_data.shape[1])]
+    id_data = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2],
+            'age_group_id': [4, 5], 'measure_id': [5], 'metric_id': [3]}
+    index = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*id_data.values()], names=[*id_data.keys()])).index
+    sequela_data.index = index
+    sequela_data = sequela_data.reset_index()
+    sequela_data['sequela_id'] = sequela.gbd_id
+
+    return sequela_data
+
+
+def make_test_disability_weight_data(sequelae, num_draws=10):
+    """Mock data for sequelae prevalence and disability weights, as well as their weighted sum. This can be used as
+    expected output for cause-level disability weights."""
+
+    draw_cols = [f"draw_{i}" for i in range(num_draws)]
+    data = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2],
+            'age_group_id': [4, 5], 'measure_id': [5], 'metric_id': [3]}
+    prev_frame = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*data.values()], names=[*data.keys()]))
+
+    prev_data = {}  # dict is necessary based on the parameters of the fxn being mocked
+    dw_data = []
+    expected = None
+    for s in sequelae:
+        prev_draws = pd.DataFrame(data=np.random.random_sample((len(prev_frame), num_draws)), columns=draw_cols)
+        dw_draws = pd.DataFrame(data=np.random.random_sample((1, num_draws)), columns=draw_cols)
+        prev_data[s.name] = prev_draws
+        dw_data.append(dw_draws)
+
+        if expected is None:
+            expected = pd.DataFrame(prev_draws.values * dw_draws.values)
+        else:
+            expected += pd.DataFrame(prev_draws.values * dw_draws.values)
+
+    dw_data = pd.concat(dw_data, axis=0).reset_index(drop=True)
+    expected.columns = [f'draw_{i}' for i in range(num_draws)]
+
+    return prev_data, dw_data, expected
+
+
+def test__get_sequela_disability_weights(mocker):
+    """essentially a test of whether the aux data disability map is subset correctly."""
+    cause = causes.ischemic_heart_disease
+
+    prev_data, dw_data, expected = make_test_disability_weight_data(cause.sequelae)
+
+    # mock disability weights
+    gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
+    mock_disability_weight_map = mock_sequelae_disability_weights(cause.sequelae, dw_data)
+    gbd_mock.get_auxiliary_data.return_value = mock_disability_weight_map
+
+    expected = mock_disability_weight_map.loc[mock_disability_weight_map.healthstate_id == cause.sequelae[0].healthstate.gbd_id]
+    actual = core._get_sequela_disability_weights(cause.sequelae[0])
+
+    assert 'sequela_id' in actual.columns, "We assume sequela_id is included with sequela-level disability weights"
+    pd.testing.assert_frame_equal(expected, actual.drop('sequela_id', 'columns'))
+
+
+def test_get_disability_weight_cause(mocker):
+    """Test to ensure prevalence weighted sum of disability weights is the cause-level disability weight."""
+
+    cause = causes.urticaria
+
+    prev_data, dw_data, expected = make_test_disability_weight_data(cause.sequelae)
+
+    # mock disability weights
+    gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
+    mock_disability_weight_map = mock_sequelae_disability_weights(cause.sequelae, dw_data)
+    gbd_mock.get_auxiliary_data.return_value = mock_disability_weight_map
+
+    # mock prevalence
+    prevalence_mock = mocker.patch("vivarium_inputs.core.get_prevalence")
+    prevalence_mock.side_effect = partial(mock_sequelae_prevalence, prev_data=prev_data)
+
+    mock_location_id = 1.0
+    cause_disability_weight = core.get_disability_weight(cause, mock_location_id)
+
+    draw_columns = [col for col in cause_disability_weight.columns if col.startswith('draw_')]
+
+    pd.testing.assert_frame_equal(expected, cause_disability_weight[draw_columns])
+
