@@ -1,6 +1,5 @@
 """This module performs the core data transformations on GBD data and provides a basic API for data access."""
 from typing import Union
-from functools import reduce
 
 import pandas as pd
 from gbd_mapping.base_template import ModelableEntity
