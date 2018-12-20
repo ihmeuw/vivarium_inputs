@@ -5,6 +5,8 @@ import pandas as pd
 from gbd_mapping.base_template import ModelableEntity
 from gbd_mapping.risk import Risk
 from gbd_mapping.coverage_gap import CoverageGap, coverage_gaps
+from gbd_mapping.cause import Cause
+from gbd_mapping.sequela import Sequela
 
 from vivarium_inputs.utilities import (InvalidQueryError, UnhandledDataError, DataMissingError,
                                        get_additional_id_columns, validate_data, get_measure_id, get_id_for_measure,
@@ -171,19 +173,52 @@ def get_excess_mortality(entity, location_id):
     return standardize_data(em.dropna(), 0)
 
 
-def get_disability_weight(entity, _):
-    if entity.kind != 'sequela':
-        raise InvalidQueryError("Only sequela have disability weights associated with them.")
-
+def _get_sequela_disability_weights(entity: Sequela):
     disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
     if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
         data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
     else:
-        raise DataMissingError(f"No disability weight available for the sequela {entity.name}")
+        id_columns = {'location_id': 1, 'age_group_id': 22, 'sex_id': 3, 'measure': 'disability_weight',
+                      'healthstate_id': entity.healthstate.gbd_id, 'healthstate': entity.healthstate.name}
+        draw_columns = {f'draw_{i}': 0.0 for i in range(1000)}
+        id_columns.update(draw_columns)
+        data = pd.DataFrame(data=id_columns, index=[0])
+    data.loc[:, 'sequela_id'] = entity.gbd_id
 
-    data['sequela_id'] = entity.gbd_id
+    return data
 
-    return data.reset_index(drop=True)
+
+def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None):
+    if entity.kind == 'sequela':
+        data = _get_sequela_disability_weights(entity)
+
+    elif entity.kind == "cause":
+        id_columns = ['age_group_id', 'year_id', 'sex_id', 'location_id']
+        sequelae = entity.sequelae
+
+        sequela_level_data = []
+        for seq in sequelae:
+            seq_prevalence = get_prevalence(seq, location_id).reset_index(drop=True)
+            seq_disability = _get_sequela_disability_weights(seq)
+
+            draw_columns = [col for col in seq_disability if col.startswith('draw_')]
+
+            # duplicate disability weight to make multiplication easier.
+            seq_disability = pd.concat([seq_disability[draw_columns]] * seq_prevalence.shape[0], ignore_index=True)
+
+            seq_prevalence.loc[:, draw_columns] = seq_prevalence[draw_columns] * seq_disability
+            seq_prevalence = seq_prevalence.set_index(id_columns)
+            sequela_level_data.append(seq_prevalence)
+
+        data = sum(sequela_level_data)
+        data = data.drop('sequela_id', 'columns')
+        data = data.reset_index()
+        data.loc[:, 'cause_id'] = entity.gbd_id
+
+    else:
+        raise InvalidQueryError("Only sequela and causes have disability weights associated with them.")
+
+    return data
 
 
 ###################
