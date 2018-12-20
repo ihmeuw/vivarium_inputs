@@ -1,3 +1,10 @@
+**1.0.16 - 12/20/18**
+
+ - Build in functionality for pulling forecasting data for demography and diarrhea etiologies.
+ - Add functions for coverage and effects for health technologies.
+ - Allow pulling disability weight by cause.
+ - Update PAF and RR data format to support excess mortality effects.
+
 **1.0.15 - 11/16/18**
 
  - Dependency mismatch
