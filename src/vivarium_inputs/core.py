@@ -214,8 +214,9 @@ def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None
             sequela_level_data.append(seq_prevalence)
 
         if len(sequela_level_data) == 0:
-            raise DataMissingError(f"The cause {entity.name} does not have enough sequela-levle information to generate "
-                                   "a disability weight.")
+            raise DataMissingError(f"The cause {entity.name} does not have both a disability weight and prevalence for"
+                                   "at least one of its sequela, so a cause-level disability weight cannot be "
+                                   "generated.")
 
         data = reduce(lambda x, y: x + y, sequela_level_data)
         data = data.drop('sequela_id', 'columns')
