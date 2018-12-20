@@ -211,7 +211,7 @@ def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None
             seq_prevalence = seq_prevalence.set_index(id_columns)
             sequela_level_data.append(seq_prevalence)
 
-        data = reduce(lambda x, y: x + y, sequela_level_data)
+        data = sum(sequela_level_data)
         data = data.drop('sequela_id', 'columns')
         data = data.reset_index()
         data.loc[:, 'cause_id'] = entity.gbd_id
