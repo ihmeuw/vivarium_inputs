@@ -154,10 +154,8 @@ def get_sequela_data(sequela, measure, location, _):
         data["sequela_id"] = sequela.gbd_id
     elif measure == "disability_weight":
         data = core.get_draws(sequela, "disability_weight", location)
-        index_columns = [c for c in data.columns if "draw_" not in c]
-        draw_columns = [c for c in data.columns if "draw_" in c]
-        data = pd.melt(data, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
-        data["draw"] = data.draw.str.partition("_")[2].astype(int)
+        data = data.drop('sex_id', 'columns')
+        data = normalize(data)[['draw', 'value']]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for sequela {sequela.name}")
     return data
