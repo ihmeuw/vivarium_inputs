@@ -27,6 +27,9 @@ class ArtifactBuilder:
         draw = builder.configuration.input_data.input_draw_number
 
         self.location = builder.configuration.input_data.location
+        hdf.write(path, EntityKey('metadata.location'), [self.location])
+        hdf.write(path, EntityKey('metadata.keyspace'), ['metadata.location', 'metadata.keyspace'])
+
         self.artifact = Artifact(path, filter_terms=[f'draw == {draw}', get_location_term(self.location)])
         self.modeled_causes = {c.cause for c in builder.components.get_components(DiseaseModel)}
         self.processed_entities = set()
