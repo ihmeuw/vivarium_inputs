@@ -229,8 +229,8 @@ def pull_rr_data_from_gbd(measure_id, location_id):
     data.loc[data.morbidity == 1, 'affected_measure'] = 'incidence_rate'
     data.loc[(data.mortality == 1) & (data.morbidity == 0), 'affected_measure'] = 'excess_mortality'
 
-    if (not data.loc[(data.morbidity == 1) & (data.mortality == 0)].empty
-            and data.loc[(data.morbidity == 0) & (data.mortality == 1)].empty):
+    if (((data.morbidity == 1) & (data.mortality == 0)).any()
+            and not ((data.morbidity == 0) & (data.mortality == 1)).any()):
         raise DataMissingError(f"Morbidity only relative risk data for measure_id {measure_id} was retrieved, "
                                f"but no mortality only rr data found.")
 
