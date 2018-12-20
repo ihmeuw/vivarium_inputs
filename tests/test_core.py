@@ -148,6 +148,7 @@ def test_get_relative_risk(mocker):
     rr_ = rr_.reset_index(['morbidity', 'mortality', 'metric_id', 'modelable_entity_id'])
     rr_ = rr_.drop(['morbidity', 'mortality', 'metric_id', 'modelable_entity_id'], axis=1)
     expected_rr = rr_.append(missing_rr).sort_index().reset_index()
+    expected_rr['affected_measure'] = 'incidence_rate' # every row has morbidity flag on
     get_rr = get_rr[expected_rr.columns]
 
     pd.util.testing.assert_frame_equal(expected_rr, get_rr)
