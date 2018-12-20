@@ -179,7 +179,11 @@ def _get_sequela_disability_weights(entity: Sequela):
     if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
         data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
     else:
-        raise DataMissingError(f"No disability weight available for the sequela {entity.name}")
+        id_columns = {'location_id': 1, 'age_group_id': 22, 'sex_id': 3, 'measure': 'disability_weight',
+                      'healthstate_id': entity.healthstate.gbd_id, 'healthstate': entity.healthstate.name}
+        draw_columns = {f'draw_{i}': 0.0 for i in range(1000)}
+        id_columns.update(draw_columns)
+        data = pd.DataFrame(data=id_columns, index=[0])
     data.loc[:, 'sequela_id'] = entity.gbd_id
 
     return data
@@ -196,10 +200,7 @@ def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None
         sequela_level_data = []
         for seq in sequelae:
             seq_prevalence = get_prevalence(seq, location_id).reset_index(drop=True)
-            try:
-                seq_disability = _get_sequela_disability_weights(seq)
-            except DataMissingError:
-                continue  # take disability weight to be zero
+            seq_disability = _get_sequela_disability_weights(seq)
 
             draw_columns = [col for col in seq_disability if col.startswith('draw_')]
 
@@ -209,11 +210,6 @@ def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None
             seq_prevalence.loc[:, draw_columns] = seq_prevalence[draw_columns] * seq_disability
             seq_prevalence = seq_prevalence.set_index(id_columns)
             sequela_level_data.append(seq_prevalence)
-
-        if len(sequela_level_data) == 0:
-            raise DataMissingError(f"The cause {entity.name} does not have both a disability weight and prevalence for"
-                                   "at least one of its sequela, so a cause-level disability weight cannot be "
-                                   "generated.")
 
         data = reduce(lambda x, y: x + y, sequela_level_data)
         data = data.drop('sequela_id', 'columns')
