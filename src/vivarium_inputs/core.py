@@ -190,9 +190,6 @@ def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None
         data = _get_sequela_disability_weights(entity)
 
     elif entity.kind == "cause":
-        if location_id is None:
-            raise ValueError("A location id must be specified for a cause-level disability weight.")
-
         id_columns = ['age_group_id', 'year_id', 'sex_id', 'location_id']
         sequelae = entity.sequelae
 
