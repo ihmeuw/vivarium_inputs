@@ -154,6 +154,7 @@ def get_sequela_data(sequela, measure, location, _):
         data["sequela_id"] = sequela.gbd_id
     elif measure == "disability_weight":
         data = core.get_draws(sequela, "disability_weight", location)
+        data = data.drop('sex_id', 'columns')
         data = normalize(data)[['draw', 'value']]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for sequela {sequela.name}")
