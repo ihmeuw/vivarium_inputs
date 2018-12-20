@@ -203,10 +203,12 @@ def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int):
         data.loc[:, draw_cols] = 1 / data.loc[:, draw_cols]
         data = handle_gbd_coverage_gap_data(entity, data, 1)
         data['coverage_gap'] = entity.name
+        data['affected_measure'] = 'incidence_rate' if entity.affected_causes else 'exposure_parameters'
     elif entity.kind == 'coverage_gap':
         data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
         data['coverage_gap'] = entity.name
         del data['measure']
+        data['affected_measure'] = 'incidence_rate' if entity.affected_causes else 'exposure_parameters'
     else:
         raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'relative_risk'")
 
