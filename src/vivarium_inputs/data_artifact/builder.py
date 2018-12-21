@@ -3,6 +3,8 @@ import logging
 from typing import Collection, Any
 import pandas as pd
 
+import vivarium
+import gbd_mapping
 from vivarium_public_health.dataset_manager import EntityKey, Artifact, hdf, get_location_term, filter_data
 from vivarium_public_health.disease import DiseaseModel
 
@@ -27,9 +29,9 @@ class ArtifactBuilder:
         draw = builder.configuration.input_data.input_draw_number
 
         self.location = builder.configuration.input_data.location
+        if not append:
+            self.write_metadata(path)
 
-        hdf.write(path, EntityKey("metadata.location"), [self.location])
-        hdf.write(path, EntityKey('metadata.keyspace'), [EntityKey('metadata.keyspace'), EntityKey('metadata.location')])
         self.artifact = Artifact(path, filter_terms=[f'draw == {draw}', get_location_term(self.location)])
         self.modeled_causes = {c.cause for c in builder.components.get_components(DiseaseModel)}
         self.processed_entities = set()
@@ -38,6 +40,13 @@ class ArtifactBuilder:
         self.load("dimensions.full_space")
 
         builder.event.register_listener('post_setup', self.end_processing)
+
+    def write_metadata(self, path):
+        hdf.write(path, EntityKey("metadata.versions"),
+                  {k.__title__: k.__version__ for k in [vivarium, vivarium_inputs, gbd_mapping]})
+        hdf.write(path, EntityKey("metadata.locations"), [self.location])
+        hdf.write(path, EntityKey('metadata.keyspace'),
+                  [EntityKey('metadata.keyspace'), EntityKey('metadata.locations')])
 
     def load(self, entity_key: str, future=False, **__) -> Any:
         entity_key = EntityKey(entity_key)
