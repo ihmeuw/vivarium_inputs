@@ -62,8 +62,7 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
               help="Write SGE error logs to output location")
 @click.option('--memory', '-m', default=10, help="Specifies the amount of memory in G that will be requested for a "
                                                  "job. Defaults to 10. Only applies to the new cluster.")
-def multi_build_artifact(model_specification, locations, project,
-                   output_root, append, verbose, error_logs, memory):
+def multi_build_artifact(model_specification, locations, project, output_root, append, verbose, error_logs, memory):
     """
     multi_build_artifact is a program for building data artifacts on the cluster
     from a MODEL_SPECIFICATION file.
@@ -92,6 +91,9 @@ def multi_build_artifact(model_specification, locations, project,
     python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
 
+    if len(set(locations)) > 15:
+        raise ValueError(f'We can make an artifact for upto 15 locations. You provide {len(set(locations))} locations')
+
     existing_locations = disaggregate(config_path.stem, output_root) if append else {}
     new_locations = set(locations).difference(set(existing_locations)) if set(locations) > set(existing_locations) else {}
 
@@ -101,6 +103,7 @@ def multi_build_artifact(model_specification, locations, project,
 
     error_log_dir = _make_log_dir(output_root) if error_logs else None
     jids = list()
+
     def qsub_jobs(locs, script_arguments):
         num_locations = len(locs)
         if num_locations > 0:
@@ -122,12 +125,12 @@ def multi_build_artifact(model_specification, locations, project,
             jobid = submit_job(command, job_name)
             jids.append(jobid)
 
-    if len(existing_locations) > 0 :
+    if len(existing_locations) > 0:
         qsub_jobs(existing_locations, script_args + f'--append ')
     if len(new_locations) > 0:
         qsub_jobs(new_locations, script_args)
  
-    aggregate_script = pathlib.Path(__file__).parent / 'aggregate_artifacts.py'
+    aggregate_script = pathlib.Path(__file__).parent / 'aggregation.py'
     aggregate_args = f'--locations {" ".join(locations)} --output_root {output_root} --config_path {config_path}'
     aggregate_job_name = f"{config_path.stem}_aggregate_artifacts"
     jids = ",".join(jids)
@@ -136,6 +139,7 @@ def multi_build_artifact(model_specification, locations, project,
                                              archive=True, queue='all.q', hold=True, jids=jids)
    
     submit_job(aggregate_command, aggregate_job_name)
+
 
 def submit_job(command: str, name: str):
     """Submit a qsub command to the shell and report the result.
@@ -149,7 +153,7 @@ def submit_job(command: str, name: str):
 
     Returns
     -------
-        None
+        jobid
     """
 
     exitcode, response = subprocess.getstatusoutput(command)
@@ -161,6 +165,7 @@ def submit_job(command: str, name: str):
         click.secho(f"submission of {name} succeeded: {response}", fg='green')
         jid = response.split(' ')[2]
     return jid
+
 
 def build_submit_command(python_context_path: str, job_name: str, project: str,
                          error_log_dir: Union[str, pathlib.Path], script_args: str, memory: int,
@@ -185,6 +190,12 @@ def build_submit_command(python_context_path: str, job_name: str, project: str,
         The number of slots with which to execute the job
     archive
         toggles the archive flag. When true, J drive access will be provided.
+    queue
+        name of the queue to use. currently 'all.q' by default
+    hold
+        whether the job needs to wait until the given job_ids are completed
+    jids
+        when the hold is True, jids are the jobs that this new job is held for completion.
 
     Returns
     -------
@@ -436,8 +447,6 @@ def _setup_logging(output_root, verbose, location,
                         datefmt="%m-%d-%y %H:%M",
                         filename=log_name,
                         filemode='a' if append else 'w')
-
-
 
 
 if __name__ == "__main__":
