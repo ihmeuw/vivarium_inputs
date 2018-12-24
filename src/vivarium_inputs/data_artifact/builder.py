@@ -2,6 +2,7 @@ from datetime import datetime
 import logging
 from typing import Collection, Any
 import pandas as pd
+import pkg_resources
 
 import vivarium
 import gbd_mapping
@@ -43,7 +44,8 @@ class ArtifactBuilder:
 
     def write_metadata(self, path):
         hdf.write(path, EntityKey("metadata.versions"),
-                  {k.__title__: k.__version__ for k in [vivarium, vivarium_inputs, gbd_mapping]})
+                  {k: pkg_resources.get_distribution(k).version for k in
+                        ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']})
         hdf.write(path, EntityKey("metadata.locations"), [self.location])
         hdf.write(path, EntityKey('metadata.keyspace'),
                   [EntityKey('metadata.keyspace'), EntityKey('metadata.locations')])

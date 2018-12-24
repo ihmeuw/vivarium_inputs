@@ -14,7 +14,7 @@ from vivarium.framework.plugins import PluginManager
 from vivarium.interface.interactive import InteractiveContext
 from vivarium.config_tree import ConfigTree
 
-from .aggregation import disaggregate
+from vivarium_inputs.data_artifact.aggregation import disaggregate
 
 
 @click.command()

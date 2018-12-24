@@ -42,10 +42,12 @@ def aggregate():
     artifact_path = f'{output}/{config_path.stem}.hdf'
     hdf.touch(artifact_path, False)
     hdf.write(artifact_path, EntityKey("metadata.locations"), list(valid_locations))
-    hdf.write(artifact_path, EntityKey('metadata.keyspace'), [EntityKey('metadata.keyspace'), EntityKey('metadata.locations')])
+    current_versions = {k: pkg_resources.get_distribution(k).version for k in ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
+    hdf.write(artifact_path, EntityKey("metadata.versions"), current_versions)
+    hdf.write(artifact_path, EntityKey('metadata.keyspace'), [EntityKey('metadata.keyspace'), EntityKey('metadata.locations'), EntityKey('metadata.versions')])
     artifact = Artifact(artifact_path)
 
-    for k in keyspace_set-{'metadata.keyspace', 'metadata.locations'}:
+    for k in keyspace_set-{'metadata.keyspace', 'metadata.locations', 'metadata.versions'}:
         data = [a.load(k) for a in valid_artifacts]
         if isinstance(data[0], pd.DataFrame):
             if 'location' in data[0].columns:
@@ -89,11 +91,15 @@ def disaggregate(config_name: str, output_root: str) -> Set:
             hdf.write(temp_path, EntityKey("metadata.versions"),current_versions)
             hdf.write(temp_path, EntityKey("metadata.locations"), [loc])
             hdf.write(temp_path, EntityKey('metadata.keyspace'), [EntityKey(k) for k in metadata.values()])
-            filter_terms = [f'location == {loc}']
-            new_artifact = Artifact(temp_path, filter_terms)
+            
+            new_artifact = Artifact(temp_path)
             for e_key in set(existing_keys)-set(metadata.values()):
                 data = existing_artifact.load(e_key)
+                if isinstance(data, pd.DataFrame) and 'location' in data.columns:
+                    data = data[data.location == loc]
                 new_artifact.write(e_key, data)
+
+        initial_artifact_path.unlink()
     return existing_locations
 
 
