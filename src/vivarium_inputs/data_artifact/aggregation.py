@@ -13,7 +13,13 @@ _log = logging.getLogger(__name__)
 
 
 def aggregate():
+    """ Aggregate multiple artifacts to a single artifact.
+        We only take the union of the each keyspace of single artifacts and
+        do not aggregate any single artifact does not have all the keys
+        in the union of keyspaces.
 
+        Aggregation is held until single artifact building jobs are completed.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_path', type=str, required=True)
     parser.add_argument('--output_root', type=str, required=True)
@@ -39,15 +45,17 @@ def aggregate():
         warnings.warn(f'Individual artifacts failed for {set(locations).difference(set(valid_locations))} '
                       f'and only rest of locations will be aggregated')
 
+    metadata = {'keyspace': 'metadata.keyspace', 'location': 'metadata.locations', 'versions': 'metadata.versions'}
     artifact_path = f'{output}/{config_path.stem}.hdf'
     hdf.touch(artifact_path, False)
     hdf.write(artifact_path, EntityKey("metadata.locations"), list(valid_locations))
-    current_versions = {k: pkg_resources.get_distribution(k).version for k in ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
+    current_versions = {k: pkg_resources.get_distribution(k).version for k in
+                        ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
     hdf.write(artifact_path, EntityKey("metadata.versions"), current_versions)
-    hdf.write(artifact_path, EntityKey('metadata.keyspace'), [EntityKey('metadata.keyspace'), EntityKey('metadata.locations'), EntityKey('metadata.versions')])
+    hdf.write(artifact_path, EntityKey('metadata.keyspace'), [EntityKey(k) for k in metadata.values()])
     artifact = Artifact(artifact_path)
 
-    for k in keyspace_set-{'metadata.keyspace', 'metadata.locations', 'metadata.versions'}:
+    for k in keyspace_set-set(metadata.values()):
         data = [a.load(k) for a in valid_artifacts]
         if isinstance(data[0], pd.DataFrame):
             if 'location' in data[0].columns:
@@ -66,6 +74,16 @@ def aggregate():
 
 
 def disaggregate(config_name: str, output_root: str) -> Set:
+    """Disaggreagte the existing multi-location artifacts into the single
+    location artifacts for appending. It is only called when the append flag
+    is true. For now we only warn when the current versions of our libraries
+    are different from the versions when the existing artifacts were built.
+
+    :param config_name: string of the configuration file stem i.e., existing
+                        artifact name
+    :param output_root: where artifacts will be stored
+    :return: set of existing locations
+    """
     metadata = {'keyspace': 'metadata.keyspace', 'location': 'metadata.locations', 'versions' : 'metadata.versions'}
 
     initial_artifact_path = Path(output_root) / f'{config_name}.hdf'
@@ -76,6 +94,8 @@ def disaggregate(config_name: str, output_root: str) -> Set:
     existing_artifact = Artifact(initial_artifact_path.as_posix())
     current_versions = {k: pkg_resources.get_distribution(k).version for k in
                         ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
+
+    #  FIXME: For now we only warn and build from scratch. We need a smarter way to handle ths.
     if existing_artifact.load(metadata['versions']) != current_versions:
         warnings.warn('Your artifact was built under the different versions. We will build it from scratch.')
         initial_artifact_path.unlink()
@@ -88,7 +108,7 @@ def disaggregate(config_name: str, output_root: str) -> Set:
             temp_path = f'{initial_artifact_path.parent.as_posix()}/{config_name}_{loc.replace(" ", "_")}.hdf'
 
             hdf.touch(temp_path, False)
-            hdf.write(temp_path, EntityKey("metadata.versions"),current_versions)
+            hdf.write(temp_path, EntityKey("metadata.versions"), current_versions)
             hdf.write(temp_path, EntityKey("metadata.locations"), [loc])
             hdf.write(temp_path, EntityKey('metadata.keyspace'), [EntityKey(k) for k in metadata.values()])
             
