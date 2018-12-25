@@ -4,8 +4,6 @@ from typing import Collection, Any
 import pandas as pd
 import pkg_resources
 
-import vivarium
-import gbd_mapping
 from vivarium_public_health.dataset_manager import EntityKey, Artifact, hdf, get_location_term, filter_data
 from vivarium_public_health.disease import DiseaseModel
 
@@ -45,7 +43,7 @@ class ArtifactBuilder:
     def write_metadata(self, path):
         hdf.write(path, EntityKey("metadata.versions"),
                   {k: pkg_resources.get_distribution(k).version for k in
-                        ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']})
+                   ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']})
         hdf.write(path, EntityKey("metadata.locations"), [self.location])
         hdf.write(path, EntityKey('metadata.keyspace'),['metadata.keyspace', 'metadata.locations', 'metadata.versions'])
         _log.debug('wrote metadata')
