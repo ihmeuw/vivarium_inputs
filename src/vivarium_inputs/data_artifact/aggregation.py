@@ -37,7 +37,8 @@ def aggregate():
     metadata = ['metadata.keyspace','metadata.locations', 'metadata.versions']
 
     if len(locations)==1:
-        Path(output)/f'{config_path.stem}_{locations[0]}.hdf'.rename(Path(artifact_path))
+        current_artifact = Path(output)/f'{config_path.stem}_{locations[0]}.hdf'
+        current_artifact.rename(Path(artifact_path))
 
     else:
         keyspace_set = set().union(*[a.load('metadata.keyspace') for a in artifacts])
