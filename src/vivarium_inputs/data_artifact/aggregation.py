@@ -1,19 +1,19 @@
 import logging
 import warnings
 import argparse
-import click
+
 import pandas as pd
 import numpy as np
 import pkg_resources
 from pathlib import Path
-from typing import Set
+from typing import List
 
 from vivarium_public_health.dataset_manager import Artifact, ArtifactException, hdf, EntityKey, get_location_term
 
 _log = logging.getLogger(__name__)
 
 
-def aggregate():
+def aggregate(raw_args=None):
     """ Aggregate multiple artifacts to a single artifact.
         We only take the union of the each keyspace of single artifacts and
         do not aggregate any single artifact does not have all the keys
@@ -25,18 +25,19 @@ def aggregate():
     parser.add_argument('--config_path', type=str, required=True)
     parser.add_argument('--output_root', type=str, required=True)
     parser.add_argument('--locations', nargs='+')
-    args = parser.parse_args()
+    args = parser.parse_args(raw_args)
 
     config_path = Path(args.config_path)
     locations = args.locations
     locations = [l.replace('_', ' ') for l in locations]
     output = args.output_root
+
     individual_artifacts = Path(output).glob('*.hdf')
     artifacts = [Artifact(a.as_posix()) for a in individual_artifacts]
     artifact_path = f'{output}/{config_path.stem}.hdf'
     metadata = ['metadata.keyspace','metadata.locations', 'metadata.versions']
 
-    if len(locations)==1:
+    if len(locations) == 1:
         current_artifact = Path(output)/f'{config_path.stem}_{locations[0]}.hdf'
         current_artifact.rename(Path(artifact_path))
 
@@ -49,16 +50,17 @@ def aggregate():
                 valid_artifacts.append(a)
                 valid_locations.extend(a.load('metadata.locations'))
             else:
-                warnings.warn(f'missing_keys: {keyspace_set.difference(set(a.load("metadata.keyspace")))} for location:{a.load("metadata.locations")}')
+                warnings.warn(f'missing_keys: {keyspace_set.difference(set(a.load("metadata.keyspace")))} '
+                              f'for location:{a.load("metadata.locations")}')
         
         if set(valid_locations) < set(locations):
             warnings.warn(f'Individual artifacts failed for {set(locations).difference(set(valid_locations))} '
                           f'and only rest of locations will be aggregated')
 
-        
         hdf.touch(artifact_path, False)
         hdf.write(artifact_path, EntityKey("metadata.locations"), valid_locations)
-        current_versions = {k: pkg_resources.get_distribution(k).version for k in ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
+        current_versions = {k: pkg_resources.get_distribution(k).version for k in
+                            ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
         hdf.write(artifact_path, EntityKey("metadata.versions"), current_versions)
         hdf.write(artifact_path, EntityKey('metadata.keyspace'), metadata)
         artifact = Artifact(artifact_path)
@@ -81,7 +83,7 @@ def aggregate():
             f.unlink()
 
 
-def disaggregate(config_name: str, output_root: str) -> Set:
+def disaggregate(config_name: str, output_root: str) -> List:
     metadata = ['metadata.keyspace','metadata.locations', 'metadata.versions']
     """Disaggreagte the existing multi-location artifacts into the single
     location artifacts for appending. It is only called when the append flag
@@ -97,7 +99,8 @@ def disaggregate(config_name: str, output_root: str) -> Set:
     initial_artifact_path = Path(output_root) / f'{config_name}.hdf'
 
     if not initial_artifact_path.is_file():
-        raise ArtifactException(f'To append it, you should provide the existing artifact. {output_root}/{config_name}.hdf does not exist')
+        raise ArtifactException(
+            f'To append it, you should provide the existing artifact. {output_root}/{config_name}.hdf does not exist')
 
     existing_artifact = Artifact(initial_artifact_path.as_posix())
     current_versions = {k: pkg_resources.get_distribution(k).version for k in
@@ -105,8 +108,7 @@ def disaggregate(config_name: str, output_root: str) -> Set:
 
     if existing_artifact.load('metadata.versions') != current_versions:
 
-
-    #  FIXME: For now we only warn and build from scratch. We need a smarter way to handle ths.
+        #  FIXME: For now we only warn and build from scratch. We need a smarter way to handle ths.
         warnings.warn('Your artifact was built under the different versions. We will build it from scratch.')
         initial_artifact_path.unlink()
         existing_locations = {}
