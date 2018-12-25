@@ -65,7 +65,8 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
 def multi_build_artifact(model_specification, locations, project, output_root, append, verbose, error_logs, memory):
     """
     multi_build_artifact is a program for building data artifacts on the cluster
-    from a MODEL_SPECIFICATION file.
+    from a MODEL_SPECIFICATION file. It will generate a single artifact containing
+    the data for multiple locations (up to 15 locations only).
 
     This script necessarily offloads work to the cluster, and so requires being
     run in the cluster environment.  It will qsub jobs for building artifacts
@@ -87,12 +88,15 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     The new cluster will kill jobs that go over memory without giving a useful message.
     """
 
+    if len(set(locations)) > 15:
+        raise ValueError(f'We can make an artifact for upto 15 locations. You provide {len(set(locations))} locations')
+
+    if len(set(locations)) < 1:
+        raise ValueError('You should provide a list of locations for this aritfcat. You did not provide any')
+
     config_path = pathlib.Path(model_specification).resolve()
     python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
-
-    if len(set(locations)) > 15:
-        raise ValueError(f'We can make an artifact for upto 15 locations. You provide {len(set(locations))} locations')
 
     existing_locations = disaggregate(config_path.stem, output_root) if append else {}
     new_locations = set(locations).difference(set(existing_locations)) if set(locations) > set(existing_locations) else {}
@@ -106,24 +110,16 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
 
     def qsub_jobs(locs, script_arguments):
         num_locations = len(locs)
-        if num_locations > 0:
-            script_arguments += "--location {} "
-            for i, location in enumerate(locations):
-                location = location.replace("'", "-")
-                job_name = f"{config_path.stem}_{location}_build_artifact"
-                
-                command = build_submit_command(python_context_path, job_name, project, error_log_dir,
-                                               script_arguments.format(location), memory, archive=True, queue='all.q')
-                click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
-                jobid = submit_job(command, job_name)
-                jids.append(jobid)
-        else:
-            job_name = f"{config_path.stem}_build_artifact"
-            command = build_submit_command(python_context_path, job_name, project, error_log_dir, script_arguments,
-                                           memory, archive=True, queue='all.q')
-            click.echo(f"submitting job {job_name}")
+        script_arguments += "--location {} "
+        for i, location in enumerate(locs):
+            location = location.replace("'", "-")
+            job_name = f"{config_path.stem}_{location}_build_artifact"
+            
+            command = build_submit_command(python_context_path, job_name, project, error_log_dir,
+                                           script_arguments.format(location), memory, archive=True, queue='all.q')
+            click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
             jobid = submit_job(command, job_name)
-            jids.append(jobid)
+            jids.append(jobid)          
 
     if len(existing_locations) > 0:
         qsub_jobs(existing_locations, script_args + f'--append ')
@@ -137,7 +133,6 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     aggregate_command = build_submit_command(python_context_path, aggregate_job_name, 
                                              project, error_log_dir, f'{aggregate_script} {aggregate_args}', memory,
                                              archive=True, queue='all.q', hold=True, jids=jids)
-   
     submit_job(aggregate_command, aggregate_job_name)
 
 

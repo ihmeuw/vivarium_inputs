@@ -47,9 +47,8 @@ class ArtifactBuilder:
                   {k: pkg_resources.get_distribution(k).version for k in
                         ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']})
         hdf.write(path, EntityKey("metadata.locations"), [self.location])
-        hdf.write(path, EntityKey('metadata.keyspace'),
-                  [EntityKey('metadata.keyspace'), EntityKey('metadata.locations')])
-
+        hdf.write(path, EntityKey('metadata.keyspace'),['metadata.keyspace', 'metadata.locations', 'metadata.versions'])
+        _log.debug('wrote metadata')
     def load(self, entity_key: str, future=False, **__) -> Any:
         entity_key = EntityKey(entity_key)
         if entity_key not in self.artifact:
