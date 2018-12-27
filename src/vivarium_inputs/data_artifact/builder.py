@@ -5,7 +5,7 @@ import pandas as pd
 import pkg_resources
 
 from vivarium_public_health.dataset_manager import (EntityKey, Artifact, get_location_term, ArtifactException,
-                                                    filter_data, create_hdf_with_keyspace)
+                                                    filter_data, hdf)
 
 from vivarium_public_health.disease import DiseaseModel
 
@@ -31,7 +31,8 @@ class ArtifactBuilder:
 
         self.location = builder.configuration.input_data.location
         if not append:
-            create_hdf_with_keyspace(path)
+            hdf.touch(path)
+            hdf.write(path, EntityKey('metadata.keyspace'), ['metadata.keyspace'])
 
         self.artifact = Artifact(path, filter_terms=[f'draw == {draw}', get_location_term(self.location)])
         self.write_metadata(append)
@@ -51,9 +52,10 @@ class ArtifactBuilder:
             except ArtifactException:
                 # FIXME: We do not have a good plan to deal with appending an old artifact
                 _log.debug('You provided an outdated artifact. We will build from scratch')
-                create_hdf_with_keyspace(self.artifact.path)
+                hdf.touch(self.artifact.path)
+                hdf.write(self.artifact.path, EntityKey('metadata.keyspace'), ['metadata.keyspace'])
 
-        current_versions = {pkg_resources.get_distribution(k).version for k in
+        current_versions = {k: pkg_resources.get_distribution(k).version for k in
                             ['vivarium', 'vivarium_inputs', 'vivarium_public_health', 'gbd_mapping']}
         self.artifact.write('metadata.versions', current_versions)
         self.artifact.write('metadata.locations', [self.location])
