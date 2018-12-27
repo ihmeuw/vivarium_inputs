@@ -36,8 +36,8 @@ def get_draws(entity: ModelableEntity, measure: str, location: str) -> pd.DataFr
         'remission': (get_remission, set()),
         'prevalence': (get_prevalence, set()),
         'incidence': (get_incidence, set()),
-        'relative_risk': (get_relative_risk, {'cause_id', 'parameter', }),
-        'population_attributable_fraction': (get_population_attributable_fraction, {'rei_id', }),
+        'relative_risk': (get_relative_risk, {'cause_id', 'parameter', 'affected_measure'}),
+        'population_attributable_fraction': (get_population_attributable_fraction, {'rei_id', 'affected_measure'}),
         'cause_specific_mortality': (get_cause_specific_mortality, set()),
         'excess_mortality': (get_excess_mortality, set()),
         'exposure': (get_exposure, {'parameter', }),
@@ -238,10 +238,12 @@ def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int):
         data.loc[:, draw_cols] = 1 / data.loc[:, draw_cols]
         data = handle_gbd_coverage_gap_data(entity, data, 1)
         data['coverage_gap'] = entity.name
+        data['affected_measure'] = 'incidence_rate' if entity.affected_causes else 'exposure_parameters'
     elif entity.kind == 'coverage_gap':
         data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
         data['coverage_gap'] = entity.name
         del data['measure']
+        data['affected_measure'] = 'incidence_rate' if entity.affected_causes else 'exposure_parameters'
     else:
         raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'relative_risk'")
 
@@ -259,13 +261,15 @@ def pull_rr_data_from_gbd(measure_id, location_id):
     #            + "set. This may not indicate an error but it is a case we don't explicitly handle. "
     #            + "If you need this risk, come talk to one of the programmers.")
     # assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), err_msg
+    data.loc[data.morbidity == 1, 'affected_measure'] = 'incidence_rate'
+    data.loc[(data.mortality == 1) & (data.morbidity == 0), 'affected_measure'] = 'excess_mortality'
 
-    data = data[data['morbidity'] == 1]  # FIXME: HACK
-    del data['mortality']
-    del data['morbidity']
-    del data['metric_id']
-    del data['modelable_entity_id']
-    return data
+    if (((data.morbidity == 1) & (data.mortality == 0)).any()
+            and not ((data.morbidity == 0) & (data.mortality == 1)).any()):
+        raise DataMissingError(f"Morbidity only relative risk data for measure_id {measure_id} was retrieved, "
+                               f"but no mortality only rr data found.")
+
+    return data.drop(['metric_id', 'modelable_entity_id', 'mortality', 'morbidity'], 'columns')
 
 
 def get_population_attributable_fraction(entity, location_id):
@@ -280,8 +284,10 @@ def get_population_attributable_fraction(entity, location_id):
         raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
 
     # TODO: figure out if we need to assert some property of the different PAF measures
-    data = data[data['measure_id'] == get_measure_id('YLD')]
-    del data['measure_id']
+    mortality_data = data[data['measure_id'] == get_measure_id('YLL')]
+    morbidity_data = data[data['measure_id'] == get_measure_id('YLD')]
+    del mortality_data['measure_id']
+    del morbidity_data['measure_id']
 
     # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
     # measure_ids = {name_measure_map[m] for m in ['death', 'DALY', 'YLD', 'YLL']}
@@ -291,7 +297,20 @@ def get_population_attributable_fraction(entity, location_id):
     # assert np.all(
     #    measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
 
-    data = standardize_data(data, 0)
+    if not morbidity_data.empty and mortality_data.empty:
+        raise DataMissingError(f"Morbidity population attributable fraction data for entity {entity.name} was "
+                               f"retrieved, but no accompanying mortality data was found.")
+
+    # standardize mortality and morbidity data separately because any extra cols (e.g., mort, morb) will result in dupes
+    mortality_data = standardize_data(mortality_data, 0)
+    morbidity_data = standardize_data(morbidity_data, 0)
+
+    mortality_data['affected_measure'] = 'excess_mortality'
+    morbidity_data['affected_measure'] = 'incidence_rate'
+
+    data = morbidity_data
+    if not mortality_data.empty: # appending if one data set is empty changes dtypes from ints to floats
+        data = data.append(mortality_data)
     return data
 
 

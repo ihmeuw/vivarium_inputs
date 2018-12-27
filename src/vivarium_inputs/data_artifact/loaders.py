@@ -154,10 +154,8 @@ def get_sequela_data(sequela, measure, location, _):
         data["sequela_id"] = sequela.gbd_id
     elif measure == "disability_weight":
         data = core.get_draws(sequela, "disability_weight", location)
-        index_columns = [c for c in data.columns if "draw_" not in c]
-        draw_columns = [c for c in data.columns if "draw_" in c]
-        data = pd.melt(data, id_vars=index_columns, value_vars=draw_columns, var_name="draw")
-        data["draw"] = data.draw.str.partition("_")[2].astype(int)
+        data = data.drop('sex_id', 'columns')
+        data = normalize(data)[['draw', 'value']]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for sequela {sequela.name}")
     return data
@@ -210,7 +208,7 @@ def get_etiology_data(etiology, measure, location, _):
         data = core.get_draws(etiology, "population_attributable_fraction", location)
         data = normalize(data)
         data["cause"] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        data = data[["location", "cause", "sex", "draw", "value"] + AGE_COLS + YEAR_COLS]
+        data = data[["location", "cause", "sex", "draw", "value", "affected_measure"] + AGE_COLS + YEAR_COLS]
     else:
         raise NotImplementedError(f"Unknown measure {measure} for etiology {etiology.name}")
     return data
@@ -340,7 +338,8 @@ def get_risk_relative_risk(risk, location):
     rrs = normalize(rrs)
     rrs['cause'] = rrs['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
     rrs.drop(['cause_id'], axis=1, inplace=True)
-    result = rrs[["location", "sex", "draw", "value", "parameter", "cause"] + AGE_COLS + YEAR_COLS]
+    result = rrs[["location", "sex", "draw", "value", "parameter", "cause", "affected_measure"]
+                 + AGE_COLS + YEAR_COLS]
     return result
 
 
@@ -349,7 +348,7 @@ def get_risk_population_attributable_fraction(risk, location):
     paf = normalize(paf)
     paf['cause'] = paf['cause_id'].apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
     paf.drop(['cause_id'], axis=1, inplace=True)
-    result = paf[["location", "sex", "draw", "value", "cause"] + AGE_COLS + YEAR_COLS]
+    result = paf[["location", "sex", "draw", "value", "cause", "affected_measure"] + AGE_COLS + YEAR_COLS]
     return result
 
 
