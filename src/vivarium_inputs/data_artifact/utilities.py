@@ -1,4 +1,5 @@
 import pandas as pd
+import pkg_resources
 
 from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_bins_from_age_group_id
 from vivarium_inputs import core
@@ -20,3 +21,9 @@ def normalize(data: pd.DataFrame) -> pd.DataFrame:
     if "year_start" in data:
         data = data.loc[(data.year_start >= year_start) & (data.year_end <= year_end)]
     return data
+
+
+def get_versions():
+
+    libraries = ['vivarium', 'vivarium_inputs', 'vivarium_public_health', 'gbd_mapping']
+    return {k: pkg_resources.get_distribution(k).version for k in libraries}
