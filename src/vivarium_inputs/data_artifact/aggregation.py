@@ -8,12 +8,60 @@ import pkg_resources
 from pathlib import Path
 from typing import List
 
-from vivarium_public_health.dataset_manager import Artifact, ArtifactException, hdf, EntityKey, get_location_term
+from vivarium_public_health.dataset_manager import Artifact, ArtifactException, get_location_term
 
 _log = logging.getLogger(__name__)
+METADATA = ['metadata.keyspace', 'metadata.locations', 'metadata.versions']
 
 
-def aggregate(raw_args=None):
+def unpack_arguments(parser, rawargs=None):
+    parser.add_argument('--config_path', type=str, required=True)
+    parser.add_argument('--output_root', type=str, required=True)
+    parser.add_argument('--locations', nargs='+')
+    args = parser.parse_args(rawargs)
+
+    config_path = Path(args.config_path)
+    locations = args.locations
+    locations = [l.replace('_', ' ') for l in locations]
+    output_root = args.output_root
+
+    return config_path, locations, output_root
+
+
+def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
+    keyspace_set = set().union(*[a.load('metadata.keyspace') for a in artifacts])
+    valid_artifacts, valid_locations = [], []
+    for a in artifacts:
+        if set(a.load('metadata.keyspace')) == keyspace_set:
+            valid_artifacts.append(a)
+            valid_locations.extend(a.load('metadata.locations'))
+        else:
+            warnings.warn(f'missing_keys: {keyspace_set.difference(set(a.load("metadata.keyspace")))} '
+                          f'for location:{a.load("metadata.locations")}')
+
+    artifact = Artifact(artifact_path)
+    artifact.write("metadata.locations", valid_locations)
+    current_versions = {k: pkg_resources.get_distribution(k).version for k in
+                        ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
+
+    artifact.write("metadata.versions", current_versions)
+
+    for k in keyspace_set - set(METADATA):
+        data = [a.load(k) for a in valid_artifacts]
+        if isinstance(data[0], pd.DataFrame):
+            if 'location' in data[0].columns:
+                data = pd.concat(data)
+            else:
+                assert np.all([d.equals(data[0]) for d in data])
+                data = data[0]
+            artifact.write(k, data)
+        else:
+            assert np.all([d == data[0] for d in data])
+            artifact.write(k, data[0])
+    return artifact
+
+
+def main(rawargs=None):
     """ Aggregate multiple artifacts to a single artifact.
         We only take the union of the each keyspace of single artifacts and
         do not aggregate any single artifact does not have all the keys
@@ -22,61 +70,19 @@ def aggregate(raw_args=None):
         Aggregation is held until single artifact building jobs are completed.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config_path', type=str, required=True)
-    parser.add_argument('--output_root', type=str, required=True)
-    parser.add_argument('--locations', nargs='+')
-    args = parser.parse_args(raw_args)
-
-    config_path = Path(args.config_path)
-    locations = args.locations
-    locations = [l.replace('_', ' ') for l in locations]
-    output = args.output_root
+    config_path, locations, output = unpack_arguments(parser, rawargs)
 
     individual_artifacts = Path(output).glob('*.hdf')
     artifacts = [Artifact(a.as_posix()) for a in individual_artifacts]
     artifact_path = f'{output}/{config_path.stem}.hdf'
-    metadata = ['metadata.keyspace','metadata.locations', 'metadata.versions']
 
     if len(locations) == 1:
-        current_artifact = Path(output)/f'{config_path.stem}_{locations[0]}.hdf'
+        location = locations[0].replace(' ', '_')
+        current_artifact = Path(output) / f'{config_path.stem}_{location}.hdf'
         current_artifact.rename(Path(artifact_path))
 
     else:
-        keyspace_set = set().union(*[a.load('metadata.keyspace') for a in artifacts])
-
-        valid_artifacts, valid_locations = [], []
-        for a in artifacts:
-            if set(a.load('metadata.keyspace')) == keyspace_set:
-                valid_artifacts.append(a)
-                valid_locations.extend(a.load('metadata.locations'))
-            else:
-                warnings.warn(f'missing_keys: {keyspace_set.difference(set(a.load("metadata.keyspace")))} '
-                              f'for location:{a.load("metadata.locations")}')
-        
-        if set(valid_locations) < set(locations):
-            warnings.warn(f'Individual artifacts failed for {set(locations).difference(set(valid_locations))} '
-                          f'and only rest of locations will be aggregated')
-
-        hdf.touch(artifact_path, False)
-        hdf.write(artifact_path, EntityKey("metadata.locations"), valid_locations)
-        current_versions = {k: pkg_resources.get_distribution(k).version for k in
-                            ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
-        hdf.write(artifact_path, EntityKey("metadata.versions"), current_versions)
-        hdf.write(artifact_path, EntityKey('metadata.keyspace'), metadata)
-        artifact = Artifact(artifact_path)
-
-        for k in keyspace_set-set(metadata):
-            data = [a.load(k) for a in valid_artifacts]
-            if isinstance(data[0], pd.DataFrame):
-                if 'location' in data[0].columns:
-                    data = pd.concat(data)
-                else:
-                    assert np.all([d.equals(data[0]) for d in data])
-                    data = data[0]
-                artifact.write(k, data)
-            else:
-                assert np.all([d == data[0] for d in data])
-                artifact.write(k, data[0])
+        aggregate(artifacts, artifact_path)
 
         # clean-up
         for f in Path(output).glob(f'{config_path.stem}_*.hdf'):
@@ -84,7 +90,6 @@ def aggregate(raw_args=None):
 
 
 def disaggregate(config_name: str, output_root: str) -> List:
-    metadata = ['metadata.keyspace','metadata.locations', 'metadata.versions']
     """Disaggreagte the existing multi-location artifacts into the single
     location artifacts for appending. It is only called when the append flag
     is true. For now we only warn when the current versions of our libraries
@@ -95,7 +100,7 @@ def disaggregate(config_name: str, output_root: str) -> List:
     :param output_root: where artifacts will be stored
     :return: set of existing locations
     """
-   
+
     initial_artifact_path = Path(output_root) / f'{config_name}.hdf'
 
     if not initial_artifact_path.is_file():
@@ -119,15 +124,13 @@ def disaggregate(config_name: str, output_root: str) -> List:
         for loc in existing_locations:
             location = get_location_term(loc)
             temp_path = f'{initial_artifact_path.parent.as_posix()}/{config_name}_{loc.replace(" ", "_")}.hdf'
-
-            hdf.touch(temp_path, False)
-            hdf.write(temp_path, EntityKey("metadata.versions"), current_versions)
-            hdf.write(temp_path, EntityKey("metadata.locations"), [loc])
-            hdf.write(temp_path, EntityKey('metadata.keyspace'), metadata)
-
             existing_artifact = Artifact(initial_artifact_path.as_posix(), filter_terms=[location])
+            import pdb; pdb.set_trace()
             new_artifact = Artifact(temp_path)
-            for e_key in set(existing_keys)-set(metadata):
+            new_artifact.write('metadata.locations', [loc])
+            new_artifact.write('metadata.versions', current_versions)
+
+            for e_key in set(existing_keys) - set(METADATA):
                 data = existing_artifact.load(e_key)
                 new_artifact.write(e_key, data)
 
@@ -136,4 +139,4 @@ def disaggregate(config_name: str, output_root: str) -> List:
 
 
 if __name__ == "__main__":
-    aggregate()
+    main()
