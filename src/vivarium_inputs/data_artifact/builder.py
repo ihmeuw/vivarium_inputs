@@ -49,7 +49,7 @@ class ArtifactBuilder:
 
         if not append:
             if Path(path).is_file():
-                path(path).unlink()
+                Path(path).unlink()
             artifact = create_new_artifact()
 
         else:
