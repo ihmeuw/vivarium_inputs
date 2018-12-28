@@ -1,17 +1,21 @@
 import logging
 import warnings
 import argparse
-
 import pandas as pd
 import numpy as np
-import pkg_resources
 from pathlib import Path
 from typing import List
 
 from vivarium_public_health.dataset_manager import Artifact, ArtifactException, get_location_term
+from vivarium_inputs.data_artifact.utilities import get_versions
+
 
 _log = logging.getLogger(__name__)
 METADATA = ['metadata.keyspace', 'metadata.locations', 'metadata.versions']
+
+
+class ArtifactAggregationWarning(Warning):
+    pass
 
 
 def unpack_arguments(parser, rawargs=None):
@@ -29,6 +33,17 @@ def unpack_arguments(parser, rawargs=None):
 
 
 def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
+    """
+    aggregates the list of artifacts with individual location. It takes a union
+    of all the keys in individual artifacts. If there is any artifact which
+    does not have all the keys, it will drop that location with a warning and
+    aggregate only the locations with the same keys.
+
+    :param artifacts: list of Artifact objects
+    :param artifact_path: path to the final aggregated artifact to be stored
+    :return: aggregated artifact
+    """
+
     keyspace_set = set().union(*[a.load('metadata.keyspace') for a in artifacts])
     valid_artifacts, valid_locations = [], []
     for a in artifacts:
@@ -37,12 +52,11 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
             valid_locations.extend(a.load('metadata.locations'))
         else:
             warnings.warn(f'missing_keys: {keyspace_set.difference(set(a.load("metadata.keyspace")))} '
-                          f'for location:{a.load("metadata.locations")}')
+                          f'for location:{a.load("metadata.locations")}', ArtifactAggregationWarning)
 
     artifact = Artifact(artifact_path)
     artifact.write("metadata.locations", valid_locations)
-    current_versions = {k: pkg_resources.get_distribution(k).version for k in
-                        ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
+    current_versions = get_versions()
 
     artifact.write("metadata.versions", current_versions)
 
@@ -92,8 +106,9 @@ def main(rawargs=None):
 def disaggregate(config_name: str, output_root: str) -> List:
     """Disaggreagte the existing multi-location artifacts into the single
     location artifacts for appending. It is only called when the append flag
-    is true. For now we only warn when the current versions of our libraries
-    are different from the versions when the existing artifacts were built.
+    is true. If the existing artifact was built under the different versions of
+    relevant libraries from the versions of those at the moment when appending
+    is called, we will wipe it out and build it from scratch.
 
     :param config_name: string of the configuration file stem i.e., existing
                         artifact name
@@ -108,13 +123,12 @@ def disaggregate(config_name: str, output_root: str) -> List:
             f'To append it, you should provide the existing artifact. {output_root}/{config_name}.hdf does not exist')
 
     existing_artifact = Artifact(initial_artifact_path.as_posix())
-    current_versions = {k: pkg_resources.get_distribution(k).version for k in
-                        ['vivarium', 'vivarium_public_health', 'gbd_mapping', 'vivarium_inputs']}
 
-    if existing_artifact.load('metadata.versions') != current_versions:
-
+    if existing_artifact.load('metadata.versions') != get_versions():
         #  FIXME: For now we only warn and build from scratch. We need a smarter way to handle ths.
-        warnings.warn('Your artifact was built under the different versions. We will build it from scratch.')
+        warnings.warn('Your artifact was built under the different versions and cannot append it',
+                      ArtifactAggregationWarning)
+
         initial_artifact_path.unlink()
         existing_locations = {}
     else:
@@ -125,10 +139,10 @@ def disaggregate(config_name: str, output_root: str) -> List:
             location = get_location_term(loc)
             temp_path = f'{initial_artifact_path.parent.as_posix()}/{config_name}_{loc.replace(" ", "_")}.hdf'
             existing_artifact = Artifact(initial_artifact_path.as_posix(), filter_terms=[location])
-            import pdb; pdb.set_trace()
+
             new_artifact = Artifact(temp_path)
             new_artifact.write('metadata.locations', [loc])
-            new_artifact.write('metadata.versions', current_versions)
+            new_artifact.write('metadata.versions', get_versions())
 
             for e_key in set(existing_keys) - set(METADATA):
                 data = existing_artifact.load(e_key)
