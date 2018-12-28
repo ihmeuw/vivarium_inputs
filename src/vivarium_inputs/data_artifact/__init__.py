@@ -1,4 +1,4 @@
-from .builder import ArtifactBuilder
+from .builder import ArtifactBuilder, OutdatedArtifactWarning
 from .passthrough import ArtifactPassthrough
-from .utilities import normalize
+from .utilities import normalize, get_versions
 from .aggregation import *
