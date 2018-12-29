@@ -72,6 +72,11 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
         else:
             assert np.all([d == data[0] for d in data])
             artifact.write(k, data[0])
+
+    # clean-up
+    for loc in valid_locations:
+        f = Path(artifact_path).parent/f'{Path(artifact_path).stem}_{loc.replace(" ", "_")}.hdf'
+        f.unlink()
     return artifact
 
 
@@ -97,10 +102,6 @@ def main(rawargs=None):
 
     else:
         aggregate(artifacts, artifact_path)
-
-        # clean-up
-        for f in Path(output).glob(f'{config_path.stem}_*.hdf'):
-            f.unlink()
 
 
 def disaggregate(config_name: str, output_root: str) -> List:
