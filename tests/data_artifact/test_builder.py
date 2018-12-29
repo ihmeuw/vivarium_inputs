@@ -75,7 +75,7 @@ def test_initialize_artifact_append_versions(test_artifact):
 
     assert artifact.load('metadata.versions') == new_versions
 
-    with pytest.warns(DeprecationWarning):
+    with pytest.warns(OutdatedArtifactWarning):
         artifact = ArtifactBuilder.initialize_artifact(test_artifact.path, True, draw, location)
         assert artifact.load('metadata.versions') == current_versions
 
