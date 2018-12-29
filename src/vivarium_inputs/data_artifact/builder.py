@@ -59,26 +59,27 @@ class ArtifactBuilder:
 
             try:
                 artifact = Artifact(path, filter_terms=[f'draw == {draw}', get_location_term(location)])
-                if EntityKey('metadata.locations') not in artifact:
-                    warnings.warn('We will build from scratch', OutdatedArtifactWarning)
-                    artifact = create_new_artifact(path, draw, location)
-
-                elif artifact.load('metadata.locations') != [location]:
-                    raise ValueError(f"Artifact has {artifact.load('metadata.locations')} and we cannot append {location}")
-
-                if EntityKey('metadata.versions') not in artifact:
-                    warnings.warn('We will build from scratch', OutdatedArtifactWarning)
-                    artifact = create_new_artifact(path, draw, location)
-
-                elif artifact.load('metadata.versions') != get_versions():
-                    warnings.warn('Your artifact was made under different versions. We will wipe it out', DeprecationWarning)
-                    artifact = create_new_artifact(path, draw, location)
 
             except NoSuchNodeError:
                 #  it means that path was a file but does not have metadata.keyspace inside
                 warnings.warn('We will wipe it out and build from scratch', OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
 
+            if EntityKey('metadata.locations') not in artifact:
+                warnings.warn('We will build from scratch', OutdatedArtifactWarning)
+                artifact = create_new_artifact(path, draw, location)
+
+            elif artifact.load('metadata.locations') != [location]:
+                raise ValueError(f"Artifact has {artifact.load('metadata.locations')} and we cannot append {location}")
+
+            if EntityKey('metadata.versions') not in artifact:
+                warnings.warn('We will build from scratch', OutdatedArtifactWarning)
+                artifact = create_new_artifact(path, draw, location)
+
+            elif artifact.load('metadata.versions') != get_versions():
+                warnings.warn('Your artifact was made under different versions. We will wipe it out',
+                              OutdatedArtifactWarning)
+                artifact = create_new_artifact(path, draw, location)
         else:
             artifact = create_new_artifact(path, draw, location)
 
