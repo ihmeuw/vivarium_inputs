@@ -44,6 +44,11 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
     :return: aggregated artifact
     """
 
+    artifact_path = Path(artifact_path).resolve()
+   
+    if artifact_path.is_file():
+        artifact_path.unlink()
+
     keyspace_set = set().union(*[a.load('metadata.keyspace') for a in artifacts])
     valid_artifacts, valid_locations = [], []
     for a in artifacts:
@@ -54,7 +59,7 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
             warnings.warn(f'missing_keys: {keyspace_set.difference(set(a.load("metadata.keyspace")))} '
                           f'for location:{a.load("metadata.locations")}', ArtifactAggregationWarning)
 
-    artifact = Artifact(artifact_path)
+    artifact = Artifact(artifact_path.as_posix())
     artifact.write("metadata.locations", valid_locations)
     current_versions = get_versions()
 
@@ -75,7 +80,7 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
 
     # clean-up
     for loc in valid_locations:
-        f = Path(artifact_path).parent/f'{Path(artifact_path).stem}_{loc.replace(" ", "_")}.hdf'
+        f = artifact_path.parent/f'{artifact_path.stem}_{loc.replace(" ", "_")}.hdf'
         f.unlink()
     return artifact
 
@@ -91,10 +96,14 @@ def main(rawargs=None):
     parser = argparse.ArgumentParser()
     config_path, locations, output = unpack_arguments(parser, rawargs)
 
-    individual_artifacts = Path(output).glob('*.hdf')
+    individual_artifacts = []
+    for loc in locations:
+        individual_path = Path(output)/f'{config_path.stem}_{loc.replace(" ", "_")}.hdf'
+        individual_artifacts.append(individual_path)
+    
     artifacts = [Artifact(a.as_posix()) for a in individual_artifacts]
     artifact_path = f'{output}/{config_path.stem}.hdf'
-
+    _log.debug(f'{locations}')
     if len(locations) == 1:
         location = locations[0].replace(' ', '_')
         current_artifact = Path(output) / f'{config_path.stem}_{location}.hdf'
