@@ -106,8 +106,8 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
         existing_locations = {}
 
     new_locations = set(locations).difference(set(existing_locations)) if set(locations) > set(existing_locations) else {}
-    new_locations = [l.replace("'", "-").replace("_", " ") for l in new_locations]
-    existing_locations = [l.replace("'", "-").replace("_", " ") for l in existing_locations]
+    new_locations = [l.replace("'", "-") for l in new_locations]
+    existing_locations = [l.replace("'", "-") for l in existing_locations]
 
     script_args = f"{script_path} {config_path} --output-root {output_root}"
     if verbose:
