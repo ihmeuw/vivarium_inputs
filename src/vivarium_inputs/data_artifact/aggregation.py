@@ -97,7 +97,7 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
         new_dir = artifact_path.parent/'broken_artifacts'
         new_dir.mkdir()
 
-        for loc in invliad_locations:
+        for loc in invalid_locations:
             f = artifact_path.parent/f'{artifact_path.stem}_{loc.replace(" ", "_")}.hdf'
             f.rename(new_dir/f.name)
 
