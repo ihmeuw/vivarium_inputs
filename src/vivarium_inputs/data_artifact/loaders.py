@@ -396,6 +396,5 @@ def get_coverage_gap_relative_risk(coverage_gap, location):
         data = data.rename(columns={'cause_id': 'cause', 'rei_id': 'risk_factor'})
         data['cause'] = data['cause'].apply(lambda c:CAUSE_BY_ID[c].name if c in CAUSE_BY_ID else c)
         data['risk_factor'] = data['risk_factor'].apply(lambda c:RISK_BY_ID[c].name if c in RISK_BY_ID else c)
-        data = data[['location', 'cause', 'risk_factor', 'sex', 'draw', 'value', 'parameter'] + AGE_COLS + YEAR_COLS]
+        data = data[['location', 'cause', 'risk_factor', 'sex', 'draw', 'value', 'parameter', 'affected_measure'] + AGE_COLS + YEAR_COLS]
     return data
-
