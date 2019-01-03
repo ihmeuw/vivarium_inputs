@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from typing import List
+from typing import Set
 
 from vivarium_public_health.dataset_manager import Artifact, ArtifactException, get_location_term
 from vivarium_inputs.data_artifact.utilities import get_versions
@@ -39,9 +39,16 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
     does not have all the keys, it will drop that location with a warning and
     aggregate only the locations with the same keys.
 
-    :param artifacts: list of Artifact objects
-    :param artifact_path: path to the final aggregated artifact to be stored
-    :return: aggregated artifact
+
+    Parameters
+    ----------
+    artifacts:
+        list of Artifact objects
+    artifact_path:
+        path to the final aggregated artifact to be stored
+    Returns
+    -------
+        aggregated artifact
     """
 
     artifact_path = Path(artifact_path).resolve()
@@ -49,6 +56,7 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
     if artifact_path.is_file():
         artifact_path.unlink()
 
+    locations = set().union(*[a.load('metadata.locations') for a in artifacts])
     keyspace_set = set().union(*[a.load('metadata.keyspace') for a in artifacts])
     valid_artifacts, valid_locations = [], []
     for a in artifacts:
@@ -57,7 +65,8 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
             valid_locations.extend(a.load('metadata.locations'))
         else:
             warnings.warn(f'missing_keys: {keyspace_set.difference(set(a.load("metadata.keyspace")))} '
-                          f'for location:{a.load("metadata.locations")}', ArtifactAggregationWarning)
+                          f'for location:{a.load("metadata.locations")} All the artifacts not aggregated'
+                          f'will be stored in {artifact_path}/broken_artifacts.', ArtifactAggregationWarning)
 
     artifact = Artifact(artifact_path.as_posix())
     artifact.write("metadata.locations", valid_locations)
@@ -82,6 +91,16 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
     for loc in valid_locations:
         f = artifact_path.parent/f'{artifact_path.stem}_{loc.replace(" ", "_")}.hdf'
         f.unlink()
+
+    invalid_locations = set(locations).difference(set(valid_locations))
+    if len(invalid_locations) > 0:
+        new_dir = artifact_path.parent/'broken_artifacts'
+        new_dir.mkdir()
+
+        for loc in invliad_locations:
+            f = artifact_path.parent/f'{artifact_path.stem}_{loc.replace(" ", "_")}.hdf'
+            f.rename(new_dir/f.name)
+
     return artifact
 
 
@@ -90,8 +109,6 @@ def main(rawargs=None):
         We only take the union of the each keyspace of single artifacts and
         do not aggregate any single artifact does not have all the keys
         in the union of keyspaces.
-
-        Aggregation is held until single artifact building jobs are completed.
     """
     parser = argparse.ArgumentParser()
     config_path, locations, output = unpack_arguments(parser, rawargs)
@@ -99,9 +116,8 @@ def main(rawargs=None):
     individual_artifacts = []
     for loc in locations:
         individual_path = Path(output)/f'{config_path.stem}_{loc.replace(" ", "_")}.hdf'
-        individual_artifacts.append(individual_path)
-    
-    artifacts = [Artifact(a.as_posix()) for a in individual_artifacts]
+        individual_artifacts.append(Artifact(individual_path.as_posix()))
+
     artifact_path = f'{output}/{config_path.stem}.hdf'
     _log.debug(f'{locations}')
     if len(locations) == 1:
@@ -110,20 +126,26 @@ def main(rawargs=None):
         current_artifact.rename(Path(artifact_path))
 
     else:
-        aggregate(artifacts, artifact_path)
+        aggregate(individual_artifacts, artifact_path)
 
 
-def disaggregate(config_name: str, output_root: str) -> List:
+def disaggregate(config_name: str, output_root: str) -> Set:
     """Disaggreagte the existing multi-location artifacts into the single
     location artifacts for appending. It is only called when the append flag
     is true. If the existing artifact was built under the different versions of
     relevant libraries from the versions of those at the moment when appending
     is called, we will wipe it out and build it from scratch.
 
-    :param config_name: string of the configuration file stem i.e., existing
-                        artifact name
-    :param output_root: where artifacts will be stored
-    :return: set of existing locations
+    Parameters
+    ----------
+    config_name:
+        string of the configuration file stem i.e., existing artifact name
+    output_root:
+        where artifacts will be stored
+
+    Returns
+    -------
+        set of existing locations
     """
 
     initial_artifact_path = Path(output_root) / f'{config_name}.hdf'
@@ -136,30 +158,35 @@ def disaggregate(config_name: str, output_root: str) -> List:
 
     if existing_artifact.load('metadata.versions') != get_versions():
         #  FIXME: For now we only warn and build from scratch. We need a smarter way to handle ths.
-        warnings.warn('Your artifact was built under the different versions and cannot append it',
-                      ArtifactAggregationWarning)
+        warnings.warn('Your artifact was built under the different versions and we cannot append it. It will be built '
+                      'from scratch', ArtifactAggregationWarning)
 
         initial_artifact_path.unlink()
         existing_locations = {}
     else:
-        existing_keys = existing_artifact.load('metadata.keyspace')
-        existing_locations = existing_artifact.load('metadata.locations')
+        existing_locations = _disaggregate(existing_artifact, initial_artifact_path)
+    return existing_locations
 
-        for loc in existing_locations:
-            location = get_location_term(loc)
-            temp_path = f'{initial_artifact_path.parent.as_posix()}/{config_name}_{loc.replace(" ", "_")}.hdf'
-            existing_artifact = Artifact(initial_artifact_path.as_posix(), filter_terms=[location])
 
-            new_artifact = Artifact(temp_path)
-            new_artifact.write('metadata.locations', [loc])
-            new_artifact.write('metadata.versions', get_versions())
+def _disaggregate(existing_artifact: Artifact, initial_artifact_path: Path) -> Set:
+    existing_keys = existing_artifact.load('metadata.keyspace')
+    existing_locations = existing_artifact.load('metadata.locations')
 
-            for e_key in set(existing_keys) - set(METADATA):
-                data = existing_artifact.load(e_key)
-                new_artifact.write(e_key, data)
+    for loc in existing_locations:
+        location = get_location_term(loc)
+        temp_path = f'{initial_artifact_path.parent.as_posix()}/{initial_artifact_path.stem}_{loc.replace(" ", "_")}.hdf'
+        existing_artifact = Artifact(initial_artifact_path.as_posix(), filter_terms=[location])
 
-        initial_artifact_path.unlink()
-    return [l.replace(' ', '_') for l in existing_locations]
+        new_artifact = Artifact(temp_path)
+        new_artifact.write('metadata.locations', [loc])
+        new_artifact.write('metadata.versions', get_versions())
+
+        for e_key in set(existing_keys) - set(METADATA):
+            data = existing_artifact.load(e_key)
+            new_artifact.write(e_key, data)
+
+    initial_artifact_path.unlink()
+    return {l.replace(' ', '_') for l in existing_locations}
 
 
 if __name__ == "__main__":

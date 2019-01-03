@@ -6,7 +6,7 @@ import getpass
 import pathlib
 import argparse
 import subprocess
-from typing import Union
+from typing import Union, List, Dict, Set
 import click
 
 from vivarium.framework.configuration import build_model_specification
@@ -97,8 +97,15 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     config_path = pathlib.Path(model_specification).resolve()
     python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
+    locations = [l.replace("'", "-") for l in locations]
 
-    existing_locations = disaggregate(config_path.stem, output_root) if append else {}
+    if append:
+        click.secho('Pre-processing the existing artifact for appending. Please wait for the job submission messages'
+                    'It may take several minutes, please do NOT quit during the process', fg='blue')
+        existing_locations = disaggregate(config_path.stem, output_root)
+    else:
+        existing_locations = {}
+
     new_locations = set(locations).difference(set(existing_locations)) if set(locations) > set(existing_locations) else {}
 
     script_args = f"{script_path} {config_path} --output-root {output_root}"
@@ -108,32 +115,58 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     error_log_dir = _make_log_dir(output_root) if error_logs else None
     jids = list()
 
-    def qsub_jobs(locs, script_arguments):
-        num_locations = len(locs)
-        script_arguments += "--location {} "
-        for i, location in enumerate(locs):
-            location = location.replace("'", "-")
-            job_name = f"{config_path.stem}_{location}_build_artifact"
-            
-            command = build_submit_command(python_context_path, job_name, project, error_log_dir,
-                                           script_arguments.format(location), memory, archive=True, queue='all.q')
-            click.echo(f"submitting job {i+1} of {num_locations} ({job_name})")
-            jobid = submit_job(command, job_name)
-            jids.append(jobid)          
+    existing_locations_jobs = {loc: f"{config_path.stem}_{loc}_build_artifact" for loc in existing_locations}
+    new_locations_jobs = {loc: f"{config_path.stem}_{loc}_build_artifact" for loc in new_locations}
 
-    if len(existing_locations) > 0:
-        qsub_jobs(existing_locations, script_args + f'--append ')
-    if len(new_locations) > 0:
-        qsub_jobs(new_locations, script_args)
- 
+    existing_loc_commands = {loc: build_submit_command(python_context_path, job, project, error_log_dir, script_args,
+                                                       memory, archive=True, queue='all.q') + f'--location {loc} --append'
+                             for loc, job in existing_locations_jobs.items()}
+
+    new_loc_commands = {loc: build_submit_command(python_context_path, job, project, error_log_dir, script_args, memory,
+                                                  archive=True, queue='all.q') + f'--location {loc}'
+                        for loc, job in new_locations_jobs.items()}
+
+    jids.extend(submit_jobs_multi_locations(existing_locations, existing_loc_commands, existing_locations_jobs))
+    jids.extend(submit_jobs_multi_locations(new_locations, new_loc_commands, new_locations_jobs))
+    jids = ",".join(jids)
+
     aggregate_script = pathlib.Path(__file__).parent / 'aggregation.py'
     aggregate_args = f'--locations {" ".join(locations)} --output_root {output_root} --config_path {config_path}'
     aggregate_job_name = f"{config_path.stem}_aggregate_artifacts"
-    jids = ",".join(jids)
     aggregate_command = build_submit_command(python_context_path, aggregate_job_name, 
                                              project, error_log_dir, f'{aggregate_script} {aggregate_args}', memory,
                                              archive=True, queue='all.q', hold=True, jids=jids)
     submit_job(aggregate_command, aggregate_job_name)
+
+
+def submit_jobs_multi_locations(locations: Set, commands: Dict, job_names: Dict) -> List:
+    """ submit a qsub command for the multiple location jobs and collect
+        the jobids which were successfully submitted and give click messages
+        to the user
+    Parameters
+    ----------
+    locations
+        set of name of locations for the jobs to be submitted
+    commands
+        dictionary for location(key) and matching qsub command for
+        that location(value)
+    job_names
+        dictionary for location(key) and matching job_name for
+        that location(value)
+
+    Returns
+    -------
+        job_ids
+
+    """
+    job_ids = []
+    num_locations = len(locations)
+    if len(locations) > 0:
+        for i, location in enumerate(locations):
+            click.echo(f"submitting job {i + 1} of {num_locations} ({job_names[location]})")
+            jobid = submit_job(commands[location], job_names[location])
+            job_ids.append(jobid)
+    return job_ids
 
 
 def submit_job(command: str, name: str):

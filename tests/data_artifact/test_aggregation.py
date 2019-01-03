@@ -4,8 +4,7 @@ from pathlib import Path
 import pandas as pd
 import argparse
 
-from vivarium_inputs.data_artifact import (aggregate, disaggregate, unpack_arguments, main, ArtifactAggregationWarning,
-                                           get_versions)
+from vivarium_inputs.data_artifact import aggregation, ArtifactAggregationWarning, get_versions
 
 from vivarium_public_health.dataset_manager import Artifact
 
@@ -35,7 +34,7 @@ def test_unpack_arguments():
     locations = ['United States', 'Canada']
     args = f'--config_path {config_path} --output_root {output_root} --locations United_States Canada '.split()
     parser = argparse.ArgumentParser()
-    assert unpack_arguments(parser, args) == (Path(config_path), locations, output_root)
+    assert aggregation.unpack_arguments(parser, args) == (Path(config_path), locations, output_root)
 
 
 def test_aggregate_one_location(single_artifact, mocker):
@@ -46,7 +45,7 @@ def test_aggregate_one_location(single_artifact, mocker):
     output_root = artifact_path.parent.as_posix()
     locations = 'United_States'
 
-    main(['--config_path', config_path, '--output_root', output_root, '--locations', locations])
+    aggregation.main(['--config_path', config_path, '--output_root', output_root, '--locations', locations])
 
     renamed_artifact = artifact_path.parent / 'test.hdf'
     assert not artifact_path.is_file()
@@ -67,7 +66,7 @@ def test_aggregate_with_missing_keys(single_artifact):
     artifact_path = Path(usa_artifact.path).parent.as_posix()
 
     with pytest.warns(ArtifactAggregationWarning) as record:
-        new_artifact = aggregate([usa_artifact, canada_artifact, kenya_artifact], f'{artifact_path}/test.hdf')
+        new_artifact = aggregation.aggregate([usa_artifact, canada_artifact, kenya_artifact], f'{artifact_path}/test.hdf')
 
         assert len(record) == 1
         assert new_key in str(record[-1].message)
@@ -76,17 +75,20 @@ def test_aggregate_with_missing_keys(single_artifact):
         assert set(new_artifact.keys) == set(usa_artifact.keys) == set(canada_artifact.keys)
         assert set(new_artifact.load('metadata.locations')) == {'Canada', 'United States'}
 
-        # only clean up the individual artifact used for aggregation
+        # clean up the individual artifact used for aggregation
         assert not Path(usa_artifact.path).is_file()
         assert not Path(canada_artifact.path).is_file()
-        assert Path(kenya_artifact.path).is_file()
+        assert not Path(kenya_artifact.path).is_file()
+        # Kenya artifact should be moved to broken artifacts folder
+        new_location = Path(artifact_path)/'broken_artifacts'/f'{Path(kenya_artifact.path).name}'
+        assert new_location.is_file()
 
 
 def test_aggregate(single_artifact):
     usa_artifact = single_artifact('United_States')
     canada_artifact = single_artifact('Canada')
     artifact_path = Path(usa_artifact.path).parent.as_posix()
-    new_artifact = aggregate([usa_artifact, canada_artifact], f'{artifact_path}/test.hdf')
+    new_artifact = aggregation.aggregate([usa_artifact, canada_artifact], f'{artifact_path}/test.hdf')
 
     assert set(new_artifact.keys) == set(usa_artifact.keys) == set(canada_artifact.keys)
     assert set(new_artifact.load('metadata.locations')) == {'Canada', 'United States'}
@@ -104,11 +106,11 @@ def test_disaggregate(single_artifact):
     expected_keys = usa_artifact.keys
 
     artifact_path = Path(usa_artifact.path).parent / 'test.hdf'
-    aggregated_artifact = aggregate(individual_artifacts, artifact_path.as_posix())
+    aggregated_artifact = aggregation.aggregate(individual_artifacts, artifact_path.as_posix())
     config_name = 'test'
     output_root = Path(aggregated_artifact.path).parent
 
-    disaggregated_artifacts_locations = disaggregate(config_name, output_root)
+    disaggregated_artifacts_locations =aggregation.disaggregate(config_name, output_root)
 
     # after disaggregation, initial aggregated artifact should be deleted
     assert not Path(aggregated_artifact.path).is_file()
@@ -131,7 +133,7 @@ def test_disaggregate_with_different_versions(single_artifact):
     different_versions = {k: '0.0.1' for k in current_versions}
 
     artifact_path = Path(usa_artifact.path).parent / 'test.hdf'
-    aggregated_artifact = aggregate(individual_artifacts, artifact_path.as_posix())
+    aggregated_artifact = aggregation.aggregate(individual_artifacts, artifact_path.as_posix())
 
     # change the versions in aggregated_artifact
     aggregated_artifact.replace('metadata.versions', different_versions)
@@ -140,9 +142,10 @@ def test_disaggregate_with_different_versions(single_artifact):
     output_root = Path(aggregated_artifact.path).parent
 
     with pytest.warns(ArtifactAggregationWarning) as record:
-        disaggregated_artifacts_locations = disaggregate(config_name, output_root)
+        disaggregated_artifacts_locations = aggregation.disaggregate(config_name, output_root)
         assert len(record) == 1
-        assert str(record[0].message) == 'Your artifact was built under the different versions and cannot append it'
+        assert str(record[0].message) == 'Your artifact was built under the different versions and we cannot append it.' \
+                                         ' It will be built from scratch'
 
     for loc in disaggregated_artifacts_locations:
         new_individual_artifact_path = output_root / f'{config_name}_{loc}.hdf'
