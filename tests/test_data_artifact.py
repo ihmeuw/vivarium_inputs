@@ -5,7 +5,7 @@ from hypothesis.extra.pandas import data_frames, column
 
 from gbd_mapping import Cause, Risk, Etiology, Sequela
 
-from vivarium_inputs.utilities import get_age_group_bins_from_age_group_id
+from vivarium_inputs.old_code.utilities import get_age_group_bins_from_age_group_id
 from vivarium_inputs.data_artifact import normalize
 
 CAUSE_MEASURES = ["death", "prevalence", "incidence", "population_attributable_fraction",

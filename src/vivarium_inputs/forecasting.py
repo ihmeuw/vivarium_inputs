@@ -1,8 +1,8 @@
 import pandas as pd
 import math
 
-from vivarium_inputs.core import get_location_id
-from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_bins_from_age_group_id, gbd, forecasting
+from vivarium_inputs.old_code.core import get_location_id
+from vivarium_inputs.old_code.utilities import normalize_for_simulation, get_age_group_bins_from_age_group_id, gbd, forecasting
 from gbd_mapping import causes, covariates, etiologies
 from vivarium_public_health.dataset_manager import EntityKey
 

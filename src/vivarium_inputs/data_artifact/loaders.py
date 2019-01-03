@@ -6,9 +6,9 @@ import pandas as pd
 
 from vivarium_public_health.dataset_manager import EntityKey
 
-from vivarium_inputs import core
+from vivarium_inputs.old_code import core
 from vivarium_inputs.data_artifact.utilities import normalize
-from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_bins_from_age_group_id
+from vivarium_inputs.old_code.utilities import normalize_for_simulation, get_age_group_bins_from_age_group_id
 from vivarium_inputs.mapping_extension import healthcare_entities, health_technologies
 
 

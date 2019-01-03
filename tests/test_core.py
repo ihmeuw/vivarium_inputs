@@ -10,7 +10,7 @@ from gbd_mapping.cause import causes
 from gbd_mapping.risk import risk_factors
 from gbd_mapping.coverage_gap import coverage_gaps
 
-from vivarium_inputs import core, utilities
+from vivarium_inputs.old_code import core
 
 
 # TODO there's a bunch of repeated code in the next three functions but I'm not sure what the general form should be yet
