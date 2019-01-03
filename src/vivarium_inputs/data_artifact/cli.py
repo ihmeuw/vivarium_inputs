@@ -131,6 +131,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     jids.extend(submit_jobs_multi_locations(new_locations, new_loc_commands, new_locations_jobs))
     jids = ",".join(jids)
 
+    locations = [l.replace("'", "-") for l in locations]
     aggregate_script = pathlib.Path(__file__).parent / 'aggregation.py'
     aggregate_args = f'--locations {" ".join(locations)} --output_root {output_root} --config_path {config_path}'
     aggregate_job_name = f"{config_path.stem}_aggregate_artifacts"
