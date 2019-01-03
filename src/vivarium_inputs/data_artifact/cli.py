@@ -6,7 +6,7 @@ import getpass
 import pathlib
 import argparse
 import subprocess
-from typing import Union, List, Dict, Set
+from typing import Union, List, Dict
 import click
 
 from vivarium.framework.configuration import build_model_specification
@@ -97,7 +97,6 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     config_path = pathlib.Path(model_specification).resolve()
     python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
-    locations = [l.replace("'", "-") for l in locations]
 
     if append:
         click.secho('Pre-processing the existing artifact for appending. Please wait for the job submission messages'
@@ -107,6 +106,8 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
         existing_locations = {}
 
     new_locations = set(locations).difference(set(existing_locations)) if set(locations) > set(existing_locations) else {}
+    new_locations = [l.replace("'", "-") for l in new_locations]
+    existing_locations = [l.replace("'", "-") for l in existing_locations]
 
     script_args = f"{script_path} {config_path} --output-root {output_root}"
     if verbose:
@@ -139,7 +140,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     submit_job(aggregate_command, aggregate_job_name)
 
 
-def submit_jobs_multi_locations(locations: Set, commands: Dict, job_names: Dict) -> List:
+def submit_jobs_multi_locations(locations: List, commands: Dict, job_names: Dict) -> List:
     """ submit a qsub command for the multiple location jobs and collect
         the jobids which were successfully submitted and give click messages
         to the user

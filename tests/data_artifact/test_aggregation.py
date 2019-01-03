@@ -116,11 +116,12 @@ def test_disaggregate(single_artifact):
     assert not Path(aggregated_artifact.path).is_file()
 
     for loc in disaggregated_artifacts_locations:
-        new_individual_artifact_path = output_root/f'{config_name}_{loc}.hdf'
+        l = loc.replace(' ', '_').replace("'", "-")
+        new_individual_artifact_path = output_root/f'{config_name}_{l}.hdf'
         assert new_individual_artifact_path.is_file()
         new_artifact = Artifact(new_individual_artifact_path.as_posix())
         assert set(new_artifact.keys) == set(expected_keys)
-        assert new_artifact.load('metadata.locations') == [loc.replace('_', ' ')]
+        assert new_artifact.load('metadata.locations') == [loc]
 
 
 def test_disaggregate_with_different_versions(single_artifact):

@@ -89,7 +89,8 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
 
     # clean-up
     for loc in valid_locations:
-        f = artifact_path.parent/f'{artifact_path.stem}_{loc.replace(" ", "_")}.hdf'
+        l = loc.replace(' ', '_').replace("'", "-")
+        f = artifact_path.parent/f'{artifact_path.stem}_{l}.hdf'
         f.unlink()
 
     invalid_locations = set(locations).difference(set(valid_locations))
@@ -98,7 +99,8 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
         new_dir.mkdir()
 
         for loc in invalid_locations:
-            f = artifact_path.parent/f'{artifact_path.stem}_{loc.replace(" ", "_")}.hdf'
+            l = loc.replace(' ', '_').replace("'", "-")
+            f = artifact_path.parent/f'{artifact_path.stem}_{l}.hdf'
             f.rename(new_dir/f.name)
 
     return artifact
@@ -115,13 +117,14 @@ def main(rawargs=None):
 
     individual_artifacts = []
     for loc in locations:
-        individual_path = Path(output)/f'{config_path.stem}_{loc.replace(" ", "_")}.hdf'
+        l = loc.replace(' ', '_').replace("'", "-")
+        individual_path = Path(output)/f'{config_path.stem}_{l}.hdf'
         individual_artifacts.append(Artifact(individual_path.as_posix()))
 
     artifact_path = f'{output}/{config_path.stem}.hdf'
     _log.debug(f'{locations}')
     if len(locations) == 1:
-        location = locations[0].replace(' ', '_')
+        location = locations[0].replace(' ', '_').replace("'", "-")
         current_artifact = Path(output) / f'{config_path.stem}_{location}.hdf'
         current_artifact.rename(Path(artifact_path))
 
@@ -174,7 +177,8 @@ def _disaggregate(existing_artifact: Artifact, initial_artifact_path: Path) -> S
 
     for loc in existing_locations:
         location = get_location_term(loc)
-        temp_path = f'{initial_artifact_path.parent.as_posix()}/{initial_artifact_path.stem}_{loc.replace(" ", "_")}.hdf'
+        l = loc.replace(' ', '_').replace("'", "-")
+        temp_path = f'{initial_artifact_path.parent.as_posix()}/{initial_artifact_path.stem}_{l}.hdf'
         existing_artifact = Artifact(initial_artifact_path.as_posix(), filter_terms=[location])
 
         new_artifact = Artifact(temp_path)
@@ -186,7 +190,7 @@ def _disaggregate(existing_artifact: Artifact, initial_artifact_path: Path) -> S
             new_artifact.write(e_key, data)
 
     initial_artifact_path.unlink()
-    return {l.replace(' ', '_') for l in existing_locations}
+    return existing_locations
 
 
 if __name__ == "__main__":
