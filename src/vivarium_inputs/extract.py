@@ -98,7 +98,7 @@ def check_years(df: pd.DataFrame, year_type: str):
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
     expected_years = years[year_type]
     if set(df.year_id.unique()) < set(expected_years):
-        raise DataNotExistError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique()))}')
+        raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique()))}')
     # if is it annual, we expect to have extra years from some cases like codcorrect/covariate
     if year_type == 'binned' and set(df.year_id.unique()) > set(expected_years):
         raise DataAbnormalError(f'Data has extra years: {set(df.year_id.unique()).difference(set(expected_years))}')
