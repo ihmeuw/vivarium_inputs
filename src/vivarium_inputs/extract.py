@@ -52,13 +52,6 @@ def get_sequela_incidence(entity: Sequela, location_id: int) -> pd.DataFrame:
     return data
 
 
-def get_sequela_birth_prevalence(entity: Sequela, location_id: int) -> pd.DataFrame:
-    if not entity.birth_prevalence_exists:
-        raise DataNotExistError(f'{entity.name} does not have incidence data')
-    data = get_sequela_incidence(entity, location_id)
-    return data[data.age_group_id == 164]
-
-
 def get_sequela_disability_weight(entity: Sequela, _) -> pd.DataFrame:
     if not entity.healthstate.disability_weight_exist:
         raise DataNotExistError(f'{entity.name} does not have data for disability weight')
