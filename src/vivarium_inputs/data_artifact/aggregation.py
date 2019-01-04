@@ -190,7 +190,7 @@ def _disaggregate(existing_artifact: Artifact, initial_artifact_path: Path) -> S
             new_artifact.write(e_key, data)
 
     initial_artifact_path.unlink()
-    return existing_locations
+    return [l.replace(' ', '_') for l in existing_locations]
 
 
 if __name__ == "__main__":

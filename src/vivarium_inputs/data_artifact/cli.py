@@ -100,7 +100,8 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
 
     if append:
         click.secho('Pre-processing the existing artifact for appending. Please wait for the job submission messages. '
-                    'It may take several minutes, please DO NOT quit during the process', fg='blue')
+                    'It may take long espeically if your aritfact already includes many locations inside. '
+                    'please DO NOT quit during the process', fg='blue')
         existing_locations = disaggregate(config_path.stem, output_root)
     else:
         existing_locations = {}
