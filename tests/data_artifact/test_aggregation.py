@@ -110,7 +110,7 @@ def test_disaggregate(single_artifact):
     config_name = 'test'
     output_root = Path(aggregated_artifact.path).parent
 
-    disaggregated_artifacts_locations =aggregation.disaggregate(config_name, output_root)
+    disaggregated_artifacts_locations = aggregation.disaggregate(config_name, output_root)
 
     # after disaggregation, initial aggregated artifact should be deleted
     assert not Path(aggregated_artifact.path).is_file()
@@ -121,7 +121,7 @@ def test_disaggregate(single_artifact):
         assert new_individual_artifact_path.is_file()
         new_artifact = Artifact(new_individual_artifact_path.as_posix())
         assert set(new_artifact.keys) == set(expected_keys)
-        assert new_artifact.load('metadata.locations') == [loc]
+        assert new_artifact.load('metadata.locations') == [loc.replace('_', ' ')]
 
 
 def test_disaggregate_with_different_versions(single_artifact):
