@@ -8,13 +8,43 @@ from gbd_mapping.sequela import Sequela
 from .utilities import DataNotExistError, DataAbnormalError
 
 
+METRIC = {
+    'Number': 1,
+    'Percent': 2,
+    'Rate': 3,
+    'Rank': 4,
+    'Years': 5,
+    'p-value': 6,
+    'MDG p-value': 7,
+    'Probability of death': 8,
+    'Index score': 9
+}
+
+MEASURE = {
+    'Deaths': 1, 'DALYs (Disability-Adjusted Life Years)': 2, 'YLDs (Years Lived with Disability)': 3,
+    'YLLs (Years of Life Lost)': 4, 'Prevalence': 5, 'Incidence': 6, 'Remission': 7, 'Duration': 8,
+    'Excess mortality rate': 9, 'Prevalence * excess mortality rate': 10, 'Relative risk': 11,
+    'Standardized mortality ratio': 12, 'With-condition mortality rate': 13, 'All-cause mortality rate': 14,
+    'Cause-specific mortality rate': 15, 'Other cause mortality rate': 16, 'Case fatality rate': 17, 'Proportion': 18,
+    'Continuous': 19, 'Survival Rate': 20, 'Disability Weight': 21, 'Chronic Prevalence': 22, 'Acute Prevalence': 23,
+    'Acute Incidence': 24, 'Maternal mortality ratio': 25, 'Life expectancy': 26, 'Probability of death': 27,
+    'HALE (Healthy life expectancy)': 28, 'Summary exposure value': 29, 'Life expectancy no-shock hiv free': 30,
+    'Life expectancy no-shock with hiv': 31, 'Probability of death no-shock hiv free': 32,
+    'Probability of death no-shock with hiv': 33, 'Mortality risk': 34, 'Short term prevalence': 35,
+    'Long term prevalence': 36, 'Life expectancy decomposition by cause': 37, 'Birth prevalence': 38,
+    'Susceptible population fraction': 39, 'With Condition population fraction': 40, 'Susceptible incidence': 41,
+    'Total incidence': 42, 'HAQ Index (Healthcare Access and Quality Index)': 43, 'Population': 44, 'Fertility': 45
+}
+
+
+DEMOGRAPHIC_COLS = ['location_id', 'sex_id', 'age_group_id', 'year_id']
 DRAW_COLS = [f'draw_{i}' for i in range(1000)]
 COLS = {
     'sequela':{
         'prevalence':
-            ['year_id', 'age_group_id', 'sex_id', 'measure_id', 'sequela_id', 'location_id', 'metric_id'] + DRAW_COLS,
+            ['measure_id', 'sequela_id', 'metric_id'] + DRAW_COLS + DEMOGRAPHIC_COLS,
         'incidence':
-            ['year_id', 'age_group_id', 'sex_id', 'measure_id', 'sequela_id', 'location_id', 'metric_id'] + DRAW_COLS,
+            ['measure_id', 'sequela_id', 'metric_id'] + DRAW_COLS + DEMOGRAPHIC_COLS,
         'disability_weight':
             ['location_id', 'age_group_id', 'sex_id', 'measure', 'healthstate_id', 'healthstate'] + DRAW_COLS
     }
@@ -29,7 +59,8 @@ def get_sequela_prevalence(entity: Sequela, location_id: int) -> pd.DataFrame:
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type='sequela')
     data = data[data.measure_id == 5]
 
-    assert data.metric_id.unique() == [3], 'prevalence should have only rate (metric_id 3)'
+    if data.metric_id.unique() != METRIC['Rate']:
+        raise DataAbnormalError('prevalence should have only rate (metric_id 3)')
 
     expected_cols = COLS['sequela']['prevalence']
     check_columns(expected_cols, data.columns)
@@ -45,7 +76,8 @@ def get_sequela_incidence(entity: Sequela, location_id: int) -> pd.DataFrame:
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type='sequela')
     data = data[data.measure_id == 6]
 
-    assert data.metric_id.unique() == [3], 'incidence should have only rate (metric_id 3)'
+    if data.metric_id.unique() != METRIC['Rate']:
+        raise DataAbnormalError('incidence should have only rate (metric_id 3)')
     expected_cols = COLS['sequela']['incidence']
     check_columns(expected_cols, data.columns)
     check_years(data, 'annual')
@@ -63,10 +95,13 @@ def get_sequela_disability_weight(entity: Sequela, _) -> pd.DataFrame:
 
 
 def check_years(df: pd.DataFrame, year_type: str):
-    years = {'annual': [y for y in range(1990, 2018)], 'binned': gbd.get_estimation_years()}
+    years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
     expected_years = years[year_type]
     if set(df.year_id.unique()) < set(expected_years):
         raise DataNotExistError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique()))}')
+    # if is it annual, we expect to have extra years from some cases like codcorrect/covariate
+    if year_type == 'binned' and set(df.year_id.unique()) > set(expected_years):
+        raise DataAbnormalError(f'Data has extra years: {set(df.year_id.unique()).difference(set(expected_years))}')
 
 
 def check_columns(expected_cols:List, existing_cols:List):
