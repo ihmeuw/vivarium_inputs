@@ -72,8 +72,8 @@ def get_sequela_disability_weight(entity: Sequela, _) -> pd.DataFrame:
 def check_years(df: pd.DataFrame, year_type: str):
     years = {'annual': [y for y in range(1990, 2018)], 'binned': gbd.get_estimation_years()}
     expected_years = years[year_type]
-    if set(df.year_id.unique) < expected_years:
-        raise DataNotExistError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique))}')
+    if set(df.year_id.unique()) < expected_years:
+        raise DataNotExistError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique()))}')
 
 
 def check_columns(expected_cols:List, existing_cols:List):
