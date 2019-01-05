@@ -35,7 +35,7 @@ MEASURE = {
 
 
 DEMOGRAPHIC_COLS = ('location_id', 'sex_id', 'age_group_id', 'year_id')
-DRAW_COLS = ([f'draw_{i}' for i in range(1000)])
+DRAW_COLS = tuple([f'draw_{i}' for i in range(1000)])
 COLS = {
     'sequela':{
         'prevalence':
