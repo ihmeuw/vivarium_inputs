@@ -62,16 +62,13 @@ class DataAbnormalError(VivariumInputsError, ValueError):
     """Exception raised when data has extra columns or values that we do not expect to have"""
 
 
-def normalize(data: pd.DataFrame, fill_value: int, location: int) -> pd.DataFrame:
-    if 'location_id' in data:
-        data = normalize_location(data, location)
-    if 'sex_id' in data:
-        data = normalize_sex(data)
-    if 'year_id' in data:
-        data = normalize_year(data)
-    if 'age_group_id' in data:
-        data = normalize_age(data, fill_value)
-    return data.sort(['location_id', 'sex_id', 'age_group_id', 'year_id'])
+def normalize(data: pd.DataFrame, location: int, fill_value=None) -> pd.DataFrame:
+    data = normalize_location(data, location)
+    data = normalize_sex(data)
+    data = normalize_year(data)
+    data = normalize_age(data, fill_value)
+    keycols = list(set(['location_id', 'sex_id', 'age_group_id', 'year_id']).intersection(set(data.columns)))
+    return data.sort_values(keycols).reset_index()
 
 
 def reshape(data: pd.DataFrame, to_keep=DEMOGRAPHIC_COLS) -> pd.DataFrame:
@@ -86,8 +83,12 @@ def remove_ids(data: pd.DataFrame) -> pd.DataFrame:
     location = data.location_id.unique()
     location_name = get_location_name(location[0])
     data['location'] = location_name
-    data.drop('location_id', axis=1, inplace=True)
-    data = get_age_group_bins_from_age_group_id(data)
+    data = data.rename(columns={'year_id': 'year'})
+    data["sex"] = data.sex_id.map({1: "Male", 2: "Female", 3: "Both"})
+    data.drop(["sex_id", "location_id"], axis=1,inplace=True)
+
+    if 'age_group_id' in data:
+        data = get_age_group_bins_from_age_group_id(data)
     return data
 
 
@@ -111,60 +112,69 @@ def normalize_sex(data: pd.DataFrame) -> pd.DataFrame:
         fill_data = data.copy()
         data.loc[:, 'sex_id'] = 1
         fill_data.loc[:, 'sex_id'] = 2
-        data = pd.concat(data, fill_data)
+        data = pd.concat([data, fill_data])
     elif len(sexes) == 1:
         fill_data = data.copy()
         missing_sex = {1, 2}.difference(sexes)
         fill_data.loc[:, 'sex_id'] = missing_sex.pop()
-        data = pd.concat(data, fill_data)
+        data = pd.concat([data, fill_data])
     return data
 
 
 def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
-    year_ids = data.year_id.unique()
-    id_cols = [c for c in data.columns if 'draw' not in c]
-    value_cols = list(set(data.columns) - set(id_cols))
-    if set(year_ids) == set(years['binned']):
-        fillin_data = pchip_interpolate(data, id_cols, value_cols)
-        data = pd.concat([data, fillin_data])
+    if 'year_id' not in data:
+        df = []
+        for year in years['annual']:
+            fill_data = data.copy()
+            fill_data['year_id'] = year
+            df.append(fill_data)
+        data = pd.concat(df)
+    else:
+        year_ids = data.year_id.unique()
+        id_cols = [c for c in data.columns if 'draw' not in c]
+        value_cols = list(set(data.columns) - set(id_cols))
+        if set(year_ids) == set(years['binned']):
+            fillin_data = pchip_interpolate(data, id_cols, value_cols)
+            data = pd.concat([data, fillin_data])
     return data[data.year_id.isin(years['annual'])]
 
 
-def normalize_age(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
+def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
     if 'age_group_id' not in data:
-        raise DataAbnormalError('Data does not have age_group_id')
-    whole_age_groups = gbd.get_age_group_id()
-    age_groups = data.age_group_id.unique()
-    if age_groups == {22}:
-        df = []
-        for age in whole_age_groups:
-            missing = data.copy()
-            missing['age_group_id'] = age
-            df.append(data)
-        data = pd.concat(df, ignore_index=True)
+        pass
+    else: 
+        whole_age_groups = gbd.get_age_group_id()
+        age_groups = data.age_group_id.unique()
+        if set(age_groups) == {22}:
+            df = []
+            for age in whole_age_groups:
+                missing = data.copy()
+                missing.loc[:, 'age_group_id'] = age
+                df.append(missing)
+            data = pd.concat(df, ignore_index=True)
 
-    elif set(age_groups) < set(whole_age_groups):
-        sex_id = data.sex_id.unique()
-        year_id = data.year_id.unique()
-        location_id = data.location_id.unique()
+        elif set(age_groups) < set(whole_age_groups):
+            sex_id = data.sex_id.unique()
+            year_id = data.year_id.unique()
+            location_id = data.location_id.unique()
 
-        index_cols = ['year_id', 'location_id', 'sex_id', 'age_group_id']
-        draw_cols = [c for c in data.columns if 'draw_' in c]
+            index_cols = ['year_id', 'location_id', 'sex_id', 'age_group_id']
+            draw_cols = [c for c in data.columns if 'draw_' in c]
 
-        other_cols = {c: data[c].unique() for c in data.dropna(axis=1).columns if
-                      c not in index_cols and c not in draw_cols}
-        index_cols += [*other_cols.keys()]
-        data = data.set_index(index_cols)
+            other_cols = {c: data[c].unique() for c in data.dropna(axis=1).columns if
+                          c not in index_cols and c not in draw_cols}
+            index_cols += [*other_cols.keys()]
+            data = data.set_index(index_cols)
 
-        expected = pd.MultiIndex.from_product([year_id, location_id, sex_id, whole_age_groups] + [*other_cols.values()],
-                                              names=(['year_id', 'location_id', 'sex_id', 'age_group_id'] + [
-                                                  *other_cols.keys()]))
-        new_data = data.copy()
-        missing = expected.difference(data.index)
-        to_add = pd.DataFrame({column: fill_value for column in draw_cols}, index=missing, dtype=float)
-        new_data = new_data.append(to_add).sort_index()
-        data = new_data.reset_index()
+            expected = pd.MultiIndex.from_product([year_id, location_id, sex_id, whole_age_groups] + [*other_cols.values()],
+                                                  names=(['year_id', 'location_id', 'sex_id', 'age_group_id'] + [
+                                                      *other_cols.keys()]))
+            new_data = data.copy()
+            missing = expected.difference(data.index)
+            to_add = pd.DataFrame({column: fill_value for column in draw_cols}, index=missing, dtype=float)
+            new_data = new_data.append(to_add).sort_index()
+            data = new_data.reset_index()
 
     return data
 
