@@ -82,12 +82,15 @@ def remove_ids(data: pd.DataFrame) -> pd.DataFrame:
     location = data.location_id.unique()
     location_name = get_location_name(location[0])
     data['location'] = location_name
-    data = data.rename(columns={'year_id': 'year'})
     data["sex"] = data.sex_id.map({1: "Male", 2: "Female", 3: "Both"})
     data.drop(["sex_id", "location_id"], axis=1,inplace=True)
 
     if 'age_group_id' in data:
         data = get_age_group_bins_from_age_group_id(data)
+
+    if "year_id" in data:
+        data = data.rename(columns={"year_id": "year_start"})
+        data['year_end'] = data['year_start'] + 1
     return data
 
 

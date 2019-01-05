@@ -20,7 +20,6 @@ def get_sequela_incidence(entity: Sequela, location: int) -> pd.DataFrame:
     data = data[data.age_group_id.isin(age_groups)]
     data = normalize(data, location, 0)
     data = reshape(data)
-    data = remove_ids(data)
     return data
 
 
@@ -33,7 +32,6 @@ def get_sequela_birth_prevalence(entity: Sequela, location: int) -> pd.DataFrame
         data.drop('age_group_id', axis=1, inplace=True)
         data = normalize(data, location)
         data = reshape(data, to_keep=('year_id', 'sex_id', 'location_id'))
-        data = remove_ids(data)
         return data
 
 
@@ -41,6 +39,5 @@ def get_sequela_disability_weight(entity: Sequela, location: int) -> pd.DataFram
     data = extract.get_sequela_disability_weight(entity, location)
     data = normalize(data, location)
     data = reshape(data)
-    data = remove_ids(data)
     return data
 
