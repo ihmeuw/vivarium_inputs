@@ -1,12 +1,10 @@
 language: python
 python:
 - 3.6
-install:
-- pip install -r requirements.txt
-- pip install hypothesis pytest pytest-mock
-- pip install .
+before_install:
+  - ./ci/travis-before-install.sh
 script:
-- pytest
+  - ./ci/travis-test.sh
 deploy:
   provider: pypi
   user: vivarium
