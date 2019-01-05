@@ -1,3 +1,8 @@
+**1.0.18 - 01/04/19**
+
+ - Add support for multi-location artifacts.
+ - Add CI branch synchronization.
+
 **1.0.17 - 12/20/18**
 
  - Bugfix to normalize disability weight data.
