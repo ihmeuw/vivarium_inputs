@@ -1,4 +1,6 @@
 """Validates data is in the correct shape for the simulation."""
+import pandas as pd
+
 from .utilities import DataFormattingError, gbd
 
 
@@ -175,7 +177,12 @@ def _validate_age_columns(data):
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
         raise DataFormattingError('Age column names improperly specified.')
 
-    expected_age_block = gbd.get_age_bins()[['age_group_start', 'age_group_end']]
+    expected_age_block = (
+        gbd.get_age_bins()[['age_group_years_start', 'age_group_years_end']]
+            .rename(columns={'age_group_years_start': 'age_group_start',
+                             'age_group_years_end': 'age_group_end'})
+    )
+
     age_block = data[['age_group_start', 'age_group_end']].drop_duplicates()
 
     if not age_block.equals(expected_age_block):
