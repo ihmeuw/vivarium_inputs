@@ -1,4 +1,3 @@
-from typing import List
 import pandas as pd
 
 from core_maths.interpolate import pchip_interpolate

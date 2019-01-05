@@ -23,8 +23,9 @@ def get_sequela_incidence(entity: Sequela, location: int) -> pd.DataFrame:
     data = remove_ids(data)
     return data
 
+
 def get_sequela_birth_prevalence(entity: Sequela, location: int) -> pd.DataFrame:
-    if not birth_prevalence_exists:
+    if not entity.birth_prevalence_exists:
         raise DataNotExistError(f'{entity.name} does not have data for birth prevalence')
     else:
         data = extract.get_sequela_incidence(entity, location)
@@ -34,6 +35,7 @@ def get_sequela_birth_prevalence(entity: Sequela, location: int) -> pd.DataFrame
         data = reshape(data, to_keep=('year_id', 'sex_id', 'location_id'))
         data = remove_ids(data)
         return data
+
 
 def get_sequela_disability_weight(entity: Sequela, location: int) -> pd.DataFrame:
     data = extract.get_sequela_disability_weight(entity, location)
