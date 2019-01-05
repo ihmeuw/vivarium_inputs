@@ -9,9 +9,13 @@ except ModuleNotFoundError:
     gbd = GbdDummy()
 
 
-
 class VivariumInputsError(Exception):
     """Base exception for errors in vivarium_inputs."""
+    pass
+
+
+class GbdDataError(VivariumInputsError):
+    """Base exception for errors related to GBD data."""
     pass
 
 
@@ -25,6 +29,33 @@ class DataAbnormalError(VivariumInputsError, ValueError):
     pass
 
 
-class DataFormattingError(VivariumInputsError, ValueError):
+class EtlError(VivariumInputsError):
+    """Base exception for errors related to vivarium_inputs improperly handling data."""
+    pass
+
+
+class DataFormattingError(EtlError, ValueError):
     """Exception raised when data has been improperly formatted."""
     pass
+
+
+class UserError(VivariumInputsError):
+    """Base exception for user errors."""
+    pass
+
+
+class InvalidQueryError(VivariumInputsError, ValueError):
+    """Exception raised when the user makes an invalid query."""
+    pass
+
+
+def get_location_id(location_name):
+    return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[location_name]
+
+
+
+
+
+
+
+

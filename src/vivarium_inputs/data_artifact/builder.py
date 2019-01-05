@@ -11,7 +11,7 @@ from vivarium_public_health.dataset_manager import (EntityKey, Artifact, get_loc
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
-from vivarium_inputs.forecasting import load_forecast
+from vivarium_inputs.old_code.forecasting import load_forecast
 from vivarium_inputs.data_artifact.utilities import get_versions
 
 

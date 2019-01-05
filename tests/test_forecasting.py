@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from vivarium_inputs import forecasting
+from vivarium_inputs.old_code import forecasting
 
 
 def test_rename_value_columns():
