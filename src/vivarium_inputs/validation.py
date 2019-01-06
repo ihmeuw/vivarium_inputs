@@ -1,7 +1,7 @@
 """Validates data is in the correct shape for the simulation."""
 import pandas as pd
 
-from .utilities import DataFormattingError, gbd
+from .globals import DataFormattingError, gbd
 
 
 def validate_for_simulation(data, entity, measure, location):

@@ -1,4 +1,5 @@
-from .utilities import InvalidQueryError, get_location_id
+from .globals import InvalidQueryError
+from .utilities import get_location_id
 
 
 def get_data(entity, measure: str, location: str):
