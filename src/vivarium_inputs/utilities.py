@@ -55,8 +55,8 @@ def scrub_year(data):
 ###############################################################
 
 
-def normalize(data: pd.DataFrame, location: int, fill_value=None) -> pd.DataFrame:
-    data = normalize_location(data, location)
+def normalize(data: pd.DataFrame, location_id: int, fill_value=None) -> pd.DataFrame:
+    data = normalize_location(data, location_id)
     data = normalize_sex(data, fill_value)
     data = normalize_year(data)
     data = normalize_age(data, fill_value)

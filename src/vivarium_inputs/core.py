@@ -1,5 +1,5 @@
-from .globals import InvalidQueryError
-from .utilities import get_location_id
+from vivarium_inputs import utilities, extract
+from .globals import InvalidQueryError, gbd
 
 
 def get_data(entity, measure: str, location: str):
@@ -38,7 +38,7 @@ def get_data(entity, measure: str, location: str):
     if entity.kind not in entity_types:
         raise InvalidQueryError(f'{measure.capitalize()} not available for {entity.kind}')
 
-    location_id = get_location_id(location)
+    location_id = utilities.get_location_id(location)
     data = handler(entity, location_id)
     return data
 
@@ -47,28 +47,47 @@ def get_incidence(entity, location_id):
     if entity.kind == 'cause':
         raise NotImplementedError()
     elif entity.kind == 'sequela':
-        raise NotImplementedError()
+        data = extract.get_sequela_incidence(entity, location_id)
+        age_groups = gbd.get_age_group_id()
+        data = data[data.age_group_id.isin(age_groups)]
+        data = utilities.normalize(data, location_id, fill_value=0)
+        data = utilities.reshape(data)
+        return data
 
 
 def get_prevalence(entity, location_id):
     if entity.kind == 'cause':
         raise NotImplementedError()
     elif entity.kind == 'sequela':
-        raise NotImplementedError()
+        data = extract.get_sequela_prevalence(entity, location_id)
+        age_groups = gbd.get_age_group_id()
+        data = data[data.age_group_id.isin(age_groups)]
+        data = utilities.normalize(data, location_id, fill_value=0)
+        data = utilities.reshape(data)
+        return data
 
 
 def get_birth_prevalence(entity, location_id):
+    birth_prevalence_age_group = 164
     if entity.kind == 'cause':
         raise NotImplementedError()
     elif entity.kind == 'sequela':
-        raise NotImplementedError()
+        data = extract.get_sequela_incidence(entity, location_id)
+        data = data[data.age_group_id == birth_prevalence_age_group]
+        data.drop('age_group_id', axis=1, inplace=True)
+        data = utilities.normalize(data, location_id, fill_value=0)
+        data = utilities.reshape(data, to_keep=('year_id', 'sex_id', 'location_id'))
+        return data
 
 
 def get_disability_weight(entity, location_id):
     if entity.kind == 'cause':
         raise NotImplementedError()
     elif entity.kind == 'sequela':
-        raise NotImplementedError()
+        data = extract.get_sequela_disability_weight(entity, location_id)
+        data = utilities.normalize(data, location_id)
+        data = utilities.reshape(data)
+        return data
 
 
 def get_remission(entity, location_id):
