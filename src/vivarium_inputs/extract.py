@@ -1,42 +1,113 @@
-from gbd_mapping.sequela import Sequela
 import pandas as pd
 
 from .globals import gbd
 import vivarium_inputs.validation.raw as validation
 
 
-def get_sequela_prevalence(entity: Sequela, location_id: int) -> pd.DataFrame:
-    validation.check_metadata(entity, 'prevalence')
-    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type='sequela')
+def extract_data(entity, measure: str, location_id: str):
+    extractors = {
+        # Cause-like measures
+        'incidence': extract_incidence,
+        'prevalence': extract_prevalence,
+        'birth_prevalence': extract_birth_prevalence,
+        'disability_weight': extract_disability_weight,
+        'remission': extract_remission,
+        'cause_specific_mortality': extract_death,
+        # Risk-like measures
+        'exposure': extract_exposure,
+        'exposure_standard_deviation': extract_exposure_standard_deviation,
+        'exposure_distribution_weights': extract_exposure_distribution_weights,
+        'relative_risk': extract_relative_risk,
+        'population_attributable_fraction': extract_population_attributable_fraction,
+        'mediation_factors': extract_mediation_factors,
+        # Covariate measures
+        'estimate': extract_estimate,
+        # Health system measures
+        'cost': extract_cost,
+        'utilization': extract_utilization,
+        # Population measures
+        'structure': extract_structure,
+        'theoretical_minimum_risk_life_expectancy': extract_theoretical_minimum_risk_life_expectancy,
+    }
+
+    validation.check_metadata(entity, measure)
+    data = extractors[measure](entity, location_id)
+    validation.validate_raw_data(data, entity, measure, location_id)
+    return data
+
+
+def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
+    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
     data = data[data.measure_id == 5]
-    validation.validate_raw_data(data, entity, 'prevalence', location_id)
     return data
 
 
-def get_sequela_incidence(entity: Sequela, location_id: int) -> pd.DataFrame:
-    validation.check_metadata(entity, 'incidence')
-    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type='sequela')
+def extract_incidence(entity, location_id: int) -> pd.DataFrame:
+    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
     data = data[data.measure_id == 6]
-    validation.validate_raw_data(data, entity, 'incidence', location_id)
     return data
 
 
-def get_sequela_disability_weight(entity: Sequela, location_id: int) -> pd.DataFrame:
-    validation.check_metadata(entity, 'disability_weight')
-    disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
+def extract_birth_prevalence(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_remission(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_disability_weight(entity, location_id: int) -> pd.DataFrame:
+    disability_weights = gbd.get_auxiliary_data('disability_weight', entity.kind, 'all')
     data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
-    validation.validate_raw_data(data, entity, 'disability_weight', location_id)
     return data
 
 
-def get_population_structure(location_id: int) -> pd.DataFrame:
+def extract_death(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_exposure(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_exposure_standard_deviation(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_population_attributable_fraction(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_mediation_factors(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_estimate(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_cost(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_utilization(entity, location_id: int) -> pd.DataFrame:
+    raise NotImplementedError()
+
+
+def extract_structure(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_population(location_id)
-    validation.validate_raw_data(data, 'population', 'structure', location_id)
     return data
 
 
-def get_population_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
+def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
-    validation.validate_raw_data(data, 'population', 'theoretical_minimum_risk_life_expectancy', 1)
     return data
 
