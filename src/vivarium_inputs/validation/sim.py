@@ -195,7 +195,6 @@ def _validate_year_columns(data):
     expected_year_block = pd.DataFrame({'year_start': range(1990, 2018),
                                         'year_end': range(1991, 2019)})
     year_block = data[['year_start', 'year_end']].drop_duplicates().reset_index(drop=True)
-    import pdb; pdb.set_trace()
 
     if not year_block.equals(expected_year_block):
         raise DataFormattingError('Year values improperly specified.')
