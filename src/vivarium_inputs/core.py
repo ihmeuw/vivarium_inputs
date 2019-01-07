@@ -140,8 +140,8 @@ def get_population_attributable_fraction(entity, location_id):
         raise NotImplementedError()
     elif entity.kind == 'etiology':
         data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
-        data = utilities.normalize(data, location_id, fill_value=0)
         data.drop(['rei_id', 'measure_id', 'metric_id'], axis=1, inplace=True)
+        data = utilities.normalize(data, location_id, fill_value=0)
         data['affected_measure'] = 'incidence_rate'
         data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ('cause_id', 'affected_measure',))
         return data

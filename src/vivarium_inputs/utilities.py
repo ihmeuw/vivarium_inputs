@@ -1,8 +1,12 @@
 """Errors and utility functions for input processing."""
 import pandas as pd
 
-from .globals import gbd, DataAbnormalError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, CAUSE_BY_ID
+from gbd_mapping import causes
+from .globals import gbd, DataAbnormalError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 
+
+CAUSE_BY_ID = {c.gbd_id: c for c in causes}
+#RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
 
 def get_location_id(location_name):
     return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[location_name]
@@ -147,8 +151,7 @@ def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
         expected_index = pd.MultiIndex.from_product([data[c].unique() for c in key_columns] + [gbd_ages],
                                                     names=key_columns + ['age_group_id'])
         data = data.reindex(expected_index, fill_value=fill_value)
-    elif data_ages > gbd_ages:
-        data = data[data.age_group_id.isin(gbd_ages)]
+
     return data
 
 

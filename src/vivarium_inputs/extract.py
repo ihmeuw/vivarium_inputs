@@ -38,12 +38,16 @@ def extract_data(entity, measure: str, location_id: str):
 
 def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
+    gbd_ages = gbd.get_age_group_id()
+    data = data[data.age_group_id.isin(gbd_ages)]
     data = data[data.measure_id == MEASURES['Prevalence']]
     return data
 
 
 def extract_incidence(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
+    gbd_ages = gbd.get_age_group_id()
+    data = data[data.age_group_id.isin(gbd_ages)]
     data = data[data.measure_id == MEASURES['Incidence']]
     return data
 
