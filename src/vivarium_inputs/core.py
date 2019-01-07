@@ -178,6 +178,5 @@ def get_theoretical_minimum_risk_life_expectancy(entity, location_id):
     if entity.kind == 'population':
         data = extract.extract_data(entity, 'theoretical_minimum_risk_life_expectancy', location_id)
         data = data.rename(columns={'age': 'age_group_start', 'life_expectancy': 'value'})
-        age_group_end = list(data['age_group_start'].iloc[1:]) + [125.]
-        data['age_group_end'] = pd.Series(age_group_end, index=data.index)
+        data['age_group_end'] = data.age_group_start.shift(-1).fillna(125.)
         return data
