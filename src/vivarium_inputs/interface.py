@@ -1,5 +1,6 @@
 """Access to vivarium simulation input data."""
-from vivarium_inputs import core, validation, utilities
+from vivarium_inputs import core, utilities
+import vivarium_inputs.validation.sim as validation
 
 
 def get_measure(entity, measure, location):
