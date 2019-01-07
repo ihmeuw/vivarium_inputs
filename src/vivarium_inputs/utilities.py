@@ -17,6 +17,7 @@ def scrub_gbd_conventions(data, location):
     data = scrub_sex(data)
     data = scrub_age(data)
     data = scrub_year(data)
+    data = scrub_affected_entity(data)
     return data
 
 

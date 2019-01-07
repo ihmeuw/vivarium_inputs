@@ -164,7 +164,7 @@ def _validate_sex_column(data):
     if 'sex' not in data.columns:
         raise DataFormattingError('Sex column name improperly specified.')
 
-    if list(data['sex'].unique()) != ['Male', 'Female']:
+    if set(data['sex'].unique()) != {'Male', 'Female'}:
         raise DataFormattingError('Sex value improperly specified.')
 
 
