@@ -13,10 +13,11 @@ def get_location_id(location_name):
 
 
 def scrub_gbd_conventions(data, location):
-    scrub_location(data, location)
-    scrub_sex(data)
-    scrub_age(data)
-    scrub_year(data)
+    data = scrub_location(data, location)
+    data = scrub_sex(data)
+    data = scrub_age(data)
+    data = scrub_year(data)
+    return data
 
 
 def scrub_location(data, location):
@@ -60,8 +61,7 @@ def normalize(data: pd.DataFrame, location_id: int, fill_value=None) -> pd.DataF
     data = normalize_sex(data, fill_value)
     data = normalize_year(data)
     data = normalize_age(data, fill_value)
-    keycols = list({'location_id', 'sex_id', 'age_group_id', 'year_id'}.intersection(set(data.columns)))
-    return data.sort_values(keycols).reset_index()
+    return data
 
 
 def normalize_location(data: pd.DataFrame, expected_location_id: int)-> pd.DataFrame:
@@ -146,4 +146,18 @@ def reshape(data: pd.DataFrame, to_keep=DEMOGRAPHIC_COLUMNS) -> pd.DataFrame:
     data = data.drop(to_drop, 'columns')
     data = pd.melt(data, id_vars=to_keep, value_vars=DRAW_COLUMNS, var_name='draw')
     data["draw"] = data.draw.str.partition("_")[2].astype(int)
+    return data
+
+
+def sort_data(data: pd.DataFrame) -> pd.DataFrame:
+    key_cols = []
+    if 'draw' in data.columns:
+        key_cols.append('draw')
+    key_cols.extend([c for c in ['location', 'sex', 'age_group_start',
+                                 'age_group_end', 'year_start', 'year_end'] if c in data.columns])
+    other_cols = data.columns.difference(key_cols + ['value'])
+    key_cols.extend(other_cols)
+    data.sort_values(key_cols).reset_index(drop=True)
+
+    data = data[key_cols + ['value']]
     return data
