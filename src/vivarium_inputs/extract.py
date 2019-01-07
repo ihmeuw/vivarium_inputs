@@ -1,14 +1,14 @@
 from gbd_mapping.sequela import Sequela
 import pandas as pd
 
-from .globals import gbd
+from .globals import gbd, MEASURES
 import vivarium_inputs.validation.raw as validation
 
 
 def get_sequela_prevalence(entity: Sequela, location_id: int) -> pd.DataFrame:
     validation.check_metadata(entity, 'prevalence')
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type='sequela')
-    data = data[data.measure_id == 5]
+    data = data[data.measure_id == MEASURES['Prevalence']]
     validation.validate_raw_data(data, entity, 'prevalence', location_id)
     return data
 
@@ -16,7 +16,7 @@ def get_sequela_prevalence(entity: Sequela, location_id: int) -> pd.DataFrame:
 def get_sequela_incidence(entity: Sequela, location_id: int) -> pd.DataFrame:
     validation.check_metadata(entity, 'incidence')
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type='sequela')
-    data = data[data.measure_id == 6]
+    data = data[data.measure_id == MEASURES['Incidence']]
     validation.validate_raw_data(data, entity, 'incidence', location_id)
     return data
 
@@ -24,7 +24,7 @@ def get_sequela_incidence(entity: Sequela, location_id: int) -> pd.DataFrame:
 def get_sequela_birth_prevalence(entity: Sequela, location_id: int) -> pd.DataFrame:
     validation.check_metadata(entity, 'birth_prevalence')
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type='sequela')
-    data = data[data.measure_id == 6]
+    data = data[data.measure_id == MEASURES['Incidence']]
     validation.validate_raw_data(data, entity, 'birth_prevalence', location_id)
     return data
 
