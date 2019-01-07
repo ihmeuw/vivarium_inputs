@@ -160,7 +160,9 @@ def _validate_utilization(data, entity, location_id):
 
 
 def _validate_structure(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'annual')
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):

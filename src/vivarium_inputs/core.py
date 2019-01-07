@@ -165,7 +165,10 @@ def get_utilization(entity, location_id):
 
 def get_structure(entity, location_id):
     if entity.kind == 'population':
-        raise NotImplementedError()
+        data = extract.get_population_structure(location_id)
+        data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
+        data = utilities.normalize(data, location_id)
+        return data
 
 
 def get_theoretical_minimum_risk_life_expectancy(entity, location_id):

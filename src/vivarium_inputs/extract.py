@@ -37,3 +37,7 @@ def get_sequela_disability_weight(entity: Sequela, location_id: int) -> pd.DataF
     return data
 
 
+def get_population_structure(location_id: int) -> pd.DataFrame:
+    data = gbd.get_population(location_id)
+    validation.validate_raw_data(data, 'population', 'structure', location_id)
+    return data

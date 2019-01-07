@@ -127,7 +127,6 @@ def _validate_structure(data, entity, location):
     _validate_sex_column(data)
     _validate_age_columns(data)
     _validate_year_columns(data)
-    raise NotImplementedError()
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location):
@@ -179,7 +178,7 @@ def _validate_age_columns(data):
                              'age_group_years_end': 'age_group_end'})
     )
 
-    age_block = data[['age_group_start', 'age_group_end']].drop_duplicates()
+    age_block = data[['age_group_start', 'age_group_end']].drop_duplicates().reset_index(drop=True)
 
     if not expected_age_block.equals(age_block.reset_index(drop=True)):
         raise DataFormattingError('Age values improperly specified.')
@@ -191,7 +190,7 @@ def _validate_year_columns(data):
 
     expected_year_block = pd.DataFrame({'year_start': range(1990, 2018),
                                         'year_end': range(1991, 2019)})
-    year_block = data[['year_start', 'year_end']].drop_duplicates()
+    year_block = data[['year_start', 'year_end']].drop_duplicates().reset_index(drop=True)
 
     if not expected_year_block.equals(year_block.reset_index(drop=True)):
         raise DataFormattingError('Year values improperly specified.')
