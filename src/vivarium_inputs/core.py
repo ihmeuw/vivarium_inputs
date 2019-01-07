@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 from vivarium_inputs import utilities, extract
 from .globals import InvalidQueryError, gbd
 
@@ -174,4 +177,7 @@ def get_structure(entity, location_id):
 def get_theoretical_minimum_risk_life_expectancy(entity, location_id):
     if entity.kind == 'population':
         data = extract.get_population_theoretical_minimum_risk_life_expectancy()
+        data = data.rename(columns={'age': 'age_group_start', 'life_expectancy': 'value'})
+        age_group_end = list(data['age_group_start'].iloc[1:]) + [125.]
+        data['age_group_end'] = pd.Series(age_group_end, index=data.index)
         return data

@@ -24,4 +24,4 @@ def get_theoretical_minimum_risk_life_expectancy():
     pop = namedtuple('Population', 'kind')('population')
     data = core.get_data(pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
     validation.validate_for_simulation(data, pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
-    return data
+    return utilities.sort_data(data)
