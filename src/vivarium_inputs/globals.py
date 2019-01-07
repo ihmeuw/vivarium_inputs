@@ -111,11 +111,3 @@ MEASURES = {
 
 DEMOGRAPHIC_COLUMNS = ('location_id', 'sex_id', 'age_group_id', 'year_id')
 DRAW_COLUMNS = tuple([f'draw_{i}' for i in range(1000)])
-MEASURE_COLUMNS = {
-    'prevalence':
-        ('measure_id', 'metric_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS,
-    'incidence':
-        ('measure_id', 'metric_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS,
-    'disability_weight':
-        ('location_id', 'age_group_id', 'sex_id', 'measure', 'healthstate', 'healthstate_id') + DRAW_COLUMNS,
-}
