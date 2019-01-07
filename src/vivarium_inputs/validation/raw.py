@@ -17,6 +17,7 @@ def check_metadata(entity, measure):
         'coverage_gap': _check_coverage_gap_metadata,
         'health_technology': _check_health_technology_metadata,
         'healthcare_entity': _check_healthcare_entity_metadata,
+        'population': _check_population_metadata,
     }
 
     metadata_checkers[entity.kind](entity, measure)
@@ -87,6 +88,10 @@ def _check_health_technology_metadata(entity, measure):
 
 def _check_healthcare_entity_metadata(entity, measure):
     raise NotImplementedError()
+
+
+def _check_population_metadata(entity, measure):
+    pass
 
 
 def _validate_incidence(data, entity, location_id):
