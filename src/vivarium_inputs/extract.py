@@ -1,6 +1,6 @@
 import pandas as pd
 
-from .globals import gbd
+from .globals import gbd, METRICS, MEASURES
 import vivarium_inputs.validation.raw as validation
 
 
@@ -38,13 +38,13 @@ def extract_data(entity, measure: str, location_id: str):
 
 def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == 5]
+    data = data[data.measure_id == MEASURES['Prevalence']]
     return data
 
 
 def extract_incidence(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == 6]
+    data = data[data.measure_id == MEASURES['Incidence']]
     return data
 
 
@@ -83,7 +83,15 @@ def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_population_attributable_fraction(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    if entity.kind == 'risk_factor':
+        raise NotImplementedError()
+    elif entity.kind == 'coverage_gap':
+        raise NotImplementedError()
+    elif entity.kind == 'etiology':
+        data = gbd.get_paf(entity_id=entity.gbd_id, location_id=location_id)
+        data = data[data.measure_id == MEASURES['YLDs']]
+        data = data[data.metric_id == METRICS['Percent']]
+        return data
 
 
 def extract_mediation_factors(entity, location_id: int) -> pd.DataFrame:
