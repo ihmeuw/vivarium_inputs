@@ -40,13 +40,11 @@ def validate_for_simulation(data, entity, measure, location):
 
 def _validate_incidence(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_prevalence(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
-
+   
 
 def _validate_birth_prevalence(data, entity, location):
     _validate_draw_column(data)
@@ -58,7 +56,6 @@ def _validate_birth_prevalence(data, entity, location):
 
 def _validate_disability_weight(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_remission(data, entity, location):
