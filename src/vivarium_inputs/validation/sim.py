@@ -40,12 +40,10 @@ def validate_for_simulation(data, entity, measure, location):
 
 def _validate_incidence(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_prevalence(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_birth_prevalence(data, entity, location):
@@ -53,12 +51,10 @@ def _validate_birth_prevalence(data, entity, location):
     _validate_location_column(data, location)
     _validate_sex_column(data)
     _validate_year_columns(data)
-    raise NotImplementedError()
 
 
 def _validate_disability_weight(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_remission(data, entity, location):
@@ -185,7 +181,7 @@ def _validate_age_columns(data):
 
     age_block = data[['age_group_start', 'age_group_end']].drop_duplicates()
 
-    if not age_block.equals(expected_age_block):
+    if not expected_age_block.equals(age_block.reset_index(drop=True)):
         raise DataFormattingError('Age values improperly specified.')
 
 
@@ -197,5 +193,5 @@ def _validate_year_columns(data):
                                         'year_end': range(1991, 2019)})
     year_block = data[['year_start', 'year_end']].drop_duplicates()
 
-    if not year_block.equals(expected_year_block):
+    if not expected_year_block.equals(year_block.reset_index(drop=True)):
         raise DataFormattingError('Year values improperly specified.')

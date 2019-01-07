@@ -13,10 +13,11 @@ def get_location_id(location_name):
 
 
 def scrub_gbd_conventions(data, location):
-    scrub_location(data, location)
-    scrub_sex(data)
-    scrub_age(data)
-    scrub_year(data)
+    data = scrub_location(data, location)
+    data = scrub_sex(data)
+    data = scrub_age(data)
+    data = scrub_year(data)
+    return data
 
 
 def scrub_location(data, location):
@@ -69,7 +70,7 @@ def normalize_location(data: pd.DataFrame, expected_location_id: int)-> pd.DataF
     if len(location_id) != 1:
         raise DataAbnormalError(f'Data has extra location ids {location_id.difference({expected_location_id})} '
                                 f'other than {expected_location_id}')
-    elif location_id == [1]:  # Make global data location specific
+    elif location_id == {1}:  # Make global data location specific
         data.loc[:, 'location_id'] = expected_location_id
     elif location_id != {expected_location_id}:
         raise DataAbnormalError(f'Data called for {expected_location_id} has a location id {location_id}')
