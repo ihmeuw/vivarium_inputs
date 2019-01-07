@@ -91,7 +91,7 @@ def extract_population_attributable_fraction(entity, location_id: int) -> pd.Dat
         data = gbd.get_paf(entity_id=entity.gbd_id, location_id=location_id)
         data = data[data.measure_id == MEASURES['YLDs']]
         data = data[data.metric_id == METRICS['Percent']]
-        return data
+    return data
 
 
 def extract_mediation_factors(entity, location_id: int) -> pd.DataFrame:
