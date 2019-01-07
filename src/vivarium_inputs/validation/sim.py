@@ -134,10 +134,7 @@ def _validate_structure(data, entity, location):
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location):
-    _validate_sex_column(data)
-    _validate_age_columns(data)
-    _validate_year_columns(data)
-    raise NotImplementedError()
+    pass
 
 
 def _validate_standard_columns(data, location):
