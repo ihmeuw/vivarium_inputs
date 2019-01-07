@@ -1,8 +1,8 @@
-import numpy as np
+
 import pandas as pd
 
 from vivarium_inputs import utilities, extract
-from .globals import InvalidQueryError, gbd
+from .globals import InvalidQueryError, gbd, DEMOGRAPHIC_COLUMNS
 
 
 def get_data(entity, measure: str, location: str):
@@ -151,7 +151,11 @@ def get_mediation_factors(entity, location_id):
 
 def get_estimate(entity, location_id):
     if entity.kind == 'covariate':
-        raise NotImplementedError()
+        data = extract.extract_data(entity, 'estimate', location_id)
+        data = pd.melt(data, id_vars=DEMOGRAPHIC_COLUMNS,
+                       value_vars=['mean_value', 'upper_value', 'lower_value'], var_name='parameter')
+        data = utilities.normalize(data, location_id)
+        return data
 
 
 def get_cost(entity, location_id):
