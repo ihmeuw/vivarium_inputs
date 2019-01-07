@@ -162,7 +162,7 @@ def _validate_structure(data, entity, location_id):
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):
-    raise NotImplementedError()
+    pass
 
 
 def check_years(df: pd.DataFrame, year_type: str):

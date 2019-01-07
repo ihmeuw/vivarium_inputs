@@ -34,3 +34,9 @@ def get_population_structure(location_id: int) -> pd.DataFrame:
     validation.validate_raw_data(data, 'population', 'structure', location_id)
     return data
 
+
+def get_population_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
+    data = gbd.get_theoretical_minimum_risk_life_expectancy()
+    validation.validate_raw_data(data, 'population', 'theoretical_minimum_risk_life_expectancy', 1)
+    return data
+

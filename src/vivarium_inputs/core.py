@@ -173,4 +173,5 @@ def get_structure(entity, location_id):
 
 def get_theoretical_minimum_risk_life_expectancy(entity, location_id):
     if entity.kind == 'population':
-        raise NotImplementedError()
+        data = extract.get_population_theoretical_minimum_risk_life_expectancy()
+        return data
