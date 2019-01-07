@@ -72,7 +72,7 @@ def get_birth_prevalence(entity, location_id):
     if entity.kind == 'cause':
         raise NotImplementedError()
     elif entity.kind == 'sequela':
-        data = extract.get_sequela_incidence(entity, location_id)
+        data = extract.get_sequela_birth_prevalence(entity, location_id)
         data = data[data.age_group_id == birth_prevalence_age_group]
         data.drop('age_group_id', axis=1, inplace=True)
         data = utilities.normalize(data, location_id, fill_value=0)

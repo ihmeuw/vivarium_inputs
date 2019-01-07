@@ -21,9 +21,19 @@ def get_sequela_incidence(entity: Sequela, location_id: int) -> pd.DataFrame:
     return data
 
 
+def get_sequela_birth_prevalence(entity: Sequela, location_id: int) -> pd.DataFrame:
+    validation.check_metadata(entity, 'birth_prevalence')
+    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type='sequela')
+    data = data[data.measure_id == 6]
+    validation.validate_raw_data(data, entity, 'birth_prevalence', location_id)
+    return data
+
+
 def get_sequela_disability_weight(entity: Sequela, location_id: int) -> pd.DataFrame:
     validation.check_metadata(entity, 'disability_weight')
     disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
     data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
     validation.validate_raw_data(data, entity, 'disability_weight', location_id)
     return data
+
+
