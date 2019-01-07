@@ -175,6 +175,6 @@ def check_years(df: pd.DataFrame, year_type: str):
 
 def check_columns(expected_cols: List, existing_cols: List):
     if set(existing_cols) < set(expected_cols):
-        raise DataNotExistError(f'{set(expected_cols).difference(set(existing_cols))} columns are missing')
+        raise DataAbnormalError(f'{set(expected_cols).difference(set(existing_cols))} columns are missing')
     elif set(existing_cols) > set(expected_cols):
         raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}')
