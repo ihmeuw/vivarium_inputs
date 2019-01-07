@@ -4,7 +4,7 @@ import warnings
 import pandas as pd
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS,
-                                     DataAbnormalError, DataNotExistError, gbd)
+                                     DataAbnormalError, InvalidQueryError, gbd)
 
 
 def check_metadata(entity, measure):
@@ -55,7 +55,7 @@ def validate_raw_data(data, entity, measure, location_id):
 
 def _check_sequela_metadata(entity, measure):
     if not entity[f'{measure}_exists']:
-        raise DataNotExistError(f'{entity.name} does not have {measure} data')
+        raise InvalidQueryError(f'{entity.name} does not have {measure} data')
     if measure in ['incidence', 'prevalence']:
         if not entity[f'{measure}_in_range']:
             raise warnings.warn(f'{entity.name} has {measure} but its range is abnormal')
