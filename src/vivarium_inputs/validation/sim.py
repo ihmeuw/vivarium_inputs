@@ -45,7 +45,7 @@ def _validate_incidence(data, entity, location):
 def _validate_prevalence(data, entity, location):
     _validate_standard_columns(data, location)
 
-
+    
 def _validate_birth_prevalence(data, entity, location):
     _validate_draw_column(data)
     _validate_location_column(data, location)
@@ -96,7 +96,6 @@ def _validate_relative_risk(data, entity, location):
 
 def _validate_population_attributable_fraction(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_mediation_factors(data, entity, location):
@@ -105,8 +104,10 @@ def _validate_mediation_factors(data, entity, location):
 
 
 def _validate_estimate(data, entity, location):
-    _validate_standard_columns(data, location)
-    raise NotImplementedError()
+    _validate_location_column(data, location)
+    _validate_sex_column(data)
+    _validate_age_columns(data)
+    _validate_year_columns(data)
 
 
 def _validate_cost(data, entity, location):
@@ -158,7 +159,7 @@ def _validate_sex_column(data):
     if 'sex' not in data.columns:
         raise DataFormattingError('Sex column name improperly specified.')
 
-    if list(data['sex'].unique()) != ['Male', 'Female']:
+    if set(data['sex'].unique()) != {'Male', 'Female'}:
         raise DataFormattingError('Sex value improperly specified.')
 
 

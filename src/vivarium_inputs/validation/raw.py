@@ -72,11 +72,17 @@ def _check_risk_factor_metadata(entity, measure):
 
 
 def _check_etiology_metadata(entity, measure):
-    raise NotImplementedError()
+    if measure != 'population_attributable_fraction':
+        raise InvalidQueryError(f'we do not support {measure} data for {entity.kind}')
+    mapping_measure = 'paf_yld'
+    if not entity[f'{mapping_measure}_exists']:
+        raise InvalidQueryError(f'{entity.name} does not have {measure} data')
+    if not entity[f'{mapping_measure}_in_range']:
+        raise warnings.warn(f'{entity.name} has {measure} but its range is abnormal')
 
 
 def _check_covariate_metadata(entity, measure):
-    raise NotImplementedError()
+    pass
 
 
 def _check_coverage_gap_metadata(entity, measure):
@@ -147,7 +153,9 @@ def _validate_relative_risk(data, entity, location_id):
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'annual')
 
 
 def _validate_mediation_factors(data, entity, location_id):
@@ -155,7 +163,11 @@ def _validate_mediation_factors(data, entity, location_id):
 
 
 def _validate_estimate(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ['model_version_id', 'covariate_id', 'covariate_name_short', 'location_id',
+                        'location_name', 'year_id', 'age_group_id', 'age_group_name', 'sex_id',
+                        'sex', 'mean_value', 'lower_value', 'upper_value']
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'annual')
 
 
 def _validate_cost(data, entity, location_id):

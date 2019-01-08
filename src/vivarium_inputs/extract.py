@@ -1,6 +1,6 @@
 import pandas as pd
 
-from .globals import gbd, MEASURES
+from .globals import gbd, METRICS, MEASURES
 import vivarium_inputs.validation.raw as validation
 
 
@@ -44,6 +44,9 @@ def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
 
 def extract_incidence(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
+    # incidence comes with an extra age group for birth prevalence 164
+    birth_prevalence_age = 164
+    data = data[data.age_group_id != birth_prevalence_age]
     data = data[data.measure_id == MEASURES['Incidence']]
     return data
 
@@ -90,7 +93,15 @@ def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_population_attributable_fraction(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    if entity.kind == 'risk_factor':
+        raise NotImplementedError()
+    elif entity.kind == 'coverage_gap':
+        raise NotImplementedError()
+    elif entity.kind == 'etiology':
+        data = gbd.get_paf(entity_id=entity.gbd_id, location_id=location_id)
+        data = data[data.measure_id == MEASURES['YLDs']]
+        data = data[data.metric_id == METRICS['Percent']]
+    return data
 
 
 def extract_mediation_factors(entity, location_id: int) -> pd.DataFrame:
@@ -98,7 +109,8 @@ def extract_mediation_factors(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_estimate(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    data = gbd.get_covariate_estimate(entity.gbd_id, location_id)
+    return data
 
 
 def extract_cost(entity, location_id: int) -> pd.DataFrame:

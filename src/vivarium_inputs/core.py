@@ -24,7 +24,7 @@ def get_data(entity, measure: str, location: str):
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk',)),
         'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk',)),
         'relative_risk': (get_relative_risk, ('risk', 'coverage_gap')),
-        'population_attributable_fraction': (get_population_attributable_fraction, ('risk', 'coverage_gap')),
+        'population_attributable_fraction': (get_population_attributable_fraction, ('risk', 'coverage_gap', 'etiology')),
         'mediation_factors': (get_mediation_factors, ('risk',)),
         # Covariate measures
         'estimate': (get_estimate, ('covariate',)),
@@ -148,6 +148,14 @@ def get_population_attributable_fraction(entity, location_id):
         raise NotImplementedError()
     elif entity.kind == 'coverage_gap':
         raise NotImplementedError()
+    elif entity.kind == 'etiology':
+        data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
+        data.drop(['rei_id', 'measure_id', 'metric_id'], axis=1, inplace=True)
+        data = utilities.normalize(data, location_id, fill_value=0)
+        data['affected_measure'] = 'incidence_rate'
+        data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ('cause_id', 'affected_measure',))
+        return data
+
 
 
 def get_mediation_factors(entity, location_id):
@@ -157,7 +165,11 @@ def get_mediation_factors(entity, location_id):
 
 def get_estimate(entity, location_id):
     if entity.kind == 'covariate':
-        raise NotImplementedError()
+        data = extract.extract_data(entity, 'estimate', location_id)
+        data = pd.melt(data, id_vars=DEMOGRAPHIC_COLUMNS,
+                       value_vars=['mean_value', 'upper_value', 'lower_value'], var_name='parameter')
+        data = utilities.normalize(data, location_id)
+        return data
 
 
 def get_cost(entity, location_id):
