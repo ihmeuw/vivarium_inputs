@@ -81,7 +81,7 @@ def _check_etiology_metadata(entity, measure):
 
 
 def _check_covariate_metadata(entity, measure):
-    raise NotImplementedError()
+    pass
 
 
 def _check_coverage_gap_metadata(entity, measure):
@@ -157,7 +157,11 @@ def _validate_mediation_factors(data, entity, location_id):
 
 
 def _validate_estimate(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ['model_version_id', 'covariate_id', 'covariate_name_short', 'location_id',
+                        'location_name', 'year_id', 'age_group_id', 'age_group_name', 'sex_id',
+                        'sex', 'mean_value', 'lower_value', 'upper_value']
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'annual')
 
 
 def _validate_cost(data, entity, location_id):

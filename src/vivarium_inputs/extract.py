@@ -102,7 +102,8 @@ def extract_mediation_factors(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_estimate(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    data = gbd.get_covariate_estimate(entity.gbd_id, location_id)
+    return data
 
 
 def extract_cost(entity, location_id: int) -> pd.DataFrame:
