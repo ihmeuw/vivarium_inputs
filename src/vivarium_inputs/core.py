@@ -34,6 +34,7 @@ def get_data(entity, measure: str, location: str):
         # Population measures
         'structure': (get_structure, ('population',)),
         'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
+        'age_bins': (get_age_bins, ('population',))
     }
 
     if measure not in measure_handlers:
@@ -209,3 +210,8 @@ def get_theoretical_minimum_risk_life_expectancy(entity, location_id):
     data = data.rename(columns={'age': 'age_group_start', 'life_expectancy': 'value'})
     data['age_group_end'] = data.age_group_start.shift(-1).fillna(125.)
     return data
+
+
+def get_age_bins(entity, location_id):
+    age_bins = utilities.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
+    return age_bins

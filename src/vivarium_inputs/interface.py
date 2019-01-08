@@ -29,4 +29,4 @@ def get_theoretical_minimum_risk_life_expectancy():
 
 def get_age_bins():
     pop = namedtuple('Population', 'kind')('population')
-    return core.get_data()
+    return core.get_data(pop, 'age_bins', 'Global')

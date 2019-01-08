@@ -8,6 +8,16 @@ from .globals import gbd, DataAbnormalError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 def get_location_id(location_name):
     return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[location_name]
 
+
+def get_age_bins():
+    age_bins = (
+        gbd.get_age_bins()[['age_group_id', 'age_group_name', 'age_group_years_start', 'age_group_years_end']]
+            .rename(columns={'age_group_years_start': 'age_group_start',
+                             'age_group_years_end': 'age_group_end'})
+    )
+    return age_bins
+
+
 ##################################################
 # Functions to remove GBD conventions from data. #
 ##################################################
@@ -38,11 +48,7 @@ def scrub_sex(data):
 
 def scrub_age(data):
     if 'age_group_id' in data.columns:
-        age_bins = (
-            gbd.get_age_bins()[['age_group_id', 'age_group_years_start', 'age_group_years_end']]
-                .rename(columns={'age_group_years_start': 'age_group_start',
-                                 'age_group_years_end': 'age_group_end'})
-        )
+        age_bins = get_age_bins()[['age_group_id', 'age_group_start', 'age_group_end']]
         data = data.merge(age_bins, on='age_group_id').drop('age_group_id', 'columns')
     return data
 
