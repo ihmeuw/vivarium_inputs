@@ -63,7 +63,8 @@ def _check_sequela_metadata(entity, measure):
 
 
 def _check_cause_metadata(entity, measure):
-    raise NotImplementedError()
+    # TODO: Incorporate mapping checks
+    pass
 
 
 def _check_risk_factor_metadata(entity, measure):
@@ -123,11 +124,16 @@ def _validate_disability_weight(data, entity, location_id):
 
 
 def _validate_remission(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ['measure_id', 'metric_id', 'model_version_id',
+                        'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'binned')
 
 
 def _validate_deaths(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ['measure_id', f'{entity.kind}_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'annual')
 
 
 def _validate_exposure(data, entity, location_id):
