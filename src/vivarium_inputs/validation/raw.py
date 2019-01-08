@@ -59,7 +59,7 @@ def _check_sequela_metadata(entity, measure):
         if not entity[f'{measure}_exists']:
             raise InvalidQueryError(f'{entity.name} does not have {measure} data')
         if not entity[f'{measure}_in_range']:
-            raise warnings.warn(f'{entity.name} has {measure} but its range is abnormal')
+            warnings.warn(f'{entity.name} has {measure} but its range is abnormal')
     else:  # measure == 'disability_weight
         if not entity.healthstate[f'{measure}_exist']:
             raise InvalidQueryError(f'{entity.name} does not have {measure} data')
@@ -82,7 +82,7 @@ def _check_etiology_metadata(entity, measure):
     if not entity[f'{mapping_measure}_exists']:
         raise InvalidQueryError(f'{entity.name} does not have {measure} data')
     if not entity[f'{mapping_measure}_in_range']:
-        raise warnings.warn(f'{entity.name} has {measure} but its range is abnormal')
+        warnings.warn(f'{entity.name} has {measure} but its range is abnormal')
 
 
 def _check_covariate_metadata(entity, measure):
@@ -92,7 +92,7 @@ def _check_covariate_metadata(entity, measure):
     restrictions = ['sex', 'age']
     for restriction in restrictions:
         if not entity[f'{restriction}_restriction_violated']:
-            raise warnings.warn(f'{entity.name} has {measure} but {restriction}_restriction is violated')
+            warnings.warn(f'{entity.name} has {measure} but {restriction}_restriction is violated')
 
 
 def _check_coverage_gap_metadata(entity, measure):
