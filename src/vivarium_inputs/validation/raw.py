@@ -68,13 +68,17 @@ def _check_sequela_metadata(entity, measure):
 def _check_cause_metadata(entity, measure):
     if not entity[f'{measure}_exists']:
         raise InvalidQueryError(f"Cause {entity.name} does not have non-zero {measure} data.")
+
     if not entity[f'{measure}_in_range']:
         warnings.warn(f"Cause {entity.name} has {measure} but its range is abnormal.")
+
     consistent = entity[f"{measure}_consistent"]
     children = "subcauses" if measure == "deaths" else "sequela"
+
     if consistent is not None and not consistent:
         warnings.warn(f"{measure.capitalize()} data for cause {entity.name} does not exist for {children}. "
                       f"{children.capitalize()} models won't be consistent with cause level models.")
+
     if consistent and not entity[f"{measure}_aggregated"]:
         warnings.warn(f"{children.capitalize()} {measure} data for cause {entity.name} does not correctly "
                       f"aggregate up to the cause level. Be aware that any {children} models won't be "
