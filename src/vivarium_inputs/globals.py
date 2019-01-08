@@ -1,3 +1,4 @@
+
 try:
     from vivarium_gbd_access import gbd
 except ModuleNotFoundError:
@@ -62,9 +63,9 @@ METRICS = {
 
 MEASURES = {
     'Deaths': 1,
-    'DALYs (Disability-Adjusted Life Years)': 2,
-    'YLDs (Years Lived with Disability)': 3,
-    'YLLs (Years of Life Lost)': 4,
+    'DALYs': 2,
+    'YLDs': 3,
+    'YLLs': 4,
     'Prevalence': 5,
     'Incidence': 6,
     'Remission': 7,

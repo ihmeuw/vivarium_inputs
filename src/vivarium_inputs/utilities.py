@@ -1,6 +1,7 @@
 """Errors and utility functions for input processing."""
 import pandas as pd
 
+from gbd_mapping import causes
 from .globals import gbd, DataAbnormalError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 
 
@@ -17,6 +18,7 @@ def scrub_gbd_conventions(data, location):
     data = scrub_sex(data)
     data = scrub_age(data)
     data = scrub_year(data)
+    data = scrub_affected_entity(data)
     return data
 
 
@@ -50,6 +52,16 @@ def scrub_year(data):
         data = data.rename(columns={'year_id': 'year_start'})
         data['year_end'] = data['year_start'] + 1
     return data
+
+
+def scrub_affected_entity(data):
+    CAUSE_BY_ID = {c.gbd_id: c for c in causes}
+    # RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
+    if 'cause_id' in data.columns:
+        data['affected_entity'] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        data.drop('cause_id', axis=1, inplace=True)
+    return data
+
 
 ###############################################################
 # Functions to normalize GBD data over a standard demography. #
@@ -138,6 +150,7 @@ def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
         expected_index = pd.MultiIndex.from_product([data[c].unique() for c in key_columns] + [gbd_ages],
                                                     names=key_columns + ['age_group_id'])
         data = data.reindex(expected_index, fill_value=fill_value)
+
     return data
 
 
