@@ -86,7 +86,13 @@ def _check_etiology_metadata(entity, measure):
 
 
 def _check_covariate_metadata(entity, measure):
-    pass
+    if not entity.data_exist:
+        raise InvalidQueryError(f'{entity.name} does not have estimate data')
+
+    restrictions = ['sex', 'age']
+    for restriction in restrictions:
+        if not entity[f'{restriction}_restriction_violated']:
+            raise warnings.warn(f'{entity.name} has {measure} but {restriction}_restriction is violated')
 
 
 def _check_coverage_gap_metadata(entity, measure):
