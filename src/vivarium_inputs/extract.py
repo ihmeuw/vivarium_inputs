@@ -4,7 +4,7 @@ from .globals import gbd, METRICS, MEASURES
 import vivarium_inputs.validation.raw as validation
 
 
-def extract_data(entity, measure: str, location_id: str):
+def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
     extractors = {
         # Cause-like measures
         'incidence': extract_incidence,

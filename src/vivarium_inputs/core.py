@@ -1,9 +1,11 @@
+from collections import namedtuple
+from typing import Union
 
+from gbd_mapping import Cause, RiskFactor, Sequela, Covariate
 import pandas as pd
 
 from vivarium_inputs import utilities, extract
-from .globals import InvalidQueryError, gbd, DEMOGRAPHIC_COLUMNS
-
+from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS
 
 
 def get_data(entity, measure: str, location: str):
@@ -47,67 +49,74 @@ def get_data(entity, measure: str, location: str):
     return data
 
 
-def get_incidence(entity, location_id):
+def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'incidence', location_id)
+    data = utilities.normalize(data, location_id, fill_value=0)
+    data = utilities.reshape(data)
+    return data
+
+
+def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'prevalence', location_id)
+    data = utilities.normalize(data, location_id, fill_value=0)
+    data = utilities.reshape(data)
+    return data
+
+
+def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'birth_prevalence', location_id)
+    data = data.drop('age_group_id', 'columns')
+    data = utilities.normalize(data, location_id, fill_value=0)
+    data = utilities.reshape(data, to_keep=('year_id', 'sex_id', 'location_id'))
+    return data
+
+
+def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
-        raise NotImplementedError()
-    elif entity.kind == 'sequela':
-        data = extract.extract_data(entity, 'incidence', location_id)
-        data = utilities.normalize(data, location_id, fill_value=0)
-        data = utilities.reshape(data)
-        return data
-
-
-def get_prevalence(entity, location_id):
-    if entity.kind == 'cause':
-        raise NotImplementedError()
-    elif entity.kind == 'sequela':
-        data = extract.extract_data(entity, 'prevalence', location_id)
-        data = utilities.normalize(data, location_id, fill_value=0)
-        data = utilities.reshape(data)
-        return data
-
-
-def get_birth_prevalence(entity, location_id):
-    birth_prevalence_age_group = 164
-    if entity.kind == 'cause':
-        raise NotImplementedError()
-    elif entity.kind == 'sequela':
-        data = extract.extract_data(entity, 'birth_prevalence', location_id)
-        data = data[data.age_group_id == birth_prevalence_age_group]
-        data.drop('age_group_id', axis=1, inplace=True)
-        data = utilities.normalize(data, location_id, fill_value=0)
-        data = utilities.reshape(data, to_keep=('year_id', 'sex_id', 'location_id'))
-        return data
-
-
-def get_disability_weight(entity, location_id):
-    if entity.kind == 'cause':
-        raise NotImplementedError()
-    elif entity.kind == 'sequela':
+        partial_weights = []
+        for sequela in entity.sequelae:
+            p = get_prevalence(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+            d = get_disability_weight(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+            partial_weights.append(p*d)
+        data = sum(partial_weights)
+    else:  # entity.kind == 'sequela'
         data = extract.extract_data(entity, 'disability_weight', location_id)
         data = utilities.normalize(data, location_id)
         data = utilities.reshape(data)
-        return data
+    return data
 
 
-def get_remission(entity, location_id):
-    if entity.kind == 'cause':
-        raise NotImplementedError()
+def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'remission', location_id)
+    data = utilities.normalize(data, location_id, fill_value=0)
+    data = utilities.reshape(data)
+    return data
 
 
-def get_cause_specific_mortality(entity, location_id):
-    if entity.kind == 'cause':
-        raise NotImplementedError()
+def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
+    deaths = _get_deaths(entity, location_id)
+    pop = get_structure(namedtuple('Population', 'kind')('population'), location_id)
+    data = deaths.merge(pop, on=DEMOGRAPHIC_COLUMNS)
+    data['value'] = data['value_x'] / data['value_y']
+    return data.drop(['value_x', 'value_y'], 'columns')
 
 
-def get_excess_mortality(entity, location_id):
-    if entity.kind == 'cause':
-        raise NotImplementedError()
+def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
+    csmr = get_cause_specific_mortality(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+    prevalence = get_prevalence(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+    data = csmr / prevalence
+    return data.reset_index()
 
 
-def get_case_fatality(entity, location_id):
-    if entity.kind == 'cause':
-        raise NotImplementedError()
+def get_case_fatality(entity: Cause, location_id: int):
+    raise NotImplementedError()
+
+
+def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'deaths', location_id)
+    data = utilities.normalize(data, location_id, fill_value=0)
+    data = utilities.reshape(data)
+    return data
 
 
 def get_exposure(entity, location_id):
@@ -176,16 +185,14 @@ def get_utilization(entity, location_id):
 
 
 def get_structure(entity, location_id):
-    if entity.kind == 'population':
-        data = extract.extract_data(entity, 'structure', location_id)
-        data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
-        data = utilities.normalize(data, location_id)
-        return data
+    data = extract.extract_data(entity, 'structure', location_id)
+    data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
+    data = utilities.normalize(data, location_id)
+    return data
 
 
 def get_theoretical_minimum_risk_life_expectancy(entity, location_id):
-    if entity.kind == 'population':
-        data = extract.extract_data(entity, 'theoretical_minimum_risk_life_expectancy', location_id)
-        data = data.rename(columns={'age': 'age_group_start', 'life_expectancy': 'value'})
-        data['age_group_end'] = data.age_group_start.shift(-1).fillna(125.)
-        return data
+    data = extract.extract_data(entity, 'theoretical_minimum_risk_life_expectancy', location_id)
+    data = data.rename(columns={'age': 'age_group_start', 'life_expectancy': 'value'})
+    data['age_group_end'] = data.age_group_start.shift(-1).fillna(125.)
+    return data
