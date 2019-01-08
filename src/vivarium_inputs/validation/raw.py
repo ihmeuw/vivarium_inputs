@@ -55,7 +55,6 @@ def validate_raw_data(data, entity, measure, location_id):
 
 
 def _check_sequela_metadata(entity, measure):
-
     if measure in ['incidence', 'prevalence']:
         if not entity[f'{measure}_exists']:
             raise InvalidQueryError(f'{entity.name} does not have {measure} data')
@@ -157,7 +156,10 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
 
 
 def _validate_relative_risk(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ('rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
+                        'morbidity', 'metric_id', 'parameter') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'binned')
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):

@@ -123,9 +123,13 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_exposure(entity, location_id):
-    if entity.kind == 'risk_factor':
+    if entity.kind == 'risk_factor' and entity.distribution == 'dichotomous':
         data = extract.extract_data(entity, 'exposure', location_id)
-        data = utilities.normalize(data, location_id)
+        cat1 = data[data.parameter == 'cat1']
+        cat1 = utilities.normalize(cat1, location_id, fill_value=0)
+        cat2 = data[data.parameter == 'cat2']
+        cat2 = utilities.normalize(cat2, location_id, fill_value=1)
+        data = pd.concat([cat1, cat2], ignore_index=True)
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
     else:
         raise NotImplementedError()
@@ -143,10 +147,19 @@ def get_exposure_distribution_weights(entity, location_id):
 
 
 def get_relative_risk(entity, location_id):
-    if entity.kind == 'risk_factor':
+    if entity.kind == 'risk_factor' and entity.distribution == 'dichotomous':
+        data = extract.extract_data(entity, 'relative_risk', location_id)
 
+        data = data.rename(columns={'cause_id': 'affected_entity'})
+        data['affected_entity'] = data['affected_entity'].map({cause.gbd_id: cause.name for
+                                                               cause in entity.affected_causes})
+        data['affected_measure'] = 'incidence_rate'
+        data = utilities.normalize(data, location_id, fill_value=1)
+        data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS)
+                                               + ['affected_entity', 'affected_measure', 'parameter'])
     else:
         raise NotImplementedError()
+    return data
 
 
 def get_population_attributable_fraction(entity, location_id):
@@ -161,7 +174,6 @@ def get_population_attributable_fraction(entity, location_id):
         data['affected_measure'] = 'incidence_rate'
         data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ('cause_id', 'affected_measure',))
         return data
-
 
 
 def get_mediation_factors(entity, location_id):

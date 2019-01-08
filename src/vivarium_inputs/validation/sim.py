@@ -89,7 +89,6 @@ def _validate_exposure_distribution_weights(data, entity, location):
 
 def _validate_relative_risk(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_population_attributable_fraction(data, entity, location):
@@ -138,7 +137,6 @@ def _validate_standard_columns(data, location):
 
 
 def _validate_draw_column(data):
-    import pdb; pdb.set_trace()
     if 'draw' not in data.columns:
         raise DataFormattingError('Draw column name improperly specified.')
 

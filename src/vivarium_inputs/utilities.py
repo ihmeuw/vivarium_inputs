@@ -145,13 +145,13 @@ def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
         data = pd.concat(dfs, ignore_index=True)
     elif data_ages < gbd_ages:
         key_columns = list(data.columns.difference(DRAW_COLUMNS))
-        data = data.set_index(key_columns)
         key_columns.remove('age_group_id')
-
         expected_index = pd.MultiIndex.from_product([data[c].unique() for c in key_columns] + [gbd_ages],
                                                     names=key_columns + ['age_group_id'])
-        data = data.reindex(expected_index, fill_value=fill_value)
 
+        data = (data.set_index(key_columns + ['age_group_id'])
+                .reindex(expected_index, fill_value=fill_value)
+                .reset_index())
     return data
 
 
