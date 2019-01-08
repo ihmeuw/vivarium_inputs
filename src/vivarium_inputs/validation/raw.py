@@ -86,6 +86,8 @@ def _check_etiology_metadata(entity, measure):
 
 
 def _check_covariate_metadata(entity, measure):
+    if measure != 'estimate':
+        raise InvalidQueryError(f'we do not support {measure} data {entity.kind}')
     if not entity.data_exist:
         raise InvalidQueryError(f'{entity.name} does not have estimate data')
 
