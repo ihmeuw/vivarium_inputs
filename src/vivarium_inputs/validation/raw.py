@@ -148,7 +148,8 @@ def _validate_relative_risk(data, entity, location_id):
 
 def _validate_population_attributable_fraction(data, entity, location_id):
     expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
-    check_columns(expected_columns, data.columns) 
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'annual')
 
 
 def _validate_mediation_factors(data, entity, location_id):

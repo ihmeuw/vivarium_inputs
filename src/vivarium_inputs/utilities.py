@@ -5,9 +5,6 @@ from gbd_mapping import causes
 from .globals import gbd, DataAbnormalError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 
 
-CAUSE_BY_ID = {c.gbd_id: c for c in causes}
-#RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
-
 def get_location_id(location_name):
     return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[location_name]
 
@@ -58,6 +55,8 @@ def scrub_year(data):
 
 
 def scrub_affected_entity(data):
+    CAUSE_BY_ID = {c.gbd_id: c for c in causes}
+    # RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
     if 'cause_id' in data.columns:
         data['affected_entity'] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
         data.drop('cause_id', axis=1, inplace=True)
