@@ -86,11 +86,11 @@ def normalize_location(data: pd.DataFrame, expected_location_id: int)-> pd.DataF
     location_id = set(data.location_id.unique())
     if len(location_id) != 1:
         raise DataAbnormalError(f'Data has extra location ids {location_id.difference({expected_location_id})} '
-                                f'other than {expected_location_id}')
+                                f'other than {expected_location_id}.')
     elif location_id == {1}:  # Make global data location specific
         data.loc[:, 'location_id'] = expected_location_id
     elif location_id != {expected_location_id}:
-        raise DataAbnormalError(f'Data called for {expected_location_id} has a location id {location_id}')
+        raise DataAbnormalError(f'Data called for {expected_location_id} has a location id {location_id}.')
 
     return data
 
@@ -125,7 +125,7 @@ def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
     elif set(data.year_id.unique()) == set(years['binned']):
         data = interpolate_year(data)
     elif set(data.year_id.unique()) < set(years['annual']):
-        raise DataAbnormalError(f'No normalization scheme available for years {set(data.year_id.unique())}')
+        raise DataAbnormalError(f'No normalization scheme available for years {set(data.year_id.unique())}.')
 
     return data[data.year_id.isin(years['annual'])]
 

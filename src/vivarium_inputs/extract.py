@@ -84,7 +84,7 @@ def extract_exposure(entity, location_id: int) -> pd.DataFrame:
         elif MEASURES['Prevalence'] in data.measure_id.unique():  # Exposure comes from a cause model
             data = data[data.measure_id == MEASURES['Prevalence']]
         else:
-            raise DataAbnormalError('No exposure measure')
+            raise DataAbnormalError('No exposure measure.')
     else:
         raise NotImplementedError()
     return data
