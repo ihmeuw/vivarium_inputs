@@ -1,7 +1,7 @@
 """Errors and utility functions for input processing."""
 import pandas as pd
 
-from gbd_mapping import causes
+from gbd_mapping import causes, risk_factors
 from .globals import gbd, DataAbnormalError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 
 
@@ -172,4 +172,15 @@ def sort_data(data: pd.DataFrame) -> pd.DataFrame:
     data = data.sort_values(key_cols).reset_index(drop=True)
 
     data = data[key_cols + ['value']]
+    return data
+
+
+def convert_affected_entity(data: pd.DataFrame, column: str) -> pd.DataFrame:
+    ids = data[column].unique()
+    data = data.rename(columns={column: 'affected_entity'})
+    if column == 'cause_id':
+        name_map = {c.gbd_id: c.name for c in causes if c.gbd_id in ids}
+    else:  # column == 'rei_id'
+        name_map = {r.gbd_id: r.name for r in risk_factors if r.gbd_id in ids}
+    data['affected_entity'] = data['affected_entity'].map(name_map)
     return data

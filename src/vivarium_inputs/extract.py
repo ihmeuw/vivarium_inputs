@@ -1,6 +1,6 @@
 import pandas as pd
 
-from .globals import gbd, METRICS, MEASURES
+from .globals import gbd, METRICS, MEASURES, DataAbnormalError
 import vivarium_inputs.validation.raw as validation
 
 
@@ -77,9 +77,14 @@ def extract_deaths(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_exposure(entity, location_id: int) -> pd.DataFrame:
-    if entity.kind == 'risk_factor':
+    if entity.kind == 'risk_factor' and entity.distribution == 'dichotomous':
         data = gbd.get_exposure(entity.gbd_id, location_id)
-        data = data[data.measure_id == MEASURES['Prevalence']]
+        if MEASURES['Proportion'] in data.measure_id.unique():
+            data = data[data.measure_id == MEASURES['Proportion']]
+        elif MEASURES['Prevalence'] in data.measure_id.unique():  # Exposure comes from a cause model
+            data = data[data.measure_id == MEASURES['Prevalence']]
+        else:
+            raise DataAbnormalError('No exposure measure')
     else:
         raise NotImplementedError()
     return data
@@ -102,12 +107,8 @@ def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_population_attributable_fraction(entity, location_id: int) -> pd.DataFrame:
-    if entity.kind == 'risk_factor':
-        raise NotImplementedError()
-    elif entity.kind == 'coverage_gap':
-        raise NotImplementedError()
-    elif entity.kind == 'etiology':
-        data = gbd.get_paf(entity_id=entity.gbd_id, location_id=location_id)
+    if entity.kind in ['risk_factor', 'etiology']:
+        data = gbd.get_paf(entity.gbd_id, location_id)
         data = data[data.measure_id == MEASURES['YLDs']]
         data = data[data.metric_id == METRICS['Percent']]
     return data

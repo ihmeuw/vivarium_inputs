@@ -44,7 +44,7 @@ class UserError(VivariumInputsError):
     pass
 
 
-class InvalidQueryError(VivariumInputsError, ValueError):
+class InvalidQueryError(UserError, ValueError):
     """Exception raised when the user makes an invalid query."""
     pass
 
