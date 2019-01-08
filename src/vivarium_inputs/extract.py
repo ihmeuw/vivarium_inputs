@@ -1,6 +1,6 @@
 import pandas as pd
 
-from .globals import gbd
+from .globals import gbd, MEASURES
 import vivarium_inputs.validation.raw as validation
 
 
@@ -12,7 +12,7 @@ def extract_data(entity, measure: str, location_id: str):
         'birth_prevalence': extract_birth_prevalence,
         'disability_weight': extract_disability_weight,
         'remission': extract_remission,
-        'cause_specific_mortality': extract_death,
+        'deaths': extract_deaths,
         # Risk-like measures
         'exposure': extract_exposure,
         'exposure_standard_deviation': extract_exposure_standard_deviation,
@@ -38,22 +38,27 @@ def extract_data(entity, measure: str, location_id: str):
 
 def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == 5]
+    data = data[data.measure_id == MEASURES['Prevalence']]
     return data
 
 
 def extract_incidence(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == 6]
+    data = data[data.measure_id == MEASURES['Incidence']]
     return data
 
 
 def extract_birth_prevalence(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    birth_prevalence_age_group = 164
+    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
+    data = data[data.measure_id == MEASURES['Incidence'] & data.age_group_id == birth_prevalence_age_group]
+    return data
 
 
 def extract_remission(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    data = gbd.get_modelable_entity_draws(entity.dismod_id, location_id)
+    data = data[data.measure_id == MEASURES['Remission']]
+    return data
 
 
 def extract_disability_weight(entity, location_id: int) -> pd.DataFrame:
@@ -62,8 +67,10 @@ def extract_disability_weight(entity, location_id: int) -> pd.DataFrame:
     return data
 
 
-def extract_death(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+def extract_deaths(entity, location_id: int) -> pd.DataFrame:
+    data = gbd.get_codcorrect_draws(entity.gbd_id, location_id)
+    data = data[data.measure_id == MEASURES['Deaths']]
+    return data
 
 
 def extract_exposure(entity, location_id: int) -> pd.DataFrame:
