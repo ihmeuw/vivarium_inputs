@@ -5,6 +5,7 @@ from vivarium_inputs import utilities, extract
 from .globals import InvalidQueryError, gbd, DEMOGRAPHIC_COLUMNS
 
 
+
 def get_data(entity, measure: str, location: str):
     measure_handlers = {
         # Cause-like measures
@@ -21,7 +22,7 @@ def get_data(entity, measure: str, location: str):
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk',)),
         'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk',)),
         'relative_risk': (get_relative_risk, ('risk', 'coverage_gap')),
-        'population_attributable_fraction': (get_population_attributable_fraction, ('risk', 'coverage_gap')),
+        'population_attributable_fraction': (get_population_attributable_fraction, ('risk', 'coverage_gap', 'etiology')),
         'mediation_factors': (get_mediation_factors, ('risk',)),
         # Covariate measures
         'estimate': (get_estimate, ('covariate',)),
@@ -51,8 +52,6 @@ def get_incidence(entity, location_id):
         raise NotImplementedError()
     elif entity.kind == 'sequela':
         data = extract.extract_data(entity, 'incidence', location_id)
-        age_groups = gbd.get_age_group_id()
-        data = data[data.age_group_id.isin(age_groups)]
         data = utilities.normalize(data, location_id, fill_value=0)
         data = utilities.reshape(data)
         return data
@@ -63,8 +62,6 @@ def get_prevalence(entity, location_id):
         raise NotImplementedError()
     elif entity.kind == 'sequela':
         data = extract.extract_data(entity, 'prevalence', location_id)
-        age_groups = gbd.get_age_group_id()
-        data = data[data.age_group_id.isin(age_groups)]
         data = utilities.normalize(data, location_id, fill_value=0)
         data = utilities.reshape(data)
         return data
@@ -142,6 +139,14 @@ def get_population_attributable_fraction(entity, location_id):
         raise NotImplementedError()
     elif entity.kind == 'coverage_gap':
         raise NotImplementedError()
+    elif entity.kind == 'etiology':
+        data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
+        data.drop(['rei_id', 'measure_id', 'metric_id'], axis=1, inplace=True)
+        data = utilities.normalize(data, location_id, fill_value=0)
+        data['affected_measure'] = 'incidence_rate'
+        data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ('cause_id', 'affected_measure',))
+        return data
+
 
 
 def get_mediation_factors(entity, location_id):
