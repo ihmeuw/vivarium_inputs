@@ -94,7 +94,12 @@ def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFr
 
 
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    if entity.kind == 'risk_factor':
+        data = gbd.get_relative_risk(entity.gbd_id, location_id)
+        import pdb; pdb.set_trace()
+    else:
+        raise NotImplementedError()
+    return data
 
 
 def extract_population_attributable_fraction(entity, location_id: int) -> pd.DataFrame:

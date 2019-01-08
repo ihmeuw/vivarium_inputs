@@ -81,7 +81,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
             p = get_prevalence(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
             d = get_disability_weight(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
             partial_weights.append(p*d)
-        data = sum(partial_weights)
+        data = sum(partial_weights).reset_index()
     else:  # entity.kind == 'sequela'
         data = extract.extract_data(entity, 'disability_weight', location_id)
         data = utilities.normalize(data, location_id)
@@ -144,8 +144,8 @@ def get_exposure_distribution_weights(entity, location_id):
 
 def get_relative_risk(entity, location_id):
     if entity.kind == 'risk_factor':
-        raise NotImplementedError()
-    elif entity.kind == 'coverage_gap':
+
+    else:
         raise NotImplementedError()
 
 

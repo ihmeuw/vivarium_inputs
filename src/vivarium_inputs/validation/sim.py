@@ -138,6 +138,7 @@ def _validate_standard_columns(data, location):
 
 
 def _validate_draw_column(data):
+    import pdb; pdb.set_trace()
     if 'draw' not in data.columns:
         raise DataFormattingError('Draw column name improperly specified.')
 
