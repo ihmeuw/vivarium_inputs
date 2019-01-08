@@ -77,7 +77,12 @@ def extract_deaths(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_exposure(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    if entity.kind == 'risk_factor':
+        data = gbd.get_exposure(entity.gbd_id, location_id)
+        data = data[data.measure_id == MEASURES['Prevalence']]
+    else:
+        raise NotImplementedError()
+    return data
 
 
 def extract_exposure_standard_deviation(entity, location_id: int) -> pd.DataFrame:

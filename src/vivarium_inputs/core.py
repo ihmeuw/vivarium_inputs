@@ -20,12 +20,12 @@ def get_data(entity, measure: str, location: str):
         'excess_mortality': (get_excess_mortality, ('cause',)),
         'case_fatality': (get_case_fatality, ('cause',)),
         # Risk-like measures
-        'exposure': (get_exposure, ('risk', 'coverage_gap')),
-        'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk',)),
-        'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk',)),
-        'relative_risk': (get_relative_risk, ('risk', 'coverage_gap')),
-        'population_attributable_fraction': (get_population_attributable_fraction, ('risk', 'coverage_gap', 'etiology')),
-        'mediation_factors': (get_mediation_factors, ('risk',)),
+        'exposure': (get_exposure, ('risk_factor', 'coverage_gap')),
+        'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor',)),
+        'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor',)),
+        'relative_risk': (get_relative_risk, ('risk_factor', 'coverage_gap')),
+        'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'coverage_gap', 'etiology')),
+        'mediation_factors': (get_mediation_factors, ('risk_factor',)),
         # Covariate measures
         'estimate': (get_estimate, ('covariate',)),
         # Health system measures
@@ -52,8 +52,11 @@ def get_data(entity, measure: str, location: str):
 def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'incidence', location_id)
     data = utilities.normalize(data, location_id, fill_value=0)
-    data = utilities.reshape(data)
-    return data
+    data = utilities.reshape(data).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+    prevalence = get_prevalence(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+    # Convert from "True incidence" to the incidence rate among susceptibles
+    data /= 1 - prevalence
+    return data.fillna(0).reset_index()
 
 
 def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
@@ -120,31 +123,34 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_exposure(entity, location_id):
-    if entity.kind == 'risk':
+    if entity.kind == 'risk_factor':
+        data = extract.extract_data(entity, 'exposure', location_id)
+        data = utilities.normalize(data, location_id)
+        data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
+    else:
         raise NotImplementedError()
-    elif entity.kind == 'coverage_gap':
-        raise NotImplementedError()
+    return data
 
 
 def get_exposure_standard_deviation(entity, location_id):
-    if entity.kind == 'risk':
+    if entity.kind == 'risk_factor':
         raise NotImplementedError()
 
 
 def get_exposure_distribution_weights(entity, location_id):
-    if entity.kind == 'risk':
+    if entity.kind == 'risk_factor':
         raise NotImplementedError()
 
 
 def get_relative_risk(entity, location_id):
-    if entity.kind == 'risk':
+    if entity.kind == 'risk_factor':
         raise NotImplementedError()
     elif entity.kind == 'coverage_gap':
         raise NotImplementedError()
 
 
 def get_population_attributable_fraction(entity, location_id):
-    if entity.kind == 'risk':
+    if entity.kind == 'risk_factor':
         raise NotImplementedError()
     elif entity.kind == 'coverage_gap':
         raise NotImplementedError()
@@ -159,7 +165,7 @@ def get_population_attributable_fraction(entity, location_id):
 
 
 def get_mediation_factors(entity, location_id):
-    if entity.kind == 'risk':
+    if entity.kind == 'risk_factor':
         raise NotImplementedError()
 
 

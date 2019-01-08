@@ -55,11 +55,15 @@ def validate_raw_data(data, entity, measure, location_id):
 
 
 def _check_sequela_metadata(entity, measure):
-    if not entity[f'{measure}_exists']:
-        raise InvalidQueryError(f'{entity.name} does not have {measure} data')
+
     if measure in ['incidence', 'prevalence']:
+        if not entity[f'{measure}_exists']:
+            raise InvalidQueryError(f'{entity.name} does not have {measure} data')
         if not entity[f'{measure}_in_range']:
             raise warnings.warn(f'{entity.name} has {measure} but its range is abnormal')
+    else:  # measure == 'disability_weight
+        if not entity.healthstate[f'{measure}_exist']:
+            raise InvalidQueryError(f'{entity.name} does not have {measure} data')
 
 
 def _check_cause_metadata(entity, measure):
@@ -68,7 +72,8 @@ def _check_cause_metadata(entity, measure):
 
 
 def _check_risk_factor_metadata(entity, measure):
-    raise NotImplementedError()
+    # TODO: Incorporate mapping checks
+    pass
 
 
 def _check_etiology_metadata(entity, measure):
@@ -137,7 +142,10 @@ def _validate_deaths(data, entity, location_id):
 
 
 def _validate_exposure(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
+                        'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'binned')
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):

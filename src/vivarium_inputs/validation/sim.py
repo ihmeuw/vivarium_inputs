@@ -45,7 +45,7 @@ def _validate_incidence(data, entity, location):
 def _validate_prevalence(data, entity, location):
     _validate_standard_columns(data, location)
 
-    
+
 def _validate_birth_prevalence(data, entity, location):
     _validate_draw_column(data)
     _validate_location_column(data, location)
@@ -76,7 +76,6 @@ def _validate_case_fatality(data, entity, location):
 
 def _validate_exposure(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_exposure_standard_deviation(data, entity, location):
@@ -86,7 +85,6 @@ def _validate_exposure_standard_deviation(data, entity, location):
 
 def _validate_exposure_distribution_weights(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_relative_risk(data, entity, location):
@@ -173,7 +171,10 @@ def _validate_age_columns(data):
                              'age_group_years_end': 'age_group_end'})
     )
 
-    age_block = data[['age_group_start', 'age_group_end']].drop_duplicates().reset_index(drop=True)
+    age_block = (data[['age_group_start', 'age_group_end']]
+                 .drop_duplicates()
+                 .sort_values(['age_group_start', 'age_group_end'])
+                 .reset_index(drop=True))
 
     if not age_block.equals(expected_age_block):
         raise DataFormattingError('Age values improperly specified.')
@@ -185,7 +186,10 @@ def _validate_year_columns(data):
 
     expected_year_block = pd.DataFrame({'year_start': range(1990, 2018),
                                         'year_end': range(1991, 2019)})
-    year_block = data[['year_start', 'year_end']].drop_duplicates().reset_index(drop=True)
+    year_block = (data[['year_start', 'year_end']]
+                  .drop_duplicates()
+                  .sort_values(['year_start', 'year_end'])
+                  .reset_index(drop=True))
 
     if not year_block.equals(expected_year_block):
         raise DataFormattingError('Year values improperly specified.')

@@ -81,10 +81,11 @@ def normalize_location(data: pd.DataFrame, expected_location_id: int)-> pd.DataF
     if len(location_id) != 1:
         raise DataAbnormalError(f'Data has extra location ids {location_id.difference({expected_location_id})} '
                                 f'other than {expected_location_id}')
+    elif location_id == {1}:  # Make global data location specific
+        data.loc[:, 'location_id'] = expected_location_id
     elif location_id != {expected_location_id}:
         raise DataAbnormalError(f'Data called for {expected_location_id} has a location id {location_id}')
-    elif location_id == [1]:  # Make global data location specific
-        data.loc[:, 'location_id'] = expected_location_id
+
     return data
 
 
@@ -168,7 +169,7 @@ def sort_data(data: pd.DataFrame) -> pd.DataFrame:
                                  'age_group_end', 'year_start', 'year_end'] if c in data.columns])
     other_cols = data.columns.difference(key_cols + ['value'])
     key_cols.extend(other_cols)
-    data.sort_values(key_cols).reset_index(drop=True)
+    data = data.sort_values(key_cols).reset_index(drop=True)
 
     data = data[key_cols + ['value']]
     return data
