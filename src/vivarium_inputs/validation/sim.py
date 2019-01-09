@@ -1,4 +1,5 @@
 """Validates data is in the correct shape for the simulation."""
+import numpy as np
 import pandas as pd
 
 from vivarium_inputs.globals import DataFormattingError, gbd
@@ -144,6 +145,7 @@ def _validate_standard_columns(data, location):
     _validate_sex_column(data)
     _validate_age_columns(data)
     _validate_year_columns(data)
+    _validate_value_column(data)
 
 
 def _validate_draw_column(data):
@@ -202,3 +204,8 @@ def _validate_year_columns(data):
 
     if not year_block.equals(expected_year_block):
         raise DataFormattingError('Year values improperly specified.')
+
+
+def _validate_value_column(data):
+    if np.any(data.value.isna()):
+        raise DataFormattingError('Nans found in data.')
