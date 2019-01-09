@@ -75,23 +75,9 @@ def scrub_affected_entity(data):
 
 
 def normalize(data: pd.DataFrame, location_id: int, fill_value=None) -> pd.DataFrame:
-    data = normalize_location(data, location_id)
     data = normalize_sex(data, fill_value)
     data = normalize_year(data)
     data = normalize_age(data, fill_value)
-    return data
-
-
-def normalize_location(data: pd.DataFrame, expected_location_id: int)-> pd.DataFrame:
-    location_id = set(data.location_id.unique())
-    if len(location_id) != 1:
-        raise DataAbnormalError(f'Data has extra location ids {location_id.difference({expected_location_id})} '
-                                f'other than {expected_location_id}')
-    elif location_id == {1}:  # Make global data location specific
-        data.loc[:, 'location_id'] = expected_location_id
-    elif location_id != {expected_location_id}:
-        raise DataAbnormalError(f'Data called for {expected_location_id} has a location id {location_id}')
-
     return data
 
 
