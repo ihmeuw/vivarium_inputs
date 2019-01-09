@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import Set
 
 from gbd_mapping import causes, risk_factors, sequelae, covariates, etiologies
@@ -5,7 +6,7 @@ from vivarium_public_health.dataset_manager import EntityKey
 
 from vivarium_inputs.globals import InvalidQueryError
 from vivarium_inputs.interface import (get_measure, get_population_structure, get_age_bins,
-                                       get_theoretical_minimum_risk_life_expectancy)
+                                       get_theoretical_minimum_risk_life_expectancy, get_demographic_dimensions)
 
 
 CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
@@ -56,7 +57,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "population": {
             "mapping": {'': None},
             "getter": get_population_data,
-            "measures": ["structure", "age_bins", "theoretical_minimum_risk_life_expectancy"],
+            "measures": ["structure", "age_bins", "theoretical_minimum_risk_life_expectancy", "demographic_dimensions"],
         },
         "covariate": {
             "mapping": covariates,
@@ -78,7 +79,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
 
     entity = mapping[entity_key.name]
 
-    if entity.measure not in measures:
+    if entity_key.measure not in measures:
         raise InvalidQueryError(f"Unknown measure {entity.measure} for entity {entity.name}")
 
     if not all_measures:
@@ -172,9 +173,10 @@ def get_population_data(_, measure, location, __):
         data = get_population_structure(location)
     elif measure == "theoretical_minimum_risk_life_expectancy":
         data = get_theoretical_minimum_risk_life_expectancy()
-    else:  # measure == "age_bins":
+    elif measure == "age_bins":
         data = get_age_bins()
-
+    else:  # measure == "demographic_dimensions"
+        data = get_demographic_dimensions(location)
     return data
 
 

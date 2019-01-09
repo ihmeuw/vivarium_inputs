@@ -30,3 +30,11 @@ def get_theoretical_minimum_risk_life_expectancy():
 def get_age_bins():
     pop = namedtuple('Population', 'kind')('population')
     return core.get_data(pop, 'age_bins', 'Global')
+
+
+def get_demographic_dimensions(location):
+    pop = namedtuple('Population', 'kind')('population')
+    data = core.get_data(pop, 'demographic_dimensions', location)
+    data = utilities.scrub_gbd_conventions(data, location)
+    validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
+    return utilities.sort_data(data)
