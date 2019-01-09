@@ -111,6 +111,7 @@ def _validate_incidence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
+    check_location(data, location_id)
 
 
 def _validate_prevalence(data, entity, location_id):
@@ -119,12 +120,14 @@ def _validate_prevalence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
+    check_location(data, location_id)
 
 
 def _validate_disability_weight(data, entity, location_id):
     expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
                         'healthstate', 'healthstate_id') + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+    check_location(data, location_id)
 
 
 def _validate_remission(data, entity, location_id):
@@ -132,12 +135,14 @@ def _validate_remission(data, entity, location_id):
                         'modelable_entity_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'binned')
+    check_location(data, location_id)
 
 
 def _validate_deaths(data, entity, location_id):
     expected_columns = ('measure_id', f'{entity.kind}_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
+    check_location(data, location_id)
 
 
 def _validate_exposure(data, entity, location_id):
@@ -145,6 +150,7 @@ def _validate_exposure(data, entity, location_id):
                         'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'binned')
+    check_location(data, location_id)
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
@@ -160,12 +166,14 @@ def _validate_relative_risk(data, entity, location_id):
                         'morbidity', 'metric_id', 'parameter') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'binned')
+    check_location(data, location_id)
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
     expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
+    check_location(data, location_id)
 
 
 def _validate_mediation_factors(data, entity, location_id):
@@ -178,6 +186,7 @@ def _validate_estimate(data, entity, location_id):
                         'sex', 'mean_value', 'lower_value', 'upper_value']
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
+    check_location(data, location_id)
 
 
 def _validate_cost(data, entity, location_id):
@@ -192,6 +201,7 @@ def _validate_structure(data, entity, location_id):
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
+    check_location(data, location_id)
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):
@@ -206,6 +216,14 @@ def check_years(df: pd.DataFrame, year_type: str):
     # if is it annual, we expect to have extra years from some cases like codcorrect/covariate
     if year_type == 'binned' and set(df.year_id.unique()) > set(expected_years):
         raise DataAbnormalError(f'Data has extra years: {set(df.year_id.unique()).difference(set(expected_years))}')
+
+
+def check_location(data: pd.DataFrame, location_id: str):
+    if len(data['location_id'].unique()) != 1:
+        raise DataAbnormalError(f'Data has extra location ids.')
+    data_location_id = data['location_id'].unique()[0]
+    if data_location_id not in [1, location_id]:
+        raise DataAbnormalError(f'Data called for {location_id} has a location id {data_location_id}')
 
 
 def check_columns(expected_cols: List, existing_cols: List):
