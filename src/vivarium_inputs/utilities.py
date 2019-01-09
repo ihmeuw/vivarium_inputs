@@ -2,7 +2,7 @@
 import pandas as pd
 
 from gbd_mapping import causes, risk_factors
-from .globals import gbd, DataAbnormalError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
+from .globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 
 
 def get_location_id(location_name):
@@ -16,6 +16,18 @@ def get_age_bins():
                              'age_group_years_end': 'age_group_end'})
     )
     return age_bins
+
+
+def get_demographic_dimensions(location_id):
+    ages = get_age_bins()['age_group_id']
+    years = range(1990, 2018)
+    sexes = (1, 2)
+    location = [location_id]
+    dimensions = (pd.MultiIndex
+                  .from_product([location, sexes, ages, years],
+                                names=['location_id', 'sex_id', 'age_group_id', 'year_id'])
+                  .to_frame(index=False))
+    return dimensions
 
 
 ##################################################
@@ -181,7 +193,10 @@ def sort_data(data: pd.DataFrame) -> pd.DataFrame:
     key_cols.extend(other_cols)
     data = data.sort_values(key_cols).reset_index(drop=True)
 
-    data = data[key_cols + ['value']]
+    sorted_cols = key_cols
+    if 'value' in data.columns:
+        sorted_cols += ['value']
+    data = data[sorted_cols]
     return data
 
 

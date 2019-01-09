@@ -34,7 +34,8 @@ def get_data(entity, measure: str, location: str):
         # Population measures
         'structure': (get_structure, ('population',)),
         'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
-        'age_bins': (get_age_bins, ('population',))
+        'age_bins': (get_age_bins, ('population',)),
+        'demographic_dimensions': (get_demographic_dimensions, ('population',))
     }
 
     if measure not in measure_handlers:
@@ -130,7 +131,7 @@ def get_exposure(entity, location_id):
         cat1 = utilities.normalize(cat1, fill_value=0)
         cat2 = data[data.parameter == 'cat2']
         cat2 = utilities.normalize(cat2, fill_value=1)
-        data = pd.concat([cat1, cat2], ignore_index=True)
+        data = pd.concat([cat1, cat2], ignore_index=True, sort=True)
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
     else:
         raise NotImplementedError()
@@ -150,7 +151,7 @@ def get_exposure_distribution_weights(entity, location_id):
 def get_relative_risk(entity, location_id):
     if entity.kind == 'risk_factor' and entity.distribution == 'dichotomous':
         data = extract.extract_data(entity, 'relative_risk', location_id)
-        utilities.convert_affected_entity(data, 'cause_id')
+        data = utilities.convert_affected_entity(data, 'cause_id')
         data['affected_measure'] = 'incidence_rate'
         data = utilities.normalize(data, fill_value=1)
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS)
@@ -179,7 +180,6 @@ def get_mediation_factors(entity, location_id):
 
 def get_estimate(entity, location_id):
     data = extract.extract_data(entity, 'estimate', location_id)
-    import pdb; pdb.set_trace()
 
     key_columns = ['location_id', 'year_id']
     if entity.by_age:
@@ -222,3 +222,9 @@ def get_theoretical_minimum_risk_life_expectancy(entity, location_id):
 def get_age_bins(entity, location_id):
     age_bins = utilities.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
     return age_bins
+
+
+def get_demographic_dimensions(entity, location_id):
+    demographic_dimensions = utilities.get_demographic_dimensions(location_id)
+    demographic_dimensions = utilities.normalize(demographic_dimensions)
+    return demographic_dimensions
