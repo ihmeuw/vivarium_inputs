@@ -1,5 +1,6 @@
 """Validates data is in the correct shape for the simulation."""
 import pandas as pd
+import warnings
 
 from vivarium_inputs.globals import DataFormattingError, gbd
 
@@ -191,4 +192,4 @@ def _validate_year_columns(data):
                   .reset_index(drop=True))
 
     if not year_block.equals(expected_year_block):
-        raise DataFormattingError('Year values improperly specified.')
+        warnings.warn('Year values improperly specified.')

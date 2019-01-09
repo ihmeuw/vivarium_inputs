@@ -94,7 +94,7 @@ def _check_covariate_metadata(entity, measure):
 
 
 def _check_coverage_gap_metadata(entity, measure):
-    raise NotImplementedError()
+    pass
 
 
 def _check_health_technology_metadata(entity, measure):
@@ -150,10 +150,13 @@ def _validate_deaths(data, entity, location_id):
 
 
 def _validate_exposure(data, entity, location_id):
+
     expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
                         'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
-    check_years(data, 'binned')
+    # we can't check years for coverage_gaps, since it's not consistent.
+    if entity.kind == 'risk_factor':
+        check_years(data, 'binned')
     check_location(data, location_id)
 
 
@@ -223,7 +226,9 @@ def check_years(df: pd.DataFrame, year_type: str):
 
 
 def check_location(data: pd.DataFrame, location_id: str):
-    if len(data['location_id'].unique()) != 1:
+    if data.empty:
+        raise InvalidQueryError(f'Data does not have location_id {location_id}.')
+    if len(data['location_id'].unique()) > 1:
         raise DataAbnormalError(f'Data has extra location ids.')
     data_location_id = data['location_id'].unique()[0]
     if data_location_id not in [1, location_id]:
