@@ -139,9 +139,9 @@ def get_exposure(entity, location_id):
     elif entity.kind == 'coverage_gap':
         data = extract.extract_data(entity, 'exposure', location_id)
         cat1 = data[data.parameter == 'cat1']
-        cat1 = utilities.normalize(cat1, location_id, fill_value=0)
+        cat1 = utilities.normalize(cat1, fill_value=0)
         cat2 = data[data.parameter == 'cat2']
-        cat2 = utilities.normalize(cat2, location_id, fill_value=1)
+        cat2 = utilities.normalize(cat2, fill_value=1)
         data = pd.concat([cat1, cat2], ignore_index=True)
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
 
@@ -175,7 +175,7 @@ def get_relative_risk(entity, location_id):
 
         # coverage gap might have very weird year_id, so drop it.
         data.drop('year_id', axis=1, inplace=True)
-        data = utilities.normalize(data, location_id, fill_value=1)
+        data = utilities.normalize(data, fill_value=1)
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS)
                                                + ['affected_entity', 'affected_measure', 'parameter'])
 

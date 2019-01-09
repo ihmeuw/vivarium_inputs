@@ -61,7 +61,7 @@ def _check_sequela_metadata(entity, measure):
         if not entity[f'{measure}_in_range']:
             warnings.warn(f'{entity.name} has {measure} but its range is abnormal.')
     else:  # measure == 'disability_weight
-        if not entity.healthstate[f'{measure}_exist']:
+        if not entity.healthstate[f'{measure}_exists']:
             raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
 
 
