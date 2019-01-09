@@ -5,7 +5,6 @@ from vivarium_public_health.dataset_manager import EntityKey, filter_data, valid
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
-from vivarium_inputs.old_code.forecasting import load_forecast
 
 
 class ArtifactPassthrough:
@@ -21,10 +20,7 @@ class ArtifactPassthrough:
 
     def load(self, entity_key: str, future=False, **column_filters: str) -> Any:
         entity_key = EntityKey(entity_key)
-        if future:
-            data = load_forecast(entity_key, self.location)
-        else:
-            data = loader(entity_key, self.location, self.modeled_causes)
+        data = loader(entity_key, self.location, self.modeled_causes)
 
         if isinstance(data, pd.DataFrame):
             for key, val in self.base_filter.items():

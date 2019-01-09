@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import Set
 
 from gbd_mapping import causes, risk_factors, sequelae, covariates, etiologies
@@ -78,7 +79,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
 
     entity = mapping[entity_key.name]
 
-    if entity.measure not in measures:
+    if entity_key.measure not in measures:
         raise InvalidQueryError(f"Unknown measure {entity.measure} for entity {entity.name}")
 
     if not all_measures:
