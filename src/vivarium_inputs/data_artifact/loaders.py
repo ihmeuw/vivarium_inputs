@@ -1,11 +1,11 @@
 from typing import Set
 
-from gbd_mapping import causes, risk_factors, sequelae, covariates, etiologies
+from gbd_mapping import causes, risk_factors, sequelae, covariates, etiologies, coverage_gaps
 from vivarium_public_health.dataset_manager import EntityKey
 
 from vivarium_inputs.globals import InvalidQueryError
 from vivarium_inputs.interface import (get_measure, get_population_structure, get_age_bins,
-                                       get_theoretical_minimum_risk_life_expectancy)
+                                       get_theoretical_minimum_risk_life_expectancy, get_demographic_dimensions)
 
 
 CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
@@ -42,12 +42,12 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         #     "getter": get_health_technology_data,
         #     "measures": ["cost", "effects", "coverage"]
         # },
-        # "coverage_gap": {
-        #     "mapping": coverage_gaps,
-        #     "getter": get_coverage_gap_data,
-        #     "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels",
-        #                  "relative_risk", "exposure"]
-        # },
+        "coverage_gap": {
+            "mapping": coverage_gaps,
+            "getter": get_coverage_gap_data,
+            "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels",
+                         "relative_risk", "exposure"]
+        },
         "etiology": {
             "mapping": etiologies,
             "getter": get_etiology_data,
@@ -56,7 +56,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "population": {
             "mapping": {'': None},
             "getter": get_population_data,
-            "measures": ["structure", "age_bins", "theoretical_minimum_risk_life_expectancy"],
+            "measures": ["structure", "age_bins", "theoretical_minimum_risk_life_expectancy", "demographic_dimensions"],
         },
         "covariate": {
             "mapping": covariates,
@@ -68,18 +68,13 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         #     "getter": get_subregion_data,
         #     "measures": ["sub_region_ids"],
         # },
-        # "dimensions": {
-        #     "mapping": {'': None},
-        #     "getter": get_dimension_data,
-        #     "measures": ["full_space"]
-        # },
     }
     mapping, getter, measures = entity_data[entity_key.type].values()
 
     entity = mapping[entity_key.name]
 
-    if entity.measure not in measures:
-        raise InvalidQueryError(f"Unknown measure {entity.measure} for entity {entity.name}")
+    if entity_key.measure not in measures:
+        raise InvalidQueryError(f"Unknown measure {entity_key.measure} for entity {entity.name}")
 
     if not all_measures:
         return getter(entity, entity_key.measure, location, modeled_causes)
@@ -150,16 +145,12 @@ def get_sequela_data(sequela, measure, location, _):
 #     return data
 
 
-# def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
-#     if measure in ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels"]:
-#         data = get_coverage_gap_metadata(coverage_gap, measure, modeled_causes)
-#     elif measure == "exposure":
-#         data = get_coverage_gap_exposure(coverage_gap, location)
-#     elif measure == "relative_risk":
-#         data = get_coverage_gap_relative_risk(coverage_gap, location)
-#     else:
-#         raise NotImplementedError(f"Unknown measure {measure} for coverage_gap {coverage_gap.name}")
-#     return data
+def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
+    if measure in ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels"]:
+        data = get_coverage_gap_metadata(coverage_gap, measure, modeled_causes)
+    else:
+        data = get_measure(coverage_gap, measure, location)
+    return data
 
 
 def get_etiology_data(etiology, measure, location, _):
@@ -172,9 +163,10 @@ def get_population_data(_, measure, location, __):
         data = get_population_structure(location)
     elif measure == "theoretical_minimum_risk_life_expectancy":
         data = get_theoretical_minimum_risk_life_expectancy()
-    else:  # measure == "age_bins":
+    elif measure == "age_bins":
         data = get_age_bins()
-
+    else:  # measure == "demographic_dimensions"
+        data = get_demographic_dimensions(location)
     return data
 
 
@@ -229,9 +221,6 @@ def get_risk_metadata(risk, measure, modeled_causes):
             data = None
     elif measure in ["affected_causes", 'affected_risk_factors']:
         data = [c.name for c in risk.affected_causes if c.name in modeled_causes]
-    elif measure == "affected_risk_factors":
-        # FIXME: Update mapping to include affected risks (mediation)
-        data = []
     else:  # measure == "distribution"
         data = risk[measure]
     return data

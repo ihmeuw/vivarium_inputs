@@ -2,7 +2,7 @@
 import pandas as pd
 
 from gbd_mapping import causes, risk_factors
-from .globals import gbd, DataAbnormalError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
+from .globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 
 
 def get_location_id(location_name):
@@ -16,6 +16,18 @@ def get_age_bins():
                              'age_group_years_end': 'age_group_end'})
     )
     return age_bins
+
+
+def get_demographic_dimensions(location_id):
+    ages = get_age_bins()['age_group_id']
+    years = range(1990, 2018)
+    sexes = (1, 2)
+    location = [location_id]
+    dimensions = (pd.MultiIndex
+                  .from_product([location, sexes, ages, years],
+                                names=['location_id', 'sex_id', 'age_group_id', 'year_id'])
+                  .to_frame(index=False))
+    return dimensions
 
 
 ##################################################
@@ -74,48 +86,43 @@ def scrub_affected_entity(data):
 ###############################################################
 
 
-def normalize(data: pd.DataFrame, location_id: int, fill_value=None) -> pd.DataFrame:
-    data = normalize_location(data, location_id)
+def normalize(data: pd.DataFrame, fill_value=None) -> pd.DataFrame:
     data = normalize_sex(data, fill_value)
     data = normalize_year(data)
     data = normalize_age(data, fill_value)
     return data
 
 
-def normalize_location(data: pd.DataFrame, expected_location_id: int)-> pd.DataFrame:
-    location_id = set(data.location_id.unique())
-    if len(location_id) != 1:
-        raise DataAbnormalError(f'Data has extra location ids {location_id.difference({expected_location_id})} '
-                                f'other than {expected_location_id}.')
-    elif location_id == {1}:  # Make global data location specific
-        data.loc[:, 'location_id'] = expected_location_id
-    elif location_id != {expected_location_id}:
-        raise DataAbnormalError(f'Data called for {expected_location_id} has a location id {location_id}.')
-
-    return data
-
-
 def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
-    sexes = set(data.sex_id.unique())
-    if sexes == {1, 2, 3}:  # We have variation across sex, don't need the column for both.
+    sexes = set(data.sex_id.unique()) if 'sex_id' in data.columns else set()
+    if not sexes:
+        # Data does not correspond to individuals, so no age column necessary.
+        pass
+    elif sexes == {1, 2, 3}:
+        # We have variation across sex, don't need the column for both.
         data = data[data.sex_id.isin([1, 2])]
-    elif sexes == {3}:  # Data is not sex specific, but does apply to both sexes, so copy.
+    elif sexes == {3}:
+        # Data is not sex specific, but does apply to both sexes, so copy.
         fill_data = data.copy()
         data.loc[:, 'sex_id'] = 1
         fill_data.loc[:, 'sex_id'] = 2
         data = pd.concat([data, fill_data], ignore_index=True)
-    elif len(sexes) == 1:  # Data is sex specific, but only applies to one sex, so fill the other with default.
+    elif sexes == 1:
+        # Data is sex specific, but only applies to one sex, so fill the other with default.
         fill_data = data.copy()
-        missing_sex = {1, 2}.difference(sexes).pop()
+        missing_sex = {1, 2}.difference(set(data.sex_id.unique())).pop()
         fill_data.loc[:, 'sex_id'] = missing_sex
         fill_data.loc[:, 'value'] = fill_value
         data = pd.concat([data, fill_data], ignore_index=True)
+    else:  # sexes == {1, 2}
+        pass
     return data
 
 
 def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
-    if 'year_id' not in data:  # Data doesn't vary by year, so copy for each year.
+    if 'year_id' not in data:
+        # Data doesn't vary by year, so copy for each year.
         df = []
         for year in years['annual']:
             fill_data = data.copy()
@@ -124,10 +131,11 @@ def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
         data = pd.concat(df, ignore_index=True)
     elif set(data.year_id.unique()) == set(years['binned']):
         data = interpolate_year(data)
-    elif set(data.year_id.unique()) < set(years['annual']):
-        raise DataAbnormalError(f'No normalization scheme available for years {set(data.year_id.unique())}.')
-
-    return data[data.year_id.isin(years['annual'])]
+    else:  # set(data.year_id.unique()) == years['annual']
+        pass
+    # Dump extra data.
+    data = data[data.year_id.isin(years['annual'])]
+    return data
 
 
 def interpolate_year(data):
@@ -135,14 +143,18 @@ def interpolate_year(data):
     from core_maths.interpolate import pchip_interpolate
     id_cols = data.columns.difference(DRAW_COLUMNS)
     fillin_data = pchip_interpolate(data, id_cols, DRAW_COLUMNS)
-    return pd.concat([data, fillin_data])
+    return pd.concat([data, fillin_data], sort=True)
 
 
 def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
-    data_ages = set(data.age_group_id.unique())
+    data_ages = set(data.age_group_id.unique()) if 'age_group_id' in data.columns else set()
     gbd_ages = set(gbd.get_age_group_id())
 
-    if data_ages == {22}:  # Data applies to all ages, so copy.
+    if not data_ages:
+        # Data does not correspond to individuals, so no age column necessary.
+        pass
+    elif data_ages == {22}:
+        # Data applies to all ages, so copy.
         dfs = []
         for age in gbd_ages:
             missing = data.copy()
@@ -150,6 +162,7 @@ def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
             dfs.append(missing)
         data = pd.concat(dfs, ignore_index=True)
     elif data_ages < gbd_ages:
+        # Data applies to subset, so fill other ages with fill value.
         key_columns = list(data.columns.difference(DRAW_COLUMNS))
         key_columns.remove('age_group_id')
         expected_index = pd.MultiIndex.from_product([data[c].unique() for c in key_columns] + [gbd_ages],
@@ -158,6 +171,8 @@ def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
         data = (data.set_index(key_columns + ['age_group_id'])
                 .reindex(expected_index, fill_value=fill_value)
                 .reset_index())
+    else:  # data_ages == gbd_ages
+        pass
     return data
 
 
@@ -177,7 +192,10 @@ def sort_data(data: pd.DataFrame) -> pd.DataFrame:
     key_cols.extend(other_cols)
     data = data.sort_values(key_cols).reset_index(drop=True)
 
-    data = data[key_cols + ['value']]
+    sorted_cols = key_cols
+    if 'value' in data.columns:
+        sorted_cols += ['value']
+    data = data[sorted_cols]
     return data
 
 
@@ -190,3 +208,20 @@ def convert_affected_entity(data: pd.DataFrame, column: str) -> pd.DataFrame:
         name_map = {r.gbd_id: r.name for r in risk_factors if r.gbd_id in ids}
     data['affected_entity'] = data['affected_entity'].map(name_map)
     return data
+
+
+def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_entity:str) -> pd.DataFrame:
+    rr = rr_data[rr_data.affected_entity == affected_entity]
+    affected_measure = rr.affected_measure.unique()[0]
+    rr.drop(['affected_entity', 'affected_measure'], axis=1, inplace=True)
+    keycols = ['sex_id', 'age_group_id', 'year_id', 'parameter', 'draw']
+    weighted = (rr.set_index(keycols) * e.set_index(keycols)).reset_index()
+    cat1 = weighted[weighted.parameter == 'cat1']
+    cat2 = weighted[weighted.parameter == 'cat2']
+    keycols = ['sex_id', 'age_group_id', 'year_id', 'draw']
+    weighted_sum = (cat1.set_index(keycols) + cat2.set_index(keycols)).drop('parameter', axis=1)
+    paf = (weighted_sum - 1) / weighted_sum
+    paf.reset_index(inplace=True)
+    paf['affected_entity'] = affected_entity
+    paf['affected_measure'] = affected_measure
+    return paf

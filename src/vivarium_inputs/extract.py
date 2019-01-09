@@ -84,7 +84,10 @@ def extract_exposure(entity, location_id: int) -> pd.DataFrame:
         elif MEASURES['Prevalence'] in data.measure_id.unique():  # Exposure comes from a cause model
             data = data[data.measure_id == MEASURES['Prevalence']]
         else:
-            raise DataAbnormalError('No exposure measure.')
+            raise DataAbnormalError('No exposure measure')
+    elif entity.kind == 'coverage_gap':
+        data = gbd.get_auxiliary_data('exposure', 'coverage_gap', entity.name)
+        data = data[data.location_id == location_id]
     else:
         raise NotImplementedError()
     return data
@@ -101,6 +104,8 @@ def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFr
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'risk_factor':
         data = gbd.get_relative_risk(entity.gbd_id, location_id)
+    elif entity.kind == 'coverage_gap':
+        data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
     else:
         raise NotImplementedError()
     return data

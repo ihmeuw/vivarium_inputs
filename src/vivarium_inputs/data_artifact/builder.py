@@ -11,7 +11,6 @@ from vivarium_public_health.dataset_manager import (EntityKey, Artifact, get_loc
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
-from vivarium_inputs.old_code.forecasting import load_forecast
 from vivarium_inputs.data_artifact.utilities import get_versions
 
 
@@ -39,8 +38,6 @@ class ArtifactBuilder:
         self.modeled_causes = {c.cause for c in builder.components.get_components(DiseaseModel)}
         self.processed_entities = set()
         self.start_time = datetime.now()
-
-        self.load("dimensions.full_space")
 
         builder.event.register_listener('post_setup', self.end_processing)
 
@@ -103,10 +100,7 @@ class ArtifactBuilder:
 
 def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str],
             artifact: Artifact, future: bool) -> None:
-    if future:
-        data = load_forecast(entity_key, location)
-    else:
-        data = loader(entity_key, location, modeled_causes, all_measures=False)
+    data = loader(entity_key, location, modeled_causes, all_measures=False)
     artifact.write(entity_key, data)
 
 

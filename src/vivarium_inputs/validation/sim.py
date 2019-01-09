@@ -1,4 +1,5 @@
 """Validates data is in the correct shape for the simulation."""
+import numpy as np
 import pandas as pd
 
 from vivarium_inputs.globals import DataFormattingError, gbd
@@ -30,6 +31,7 @@ def validate_for_simulation(data, entity, measure, location):
         # Population measures
         'structure': _validate_structure,
         'theoretical_minimum_risk_life_expectancy': _validate_theoretical_minimum_risk_life_expectancy,
+        'demographic_dimensions': _validate_demographic_dimensions,
     }
 
     if measure not in validators:
@@ -102,9 +104,11 @@ def _validate_mediation_factors(data, entity, location):
 
 def _validate_estimate(data, entity, location):
     _validate_location_column(data, location)
-    _validate_sex_column(data)
-    _validate_age_columns(data)
     _validate_year_columns(data)
+    if entity.by_age:
+        _validate_age_columns(data)
+    if entity.by_sex:
+        _validate_sex_column(data)
 
 
 def _validate_cost(data, entity, location):
@@ -128,12 +132,20 @@ def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location):
     pass
 
 
+def _validate_demographic_dimensions(data, entity, location):
+    _validate_location_column(data, location)
+    _validate_sex_column(data)
+    _validate_age_columns(data)
+    _validate_year_columns(data)
+
+
 def _validate_standard_columns(data, location):
     _validate_draw_column(data)
     _validate_location_column(data, location)
     _validate_sex_column(data)
     _validate_age_columns(data)
     _validate_year_columns(data)
+    _validate_value_column(data)
 
 
 def _validate_draw_column(data):
@@ -191,4 +203,11 @@ def _validate_year_columns(data):
                   .reset_index(drop=True))
 
     if not year_block.equals(expected_year_block):
-        raise DataFormattingError('Year values improperly specified.')
+        pass
+        #raise DataFormattingError('Year values improperly specified.')
+
+
+def _validate_value_column(data):
+    if np.any(data.value.isna()):
+        raise DataFormattingError('Nans found in data.')
+
