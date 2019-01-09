@@ -5,7 +5,7 @@ from gbd_mapping import Cause, RiskFactor, Sequela, Covariate
 import pandas as pd
 
 from vivarium_inputs import utilities, extract
-from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS
+from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS
 
 
 def get_data(entity, measure: str, location: str):
@@ -129,8 +129,9 @@ def get_exposure(entity, location_id):
         data = extract.extract_data(entity, 'exposure', location_id)
         cat1 = data[data.parameter == 'cat1']
         cat1 = utilities.normalize(cat1, fill_value=0)
-        cat2 = data[data.parameter == 'cat2']
-        cat2 = utilities.normalize(cat2, fill_value=1)
+        cat2 = cat1.copy()
+        cat2['parameter'] = 'cat2'
+        cat2[list(DRAW_COLUMNS)] = 1 - cat2[list(DRAW_COLUMNS)]
         data = pd.concat([cat1, cat2], ignore_index=True, sort=True)
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
     else:

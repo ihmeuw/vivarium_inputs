@@ -144,7 +144,7 @@ def interpolate_year(data):
     from core_maths.interpolate import pchip_interpolate
     id_cols = data.columns.difference(DRAW_COLUMNS)
     fillin_data = pchip_interpolate(data, id_cols, DRAW_COLUMNS)
-    return pd.concat([data, fillin_data])
+    return pd.concat([data, fillin_data], sort=True)
 
 
 def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
