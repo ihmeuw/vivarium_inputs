@@ -57,12 +57,12 @@ def validate_raw_data(data, entity, measure, location_id):
 def _check_sequela_metadata(entity, measure):
     if measure in ['incidence', 'prevalence']:
         if not entity[f'{measure}_exists']:
-            raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
+            raise InvalidQueryError(f'Sequela {entity.name} does not have {measure} data.')
         if not entity[f'{measure}_in_range']:
-            raise warnings.warn(f'{entity.name} has {measure} but its range is abnormal.')
+            raise warnings.warn(f'Sequela {entity.name} has {measure} but its range is abnormal.')
     else:  # measure == 'disability_weight
         if not entity.healthstate[f'{measure}_exist']:
-            raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
+            raise InvalidQueryError(f'Sequela {entity.name} does not have {measure} data.')
 
 
 def _check_cause_metadata(entity, measure):
@@ -122,7 +122,7 @@ def _check_population_metadata(entity, measure):
 
 def _validate_incidence(data, entity, location_id):
     if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError('incidence should have only rate (metric_id 3).')
+        raise DataAbnormalError('Incidence should have only rate (metric_id 3).')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -130,7 +130,7 @@ def _validate_incidence(data, entity, location_id):
 
 def _validate_prevalence(data, entity, location_id):
     if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError('prevalence should have only rate (metric_id 3).')
+        raise DataAbnormalError('Prevalence should have only rate (metric_id 3).')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
