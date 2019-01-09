@@ -215,14 +215,17 @@ def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_ent
     rr = rr_data[rr_data.affected_entity == affected_entity]
     affected_measure = rr.affected_measure.unique()[0]
     rr.drop(['affected_entity', 'affected_measure'], axis=1, inplace=True)
-    keycols = ['sex_id', 'age_group_id', 'year_id', 'parameter', 'draw']
-    weighted = (rr.set_index(keycols) * e.set_index(keycols)).reset_index()
-    cat1 = weighted[weighted.parameter == 'cat1']
-    cat2 = weighted[weighted.parameter == 'cat2']
-    keycols = ['sex_id', 'age_group_id', 'year_id', 'draw']
-    weighted_sum = (cat1.set_index(keycols) + cat2.set_index(keycols)).drop('parameter', axis=1)
-    paf = (weighted_sum - 1) / weighted_sum
-    paf.reset_index(inplace=True)
+
+    key_cols = ['sex_id', 'age_group_id', 'year_id', 'parameter', 'draw']
+    e = e.set_index(key_cols).sort_index(level=key_cols)
+    rr = rr.set_index(key_cols).sort_index(level=key_cols)
+
+    weighted_rr = e * rr
+    groupby_cols = [c for c in key_cols if c != 'parameter']
+    mean_rr = weighted_rr.reset_index().groupby(groupby_cols)['value'].sum()
+    paf = ((mean_rr - 1) / mean_rr).reset_index()
+    paf = paf.replace(-np.inf, 0)  # Rows with zero exposure.
+
     paf['affected_entity'] = affected_entity
     paf['affected_measure'] = affected_measure
     return paf
