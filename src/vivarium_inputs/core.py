@@ -80,9 +80,11 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
     if entity.kind == 'cause':
         partial_weights = []
         for sequela in entity.sequelae:
-            p = get_prevalence(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
-            d = get_disability_weight(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
-            partial_weights.append(p*d)
+            prevalence = get_prevalence(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+            disability = get_disability_weight(sequela, location_id)
+            disability['location_id'] = location_id
+            disability = disability.set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+            partial_weights.append(prevalence*disability)
         data = sum(partial_weights).reset_index()
     else:  # entity.kind == 'sequela'
         data = extract.extract_data(entity, 'disability_weight', location_id)
