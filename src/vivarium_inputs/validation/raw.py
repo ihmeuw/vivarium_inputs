@@ -57,12 +57,12 @@ def validate_raw_data(data, entity, measure, location_id):
 def _check_sequela_metadata(entity, measure):
     if measure in ['incidence', 'prevalence']:
         if not entity[f'{measure}_exists']:
-            raise InvalidQueryError(f'{entity.name} does not have {measure} data')
+            raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
         if not entity[f'{measure}_in_range']:
-            raise warnings.warn(f'{entity.name} has {measure} but its range is abnormal')
+            warnings.warn(f'{entity.name} has {measure} but its range is abnormal.')
     else:  # measure == 'disability_weight
-        if not entity.healthstate[f'{measure}_exist']:
-            raise InvalidQueryError(f'{entity.name} does not have {measure} data')
+        if not entity.healthstate[f'{measure}_exists']:
+            raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
 
 
 def _check_cause_metadata(entity, measure):
@@ -76,21 +76,25 @@ def _check_risk_factor_metadata(entity, measure):
 
 
 def _check_etiology_metadata(entity, measure):
-    if measure != 'population_attributable_fraction':
-        raise InvalidQueryError(f'we do not support {measure} data for {entity.kind}')
     mapping_measure = 'paf_yld'
     if not entity[f'{mapping_measure}_exists']:
-        raise InvalidQueryError(f'{entity.name} does not have {measure} data')
+        raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
     if not entity[f'{mapping_measure}_in_range']:
-        raise warnings.warn(f'{entity.name} has {measure} but its range is abnormal')
+        warnings.warn(f'{entity.name} has {measure} but its range is abnormal.')
 
 
 def _check_covariate_metadata(entity, measure):
-    pass
+    if not entity.data_exist:
+        raise InvalidQueryError(f'{entity.name} does not have estimate data.')
+
+    restrictions = ['sex', 'age']
+    for restriction in restrictions:
+        if not entity[f'{restriction}_restriction_violated']:
+            warnings.warn(f'{entity.name} has {measure} but {restriction}_restriction is violated.')
 
 
 def _check_coverage_gap_metadata(entity, measure):
-    raise NotImplementedError()
+    pass
 
 
 def _check_health_technology_metadata(entity, measure):
@@ -146,10 +150,13 @@ def _validate_deaths(data, entity, location_id):
 
 
 def _validate_exposure(data, entity, location_id):
+
     expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
                         'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
-    check_years(data, 'binned')
+    # we can't check years for coverage_gaps, since it's not consistent.
+    if entity.kind == 'risk_factor':
+        check_years(data, 'binned')
     check_location(data, location_id)
 
 
@@ -219,7 +226,9 @@ def check_years(df: pd.DataFrame, year_type: str):
 
 
 def check_location(data: pd.DataFrame, location_id: str):
-    if len(data['location_id'].unique()) != 1:
+    if data.empty:
+        raise InvalidQueryError(f'Data does not have location_id {location_id}.')
+    if len(data['location_id'].unique()) > 1:
         raise DataAbnormalError(f'Data has extra location ids.')
     data_location_id = data['location_id'].unique()[0]
     if data_location_id not in [1, location_id]:

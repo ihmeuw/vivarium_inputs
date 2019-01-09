@@ -203,9 +203,11 @@ def _validate_year_columns(data):
                   .reset_index(drop=True))
 
     if not year_block.equals(expected_year_block):
-        raise DataFormattingError('Year values improperly specified.')
+        pass
+        #raise DataFormattingError('Year values improperly specified.')
 
 
 def _validate_value_column(data):
     if np.any(data.value.isna()):
         raise DataFormattingError('Nans found in data.')
+
