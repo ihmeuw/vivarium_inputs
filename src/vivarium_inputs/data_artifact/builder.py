@@ -39,8 +39,6 @@ class ArtifactBuilder:
         self.processed_entities = set()
         self.start_time = datetime.now()
 
-        self.load("dimensions.full_space")
-
         builder.event.register_listener('post_setup', self.end_processing)
 
     @staticmethod
