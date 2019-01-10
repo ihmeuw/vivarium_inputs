@@ -209,3 +209,20 @@ def convert_affected_entity(data: pd.DataFrame, column: str) -> pd.DataFrame:
         name_map = {r.gbd_id: r.name for r in risk_factors if r.gbd_id in ids}
     data['affected_entity'] = data['affected_entity'].map(name_map)
     return data
+
+
+def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_entity:str) -> pd.DataFrame:
+    rr = rr_data[rr_data.affected_entity == affected_entity]
+    affected_measure = rr.affected_measure.unique()[0]
+    rr.drop(['affected_entity', 'affected_measure'], axis=1, inplace=True)
+    keycols = ['sex_id', 'age_group_id', 'year_id', 'parameter', 'draw']
+    weighted = (rr.set_index(keycols) * e.set_index(keycols)).reset_index()
+    cat1 = weighted[weighted.parameter == 'cat1']
+    cat2 = weighted[weighted.parameter == 'cat2']
+    keycols = ['sex_id', 'age_group_id', 'year_id', 'draw']
+    weighted_sum = (cat1.set_index(keycols) + cat2.set_index(keycols)).drop('parameter', axis=1)
+    paf = (weighted_sum - 1) / weighted_sum
+    paf.reset_index(inplace=True)
+    paf['affected_entity'] = affected_entity
+    paf['affected_measure'] = affected_measure
+    return paf

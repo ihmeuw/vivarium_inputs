@@ -136,6 +136,15 @@ def get_exposure(entity, location_id):
         cat2[list(DRAW_COLUMNS)] = 1 - cat2[list(DRAW_COLUMNS)]
         data = pd.concat([cat1, cat2], ignore_index=True, sort=True)
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
+    elif entity.kind == 'coverage_gap':
+        data = extract.extract_data(entity, 'exposure', location_id)
+        cat1 = data[data.parameter == 'cat1']
+        cat1 = utilities.normalize(cat1, fill_value=0)
+        cat2 = data[data.parameter == 'cat2']
+        cat2 = utilities.normalize(cat2, fill_value=1)
+        data = pd.concat([cat1, cat2], ignore_index=True)
+        data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
+
     else:
         raise NotImplementedError()
     return data
@@ -159,6 +168,17 @@ def get_relative_risk(entity, location_id):
         data = utilities.normalize(data, fill_value=1)
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS)
                                                + ['affected_entity', 'affected_measure', 'parameter'])
+    elif entity.kind == 'coverage_gap':
+        data = extract.extract_data(entity, 'relative_risk', location_id)
+        data = utilities.convert_affected_entity(data, 'rei_id')
+        data['affected_measure'] = 'exposure_parameters'
+
+        # coverage gap might have very weird year_id, so drop it.
+        data.drop('year_id', axis=1, inplace=True)
+        data = utilities.normalize(data, fill_value=1)
+        data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS)
+                                               + ['affected_entity', 'affected_measure', 'parameter'])
+
     else:
         raise NotImplementedError()
     return data
@@ -171,6 +191,18 @@ def get_population_attributable_fraction(entity, location_id):
         data['affected_measure'] = 'incidence_rate'
         data = utilities.normalize(data, fill_value=0)
         data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ('affected_entity', 'affected_measure',))
+    elif entity.kind == 'coverage_gap':
+        e = get_exposure(entity, location_id).drop('location_id', axis=1)
+        rrs = get_relative_risk(entity, location_id).drop('location_id', axis=1)
+        # For rr we know that we have all annual data but for e, who knows what they put as years
+        rrs = rrs[rrs.year_id.isin(e.year_id.unique())]
+        affected_entities = rrs.affected_entity.unique()
+        pafs = []
+        for affected_entity in affected_entities:
+            paf = utilities.compute_categorical_paf(rrs, e, affected_entity)
+            pafs.append(paf)
+        data = pd.concat(pafs)
+        data['location_id'] = location_id
     else:
         raise NotImplementedError()
     return data

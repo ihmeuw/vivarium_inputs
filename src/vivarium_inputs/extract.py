@@ -37,24 +37,20 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
 
 
 def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
-    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
+    data = gbd.get_incidence_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
     data = data[data.measure_id == MEASURES['Prevalence']]
     return data
 
 
 def extract_incidence(entity, location_id: int) -> pd.DataFrame:
-    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    # incidence comes with an extra age group for birth prevalence 164
-    birth_prevalence_age = 164
-    data = data[data.age_group_id != birth_prevalence_age]
+    data = gbd.get_incidence_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
     data = data[data.measure_id == MEASURES['Incidence']]
     return data
 
 
 def extract_birth_prevalence(entity, location_id: int) -> pd.DataFrame:
-    birth_prevalence_age_group = 164
-    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == MEASURES['Incidence'] & data.age_group_id == birth_prevalence_age_group]
+    data = gbd.get_birth_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
+    data = data[data.measure_id == MEASURES['Incidence']]
     return data
 
 
@@ -85,6 +81,9 @@ def extract_exposure(entity, location_id: int) -> pd.DataFrame:
             data = data[data.measure_id == MEASURES['Prevalence']]
         else:
             raise DataAbnormalError('No exposure measure')
+    elif entity.kind == 'coverage_gap':
+        data = gbd.get_auxiliary_data('exposure', 'coverage_gap', entity.name)
+        data = data[data.location_id == location_id]
     else:
         raise NotImplementedError()
     return data
@@ -101,6 +100,8 @@ def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFr
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'risk_factor':
         data = gbd.get_relative_risk(entity.gbd_id, location_id)
+    elif entity.kind == 'coverage_gap':
+        data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
     else:
         raise NotImplementedError()
     return data
