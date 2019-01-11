@@ -37,24 +37,20 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
 
 
 def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
-    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
+    data = gbd.get_incidence_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
     data = data[data.measure_id == MEASURES['Prevalence']]
     return data
 
 
 def extract_incidence(entity, location_id: int) -> pd.DataFrame:
-    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    # incidence comes with an extra age group for birth prevalence 164
-    birth_prevalence_age = 164
-    data = data[data.age_group_id != birth_prevalence_age]
+    data = gbd.get_incidence_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
     data = data[data.measure_id == MEASURES['Incidence']]
     return data
 
 
 def extract_birth_prevalence(entity, location_id: int) -> pd.DataFrame:
-    birth_prevalence_age_group = 164
-    data = gbd.get_como_draws(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == MEASURES['Incidence'] & data.age_group_id == birth_prevalence_age_group]
+    data = gbd.get_birth_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
+    data = data[data.measure_id == MEASURES['Incidence']]
     return data
 
 
