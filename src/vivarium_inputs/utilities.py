@@ -133,7 +133,6 @@ def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
         data = interpolate_year(data)
     else:  # set(data.year_id.unique()) == years['annual']
         pass
-
     # Dump extra data.
     data = data[data.year_id.isin(years['annual'])]
     return data

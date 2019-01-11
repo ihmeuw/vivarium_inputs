@@ -57,17 +57,32 @@ def validate_raw_data(data, entity, measure, location_id):
 def _check_sequela_metadata(entity, measure):
     if measure in ['incidence', 'prevalence']:
         if not entity[f'{measure}_exists']:
-            raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
+            raise InvalidQueryError(f'Sequela {entity.name} does not have {measure} data.')
         if not entity[f'{measure}_in_range']:
-            warnings.warn(f'{entity.name} has {measure} but its range is abnormal.')
+            warnings.warn(f'Sequela {entity.name} has {measure} but its range is abnormal.')
     else:  # measure == 'disability_weight
         if not entity.healthstate[f'{measure}_exists']:
-            raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
+            raise InvalidQueryError(f'Sequela {entity.name} does not have {measure} data.')
 
 
 def _check_cause_metadata(entity, measure):
-    # TODO: Incorporate mapping checks
-    pass
+    if not entity[f'{measure}_exists']:
+        raise InvalidQueryError(f"Cause {entity.name} does not have non-zero {measure} data.")
+
+    if not entity[f'{measure}_in_range']:
+        warnings.warn(f"Cause {entity.name} has {measure} but its range is abnormal.")
+
+    consistent = entity[f"{measure}_consistent"]
+    children = "subcauses" if measure == "deaths" else "sequela"
+
+    if consistent is not None and not consistent:
+        warnings.warn(f"{measure.capitalize()} data for cause {entity.name} does not exist for {children}. "
+                      f"{children.capitalize()} models won't be consistent with cause level models.")
+
+    if consistent and not entity[f"{measure}_aggregated"]:
+        warnings.warn(f"{children.capitalize()} {measure} data for cause {entity.name} does not correctly "
+                      f"aggregate up to the cause level. Be aware that any {children} models won't be "
+                      f"consistent with cause level models.")
 
 
 def _check_risk_factor_metadata(entity, measure):
@@ -78,9 +93,9 @@ def _check_risk_factor_metadata(entity, measure):
 def _check_etiology_metadata(entity, measure):
     mapping_measure = 'paf_yld'
     if not entity[f'{mapping_measure}_exists']:
-        raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
+        raise InvalidQueryError(f'Etiology {entity.name} does not have {measure} data.')
     if not entity[f'{mapping_measure}_in_range']:
-        warnings.warn(f'{entity.name} has {measure} but its range is abnormal.')
+        warnings.warn(f'Etiology {entity.name} has {measure} but its range is abnormal.')
 
 
 def _check_covariate_metadata(entity, measure):
@@ -111,7 +126,7 @@ def _check_population_metadata(entity, measure):
 
 def _validate_incidence(data, entity, location_id):
     if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError('incidence should have only rate (metric_id 3)')
+        raise DataAbnormalError('Incidence should have only rate (metric_id 3).')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -120,7 +135,7 @@ def _validate_incidence(data, entity, location_id):
 
 def _validate_prevalence(data, entity, location_id):
     if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError('prevalence should have only rate (metric_id 3)')
+        raise DataAbnormalError('Prevalence should have only rate (metric_id 3).')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -219,10 +234,10 @@ def check_years(df: pd.DataFrame, year_type: str):
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
     expected_years = years[year_type]
     if set(df.year_id.unique()) < set(expected_years):
-        raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique()))}')
+        raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique()))}.')
     # if is it annual, we expect to have extra years from some cases like codcorrect/covariate
     if year_type == 'binned' and set(df.year_id.unique()) > set(expected_years):
-        raise DataAbnormalError(f'Data has extra years: {set(df.year_id.unique()).difference(set(expected_years))}')
+        raise DataAbnormalError(f'Data has extra years: {set(df.year_id.unique()).difference(set(expected_years))}.')
 
 
 def check_location(data: pd.DataFrame, location_id: str):
@@ -237,6 +252,6 @@ def check_location(data: pd.DataFrame, location_id: str):
 
 def check_columns(expected_cols: List, existing_cols: List):
     if set(existing_cols) < set(expected_cols):
-        raise DataAbnormalError(f'{set(expected_cols).difference(set(existing_cols))} columns are missing')
+        raise DataAbnormalError(f'{set(expected_cols).difference(set(existing_cols))} columns are missing.')
     elif set(existing_cols) > set(expected_cols):
-        raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}')
+        raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')

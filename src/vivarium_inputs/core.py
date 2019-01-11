@@ -39,12 +39,12 @@ def get_data(entity, measure: str, location: str):
     }
 
     if measure not in measure_handlers:
-        raise InvalidQueryError(f'No functions available to pull data for measure {measure}')
+        raise InvalidQueryError(f'No functions available to pull data for measure {measure}.')
 
     handler, entity_types = measure_handlers[measure]
 
     if entity.kind not in entity_types:
-        raise InvalidQueryError(f'{measure.capitalize()} not available for {entity.kind}')
+        raise InvalidQueryError(f'{measure.capitalize()} not available for {entity.kind}.')
 
     location_id = utilities.get_location_id(location)
     data = handler(entity, location_id)
