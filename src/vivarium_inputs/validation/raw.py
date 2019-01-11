@@ -18,6 +18,7 @@ def check_metadata(entity, measure):
         'health_technology': _check_health_technology_metadata,
         'healthcare_entity': _check_healthcare_entity_metadata,
         'population': _check_population_metadata,
+        'alternative_risk_factor': _check_risk_factor_metadata,
     }
 
     metadata_checkers[entity.kind](entity, measure)
