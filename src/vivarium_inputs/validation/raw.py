@@ -162,11 +162,15 @@ def _validate_exposure(data, entity, location_id):
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
-    raise NotImplementedError()
+    
+    expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_location(data, location_id)
 
 
 def _validate_exposure_distribution_weights(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ('exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull', 'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel', 'risk_id','location_id', 'sex_id', 'age_group_id', 'measure')
+    check_columns(expected_columns, data.columns)
 
 
 def _validate_relative_risk(data, entity, location_id):

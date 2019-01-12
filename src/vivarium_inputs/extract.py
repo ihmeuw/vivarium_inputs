@@ -99,7 +99,8 @@ def extract_exposure_standard_deviation(entity, location_id: int) -> pd.DataFram
 
 
 def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    data = gbd.get_auxiliary_data('ensemble_weights', entity.kind, entity.name, location_id)
+    return data
 
 
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:

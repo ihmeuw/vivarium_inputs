@@ -157,11 +157,22 @@ def get_exposure(entity, location_id):
 def get_exposure_standard_deviation(entity, location_id):
     if entity.kind == 'risk_factor':
         raise NotImplementedError()
+    elif entity.kind == 'alternative_risk_factor':
+        data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
+        data = utilities.normalize(data, fill_value=0)
+        data = utilities.reshape(data)
+        return data
+    else:
+        raise NotImplementedError()
 
 
 def get_exposure_distribution_weights(entity, location_id):
-    if entity.kind == 'risk_factor':
-        raise NotImplementedError()
+    data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
+    data = utilities.normalize(data, fill_value=0)
+    key_cols = ['risk_id', 'location_id', 'sex_id', 'age_group_id', 'measure', 'year_id'] 
+    value_cols= [c for c in data.columns if c not in key_cols]
+    data = pd.melt(data, id_vars=key_cols, value_vars=value_cols, var_name='parameter')
+    return data
 
 
 def get_relative_risk(entity, location_id):

@@ -82,8 +82,7 @@ def _validate_exposure(data, entity, location):
 
 def _validate_exposure_standard_deviation(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
-
+    
 
 def _validate_exposure_distribution_weights(data, entity, location):
     _validate_standard_columns(data, location)
