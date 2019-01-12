@@ -169,7 +169,9 @@ def _validate_exposure_standard_deviation(data, entity, location_id):
 
 
 def _validate_exposure_distribution_weights(data, entity, location_id):
-    expected_columns = ('exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull', 'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel', 'risk_id','location_id', 'sex_id', 'age_group_id', 'measure')
+    expected_columns = ('exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull', 'lnorm', 'norm',
+                        'glnorm', 'betasr', 'mgamma', 'mgumbel', 'risk_id','location_id', 'sex_id', 'age_group_id',
+                        'measure')
     check_columns(expected_columns, data.columns)
 
 

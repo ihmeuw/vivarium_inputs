@@ -5,7 +5,6 @@ from gbd_mapping import Cause, RiskFactor, Sequela, Covariate
 import pandas as pd
 
 from vivarium_inputs import utilities, extract
-from vivarium_inputs.mapping_extension import AlternativeRiskFactor
 from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS
 
 
