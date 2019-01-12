@@ -155,15 +155,10 @@ def get_exposure(entity, location_id):
 
 
 def get_exposure_standard_deviation(entity, location_id):
-    if entity.kind == 'risk_factor':
-        raise NotImplementedError()
-    elif entity.kind == 'alternative_risk_factor':
-        data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
-        data = utilities.normalize(data, fill_value=0)
-        data = utilities.reshape(data)
-        return data
-    else:
-        raise NotImplementedError()
+    data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data)
+    return data
 
 
 def get_exposure_distribution_weights(entity, location_id):
