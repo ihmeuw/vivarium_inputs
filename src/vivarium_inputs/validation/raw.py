@@ -18,6 +18,7 @@ def check_metadata(entity, measure):
         'health_technology': _check_health_technology_metadata,
         'healthcare_entity': _check_healthcare_entity_metadata,
         'population': _check_population_metadata,
+        'alternative_risk_factor': _check_risk_factor_metadata,
     }
 
     metadata_checkers[entity.kind](entity, measure)
@@ -161,11 +162,17 @@ def _validate_exposure(data, entity, location_id):
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
-    raise NotImplementedError()
+    
+    expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_location(data, location_id)
 
 
 def _validate_exposure_distribution_weights(data, entity, location_id):
-    raise NotImplementedError()
+    expected_columns = ('exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull', 'lnorm', 'norm',
+                        'glnorm', 'betasr', 'mgamma', 'mgumbel', 'risk_id','location_id', 'sex_id', 'age_group_id',
+                        'measure')
+    check_columns(expected_columns, data.columns)
 
 
 def _validate_relative_risk(data, entity, location_id):

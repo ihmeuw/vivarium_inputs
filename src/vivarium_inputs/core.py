@@ -20,9 +20,9 @@ def get_data(entity, measure: str, location: str):
         'excess_mortality': (get_excess_mortality, ('cause',)),
         'case_fatality': (get_case_fatality, ('cause',)),
         # Risk-like measures
-        'exposure': (get_exposure, ('risk_factor', 'coverage_gap')),
-        'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor',)),
-        'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor',)),
+        'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
+        'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
+        'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor', 'alternative_risk_factor')),
         'relative_risk': (get_relative_risk, ('risk_factor', 'coverage_gap')),
         'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'coverage_gap', 'etiology')),
         'mediation_factors': (get_mediation_factors, ('risk_factor',)),
@@ -144,20 +144,29 @@ def get_exposure(entity, location_id):
         cat2 = utilities.normalize(cat2, fill_value=1)
         data = pd.concat([cat1, cat2], ignore_index=True)
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
-
+    elif entity.kind == 'alternative_risk_factor':
+        data = extract.extract_data(entity, 'exposure', location_id)
+        data = utilities.normalize(data, fill_value=0)
+        data = utilities.reshape(data)
     else:
         raise NotImplementedError()
     return data
 
 
 def get_exposure_standard_deviation(entity, location_id):
-    if entity.kind == 'risk_factor':
-        raise NotImplementedError()
+    data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data)
+    return data
 
 
 def get_exposure_distribution_weights(entity, location_id):
-    if entity.kind == 'risk_factor':
-        raise NotImplementedError()
+    data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
+    data = utilities.normalize(data, fill_value=0)
+    key_cols = ['risk_id', 'location_id', 'sex_id', 'age_group_id', 'measure', 'year_id'] 
+    value_cols= [c for c in data.columns if c not in key_cols]
+    data = pd.melt(data, id_vars=key_cols, value_vars=value_cols, var_name='parameter')
+    return data
 
 
 def get_relative_risk(entity, location_id):
