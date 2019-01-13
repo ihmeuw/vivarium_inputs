@@ -92,14 +92,15 @@ def extract_exposure(entity, location_id: int) -> pd.DataFrame:
 
 def extract_exposure_standard_deviation(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'alternative_risk_factor':
-        data = gbd.get_auxiliary_data('exposure_standard_deviation', 'alternative_risk_factor', entity.name, location_id)
+        data = gbd.get_auxiliary_data('exposure_standard_deviation', 'alternative_risk_factor',
+                                      entity.name, location_id)
     else:
         raise NotImplementedError()
     return data
 
 
 def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFrame:
-    data = gbd.get_auxiliary_data('ensemble_weights', entity.kind, entity.name, location_id)
+    data = gbd.get_auxiliary_data('exposure_distribution_weights', entity.kind, entity.name, location_id)
     return data
 
 

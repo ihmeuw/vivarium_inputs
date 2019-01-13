@@ -7,7 +7,7 @@ from .alternative_risk_factor_template import AlternativeRiskFactors, Alternativ
 alternative_risk_factors = AlternativeRiskFactors(
     child_underweight=AlternativeRiskFactor(
         name='child_underweight',
-        kind='risk_factor',
+        kind='alternative_risk_factor',
         gbd_id=reiid(94),
         level=4,
         most_detailed=True,
@@ -47,7 +47,7 @@ alternative_risk_factors = AlternativeRiskFactors(
     ),
     child_wasting=AlternativeRiskFactor(
         name='child_wasting',
-        kind='risk_factor',
+        kind='alternative_risk_factor',
         gbd_id=reiid(240),
         level=4,
         most_detailed=True,
@@ -87,7 +87,7 @@ alternative_risk_factors = AlternativeRiskFactors(
     ),
     child_stunting=AlternativeRiskFactor(
         name='child_stunting',
-        kind='risk_factor',
+        kind='alternative_risk_factor',
         gbd_id=reiid(241),
         level=4,
         most_detailed=True,

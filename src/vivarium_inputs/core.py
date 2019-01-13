@@ -163,9 +163,10 @@ def get_exposure_standard_deviation(entity, location_id):
 def get_exposure_distribution_weights(entity, location_id):
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
     data = utilities.normalize(data, fill_value=0)
-    key_cols = ['risk_id', 'location_id', 'sex_id', 'age_group_id', 'measure', 'year_id'] 
-    value_cols= [c for c in data.columns if c not in key_cols]
-    data = pd.melt(data, id_vars=key_cols, value_vars=value_cols, var_name='parameter')
+    key_cols = ['location_id', 'sex_id', 'age_group_id', 'year_id']
+    distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
+                         'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
+    data = pd.melt(data, id_vars=key_cols, value_vars=distribution_cols, var_name='parameter')
     return data
 
 
