@@ -165,7 +165,7 @@ def _check_healthcare_entity_metadata(entity, measure):
 
 
 def _check_population_metadata(entity, measure):
-    del entity, measure
+    del entity, measure  # unused
     pass
 
 
@@ -189,7 +189,7 @@ def _validate_prevalence(data, entity, location_id):
 
 
 def _validate_disability_weight(data, entity, location_id):
-    del entity
+    del entity  # unused
     expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
                         'healthstate', 'healthstate_id') + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -197,7 +197,7 @@ def _validate_disability_weight(data, entity, location_id):
 
 
 def _validate_remission(data, entity, location_id):
-    del entity
+    del entity  # unused
     expected_columns = ('measure_id', 'metric_id', 'model_version_id',
                         'modelable_entity_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
