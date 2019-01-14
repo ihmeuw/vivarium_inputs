@@ -240,7 +240,7 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
 
 
 def _validate_relative_risk(data, entity, location_id):
-    del entity
+    del entity  # unused
     expected_columns = ('rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
                         'morbidity', 'metric_id', 'parameter') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -249,7 +249,7 @@ def _validate_relative_risk(data, entity, location_id):
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
-    del entity
+    del entity  # unused
     expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -261,7 +261,7 @@ def _validate_mediation_factors(data, entity, location_id):
 
 
 def _validate_estimate(data, entity, location_id):
-    del entity
+    del entity  # unused
     expected_columns = ['model_version_id', 'covariate_id', 'covariate_name_short', 'location_id',
                         'location_name', 'year_id', 'age_group_id', 'age_group_name', 'sex_id',
                         'sex', 'mean_value', 'lower_value', 'upper_value']
@@ -279,7 +279,7 @@ def _validate_utilization(data, entity, location_id):
 
 
 def _validate_structure(data, entity, location_id):
-    del entity
+    del entity  # unused
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -287,7 +287,7 @@ def _validate_structure(data, entity, location_id):
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):
-    del data, entity, location_id
+    del data, entity, location_id  # unused
     pass
 
 
