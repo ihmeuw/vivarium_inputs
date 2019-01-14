@@ -137,8 +137,13 @@ def _check_etiology_metadata(entity, measure):
 
 
 def _check_covariate_metadata(entity, measure):
-    if not entity.data_exist:  # TODO: do covariates vary by loc like sequela, cause, risk etc.?
-        warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not exist for all locations.')
+    if not entity.mean_value_exists:  # TODO: do covariates vary by loc like sequela, cause, risk etc.?
+        warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain'
+                      f'mean values for all locations.')
+
+    if not entity.uncertainty_exists:
+        warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain '
+                      f'uncertainty values for all locations.')
 
     restrictions = ['sex', 'age']
     for restriction in restrictions:
