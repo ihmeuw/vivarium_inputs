@@ -115,20 +115,17 @@ def _check_risk_factor_metadata(entity, measure):
             warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may not exist for all locations.')
 
         if measure == 'relative_risk' and exists and not entity.rr_in_range:
-            # WARN
+            warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may be outside '
+                          f'expected range >1.')
+
+        if measure == 'exposure' and exists and entity.exposure_year_type in ('mix', 'incomplete'):
+            warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may contain unexpected '
+                          f'or missing years.')
 
     violated_restrictions = [r.replace('_', ' ') for r in entity.restrictions.violated if mapping_names[measure] in r]
     if violated_restrictions:
         warnings.warn(f'Risk factor {entity.name} {measure} data may violate the following restrictions: '
                       f'{", ".join(violated_restrictions)}.')
-
-    # if exposure year type in mix, incomplete: warn
-
-    # rr in range means greater than 1
-
-    # paf in range means [0, 1]
-
-
 
 
 def _check_etiology_metadata(entity, measure):
