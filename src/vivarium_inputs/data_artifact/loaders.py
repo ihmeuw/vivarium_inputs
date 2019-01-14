@@ -6,6 +6,7 @@ from vivarium_public_health.dataset_manager import EntityKey
 from vivarium_inputs.globals import InvalidQueryError
 from vivarium_inputs.interface import (get_measure, get_population_structure, get_age_bins,
                                        get_theoretical_minimum_risk_life_expectancy, get_demographic_dimensions)
+from vivarium_inputs.mapping_extension import alternative_risk_factors
 
 
 CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
@@ -25,7 +26,14 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
             "getter": get_risk_data,
             "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution",
                          "exposure_parameters", "categories", "tmred", "exposure", "exposure_standard_deviation",
-                         "relative_risk", "population_attributable_fraction", "ensemble_weights"],
+                         "relative_risk", "population_attributable_fraction", "exposure_distribution_weights"],
+        },
+        "alternative_risk_factor": {
+            "mapping": alternative_risk_factors,
+            "getter": get_risk_data,
+            "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution",
+                         "exposure_parameters", "categories", "tmred", "exposure", "exposure_standard_deviation",
+                         "relative_risk", "population_attributable_fraction", "exposure_distribution_weights"],
         },
         "sequela": {
             "mapping": sequelae,
