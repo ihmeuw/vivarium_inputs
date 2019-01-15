@@ -137,7 +137,7 @@ def _check_etiology_metadata(entity, measure):
 
 
 def _check_covariate_metadata(entity, measure):
-    if not entity.mean_value_exists:  # TODO: do covariates vary by loc like sequela, cause, risk etc.?
+    if not entity.mean_value_exists:
         warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain'
                       f'mean values for all locations.')
 
@@ -145,11 +145,11 @@ def _check_covariate_metadata(entity, measure):
         warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain '
                       f'uncertainty values for all locations.')
 
-    restrictions = ['sex', 'age']
-    for restriction in restrictions:
-        # TODO: do covariate restriction violations vary by loc?
-        if not entity[f'{restriction}_restriction_violated']:
-            warnings.warn(f'Covariate {entity.name} has {measure}, but {restriction}_restriction is violated.')
+    restrictions = [entity[f'by_{r}_violated'] for r in ['sex', 'age']]
+    violated_restrictions = [r.replace('_violated', '').replace('_', ' ') for r in restrictions if r]
+    if violated_restrictions:
+        warnings.warn(f'Covariate {entity.name} may violate the following '
+                      f'restrictions: {", ".join(violated_restrictions)}.')
 
 
 def _check_coverage_gap_metadata(entity, measure):
