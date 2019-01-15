@@ -4,7 +4,7 @@ import warnings
 import pandas as pd
 import numpy as np
 
-from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS, MEASURES,
+from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS,
                                      DataAbnormalError, InvalidQueryError, gbd)
 
 
@@ -165,7 +165,6 @@ def _check_healthcare_entity_metadata(entity, measure):
 
 
 def _check_population_metadata(entity, measure):
-    del entity, measure  # unused
     pass
 
 
@@ -221,17 +220,11 @@ def _validate_exposure(data, entity, location_id):
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
-
-    expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
-    check_columns(expected_columns, data.columns)
-    check_location(data, location_id)
+    raise NotImplementedError()
 
 
 def _validate_exposure_distribution_weights(data, entity, location_id):
-    key_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
-    distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
-                         'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
-    check_columns(key_cols + distribution_cols, data.columns)
+    raise NotImplementedError()
 
 
 def _validate_relative_risk(data, entity, location_id):
