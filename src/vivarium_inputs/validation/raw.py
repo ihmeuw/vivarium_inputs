@@ -7,6 +7,8 @@ import numpy as np
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS, MEASURES,
                                      DataAbnormalError, InvalidQueryError, gbd)
 
+MAX_INCIDENCE = 8  # ceiling-ed max incidence for diarrheal diseases among all locations
+
 
 def check_metadata(entity, measure):
     metadata_checkers = {
@@ -29,6 +31,7 @@ def validate_raw_data(data, entity, measure, location_id):
         # Cause-like measures
         'incidence': _validate_incidence,
         'prevalence': _validate_prevalence,
+        'birth_prevalence': _validate_birth_prevalence,
         'disability_weight': _validate_disability_weight,
         'remission': _validate_remission,
         'deaths': _validate_deaths,
@@ -169,21 +172,57 @@ def _check_population_metadata(entity, measure):
 
 
 def _validate_incidence(data, entity, location_id):
-    if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError('Incidence should have only rate (metric_id 3).')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    if data.measure_id.unique() != MEASURES['Incidence']:
+        raise DataAbnormalError(f'Incidence data for {entity.kind} {entity.name} includes measures '
+                                f'beyond the expected incidence (measure id {MEASURES["Incidence"]}).')
+    if data.metric_id.unique() != METRICS['Rate']:
+        raise DataAbnormalError(f'Incidence data for {entity.kind} {entity.name} includes metrics '
+                                f'beyond the expected rate (metric_id 3).')
+
+    check_draw_columns(data, 0, MAX_INCIDENCE)
     check_years(data, 'annual')
     check_location(data, location_id)
+    check_ages(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
 
 
 def _validate_prevalence(data, entity, location_id):
-    if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError('Prevalence should have only rate (metric_id 3).')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    if data.measure_id.unique() != MEASURES['Prevalence']:
+        raise DataAbnormalError(f'Prevalence data for {entity.kind} {entity.name} includes measures '
+                                f'beyond the expected prevalence (measure id {MEASURES["Prevalence"]}).')
+    if data.metric_id.unique() != METRICS['Rate']:
+        raise DataAbnormalError(f'Prevalence data for {entity.kind} {entity.name} includes metrics '
+                                f'beyond the expected rate (metric_id 3).')
+
+    check_draw_columns(data, 0, 1)
     check_years(data, 'annual')
     check_location(data, location_id)
+    check_ages(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+
+
+def _validate_birth_prevalence(data, entity, location_id):
+    expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
+    check_columns(expected_columns, data.columns)
+
+    if data.measure_id.unique() != MEASURES['Incidence']:
+        raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes measures '
+                                f'beyond the expected birth prevalence (measure id {MEASURES["Incidence"]}).')
+    if data.metric_id.unique() != METRICS['Rate']:
+        raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes metrics '
+                                f'beyond the expected rate (metric_id 3).')
+
+    check_draw_columns(data, 0, 1)
+    check_years(data, 'annual')
+    check_location(data, location_id)
+    birth_age_group_id = 164
+    if data.age_group_id.unique() != birth_age_group_id:
+        raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond '
+                                f'the expected birth age group (id {birth_age_group_id}.')
 
 
 def _validate_disability_weight(data, entity, location_id):
@@ -317,6 +356,7 @@ def check_location(data: pd.DataFrame, location_id: str):
     if len(data['location_id'].unique()) > 1:
         raise DataAbnormalError(f'Data has extra location ids.')
     data_location_id = data['location_id'].unique()[0]
+    # FIXME: make global for 1, add warning if global, allow to go up hierarchy but check
     if data_location_id not in [1, location_id]:
         raise DataAbnormalError(f'Data called for {location_id} has a location id {data_location_id}.')
 
@@ -326,3 +366,73 @@ def check_columns(expected_cols: List, existing_cols: List):
         raise DataAbnormalError(f'Data is missing columns: {set(expected_cols).difference(set(existing_cols))}.')
     elif set(existing_cols) > set(expected_cols):
         raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')
+
+
+def check_ages(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int):
+    """Check that all expected age groups between age_group_id_start and
+    age_group_id_end, inclusive, and only those age groups, appear in data.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing an age_group_id column.
+    age_group_id_start
+        Lower boundary of age group ids expected in data, inclusive.
+    age_group_id_end
+        Upper boundary of age group ids expected in data, exclusive.
+
+    Raises
+    ------
+    DataAbnormalError
+        If any age group ids in the range
+        [`age_group_id_start`, `age_group_id_end`] don't appear in the data or
+        if any additional age group ids (with the exception of 235) appear in
+        the data.
+
+    """
+    gbd_age_ids = gbd.get_age_group_id()
+    start_index = gbd_age_ids.index(age_group_id_start)
+    end_index = gbd_age_ids.index(age_group_id_end)
+
+    expected_gbd_age_ids = gbd_age_ids[start_index:end_index+1]
+
+    # age groups we expected in data but that are not
+    missing_age_groups = set(expected_gbd_age_ids).difference(set(data.age_group_id))
+    # age groups we do not expect in data but that are (allow 235 because of metadata oversight)
+    extra_age_groups = set(data.age_group_id).difference(set(expected_gbd_age_ids)) - {235}
+
+    if missing_age_groups:
+        raise DataAbnormalError(f'Data was expected to contain all age groups between ids '
+                                f'{age_group_id_start} and {age_group_id_end}, '
+                                f'but was missing the following: {missing_age_groups}.')
+    if extra_age_groups:
+        # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
+        should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
+        if not np.allclose(should_be_zero[DRAW_COLUMNS], 0):
+            raise DataAbnormalError(f'Data was only expected to contain age groups between ids '
+                                    f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
+                                    f'but also included {extra_age_groups}.')
+
+
+def check_draw_columns(data: pd.DataFrame, min_value: float, max_value: float):
+    """Check that all values in data in draw columns fall between min_value
+    and max_value, inclusive.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing DRAW_COLUMNS.
+    min_value
+        Lower boundary of expected values, inclusive.
+    max_value
+        Upper boundary of expected values, inclusive.
+
+    Raises
+    ------
+    DataAbnormalError
+        If any values in DRAW_COLUMNS in data fall outside the range
+        [`min_value`, `max_value`].
+
+    """
+    if not np.all(data[DRAW_COLUMNS] >= min_value) and not np.all(data[DRAW_COLUMNS] <= max_value):
+        raise DataAbnormalError(f'Data contains values outside the expected range [{min_value}, {max_value}].')
