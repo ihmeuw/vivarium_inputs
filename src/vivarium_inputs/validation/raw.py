@@ -170,9 +170,8 @@ def _check_population_metadata(entity, measure):
 
 
 def _validate_incidence(data, entity, location_id):
-    if set(data.metric_id) != {METRICS['Rate']}:
-        raise DataAbnormalError(f'Incidence should contain only rate (metric_id 3). '
-                                f'This data contains {set(data.metric_id)}.')
+    if data.metric_id.unique() != METRICS['Rate']:
+        raise DataAbnormalError('incidence should have only rate (metric_id 3)')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -181,7 +180,7 @@ def _validate_incidence(data, entity, location_id):
 
 def _validate_prevalence(data, entity, location_id):
     if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError('Prevalence should have only rate (metric_id 3).')
+        raise DataAbnormalError('prevalence should have only rate (metric_id 3)')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -189,7 +188,6 @@ def _validate_prevalence(data, entity, location_id):
 
 
 def _validate_disability_weight(data, entity, location_id):
-    del entity  # unused
     expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
                         'healthstate', 'healthstate_id') + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -197,7 +195,6 @@ def _validate_disability_weight(data, entity, location_id):
 
 
 def _validate_remission(data, entity, location_id):
-    del entity  # unused
     expected_columns = ('measure_id', 'metric_id', 'model_version_id',
                         'modelable_entity_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -213,39 +210,31 @@ def _validate_deaths(data, entity, location_id):
 
 
 def _validate_exposure(data, entity, location_id):
-    # TODO: figure out what columns we have in cg exp data
-    if entity.kind == 'coverage_gap':
-        pass
 
     expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
                         'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
-
-    if len(set(data.measure_id)) > 1:
-        raise DataAbnormalError(f'{entity.kind.capitalize()} {entity.name} has '
-                                f'multiple measure ids: {set(data.measure_id)}.')
-
-    # TODO: should we allow continuous here or just prev and proportion?
-    if not set(data.measure_id).issubset({MEASURES['Prevalence'], MEASURES['Proportion'], MEASURES['Continuous']}):
-        raise DataAbnormalError(f'{entity.kind.capitalize()} {entity.name} contains '
-                                f'an invalid measure id {set(data.measure_id)}.')
-
-    # FIXME: sometimes exp is binned (vit a); sometimes it's annual (unsafe_water_source) - no pattern by dist type
-    # check_years(data, 'binned')
-
+    # we can't check years for coverage_gaps, since it's not consistent.
+    if entity.kind == 'risk_factor':
+        check_years(data, 'binned')
     check_location(data, location_id)
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
-    raise NotImplementedError()
+
+    expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_location(data, location_id)
 
 
 def _validate_exposure_distribution_weights(data, entity, location_id):
-    raise NotImplementedError()
+    key_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
+    distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
+                         'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
+    check_columns(key_cols + distribution_cols, data.columns)
 
 
 def _validate_relative_risk(data, entity, location_id):
-    del entity  # unused
     expected_columns = ('rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
                         'morbidity', 'metric_id', 'parameter') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -254,7 +243,6 @@ def _validate_relative_risk(data, entity, location_id):
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
-    del entity  # unused
     expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -266,7 +254,6 @@ def _validate_mediation_factors(data, entity, location_id):
 
 
 def _validate_estimate(data, entity, location_id):
-    del entity  # unused
     expected_columns = ['model_version_id', 'covariate_id', 'covariate_name_short', 'location_id',
                         'location_name', 'year_id', 'age_group_id', 'age_group_name', 'sex_id',
                         'sex', 'mean_value', 'lower_value', 'upper_value']
@@ -284,7 +271,6 @@ def _validate_utilization(data, entity, location_id):
 
 
 def _validate_structure(data, entity, location_id):
-    del entity  # unused
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -292,7 +278,6 @@ def _validate_structure(data, entity, location_id):
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):
-    del data, entity, location_id  # unused
     pass
 
 
@@ -313,7 +298,7 @@ def check_location(data: pd.DataFrame, location_id: str):
         raise DataAbnormalError(f'Data has extra location ids.')
     data_location_id = data['location_id'].unique()[0]
     if data_location_id not in [1, location_id]:
-        raise DataAbnormalError(f'Data called for {location_id} has a location id {data_location_id}')
+        raise DataAbnormalError(f'Data called for {location_id} has a location id {data_location_id}.')
 
 
 def check_columns(expected_cols: List, existing_cols: List):
