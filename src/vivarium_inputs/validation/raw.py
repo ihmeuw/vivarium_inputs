@@ -4,7 +4,7 @@ import warnings
 import pandas as pd
 import numpy as np
 
-from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS,
+from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS, MEASURES,
                                      DataAbnormalError, InvalidQueryError, gbd)
 
 
@@ -170,7 +170,7 @@ def _check_population_metadata(entity, measure):
 
 def _validate_incidence(data, entity, location_id):
     if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError('incidence should have only rate (metric_id 3)')
+        raise DataAbnormalError('Incidence should have only rate (metric_id 3).')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -179,7 +179,7 @@ def _validate_incidence(data, entity, location_id):
 
 def _validate_prevalence(data, entity, location_id):
     if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError('prevalence should have only rate (metric_id 3)')
+        raise DataAbnormalError('Prevalence should have only rate (metric_id 3).')
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -187,6 +187,7 @@ def _validate_prevalence(data, entity, location_id):
 
 
 def _validate_disability_weight(data, entity, location_id):
+    del entity  # unused
     expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
                         'healthstate', 'healthstate_id') + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -194,6 +195,7 @@ def _validate_disability_weight(data, entity, location_id):
 
 
 def _validate_remission(data, entity, location_id):
+    del entity  # unused
     expected_columns = ('measure_id', 'metric_id', 'model_version_id',
                         'modelable_entity_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -209,25 +211,48 @@ def _validate_deaths(data, entity, location_id):
 
 
 def _validate_exposure(data, entity, location_id):
+    # TODO: figure out what columns we have in cg exp data
+    if entity.kind == 'coverage_gap':
+        pass
 
     expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
                         'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
-    # we can't check years for coverage_gaps, since it's not consistent.
-    if entity.kind == 'risk_factor':
-        check_years(data, 'binned')
+
+    if len(set(data.measure_id)) > 1:
+        raise DataAbnormalError(f'{entity.kind.capitalize()} {entity.name} has '
+                                f'multiple measure ids: {set(data.measure_id)}.')
+
+    if not set(data.measure_id).issubset({MEASURES['Prevalence'], MEASURES['Proportion']}):
+        raise DataAbnormalError(f'{entity.kind.capitalize()} {entity.name} contains '
+                                f'an invalid measure id {set(data.measure_id)}.')
+
+    # TODO: do the exposure year types vary by loc? Can I throw an error for
+    #  mix/incomplete above so I don't have to handle it here?
+    check_years(data, entity.exposure_year_type)
     check_location(data, location_id)
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
-    raise NotImplementedError()
+    del entity  # unused
+    expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id',
+                        'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_years(data, 'annual')
+    check_location(data, location_id)
 
 
 def _validate_exposure_distribution_weights(data, entity, location_id):
-    raise NotImplementedError()
+    del entity  # unused
+    expected_columns = ['location_id', 'sex_id', 'age_group_id', 'measure', 'risk_id',
+                        'betasr', 'exp', 'gamma', 'glnorm', 'gumbel', 'invgamma', 'llogis',
+                        'invweibull', 'lnorm', 'mgamma', 'mgumbel', 'norm', 'weibull']
+    check_columns(expected_columns, data.columns)
+    check_location(data, location_id)
 
 
 def _validate_relative_risk(data, entity, location_id):
+    del entity  # unused
     expected_columns = ('rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
                         'morbidity', 'metric_id', 'parameter') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -236,6 +261,7 @@ def _validate_relative_risk(data, entity, location_id):
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
+    del entity  # unused
     expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -247,6 +273,7 @@ def _validate_mediation_factors(data, entity, location_id):
 
 
 def _validate_estimate(data, entity, location_id):
+    del entity  # unused
     expected_columns = ['model_version_id', 'covariate_id', 'covariate_name_short', 'location_id',
                         'location_name', 'year_id', 'age_group_id', 'age_group_name', 'sex_id',
                         'sex', 'mean_value', 'lower_value', 'upper_value']
