@@ -2,7 +2,8 @@ import pytest
 
 from gbd_mapping import causes, risk_factors, etiologies
 
-pexpect = pytest.importorskip("gbd_mapping.risk")
+risk = pytest.importorskip("gbd_mapping.risk")
+gbd = pytest.importorskip("vivarium_inputs.old_code.utilities.gbd")
 pytestmark = pytest.mark.skip("all tests still WIP for GBD 2017 updates")
 
 
