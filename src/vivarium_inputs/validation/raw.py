@@ -104,7 +104,7 @@ def _check_risk_factor_metadata(entity, measure):
 
         if measure == 'relative_risk' and exists and not entity.rr_in_range:
             warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may be outside '
-                          f'expected range >1.')
+                          f'expected range >=1.')
 
         if measure == 'exposure' and exists and entity.exposure_year_type in ('mix', 'incomplete'):
             warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may contain unexpected '
