@@ -74,7 +74,7 @@ def _check_cause_metadata(entity, measure):
     if exists and not entity[f'{measure}_in_range']:
         warnings.warn(f"{measure.capitalize()} for cause {entity.name} may be outside the normal range.")
 
-    violated_restrictions = [r.replace('_', ' ') for r in entity.restrictions.violated if measure in r]
+    violated_restrictions = [r.replace('_', ' ').replace(' violated', '') for r in entity.restrictions.violated if measure in r]
     if violated_restrictions:
         warnings.warn(f'Cause {entity.name} {measure} data may violate the following restrictions: '
                       f'{", ".join(violated_restrictions)}.')
@@ -100,18 +100,19 @@ def _check_risk_factor_metadata(entity, measure):
 
     if measure == 'population_attributable_fraction':
         paf_types = np.array(['yll', 'yld'])
-        missing_pafs = paf_types[not entity.paf_yll_exists, not entity.paf_yld_exists]
-        if missing_pafs:
-            warnings.warn(f'{measure.captitalize()} data for {", ".join(missing_pafs)} for risk factor {entity.name}'
+        missing_pafs = paf_types[[not entity.paf_yll_exists, not entity.paf_yld_exists]]
+        if missing_pafs.size:
+            warnings.warn(f'{measure.capitalize()} data for {", ".join(missing_pafs)} for risk factor {entity.name}'
                           f'may not exist for all locations.')
 
-        abnormal_range = paf_types[not entity.paf_yll_in_range, not entity.paf_yld_in_range]
-        if not missing_pafs and abnormal_range:
+        abnormal_range = paf_types[[entity.paf_yll_exists and not entity.paf_yll_in_range,
+                                    entity.paf_yld_exists and not entity.paf_yld_in_range]]
+        if abnormal_range.size:
             warnings.warn(f'{measure.capitalize()} data for {", ".join(abnormal_range)} for risk factor {entity.name} '
                           f'may be outside expected range [0, 1].')
     else:
         exists = entity[f'{mapping_names[measure]}_exists']
-        if not exists:
+        if exists is not None and not exists:
             warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may not exist for all locations.')
 
         if measure == 'relative_risk' and exists and not entity.rr_in_range:
@@ -122,18 +123,24 @@ def _check_risk_factor_metadata(entity, measure):
             warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may contain unexpected '
                           f'or missing years.')
 
-    violated_restrictions = [r.replace('_', ' ') for r in entity.restrictions.violated if mapping_names[measure] in r]
+    violated_restrictions = [r.replace('_', ' ').replace(' violated', '') for r in entity.restrictions.violated if mapping_names[measure] in r]
     if violated_restrictions:
         warnings.warn(f'Risk factor {entity.name} {measure} data may violate the following restrictions: '
                       f'{", ".join(violated_restrictions)}.')
 
 
 def _check_etiology_metadata(entity, measure):
-    mapping_measure = 'paf_yld'
-    if not entity[f'{mapping_measure}_exists']:
-        warnings.warn(f'{measure.capitalize()} data for etiology {entity.name} may not exist for all locations.')
-    if not entity[f'{mapping_measure}_in_range']:
-        warnings.warn(f'{measure.capitalize()} for etiology {entity.name} may be abnormal.')
+    paf_types = np.array(['yll', 'yld'])
+    missing_pafs = paf_types[[not entity.paf_yll_exists, not entity.paf_yld_exists]]
+    if missing_pafs.size:
+        warnings.warn(f'{measure.capitalize()} data for {", ".join(missing_pafs)} for etiology {entity.name}'
+                      f'may not exist for all locations.')
+
+    abnormal_range = paf_types[[entity.paf_yll_exists and not entity.paf_yll_in_range,
+                                entity.paf_yld_exists and not entity.paf_yld_in_range]]
+    if abnormal_range.size:
+        warnings.warn(f'{measure.capitalize()} data for {", ".join(abnormal_range)} for etiology {entity.name} '
+                      f'may be outside expected range [0, 1].')
 
 
 def _check_covariate_metadata(entity, measure):
@@ -145,8 +152,7 @@ def _check_covariate_metadata(entity, measure):
         warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain '
                       f'uncertainty values for all locations.')
 
-    restrictions = [entity[f'by_{r}_violated'] for r in ['sex', 'age']]
-    violated_restrictions = [r.replace('_violated', '').replace('_', ' ') for r in restrictions if r]
+    violated_restrictions = [f'by {r}' for r in ['sex', 'age'] if entity[f'by_{r}_violated']]
     if violated_restrictions:
         warnings.warn(f'Covariate {entity.name} may violate the following '
                       f'restrictions: {", ".join(violated_restrictions)}.')
