@@ -173,6 +173,8 @@ def _check_population_metadata(entity, measure):
 
 
 def _validate_incidence(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
@@ -181,11 +183,17 @@ def _validate_incidence(data, entity, location_id):
     check_draw_columns_range(data, 0, MAX_INCIDENCE, warn=True)
     check_years(data, 'annual')
     check_location(data, location_id)
-    check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_all_ages_present(data)
+    check_all_sexes_present(data)
+
+    if entity.kind == 'cause':
+        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_prevalence(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
@@ -194,11 +202,17 @@ def _validate_prevalence(data, entity, location_id):
     check_draw_columns_range(data, 0, 1)
     check_years(data, 'annual')
     check_location(data, location_id)
-    check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_all_ages_present(data)
+    check_all_sexes_present(data)
+
+    if entity.kind == 'cause':
+        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_birth_prevalence(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
@@ -207,16 +221,19 @@ def _validate_birth_prevalence(data, entity, location_id):
     check_draw_columns_range(data, 0, 1)
     check_years(data, 'annual')
     check_location(data, location_id)
+    check_all_sexes_present(data)
+
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
         raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond '
                                 f'the expected birth age group (id {birth_age_group_id}.')
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+
+    if entity.kind == 'cause':
+        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_disability_weight(data, entity, location_id):
     # TODO
-    del entity  # unused
     expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
                         'healthstate', 'healthstate_id') + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -224,7 +241,8 @@ def _validate_disability_weight(data, entity, location_id):
 
 
 def _validate_remission(data, entity, location_id):
-    del entity  # unused
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('measure_id', 'metric_id', 'model_version_id',
                         'modelable_entity_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -239,10 +257,18 @@ def _validate_remission(data, entity, location_id):
 
 
 def _validate_deaths(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('measure_id', f'{entity.kind}_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_measure_id(data.measure_id.unique(), 'deaths')
+    check_metric_id(data.metric_id.unique(), 'number')
+    # check_draw_columns_range(data, 0, population) FIXME: what should be the upper bound for deaths?
     check_years(data, 'annual')
     check_location(data, location_id)
+    check_age_restrictions(data, entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_exposure(data, entity, location_id):
@@ -386,9 +412,16 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True):
         raise DataNotExistError('Data contains no non-zero values.')
 
 
-def check_ages_present(data: pd.DataFrame, expected_ages):
+def check_all_ages_present(data: pd.DataFrame):
+    expected_ages = set(gbd.get_age_group_id())
+    if set(data.age_group_id) != expected_ages:
+        raise DataAbnormalError('Data does not contain the full set of GBD age groups as expected.')
 
 
+def check_all_sexes_present(data: pd.DataFrame):
+    expected_sexes = {gbd.MALE, gbd.FEMALE}
+    if set(data.sex_id) != expected_sexes:
+        raise DataAbnormalError('Data does not contain the full set of GBD sex ids as expected.')
 
 
 def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int):
