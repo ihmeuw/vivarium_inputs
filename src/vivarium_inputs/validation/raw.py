@@ -74,10 +74,7 @@ def _check_cause_metadata(entity, measure):
     if exists and not entity[f'{measure}_in_range']:
         warnings.warn(f"{measure.capitalize()} for cause {entity.name} may be outside the normal range.")
 
-    violated_restrictions = [r.replace('_', ' ').replace(' violated', '') for r in entity.restrictions.violated if measure in r]
-    if violated_restrictions:
-        warnings.warn(f'Cause {entity.name} {measure} data may violate the following restrictions: '
-                      f'{", ".join(violated_restrictions)}.')
+    _warn_violated_restrictions(entity, measure)
 
     consistent = entity[f"{measure}_consistent"]
     children = "subcauses" if measure == "deaths" else "sequela"
@@ -123,10 +120,7 @@ def _check_risk_factor_metadata(entity, measure):
             warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may contain unexpected '
                           f'or missing years.')
 
-    violated_restrictions = [r.replace('_', ' ').replace(' violated', '') for r in entity.restrictions.violated if mapping_names[measure] in r]
-    if violated_restrictions:
-        warnings.warn(f'Risk factor {entity.name} {measure} data may violate the following restrictions: '
-                      f'{", ".join(violated_restrictions)}.')
+    _warn_violated_restrictions(entity, mapping_names[measure])
 
 
 def _check_etiology_metadata(entity, measure):
@@ -305,3 +299,11 @@ def check_columns(expected_cols: List, existing_cols: List):
         raise DataAbnormalError(f'Data is missing columns: {set(expected_cols).difference(set(existing_cols))}.')
     elif set(existing_cols) > set(expected_cols):
         raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')
+
+
+def _warn_violated_restrictions(entity, measure):
+    violated_restrictions = [r.replace('_', ' ').replace(' violated', '') for r
+                             in entity.restrictions.violated if measure in r]
+    if violated_restrictions:
+        warnings.warn(f'{entity.kind.capitalize()} {entity.name} {measure} data may violate the following restrictions: '
+                      f'{", ".join(violated_restrictions)}.')
