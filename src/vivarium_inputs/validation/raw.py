@@ -305,5 +305,5 @@ def _warn_violated_restrictions(entity, measure):
     violated_restrictions = [r.replace('_', ' ').replace(' violated', '') for r
                              in entity.restrictions.violated if measure in r]
     if violated_restrictions:
-        warnings.warn(f'{entity.kind.capitalize()} {entity.name} {measure} data may violate the following restrictions: '
-                      f'{", ".join(violated_restrictions)}.')
+        warnings.warn(f'{entity.kind.capitalize()} {entity.name} {measure} data may violate the '
+                      f'following restrictions: {", ".join(violated_restrictions)}.')
