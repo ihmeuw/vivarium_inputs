@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS, MEASURES,
-                                     DataAbnormalError, InvalidQueryError, gbd)
+                                     DataAbnormalError, InvalidQueryError, DataNotExistError, gbd)
 
 MAX_INCIDENCE = 8  # ceiling-ed max incidence for diarrheal diseases among all locations
 
@@ -186,6 +186,7 @@ def _validate_incidence(data, entity, location_id):
     check_years(data, 'annual')
     check_location(data, location_id)
     check_ages(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+    check_sex_id(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_prevalence(data, entity, location_id):
@@ -203,6 +204,7 @@ def _validate_prevalence(data, entity, location_id):
     check_years(data, 'annual')
     check_location(data, location_id)
     check_ages(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+    check_sex_id(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_birth_prevalence(data, entity, location_id):
@@ -223,6 +225,7 @@ def _validate_birth_prevalence(data, entity, location_id):
     if data.age_group_id.unique() != birth_age_group_id:
         raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond '
                                 f'the expected birth age group (id {birth_age_group_id}.')
+    check_sex_id(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_disability_weight(data, entity, location_id):
@@ -250,10 +253,6 @@ def _validate_deaths(data, entity, location_id):
 
 
 def _validate_exposure(data, entity, location_id):
-    # TODO: figure out what columns we have in cg exp data
-    if entity.kind == 'coverage_gap':
-        pass
-
     expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
                         'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -356,7 +355,7 @@ def check_location(data: pd.DataFrame, location_id: str):
     if len(data['location_id'].unique()) > 1:
         raise DataAbnormalError(f'Data has extra location ids.')
     data_location_id = data['location_id'].unique()[0]
-    # FIXME: make global for 1, add warning if global, allow to go up hierarchy but check
+    # FIXME: make var for 1, add warning if global, allow to go up hierarchy but check
     if data_location_id not in [1, location_id]:
         raise DataAbnormalError(f'Data called for {location_id} has a location id {data_location_id}.')
 
@@ -366,6 +365,15 @@ def check_columns(expected_cols: List, existing_cols: List):
         raise DataAbnormalError(f'Data is missing columns: {set(expected_cols).difference(set(existing_cols))}.')
     elif set(existing_cols) > set(expected_cols):
         raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')
+
+
+def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True):
+    if data.empty:
+        raise DataNotExistError('Data is empty.')
+    if data.dropna().empty:
+        raise DataNotExistError('Data contains no non-missing values.')
+    if zeros_missing and not np.all(data[DRAW_COLUMNS]):
+        raise DataNotExistError('Data')
 
 
 def check_ages(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int):
@@ -390,6 +398,8 @@ def check_ages(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: in
         the data.
 
     """
+    data = data.copy().dropna()
+
     gbd_age_ids = gbd.get_age_group_id()
     start_index = gbd_age_ids.index(age_group_id_start)
     end_index = gbd_age_ids.index(age_group_id_end)
@@ -408,13 +418,13 @@ def check_ages(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: in
     if extra_age_groups:
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
-        if not np.allclose(should_be_zero[DRAW_COLUMNS], 0):
+        if not np.all(should_be_zero[DRAW_COLUMNS]):
             raise DataAbnormalError(f'Data was only expected to contain age groups between ids '
                                     f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
                                     f'but also included {extra_age_groups}.')
 
 
-def check_draw_columns(data: pd.DataFrame, min_value: float, max_value: float):
+def check_draw_columns(data: pd.DataFrame, min_value: float, max_value: float, warn: bool = False):
     """Check that all values in data in draw columns fall between min_value
     and max_value, inclusive.
 
@@ -426,6 +436,9 @@ def check_draw_columns(data: pd.DataFrame, min_value: float, max_value: float):
         Lower boundary of expected values, inclusive.
     max_value
         Upper boundary of expected values, inclusive.
+    warn
+        Boolean indicating whether values out of range should trigger
+        a warning (True) or an error (False).
 
     Raises
     ------
@@ -434,5 +447,58 @@ def check_draw_columns(data: pd.DataFrame, min_value: float, max_value: float):
         [`min_value`, `max_value`].
 
     """
+    msg = f'Data contains values outside the expected range [{min_value}, {max_value}].'
     if not np.all(data[DRAW_COLUMNS] >= min_value) and not np.all(data[DRAW_COLUMNS] <= max_value):
-        raise DataAbnormalError(f'Data contains values outside the expected range [{min_value}, {max_value}].')
+        if warn:
+            warnings.warn(msg)
+        else:
+            raise DataAbnormalError(msg)
+
+
+def check_sex_id(data: pd.DataFrame, male_only: bool, female_only: bool):
+    """Check that data only contains sex ids expected from GBD and that any
+    sex restrictions match data.
+
+    Parameters
+    ----------
+    data
+        Dataframe contained sex_id column.
+    male_only
+        Boolean indicating whether data is restricted to male only estimates.
+    female_only
+        Boolean indicating whether data is restricted to female only estimates.
+
+    Raises
+    -------
+    DataAbnormalError
+        If data contains any sex ids not in the set defined by GBD or data
+        violates passed sex restrictions.
+    """
+    data = data.copy().dropna()
+
+    gbd_sex_ids = {gbd.MALE, gbd.FEMALE, gbd.COMBINED}
+    if not set(data.sex_id).issubset(gbd_sex_ids):
+        raise DataAbnormalError(f'Data contains unexpected sex ids: {set(data.sex_id).difference(gbd_sex_ids)}')
+
+    if male_only:
+        if not np.all(data[data.sex_id == gbd.MALE]):
+            raise DataAbnormalError('Data is restricted to male only, but contains all zero values for males.')
+
+        if set(data.sex_id) != {gbd.MALE} and np.all(data[data.sex_id != gbd.MALE][DRAW_COLUMNS]):
+            raise DataAbnormalError('Data is restricted to male only, but contains '
+                                    'non-male sex ids for which data values are not all 0.')
+
+    if female_only:
+        if np.all(data[data.sex_id == gbd.FEMALE]):
+            raise DataAbnormalError('Data is restricted to female only, but contains all zero values for females.')
+
+        if set(data.sex_id) != {gbd.FEMALE} and np.all(data[data.sex_id != gbd.FEMALE][DRAW_COLUMNS]):
+            raise DataAbnormalError('Data is restricted to female only, but contains '
+                                    'non-female sex ids for which data values are not all 0.')
+
+    if (not male_only and not female_only and
+            (not {3}.issubset(set(data.sex_id)) or not np.all(data[data.sex_id == gbd.COMBINED][DRAW_COLUMNS])
+             or (not {1, 2}.issubset(set(data.sex_id)) or (not np.all(data[data.sex_id == gbd.MALE][DRAW_COLUMNS])
+                 or not np.all(data[data.sex_id == gbd.FEMALE]))))):
+        raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
+                                'values for both males and females.')
