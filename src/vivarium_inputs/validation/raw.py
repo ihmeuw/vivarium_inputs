@@ -7,7 +7,8 @@ import numpy as np
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS, MEASURES,
                                      DataAbnormalError, InvalidQueryError, DataNotExistError, gbd)
 
-MAX_INCIDENCE = 8  # ceiling-ed max incidence for diarrheal diseases among all locations
+MAX_INCIDENCE = 8   # ceiling-ed max incidence for diarrheal diseases among all locations
+MAX_REMISSION = 80  # ceiling-ed max remission for diarrheal diseases among all locations
 
 
 def check_metadata(entity, measure):
@@ -175,60 +176,46 @@ def _validate_incidence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    if data.measure_id.unique() != MEASURES['Incidence']:
-        raise DataAbnormalError(f'Incidence data for {entity.kind} {entity.name} includes measures '
-                                f'beyond the expected incidence (measure id {MEASURES["Incidence"]}).')
-    if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError(f'Incidence data for {entity.kind} {entity.name} includes metrics '
-                                f'beyond the expected rate (metric_id 3).')
-
-    check_draw_columns(data, 0, MAX_INCIDENCE)
+    check_measure_id(data.measure_id.unique(), 'incidence')
+    check_metric_id(data.metric_id.unique(), 'rate')
+    check_draw_columns_range(data, 0, MAX_INCIDENCE, warn=True)
     check_years(data, 'annual')
     check_location(data, location_id)
-    check_ages(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    check_sex_id(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_prevalence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    if data.measure_id.unique() != MEASURES['Prevalence']:
-        raise DataAbnormalError(f'Prevalence data for {entity.kind} {entity.name} includes measures '
-                                f'beyond the expected prevalence (measure id {MEASURES["Prevalence"]}).')
-    if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError(f'Prevalence data for {entity.kind} {entity.name} includes metrics '
-                                f'beyond the expected rate (metric_id 3).')
-
-    check_draw_columns(data, 0, 1)
+    check_measure_id(data.measure_id.unique(), 'prevalence')
+    check_metric_id(data.metric_id.unique(), 'rate')
+    check_draw_columns_range(data, 0, 1)
     check_years(data, 'annual')
     check_location(data, location_id)
-    check_ages(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    check_sex_id(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_birth_prevalence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    if data.measure_id.unique() != MEASURES['Incidence']:
-        raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes measures '
-                                f'beyond the expected birth prevalence (measure id {MEASURES["Incidence"]}).')
-    if data.metric_id.unique() != METRICS['Rate']:
-        raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes metrics '
-                                f'beyond the expected rate (metric_id 3).')
-
-    check_draw_columns(data, 0, 1)
+    check_measure_id(data.measure_id.unique(), 'incidence')
+    check_metric_id(data.metric_id.unique(), 'rate')
+    check_draw_columns_range(data, 0, 1)
     check_years(data, 'annual')
     check_location(data, location_id)
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
         raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond '
                                 f'the expected birth age group (id {birth_age_group_id}.')
-    check_sex_id(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_disability_weight(data, entity, location_id):
+    # TODO
     del entity  # unused
     expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
                         'healthstate', 'healthstate_id') + DRAW_COLUMNS
@@ -241,8 +228,14 @@ def _validate_remission(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', 'model_version_id',
                         'modelable_entity_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_measure_id(data.measure_id.unique(), 'remission')
+    check_metric_id(data.metric_id.unique(), 'rate')
+    check_draw_columns_range(data, 0, MAX_REMISSION, warn=True)
     check_years(data, 'binned')
     check_location(data, location_id)
+    check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_deaths(data, entity, location_id):
@@ -355,8 +348,8 @@ def check_location(data: pd.DataFrame, location_id: str):
     if len(data['location_id'].unique()) > 1:
         raise DataAbnormalError(f'Data has extra location ids.')
     data_location_id = data['location_id'].unique()[0]
-    # FIXME: make var for 1, add warning if global, allow to go up hierarchy but check
-    if data_location_id not in [1, location_id]:
+    global_loc_id = 1
+    if data_location_id not in [global_loc_id, location_id]:
         raise DataAbnormalError(f'Data called for {location_id} has a location id {data_location_id}.')
 
 
@@ -368,15 +361,37 @@ def check_columns(expected_cols: List, existing_cols: List):
 
 
 def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True):
+    """
+
+    Parameters
+    ----------
+    data
+        Dataframe contain DRAW_COLUMNS.
+    zeros_missing
+        Boolean indicating whether to treat all zeros in DRAW_COLUMNS as
+        missing or not.
+
+    Raises
+    -------
+    DataNotExistError
+        If data is empty or contains all NaN values in DRAW_COLUMNS, or
+        contains all zeros in DRAW_COLUMNS and zeros_missing is True.
+
+    """
     if data.empty:
         raise DataNotExistError('Data is empty.')
     if data.dropna().empty:
         raise DataNotExistError('Data contains no non-missing values.')
     if zeros_missing and not np.all(data[DRAW_COLUMNS]):
-        raise DataNotExistError('Data')
+        raise DataNotExistError('Data contains no non-zero values.')
 
 
-def check_ages(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int):
+def check_ages_present(data: pd.DataFrame, expected_ages):
+
+
+
+
+def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int):
     """Check that all expected age groups between age_group_id_start and
     age_group_id_end, inclusive, and only those age groups, appear in data.
 
@@ -424,7 +439,7 @@ def check_ages(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: in
                                     f'but also included {extra_age_groups}.')
 
 
-def check_draw_columns(data: pd.DataFrame, min_value: float, max_value: float, warn: bool = False):
+def check_draw_columns_range(data: pd.DataFrame, min_value: float, max_value: float, warn: bool = False):
     """Check that all values in data in draw columns fall between min_value
     and max_value, inclusive.
 
@@ -455,7 +470,7 @@ def check_draw_columns(data: pd.DataFrame, min_value: float, max_value: float, w
             raise DataAbnormalError(msg)
 
 
-def check_sex_id(data: pd.DataFrame, male_only: bool, female_only: bool):
+def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool):
     """Check that data only contains sex ids expected from GBD and that any
     sex restrictions match data.
 
@@ -502,3 +517,16 @@ def check_sex_id(data: pd.DataFrame, male_only: bool, female_only: bool):
                  or not np.all(data[data.sex_id == gbd.FEMALE]))))):
         raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
                                 'values for both males and females.')
+
+
+def check_measure_id(data_measure_id, expected_measure):
+    if data_measure_id != MEASURES[expected_measure.capitalize()]:
+        raise DataAbnormalError(f'Data includes measures beyond the expected {expected_measure} '
+                                f'(measure id {MEASURES[expected_measure.capitalize()]}).')
+
+
+def check_metric_id(data_metric_id, expected_metric):
+    if data_metric_id != METRICS[expected_metric.capitalize()]:
+        raise DataAbnormalError(f'Data includes metrics beyond the expected {expected_metric.lower()} '
+                                f'(metric_id {METRICS[expected_metric.capitalize()]}')
+
