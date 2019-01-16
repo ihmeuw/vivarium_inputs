@@ -96,17 +96,7 @@ def _check_risk_factor_metadata(entity, measure):
                      'exposure_standard_deviation': 'exposure_sd'}
 
     if measure == 'population_attributable_fraction':
-        paf_types = np.array(['yll', 'yld'])
-        missing_pafs = paf_types[[not entity.paf_yll_exists, not entity.paf_yld_exists]]
-        if missing_pafs.size:
-            warnings.warn(f'{measure.capitalize()} data for {", ".join(missing_pafs)} for risk factor {entity.name}'
-                          f'may not exist for all locations.')
-
-        abnormal_range = paf_types[[entity.paf_yll_exists and not entity.paf_yll_in_range,
-                                    entity.paf_yld_exists and not entity.paf_yld_in_range]]
-        if abnormal_range.size:
-            warnings.warn(f'{measure.capitalize()} data for {", ".join(abnormal_range)} for risk factor {entity.name} '
-                          f'may be outside expected range [0, 1].')
+        _check_paf_types(entity)
     else:
         exists = entity[f'{mapping_names[measure]}_exists']
         if exists is not None and not exists:
@@ -124,17 +114,7 @@ def _check_risk_factor_metadata(entity, measure):
 
 
 def _check_etiology_metadata(entity, measure):
-    paf_types = np.array(['yll', 'yld'])
-    missing_pafs = paf_types[[not entity.paf_yll_exists, not entity.paf_yld_exists]]
-    if missing_pafs.size:
-        warnings.warn(f'{measure.capitalize()} data for {", ".join(missing_pafs)} for etiology {entity.name}'
-                      f'may not exist for all locations.')
-
-    abnormal_range = paf_types[[entity.paf_yll_exists and not entity.paf_yll_in_range,
-                                entity.paf_yld_exists and not entity.paf_yld_in_range]]
-    if abnormal_range.size:
-        warnings.warn(f'{measure.capitalize()} data for {", ".join(abnormal_range)} for etiology {entity.name} '
-                      f'may be outside expected range [0, 1].')
+    _check_paf_types(entity)
 
 
 def _check_covariate_metadata(entity, measure):
@@ -307,3 +287,17 @@ def _warn_violated_restrictions(entity, measure):
     if violated_restrictions:
         warnings.warn(f'{entity.kind.capitalize()} {entity.name} {measure} data may violate the '
                       f'following restrictions: {", ".join(violated_restrictions)}.')
+
+
+def _check_paf_types(entity):
+    paf_types = np.array(['yll', 'yld'])
+    missing_pafs = paf_types[[not entity.paf_yll_exists, not entity.paf_yld_exists]]
+    if missing_pafs.size:
+        warnings.warn(f'Population attributable fraction data for {", ".join(missing_pafs)} for '
+                      f'{entity.kind} {entity.name} may not exist for all locations.')
+
+    abnormal_range = paf_types[[entity.paf_yll_exists and not entity.paf_yll_in_range,
+                                entity.paf_yld_exists and not entity.paf_yld_in_range]]
+    if abnormal_range.size:
+        warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
+                      f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
