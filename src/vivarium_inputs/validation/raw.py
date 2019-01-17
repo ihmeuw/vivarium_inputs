@@ -24,7 +24,7 @@ def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
         'health_technology': check_health_technology_metadata,
         'healthcare_entity': check_healthcare_entity_metadata,
         'population': check_population_metadata,
-        'alternative_risk_factor': check_risk_factor_metadata,
+        'alternative_risk_factor': check_alternative_risk_factor_metadata,
     }
 
     metadata_checkers[entity.kind](entity, measure)
@@ -90,9 +90,6 @@ def check_cause_metadata(entity: Cause, measure: str):
 
 
 def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor], measure: str):
-    if entity.kind == 'alternative_risk_factor':
-        pass
-
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
         pass
@@ -109,8 +106,11 @@ def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor],
     _warn_violated_restrictions(entity, measure)
 
 
+def check_alternative_risk_factor_metadata(entity: AlternativeRiskFactor, measure: str):
+    pass
+
+
 def check_etiology_metadata(entity: Etiology, measure: str):
-    del measure  # unused
     _check_paf_types(entity)
 
 
@@ -127,7 +127,6 @@ def check_covariate_metadata(entity: Covariate, measure: str):
     if violated_restrictions:
         warnings.warn(f'Covariate {entity.name} may violate the following '
                       f'restrictions: {", ".join(violated_restrictions)}.')
-
 
 
 def check_coverage_gap_metadata(entity: CoverageGap, measure: str):
