@@ -178,7 +178,7 @@ def _validate_incidence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id.unique(), 'incidence')
+    check_measure_id(data.measure_id, ['incidence'])
     check_metric_id(data.metric_id.unique(), 'rate')
     check_draw_columns_range(data, 0, MAX_INCIDENCE, warn=True)
     check_years(data, 'annual')
@@ -197,7 +197,7 @@ def _validate_prevalence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id.unique(), 'prevalence')
+    check_measure_id(data.measure_id, ['prevalence'])
     check_metric_id(data.metric_id.unique(), 'rate')
     check_draw_columns_range(data, 0, 1)
     check_years(data, 'annual')
@@ -216,7 +216,7 @@ def _validate_birth_prevalence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id.unique(), 'incidence')
+    check_measure_id(data.measure_id, ['incidence'])
     check_metric_id(data.metric_id.unique(), 'rate')
     check_draw_columns_range(data, 0, 1)
     check_years(data, 'annual')
@@ -247,7 +247,7 @@ def _validate_remission(data, entity, location_id):
                         'modelable_entity_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id.unique(), 'remission')
+    check_measure_id(data.measure_id, ['remission'])
     check_metric_id(data.metric_id.unique(), 'rate')
     check_draw_columns_range(data, 0, MAX_REMISSION, warn=True)
     check_years(data, 'binned')
@@ -262,9 +262,9 @@ def _validate_deaths(data, entity, location_id):
     expected_columns = ('measure_id', f'{entity.kind}_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id.unique(), 'deaths')
+    check_measure_id(data.measure_id, ['deaths'])
     check_metric_id(data.metric_id.unique(), 'number')
-    # check_draw_columns_range(data, 0, population) FIXME: what should be the upper bound for deaths?
+    # check_draw_columns_range(data, 0, population) FIXME: what should be the upper bound for deaths? I don't want to pull pop every time
     check_years(data, 'annual')
     check_location(data, location_id)
     check_age_restrictions(data, entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
@@ -562,10 +562,11 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
                                 'values for both males and females.')
 
 
-def check_measure_id(data_measure_id, expected_measure):
-    if data_measure_id != MEASURES[expected_measure.capitalize()]:
-        raise DataAbnormalError(f'Data includes measures beyond the expected {expected_measure} '
-                                f'(measure id {MEASURES[expected_measure.capitalize()]}).')
+def check_measure_id(data_measure_id: pd.Series, allowable_measures: list):
+    if len(set(data_measure_id)) > 1:
+        raise DataAbnormalError(f'Data has multiple measure ids: {set(data_measure_id)}.')
+    if not set(data_measure_id).issubset(set([MEASURES[m.capitalize()] for m in allowable_measures])):
+        raise DataAbnormalError(f'Data includes a measure id not in the expected measure ids for this measure.')
 
 
 def check_metric_id(data_metric_id, expected_metric):
