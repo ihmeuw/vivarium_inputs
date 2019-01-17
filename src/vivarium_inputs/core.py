@@ -146,6 +146,8 @@ def get_exposure(entity, location_id):
         data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
     elif entity.kind == 'alternative_risk_factor':
         data = extract.extract_data(entity, 'exposure', location_id)
+        # FIXME: me_id is usually nan which breaks year interpolation. This is a stupid hack.
+        data = data.drop('modelable_entity_id', 'columns')
         data = utilities.normalize(data, fill_value=0)
         data = utilities.reshape(data)
     else:
@@ -155,6 +157,8 @@ def get_exposure(entity, location_id):
 
 def get_exposure_standard_deviation(entity, location_id):
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
+    # FIXME: me_id is usually nan which breaks year interpolation. This is a stupid hack.
+    data = data.drop('modelable_entity_id', 'columns')
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
     return data
@@ -171,7 +175,7 @@ def get_exposure_distribution_weights(entity, location_id):
 
 
 def get_relative_risk(entity, location_id):
-    if entity.kind == 'risk_factor' and entity.distribution == 'dichotomous':
+    if entity.kind == 'risk_factor':
         data = extract.extract_data(entity, 'relative_risk', location_id)
         data = utilities.convert_affected_entity(data, 'cause_id')
         data['affected_measure'] = 'incidence_rate'

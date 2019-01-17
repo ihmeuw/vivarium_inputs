@@ -61,7 +61,7 @@ def extract_remission(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_disability_weight(entity, location_id: int) -> pd.DataFrame:
-    disability_weights = gbd.get_auxiliary_data('disability_weight', entity.kind, 'all')
+    disability_weights = gbd.get_auxiliary_data('disability_weight', entity.kind, 'all', location_id)
     data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
     return data
 
