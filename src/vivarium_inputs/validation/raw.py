@@ -1,6 +1,6 @@
 from typing import List
 import warnings
-
+import operator
 import pandas as pd
 import numpy as np
 from typing import NamedTuple, Union
@@ -12,8 +12,10 @@ from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS,
                                      DataAbnormalError, InvalidQueryError, DataNotExistError, gbd)
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
 
-MAX_INCIDENCE = 8   # ceiling-ed max incidence for diarrheal diseases among all locations
-MAX_REMISSION = 80  # ceiling-ed max remission for diarrheal diseases among all locations
+MAX_INCIDENCE = 10
+MAX_REMISSION = 365/3
+MAX_UTILIZATION = 20
+MAX_LIFE_EXP = 90
 
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
@@ -155,7 +157,7 @@ def _validate_incidence(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['incidence'])
     check_metric_id(data.metric_id.unique(), 'rate')
-    check_draw_columns_range(data, 0, MAX_INCIDENCE, warn=True)
+    check_draw_columns_boundary(data, 0, 'lower', inclusive=True, error=True)
     check_years(data, 'annual')
     check_location(data, location_id)
     check_all_ages_present(data)
@@ -499,35 +501,42 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
                                     f'but also included {extra_age_groups}.')
 
 
-def check_draw_columns_range(data: pd.DataFrame, min_value: float, max_value: float, warn: bool = False):
-    """Check that all values in data in draw columns fall between min_value
-    and max_value, inclusive.
+def check_draw_columns_boundary(data: pd.DataFrame, boundary_value: float, boundary_type: str,
+                                inclusive: bool = True, error: bool = False):
+    """Check that all values in DRAW_COLUMNS in data are above or below given
+    boundary_value.
 
     Parameters
     ----------
     data
         Dataframe containing DRAW_COLUMNS.
-    min_value
-        Lower boundary of expected values, inclusive.
-    max_value
-        Upper boundary of expected values, inclusive.
-    warn
-        Boolean indicating whether values out of range should trigger
-        a warning (True) or an error (False).
+    boundary_value
+        Value against which DRAW_COLUMNS values will be checked.
+    boundary_type
+        String 'upper' or 'lower' indicating whether `boundary_value` is upper
+        or lower limit on DRAW_COLUMNS.
+    inclusive
+        Boolean indicating whether `boundary_value` is inclusive or not.
+    error
+        Boolean indicating whether error (True) or warning (False) should be
+        raised if values are found outside `boundary_value`.
 
     Raises
-    ------
+    -------
     DataAbnormalError
-        If any values in DRAW_COLUMNS in data fall outside the range
-        [`min_value`, `max_value`].
-
+        If any values in DRAW_COLUMNS are above/below `boundary_value`,
+        depending on `boundary_type`, if `error` is turned on.
     """
-    msg = f'Data contains values outside the expected range [{min_value}, {max_value}].'
-    if not np.all(data[DRAW_COLUMNS] >= min_value) and not np.all(data[DRAW_COLUMNS] <= max_value):
-        if warn:
-            warnings.warn(msg)
-        else:
-            raise DataAbnormalError(msg)
+    msg = f'Data contains values {"below" if boundary_type == "lower" else "above"} ' \
+        f'the expected boundary value ({boundary_value}).'
+
+    if boundary_type == "lower":
+        op = operator.le if inclusive else operator.lt
+    else:
+        op = operator.ge if inclusive else operator.gt
+
+    if not np.all(op(data[DRAW_COLUMNS], boundary_value)):
+        raise DataAbnormalError(msg) if error else warnings.warn(msg)
 
 
 def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool):
