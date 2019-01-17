@@ -61,7 +61,7 @@ def extract_remission(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_disability_weight(entity, location_id: int) -> pd.DataFrame:
-    disability_weights = gbd.get_auxiliary_data('disability_weight', entity.kind, 'all')
+    disability_weights = gbd.get_auxiliary_data('disability_weight', entity.kind, 'all', location_id)
     data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
     return data
 
@@ -82,19 +82,26 @@ def extract_exposure(entity, location_id: int) -> pd.DataFrame:
         else:
             raise DataAbnormalError('No exposure measure')
     elif entity.kind == 'coverage_gap':
-        data = gbd.get_auxiliary_data('exposure', 'coverage_gap', entity.name)
-        data = data[data.location_id == location_id]
+        data = gbd.get_auxiliary_data('exposure', 'coverage_gap', entity.name, location_id)
+    elif entity.kind == 'alternative_risk_factor':
+        data = gbd.get_auxiliary_data('exposure', 'alternative_risk_factor', entity.name, location_id)
     else:
         raise NotImplementedError()
     return data
 
 
 def extract_exposure_standard_deviation(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    if entity.kind == 'alternative_risk_factor':
+        data = gbd.get_auxiliary_data('exposure_standard_deviation', 'alternative_risk_factor',
+                                      entity.name, location_id)
+    else:
+        raise NotImplementedError()
+    return data
 
 
 def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    data = gbd.get_auxiliary_data('exposure_distribution_weights', entity.kind, entity.name, location_id)
+    return data
 
 
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:

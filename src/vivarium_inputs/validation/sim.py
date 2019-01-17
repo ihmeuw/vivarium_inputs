@@ -82,11 +82,14 @@ def _validate_exposure(data, entity, location):
 
 def _validate_exposure_standard_deviation(data, entity, location):
     _validate_standard_columns(data, location)
-    raise NotImplementedError()
 
 
 def _validate_exposure_distribution_weights(data, entity, location):
-    _validate_standard_columns(data, location)
+    _validate_location_column(data, location)
+    _validate_sex_column(data)
+    _validate_age_columns(data)
+    _validate_year_columns(data)
+    _validate_value_column(data)
 
 
 def _validate_relative_risk(data, entity, location):

@@ -3,9 +3,9 @@ import pytest
 from gbd_mapping import causes, risk_factors, etiologies
 
 
+
 @pytest.fixture
 def cause_list():
-
     return [causes.diarrheal_diseases, causes.ischemic_heart_disease, causes.ischemic_stroke,
             causes.hemorrhagic_stroke, causes.tetanus, causes.diabetes_mellitus, causes.all_causes]
 
