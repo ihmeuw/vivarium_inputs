@@ -10,7 +10,7 @@ from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS,
                                      DataAbnormalError, InvalidQueryError, gbd)
-from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
+from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
@@ -89,7 +89,7 @@ def check_cause_metadata(entity: Cause, measure: str):
                           f"be consistent with models for this cause.")
 
 
-def check_risk_factor_metadata(entity: RiskFactor, measure: str):
+def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor], measure: str):
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
         pass
