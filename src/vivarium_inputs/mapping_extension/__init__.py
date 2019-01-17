@@ -1,3 +1,3 @@
-from .alternative_risk_factor import alternative_risk_factors
-from .healthcare_entity import healthcare_entities
-from .health_technology import health_technologies
+from .alternative_risk_factor import AlternativeRiskFactor, alternative_risk_factors
+from .healthcare_entity import HealthcareEntity, healthcare_entities
+from .health_technology import HealthTechnology, health_technologies

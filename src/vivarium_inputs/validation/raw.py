@@ -2,23 +2,29 @@ from typing import List
 import warnings
 
 import pandas as pd
+import numpy as np
+from typing import NamedTuple, Union
+
+from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
+                         Etiology, Covariate, CoverageGap)
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS,
                                      DataAbnormalError, InvalidQueryError, gbd)
+from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
-def check_metadata(entity, measure):
+def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
     metadata_checkers = {
-        'sequela': _check_sequela_metadata,
-        'cause': _check_cause_metadata,
-        'risk_factor': _check_risk_factor_metadata,
-        'etiology': _check_etiology_metadata,
-        'covariate': _check_covariate_metadata,
-        'coverage_gap': _check_coverage_gap_metadata,
-        'health_technology': _check_health_technology_metadata,
-        'healthcare_entity': _check_healthcare_entity_metadata,
-        'population': _check_population_metadata,
-        'alternative_risk_factor': _check_risk_factor_metadata,
+        'sequela': check_sequela_metadata,
+        'cause': check_cause_metadata,
+        'risk_factor': check_risk_factor_metadata,
+        'etiology': check_etiology_metadata,
+        'covariate': check_covariate_metadata,
+        'coverage_gap': check_coverage_gap_metadata,
+        'health_technology': check_health_technology_metadata,
+        'healthcare_entity': check_healthcare_entity_metadata,
+        'population': check_population_metadata,
+        'alternative_risk_factor': check_alternative_risk_factor_metadata,
     }
 
     metadata_checkers[entity.kind](entity, measure)
@@ -55,52 +61,87 @@ def validate_raw_data(data, entity, measure, location_id):
     validators[measure](data, entity, location_id)
 
 
-def _check_sequela_metadata(entity, measure):
-    if measure in ['incidence', 'prevalence']:
-        if not entity[f'{measure}_exists']:
-            raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
-        if not entity[f'{measure}_in_range']:
-            warnings.warn(f'{entity.name} has {measure} but its range is abnormal.')
+def check_sequela_metadata(entity: Sequela, measure: str):
+    if measure in ['incidence', 'prevalence', 'birth_prevalence']:
+        _check_exists_in_range(entity, measure)
     else:  # measure == 'disability_weight
         if not entity.healthstate[f'{measure}_exists']:
-            raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
+            # throw warning so won't break if pulled for a cause where not all sequelae may be missing dws
+            warnings.warn(f'Sequela {entity.name} does not have {measure} data.')
 
 
-def _check_cause_metadata(entity, measure):
-    # TODO: Incorporate mapping checks
+def check_cause_metadata(entity: Cause, measure: str):
+    _check_exists_in_range(entity, measure)
+
+    _warn_violated_restrictions(entity, measure)
+
+    if measure != 'remission':
+        consistent = entity[f"{measure}_consistent"]
+        children = "subcauses" if measure == "deaths" else "sequela"
+
+        if consistent is not None and not consistent:
+            warnings.warn(f"{measure.capitalize()} data for cause {entity.name} may not exist for {children} in all "
+                          f"locations. {children.capitalize()} models may not be consistent with models for this cause.")
+
+        if consistent and not entity[f"{measure}_aggregates"]:
+            warnings.warn(f"{children.capitalize()} {measure} data for cause {entity.name} may not correctly "
+                          f"aggregate up to the cause level in all locations. {children.capitalize()} models may not "
+                          f"be consistent with models for this cause.")
+
+
+def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor], measure: str):
+    if measure in ('exposure_distribution_weights', 'mediation_factors'):
+        # we don't have any applicable metadata to check
+        pass
+
+    if measure == 'population_attributable_fraction':
+        _check_paf_types(entity)
+    else:
+        _check_exists_in_range(entity, measure)
+
+        if measure == 'exposure' and entity.exposure_year_type in ('mix', 'incomplete'):
+            warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may contain unexpected '
+                          f'or missing years.')
+
+    _warn_violated_restrictions(entity, measure)
+
+
+def check_alternative_risk_factor_metadata(entity: AlternativeRiskFactor, measure: str):
     pass
 
 
-def _check_risk_factor_metadata(entity, measure):
-    # TODO: Incorporate mapping checks
+def check_etiology_metadata(entity: Etiology, measure: str):
+    _check_paf_types(entity)
+
+
+def check_covariate_metadata(entity: Covariate, measure: str):
+    if not entity.mean_value_exists:
+        warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain'
+                      f'mean values for all locations.')
+
+    if not entity.uncertainty_exists:
+        warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain '
+                      f'uncertainty values for all locations.')
+
+    violated_restrictions = [f'by {r}' for r in ['sex', 'age'] if entity[f'by_{r}_violated']]
+    if violated_restrictions:
+        warnings.warn(f'Covariate {entity.name} may violate the following '
+                      f'restrictions: {", ".join(violated_restrictions)}.')
+
+
+def check_coverage_gap_metadata(entity: CoverageGap, measure: str):
     pass
 
 
-def _check_etiology_metadata(entity, measure):
-    mapping_measure = 'paf_yld'
-    if not entity[f'{mapping_measure}_exists']:
-        raise InvalidQueryError(f'{entity.name} does not have {measure} data.')
-    if not entity[f'{mapping_measure}_in_range']:
-        warnings.warn(f'{entity.name} has {measure} but its range is abnormal.')
-
-
-def _check_covariate_metadata(entity, measure):
-    pass
-
-
-def _check_coverage_gap_metadata(entity, measure):
-    pass
-
-
-def _check_health_technology_metadata(entity, measure):
+def check_health_technology_metadata(entity: HealthTechnology, measure: str):
     raise NotImplementedError()
 
 
-def _check_healthcare_entity_metadata(entity, measure):
+def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str):
     raise NotImplementedError()
 
 
-def _check_population_metadata(entity, measure):
+def check_population_metadata(entity: NamedTuple, measure: str):
     pass
 
 
@@ -220,10 +261,10 @@ def check_years(df: pd.DataFrame, year_type: str):
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
     expected_years = years[year_type]
     if set(df.year_id.unique()) < set(expected_years):
-        raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique()))}')
+        raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique()))}.')
     # if is it annual, we expect to have extra years from some cases like codcorrect/covariate
     if year_type == 'binned' and set(df.year_id.unique()) > set(expected_years):
-        raise DataAbnormalError(f'Data has extra years: {set(df.year_id.unique()).difference(set(expected_years))}')
+        raise DataAbnormalError(f'Data has extra years: {set(df.year_id.unique()).difference(set(expected_years))}.')
 
 
 def check_location(data: pd.DataFrame, location_id: str):
@@ -233,11 +274,47 @@ def check_location(data: pd.DataFrame, location_id: str):
         raise DataAbnormalError(f'Data has extra location ids.')
     data_location_id = data['location_id'].unique()[0]
     if data_location_id not in [1, location_id]:
-        raise DataAbnormalError(f'Data called for {location_id} has a location id {data_location_id}')
+        raise DataAbnormalError(f'Data called for {location_id} has a location id {data_location_id}.')
 
 
 def check_columns(expected_cols: List, existing_cols: List):
     if set(existing_cols) < set(expected_cols):
-        raise DataAbnormalError(f'{set(expected_cols).difference(set(existing_cols))} columns are missing')
+        raise DataAbnormalError(f'Data is missing columns: {set(expected_cols).difference(set(existing_cols))}.')
     elif set(existing_cols) > set(expected_cols):
-        raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}')
+        raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')
+
+
+def _check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: str):
+    exists = entity[f'{measure}_exists']
+    if exists is None:
+        raise InvalidQueryError(f'{measure.capitalize()} data is not expected to exist '
+                                f'for {entity.kind} {entity.name}.')
+    if not exists:
+        warnings.warn(f'{measure.capitalize()} data for {entity.kind} {entity.name} may not exist for all locations.')
+    if f'{measure}_in_range' in entity.__slots__ and exists and not entity[f'{measure}_in_range']:
+        warnings.warn(f'{measure.capitalize()} for {entity.kind} {entity.name} may be outside the normal range.')
+
+
+def _warn_violated_restrictions(entity, measure):
+    violated_restrictions = [r.replace(f'by_{measure}', '').replace(measure, '').replace('_', ' ').replace(' violated', '')
+                             for r in entity.restrictions.violated if measure in r]
+    if violated_restrictions:
+        warnings.warn(f'{entity.kind.capitalize()} {entity.name} {measure} data may violate the '
+                      f'following restrictions: {", ".join(violated_restrictions)}.')
+
+
+def _check_paf_types(entity):
+    paf_types = np.array(['yll', 'yld'])
+    missing_pafs = paf_types[[not entity.population_attributable_fraction_yll_exists,
+                              not entity.population_attributable_fraction_yld_exists]]
+    if missing_pafs.size:
+        warnings.warn(f'Population attributable fraction data for {", ".join(missing_pafs)} for '
+                      f'{entity.kind} {entity.name} may not exist for all locations.')
+
+    abnormal_range = paf_types[[entity.population_attributable_fraction_yll_exists
+                                and not entity.population_attributable_fraction_yll_in_range,
+                                entity.population_attributable_fraction_yld_exists
+                                and not entity.population_attributable_fraction_yld_in_range]]
+    if abnormal_range.size:
+        warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
+                      f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
