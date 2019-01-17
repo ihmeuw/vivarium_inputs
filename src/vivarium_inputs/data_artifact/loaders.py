@@ -108,7 +108,7 @@ def get_cause_data(cause, measure, location, _):
 
 def get_risk_data(risk, measure, location, modeled_causes):
     if measure in ["affected_causes", "affected_risk_factors", "restrictions",
-                   "distribution", "exposure_parameters", "levels", "tmred"]:
+                   "distribution", "exposure_parameters", "categories", "tmred"]:
         data = get_risk_metadata(risk, measure, modeled_causes)
     else:
         data = get_measure(risk, measure, location)
