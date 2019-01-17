@@ -64,8 +64,9 @@ def check_sequela_metadata(entity: Sequela, measure: str):
     if measure in ['incidence', 'prevalence', 'birth_prevalence']:
         _check_exists_in_range(entity, measure)
     else:  # measure == 'disability_weight
-        if not entity.healthstate[f'{measure}_exists']:  # this is not location specific so we can actually throw error
-            raise InvalidQueryError(f'Sequela {entity.name} does not have {measure} data.')
+        if not entity.healthstate[f'{measure}_exists']:
+            # throw warning so won't break if pulled for a cause where not all sequelae may be missing dws
+            warnings.warn(f'Sequela {entity.name} does not have {measure} data.')
 
 
 def check_cause_metadata(entity: Cause, measure: str):
