@@ -14,6 +14,8 @@ from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
 
 MAX_INCIDENCE = 10
 MAX_REMISSION = 365/3
+MAX_CATEG_REL_RISK = 15
+MAX_CONT_REL_RISK = 5
 MAX_UTILIZATION = 20
 MAX_LIFE_EXP = 90
 
@@ -157,7 +159,8 @@ def _validate_incidence(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['incidence'])
     check_metric_id(data.metric_id.unique(), 'rate')
-    check_draw_columns_boundary(data, 0, 'lower', inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
     check_years(data, 'annual')
     check_location(data, location_id)
     check_all_ages_present(data)
@@ -176,7 +179,8 @@ def _validate_prevalence(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['prevalence'])
     check_metric_id(data.metric_id.unique(), 'rate')
-    check_draw_columns_range(data, 0, 1)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_years(data, 'annual')
     check_location(data, location_id)
     check_all_ages_present(data)
@@ -195,7 +199,8 @@ def _validate_birth_prevalence(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['incidence'])
     check_metric_id(data.metric_id.unique(), 'rate')
-    check_draw_columns_range(data, 0, 1)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_years(data, 'annual')
     check_location(data, location_id)
     check_all_sexes_present(data)
@@ -210,10 +215,14 @@ def _validate_birth_prevalence(data, entity, location_id):
 
 
 def _validate_disability_weight(data, entity, location_id):
-    # TODO
+    check_data_exist(data, zeros_missing=False)  # TODO: is it correct to count all zeros as existing?
+
     expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
                         'healthstate', 'healthstate_id') + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_location(data, location_id)
 
 
@@ -226,7 +235,8 @@ def _validate_remission(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['remission'])
     check_metric_id(data.metric_id.unique(), 'rate')
-    check_draw_columns_range(data, 0, MAX_REMISSION, warn=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
     check_years(data, 'binned')
     check_location(data, location_id)
     check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
@@ -241,7 +251,14 @@ def _validate_deaths(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['deaths'])
     check_metric_id(data.metric_id.unique(), 'number')
-    # check_draw_columns_range(data, 0, population) FIXME: what should be the upper bound for deaths? I don't want to pull pop every time
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    pop = gbd.get_population(location_id)
+    idx_cols = ['age_group_id', 'year_id', 'sex_id']
+    pop = pop[(pop.year_id.isin(data.year_id.unique())) & (pop.sex_id != gbd.COMBINED)].set_index(idx_cols).population
+    check_value_columns_boundary(data.set_index(idx_cols), pop, 'upper',
+                                 value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+
     check_years(data, 'annual')
     check_location(data, location_id)
     check_age_restrictions(data, entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
@@ -255,13 +272,20 @@ def _validate_exposure(data, entity, location_id):
                         'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    if len(set(data.measure_id)) > 1:
-        raise DataAbnormalError(f'{entity.kind.capitalize()} {entity.name} has '
-                                f'multiple measure ids: {set(data.measure_id)}.')
+    check_measure_id(data.measure_id, ['prevalence', 'proportion', 'continuous'])
 
-    if not set(data.measure_id).issubset({MEASURES['Prevalence'], MEASURES['Proportion']}):
-        raise DataAbnormalError(f'{entity.kind.capitalize()} {entity.name} contains '
-                                f'an invalid measure id {set(data.measure_id)}.')
+    if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
+        if entity.tmred.inverted:
+            check_value_columns_boundary(data, entity.tmred.max, 'upper',
+                                         value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+        else:
+            check_value_columns_boundary(data, entity.tmred.min, 'lower',
+                                         value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+    # FIXME: what do I do with custom if it has cats? i.e., should this check be does entity have cats?
+    else:
+        check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+        check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+        # TODO: check that draws sum to 1 across categories
 
     # TODO: do the exposure year types vary by loc? Can I throw an error for
     #  mix/incomplete above so I don't have to handle it here?
@@ -270,34 +294,54 @@ def _validate_exposure(data, entity, location_id):
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
-    del entity  # unused
+    check_data_exist(data, zeros_missing=False)  # TODO: is this right to not count all 0s as missing?
+
     expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id',
                         'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+
     check_years(data, 'annual')
     check_location(data, location_id)
 
 
 def _validate_exposure_distribution_weights(data, entity, location_id):
-    del entity  # unused
     key_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
+
+    check_data_exist(data, zeros_missing=True, value_columns=distribution_cols)
+
     check_columns(key_cols + distribution_cols, data.columns)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=distribution_cols, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=distribution_cols, inclusive=True, error=True)
+    if np.all(data[distribution_cols].sum(axis=1) != 1):
+        raise DataAbnormalError(f'Distribution weights for {entity.type} {entity.name} do not sum to 1.')
+
     check_location(data, location_id)
 
 
 def _validate_relative_risk(data, entity, location_id):
-    del entity  # unused
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
                         'morbidity', 'metric_id', 'parameter') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+
+    max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
+    check_value_columns_boundary(data, max_val, value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+
     check_years(data, 'binned')
     check_location(data, location_id)
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
-    del entity  # unused
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -309,7 +353,6 @@ def _validate_mediation_factors(data, entity, location_id):
 
 
 def _validate_estimate(data, entity, location_id):
-    del entity  # unused
     expected_columns = ['model_version_id', 'covariate_id', 'covariate_name_short', 'location_id',
                         'location_name', 'year_id', 'age_group_id', 'age_group_name', 'sex_id',
                         'sex', 'mean_value', 'lower_value', 'upper_value']
@@ -409,16 +452,19 @@ def check_columns(expected_cols: List, existing_cols: List):
         raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')
 
 
-def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True, error: bool = True) -> bool:
+def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True,
+                     value_columns: list = DRAW_COLUMNS, error: bool = True) -> bool:
     """
 
     Parameters
     ----------
     data
-        Dataframe contain DRAW_COLUMNS.
+        Dataframe containing `value_columns`.
     zeros_missing
-        Boolean indicating whether to treat all zeros in DRAW_COLUMNS as
+        Boolean indicating whether to treat all zeros in `value_columns` as
         missing or not.
+    value_columns
+        List of columns in `data` to check for missing data.
     error
         Boolean indicating whether or not to error if data is missing.
 
@@ -432,11 +478,11 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True, error: bool
     -------
     DataNotExistError
         If error flag is set to true and data is empty or contains all NaN
-        values in DRAW_COLUMNS, or contains all zeros in DRAW_COLUMNS and
+        values in `value_columns`, or contains all zeros in `value_columns` and
         zeros_missing is True.
 
     """
-    if data.empty or np.all(pd.isnull(data[DRAW_COLUMNS])) or (zeros_missing and not np.all(data[DRAW_COLUMNS])):
+    if data.empty or np.all(pd.isnull(data[value_columns])) or (zeros_missing and not np.all(data[value_columns])):
         if error:
             raise DataNotExistError('Data contains no non-missing, non-zero draw values.')
         return False
@@ -501,20 +547,24 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
                                     f'but also included {extra_age_groups}.')
 
 
-def check_draw_columns_boundary(data: pd.DataFrame, boundary_value: float, boundary_type: str,
-                                inclusive: bool = True, error: bool = False):
+def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float, pd.Series], boundary_type: str,
+                                 value_columns: list = DRAW_COLUMNS, inclusive: bool = True, error: bool = False):
     """Check that all values in DRAW_COLUMNS in data are above or below given
     boundary_value.
 
     Parameters
     ----------
     data
-        Dataframe containing DRAW_COLUMNS.
+        Dataframe containing `value_columns`.
     boundary_value
-        Value against which DRAW_COLUMNS values will be checked.
+        Value against which `value_columns` values will be checked. May be a
+        series of values with a matching index to data.
     boundary_type
         String 'upper' or 'lower' indicating whether `boundary_value` is upper
-        or lower limit on DRAW_COLUMNS.
+        or lower limit on `value_columns`.
+    value_columns
+        List of column names in `data`, the values of which should be checked
+        against `boundary_value`.
     inclusive
         Boolean indicating whether `boundary_value` is inclusive or not.
     error
@@ -528,14 +578,16 @@ def check_draw_columns_boundary(data: pd.DataFrame, boundary_value: float, bound
         depending on `boundary_type`, if `error` is turned on.
     """
     msg = f'Data contains values {"below" if boundary_type == "lower" else "above"} ' \
-        f'the expected boundary value ({boundary_value}).'
+        f'the expected boundary value{"s" if isinstance(boundary_value, pd.Series) else f" ({boundary_value})"}.'
 
     if boundary_type == "lower":
         op = operator.le if inclusive else operator.lt
+        data_values = data[value_columns].min(axis=1)
     else:
         op = operator.ge if inclusive else operator.gt
+        data_values = data[value_columns].max(axis=1)
 
-    if not np.all(op(data[DRAW_COLUMNS], boundary_value)):
+    if not np.all(op(data_values, boundary_value)):
         raise DataAbnormalError(msg) if error else warnings.warn(msg)
 
 
