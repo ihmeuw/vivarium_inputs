@@ -90,6 +90,9 @@ def check_cause_metadata(entity: Cause, measure: str):
 
 
 def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor], measure: str):
+    if entity.kind == 'alternative_risk_factor':
+        pass
+
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
         pass
