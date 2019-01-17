@@ -74,20 +74,25 @@ def check_cause_metadata(entity: Cause, measure: str):
 
     _warn_violated_restrictions(entity, measure)
 
-    consistent = entity[f"{measure}_consistent"]
-    children = "subcauses" if measure == "deaths" else "sequela"
+    if measure != 'remission':
+        consistent = entity[f"{measure}_consistent"]
+        children = "subcauses" if measure == "deaths" else "sequela"
 
-    if consistent is not None and not consistent:
-        warnings.warn(f"{measure.capitalize()} data for cause {entity.name} may not exist for {children} in all "
-                      f"locations. {children.capitalize()} models may not be consistent with models for this cause.")
+        if consistent is not None and not consistent:
+            warnings.warn(f"{measure.capitalize()} data for cause {entity.name} may not exist for {children} in all "
+                          f"locations. {children.capitalize()} models may not be consistent with models for this cause.")
 
-    if consistent and not entity[f"{measure}_aggregates"]:
-        warnings.warn(f"{children.capitalize()} {measure} data for cause {entity.name} may not correctly "
-                      f"aggregate up to the cause level in all locations. {children.capitalize()} models may not "
-                      f"be consistent with models for this cause.")
+        if consistent and not entity[f"{measure}_aggregates"]:
+            warnings.warn(f"{children.capitalize()} {measure} data for cause {entity.name} may not correctly "
+                          f"aggregate up to the cause level in all locations. {children.capitalize()} models may not "
+                          f"be consistent with models for this cause.")
 
 
 def check_risk_factor_metadata(entity: RiskFactor, measure: str):
+    if measure in ('exposure_distribution_weights', 'mediation_factors'):
+        # we don't have any applicable metadata to check
+        pass
+
     if measure == 'population_attributable_fraction':
         _check_paf_types(entity)
     else:
@@ -271,6 +276,9 @@ def check_columns(expected_cols: List, existing_cols: List):
 
 def _check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: str):
     exists = entity[f'{measure}_exists']
+    if exists is None:
+        raise InvalidQueryError(f'{measure.capitalize()} data is not expected to exist '
+                                f'for {entity.kind} {entity.name}.')
     if not exists:
         warnings.warn(f'{measure.capitalize()} data for {entity.kind} {entity.name} may not exist for all locations.')
     if f'{measure}_in_range' in entity.__slots__ and exists and not entity[f'{measure}_in_range']:
@@ -278,8 +286,8 @@ def _check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: s
 
 
 def _warn_violated_restrictions(entity, measure):
-    violated_restrictions = [r.replace('_', ' ').replace(' violated', '') for r
-                             in entity.restrictions.violated if measure in r]
+    violated_restrictions = [r.replace(f'by_{measure}', '').replace(measure, '').replace('_', ' ').replace(' violated', '')
+                             for r in entity.restrictions.violated if measure in r]
     if violated_restrictions:
         warnings.warn(f'{entity.kind.capitalize()} {entity.name} {measure} data may violate the '
                       f'following restrictions: {", ".join(violated_restrictions)}.')
