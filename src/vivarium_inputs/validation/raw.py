@@ -62,22 +62,14 @@ def validate_raw_data(data, entity, measure, location_id):
 
 def check_sequela_metadata(entity: Sequela, measure: str):
     if measure in ['incidence', 'prevalence', 'birth_prevalence']:
-        exists = entity[f'{measure}_exists']
-        if not exists:
-            warnings.warn(f'{measure.capitalize()} data for sequela {entity.name} may not exist for all locations.')
-        if exists and not entity[f'{measure}_in_range']:
-            warnings.warn(f'{measure.capitalize()} for sequela {entity.name} may be outside the normal range.')
+        _check_exists_in_range(entity, measure)
     else:  # measure == 'disability_weight
         if not entity.healthstate[f'{measure}_exists']:  # this is not location specific so we can actually throw error
             raise InvalidQueryError(f'Sequela {entity.name} does not have {measure} data.')
 
 
 def check_cause_metadata(entity: Cause, measure: str):
-    exists = entity[f'{measure}_exists']
-    if not exists:
-        warnings.warn(f'{measure.capitalize()} data for cause {entity.name} may not exist for all locations.')
-    if exists and not entity[f'{measure}_in_range']:
-        warnings.warn(f"{measure.capitalize()} for cause {entity.name} may be outside the normal range.")
+    _check_exists_in_range(entity, measure)
 
     _warn_violated_restrictions(entity, measure)
 
@@ -95,27 +87,16 @@ def check_cause_metadata(entity: Cause, measure: str):
 
 
 def check_risk_factor_metadata(entity: RiskFactor, measure: str):
-    mapping_names = {'relative_risk': 'rr',
-                     'population_attributable_fraction': 'paf',
-                     'exposure': 'exposure',
-                     'exposure_standard_deviation': 'exposure_sd'}
-
     if measure == 'population_attributable_fraction':
         _check_paf_types(entity)
     else:
-        exists = entity[f'{mapping_names[measure]}_exists']
-        if exists is not None and not exists:
-            warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may not exist for all locations.')
+        _check_exists_in_range(entity, measure)
 
-        if measure == 'relative_risk' and exists and not entity.rr_in_range:
-            warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may be outside '
-                          f'expected range >=1.')
-
-        if measure == 'exposure' and exists and entity.exposure_year_type in ('mix', 'incomplete'):
+        if measure == 'exposure' and entity.exposure_year_type in ('mix', 'incomplete'):
             warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may contain unexpected '
                           f'or missing years.')
 
-    _warn_violated_restrictions(entity, mapping_names[measure])
+    _warn_violated_restrictions(entity, measure)
 
 
 def check_etiology_metadata(entity: Etiology, measure: str):
@@ -287,6 +268,14 @@ def check_columns(expected_cols: List, existing_cols: List):
         raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')
 
 
+def _check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: str):
+    exists = entity[f'{measure}_exists']
+    if not exists:
+        warnings.warn(f'{measure.capitalize()} data for {entity.kind} {entity.name} may not exist for all locations.')
+    if f'{measure}_in_range' in entity.__slots__ and exists and not entity[f'{measure}_in_range']:
+        warnings.warn(f'{measure.capitalize()} for {entity.kind} {entity.name} may be outside the normal range.')
+
+
 def _warn_violated_restrictions(entity, measure):
     violated_restrictions = [r.replace('_', ' ').replace(' violated', '') for r
                              in entity.restrictions.violated if measure in r]
@@ -297,13 +286,16 @@ def _warn_violated_restrictions(entity, measure):
 
 def _check_paf_types(entity):
     paf_types = np.array(['yll', 'yld'])
-    missing_pafs = paf_types[[not entity.paf_yll_exists, not entity.paf_yld_exists]]
+    missing_pafs = paf_types[[not entity.population_attributable_fraction_yll_exists,
+                              not entity.population_attributable_fraction_yld_exists]]
     if missing_pafs.size:
         warnings.warn(f'Population attributable fraction data for {", ".join(missing_pafs)} for '
                       f'{entity.kind} {entity.name} may not exist for all locations.')
 
-    abnormal_range = paf_types[[entity.paf_yll_exists and not entity.paf_yll_in_range,
-                                entity.paf_yld_exists and not entity.paf_yld_in_range]]
+    abnormal_range = paf_types[[entity.population_attributable_fraction_yll_exists
+                                and not entity.population_attributable_fraction_yll_in_range,
+                                entity.population_attributable_fraction_yld_exists
+                                and not entity.population_attributable_fraction_yld_in_range]]
     if abnormal_range.size:
         warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
