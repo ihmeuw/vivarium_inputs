@@ -24,6 +24,7 @@ def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
         'health_technology': check_health_technology_metadata,
         'healthcare_entity': check_healthcare_entity_metadata,
         'population': check_population_metadata,
+        'alternative_risk_factor': check_risk_factor_metadata,
     }
 
     metadata_checkers[entity.kind](entity, measure)
@@ -125,6 +126,7 @@ def check_covariate_metadata(entity: Covariate, measure: str):
                       f'restrictions: {", ".join(violated_restrictions)}.')
 
 
+
 def check_coverage_gap_metadata(entity: CoverageGap, measure: str):
     pass
 
@@ -193,11 +195,17 @@ def _validate_exposure(data, entity, location_id):
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
-    raise NotImplementedError()
+
+    expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+    check_location(data, location_id)
 
 
 def _validate_exposure_distribution_weights(data, entity, location_id):
-    raise NotImplementedError()
+    key_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
+    distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
+                         'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
+    check_columns(key_cols + distribution_cols, data.columns)
 
 
 def _validate_relative_risk(data, entity, location_id):
