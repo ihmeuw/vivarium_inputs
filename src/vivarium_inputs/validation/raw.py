@@ -272,6 +272,8 @@ def _validate_deaths(data, entity, location_id):
 
 
 def _validate_exposure(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
                         'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
@@ -386,7 +388,7 @@ def check_columns(expected_cols: List, existing_cols: List):
         raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')
 
 
-def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True):
+def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True, error: bool = True) -> bool:
     """
 
     Parameters
@@ -396,20 +398,28 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True):
     zeros_missing
         Boolean indicating whether to treat all zeros in DRAW_COLUMNS as
         missing or not.
+    error
+        Boolean indicating whether or not to error if data is missing.
+
+    Returns
+    -------
+    bool
+        True if non-missing, non-zero (if zeros_missing) draw values exist in
+        data, False otherwise.
 
     Raises
     -------
     DataNotExistError
-        If data is empty or contains all NaN values in DRAW_COLUMNS, or
-        contains all zeros in DRAW_COLUMNS and zeros_missing is True.
+        If error flag is set to true and data is empty or contains all NaN
+        values in DRAW_COLUMNS, or contains all zeros in DRAW_COLUMNS and
+        zeros_missing is True.
 
     """
-    if data.empty:
-        raise DataNotExistError('Data is empty.')
-    if data.dropna().empty:
-        raise DataNotExistError('Data contains no non-missing values.')
-    if zeros_missing and not np.all(data[DRAW_COLUMNS]):
-        raise DataNotExistError('Data contains no non-zero values.')
+    if data.empty or np.all(pd.isnull(data[DRAW_COLUMNS])) or (zeros_missing and not np.all(data[DRAW_COLUMNS])):
+        if error:
+            raise DataNotExistError('Data contains no non-missing, non-zero draw values.')
+        return False
+    return True
 
 
 def check_all_ages_present(data: pd.DataFrame):
@@ -446,8 +456,6 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
         the data.
 
     """
-    data = data.copy().dropna()
-
     gbd_age_ids = gbd.get_age_group_id()
     start_index = gbd_age_ids.index(age_group_id_start)
     end_index = gbd_age_ids.index(age_group_id_end)
@@ -466,7 +474,7 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     if extra_age_groups:
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
-        if not np.all(should_be_zero[DRAW_COLUMNS]):
+        if not check_data_exist(should_be_zero, zeros_missing=True, error=False):
             raise DataAbnormalError(f'Data was only expected to contain age groups between ids '
                                     f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
                                     f'but also included {extra_age_groups}.')
@@ -522,32 +530,34 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
         If data contains any sex ids not in the set defined by GBD or data
         violates passed sex restrictions.
     """
-    data = data.copy().dropna()
-
     gbd_sex_ids = {gbd.MALE, gbd.FEMALE, gbd.COMBINED}
     if not set(data.sex_id).issubset(gbd_sex_ids):
         raise DataAbnormalError(f'Data contains unexpected sex ids: {set(data.sex_id).difference(gbd_sex_ids)}')
 
     if male_only:
-        if not np.all(data[data.sex_id == gbd.MALE]):
-            raise DataAbnormalError('Data is restricted to male only, but contains all zero values for males.')
+        if not check_data_exist(data[data.sex_id == gbd.MALE], zeros_missing=True, error=False):
+            raise DataAbnormalError('Data is restricted to male only, but is missing draw values for males.')
 
-        if set(data.sex_id) != {gbd.MALE} and np.all(data[data.sex_id != gbd.MALE][DRAW_COLUMNS]):
+        if (set(data.sex_id) != {gbd.MALE} and
+                check_data_exist(data[data.sex_id != gbd.MALE], zeros_missing=True, error=False)):
             raise DataAbnormalError('Data is restricted to male only, but contains '
                                     'non-male sex ids for which data values are not all 0.')
 
     if female_only:
-        if np.all(data[data.sex_id == gbd.FEMALE]):
+        if not check_data_exist(data[data.sex_id == gbd.FEMALE], zeros_missing=True, error=False):
             raise DataAbnormalError('Data is restricted to female only, but contains all zero values for females.')
 
-        if set(data.sex_id) != {gbd.FEMALE} and np.all(data[data.sex_id != gbd.FEMALE][DRAW_COLUMNS]):
+        if (set(data.sex_id) != {gbd.FEMALE} and
+                check_data_exist(data[data.sex_id != gbd.FEMALE], zeros_missing=True, error=False)):
             raise DataAbnormalError('Data is restricted to female only, but contains '
                                     'non-female sex ids for which data values are not all 0.')
 
     if (not male_only and not female_only and
-            (not {3}.issubset(set(data.sex_id)) or not np.all(data[data.sex_id == gbd.COMBINED][DRAW_COLUMNS])
-             or (not {1, 2}.issubset(set(data.sex_id)) or (not np.all(data[data.sex_id == gbd.MALE][DRAW_COLUMNS])
-                 or not np.all(data[data.sex_id == gbd.FEMALE]))))):
+            ((not {3}.issubset(set(data.sex_id)) or
+              not check_data_exist(data[data.sex_id == gbd.COMBINED], zeros_missing=True, error=False)) or
+             (not {1, 2}.issubset(set(data.sex_id)) or
+              (not check_data_exist(data[data.sex_id == gbd.MALE], zeros_missing=True, error=False) or
+               not check_data_exist(data[data.sex_id == gbd.FEMALE], zeros_missing=True, error=False))))):
         raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
                                 'values for both males and females.')
 
