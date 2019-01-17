@@ -10,15 +10,15 @@ from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS,
 
 def check_metadata(entity, measure):
     metadata_checkers = {
-        'sequela': _check_sequela_metadata,
-        'cause': _check_cause_metadata,
-        'risk_factor': _check_risk_factor_metadata,
-        'etiology': _check_etiology_metadata,
-        'covariate': _check_covariate_metadata,
-        'coverage_gap': _check_coverage_gap_metadata,
-        'health_technology': _check_health_technology_metadata,
-        'healthcare_entity': _check_healthcare_entity_metadata,
-        'population': _check_population_metadata,
+        'sequela': check_sequela_metadata,
+        'cause': check_cause_metadata,
+        'risk_factor': check_risk_factor_metadata,
+        'etiology': check_etiology_metadata,
+        'covariate': check_covariate_metadata,
+        'coverage_gap': check_coverage_gap_metadata,
+        'health_technology': check_health_technology_metadata,
+        'healthcare_entity': check_healthcare_entity_metadata,
+        'population': check_population_metadata,
     }
 
     metadata_checkers[entity.kind](entity, measure)
@@ -55,7 +55,7 @@ def validate_raw_data(data, entity, measure, location_id):
     validators[measure](data, entity, location_id)
 
 
-def _check_sequela_metadata(entity, measure):
+def check_sequela_metadata(entity, measure):
     if measure in ['incidence', 'prevalence', 'birth_prevalence']:
         exists = entity[f'{measure}_exists']
         if not exists:
@@ -67,7 +67,7 @@ def _check_sequela_metadata(entity, measure):
             raise InvalidQueryError(f'Sequela {entity.name} does not have {measure} data.')
 
 
-def _check_cause_metadata(entity, measure):
+def check_cause_metadata(entity, measure):
     exists = entity[f'{measure}_exists']
     if not exists:
         warnings.warn(f'{measure.capitalize()} data for cause {entity.name} may not exist for all locations.')
@@ -89,7 +89,7 @@ def _check_cause_metadata(entity, measure):
                       f"be consistent with models for this cause.")
 
 
-def _check_risk_factor_metadata(entity, measure):
+def check_risk_factor_metadata(entity, measure):
     mapping_names = {'relative_risk': 'rr',
                      'population_attributable_fraction': 'paf',
                      'exposure': 'exposure',
@@ -113,11 +113,11 @@ def _check_risk_factor_metadata(entity, measure):
     _warn_violated_restrictions(entity, mapping_names[measure])
 
 
-def _check_etiology_metadata(entity, measure):
+def check_etiology_metadata(entity, measure):
     _check_paf_types(entity)
 
 
-def _check_covariate_metadata(entity, measure):
+def check_covariate_metadata(entity, measure):
     if not entity.mean_value_exists:
         warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain'
                       f'mean values for all locations.')
@@ -132,19 +132,19 @@ def _check_covariate_metadata(entity, measure):
                       f'restrictions: {", ".join(violated_restrictions)}.')
 
 
-def _check_coverage_gap_metadata(entity, measure):
+def check_coverage_gap_metadata(entity, measure):
     pass
 
 
-def _check_health_technology_metadata(entity, measure):
+def check_health_technology_metadata(entity, measure):
     raise NotImplementedError()
 
 
-def _check_healthcare_entity_metadata(entity, measure):
+def check_healthcare_entity_metadata(entity, measure):
     raise NotImplementedError()
 
 
-def _check_population_metadata(entity, measure):
+def check_population_metadata(entity, measure):
     pass
 
 
