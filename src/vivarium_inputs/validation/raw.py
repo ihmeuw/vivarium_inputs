@@ -425,6 +425,22 @@ def _check_paf_types(entity):
 ########################
 
 def check_years(df: pd.DataFrame, year_type: str):
+    """ Check that years in passed data match expected range based on type.
+
+    Parameters
+    ----------
+    df
+        Dataframe containing 'year_id' column.
+    year_type
+        String 'annual' or 'binned' indicating expected year range.
+
+    Raises
+    ------
+    DataAbnormalError
+        If any expected years are not found in data or any extra years found
+        and `year_type` is 'binned'.
+
+    """
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
     expected_years = years[year_type]
     if set(df.year_id.unique()) < set(expected_years):
