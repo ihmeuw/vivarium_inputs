@@ -74,5 +74,11 @@ def test_check_data_exist():
     assert raw.check_data_exist(df, value_columns=['b'], zeros_missing=False)
 
 
+def test_check_age_group_ids(mocker):
+    gbd_mock_utilities = mocker.patch("vivarium_inputs.validation.raw.gbd")
+    gbd_mock_utilities.get_age_group_id.return_value = list(range(1, 6))
 
+    df = pd.DataFrame({'age_group_id': [1, 2, 3, 100]})
 
+    with pytest.raises(DataAbnormalError, match='invalid'):
+        raw.check_age_group_ids(df)
