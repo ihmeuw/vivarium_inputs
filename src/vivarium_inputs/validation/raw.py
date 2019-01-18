@@ -162,16 +162,25 @@ def _validate_incidence(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['incidence'])
     check_metric_id(data.metric_id.unique(), 'rate')
-    check_value_columns_boundary(data, 0, 'lower', inclusive=True, error=True)
-    check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
-    check_years(data, 'annual')
-    check_location(data, location_id)
-    check_all_ages_present(data)
-    check_all_sexes_present(data)
 
     if entity.kind == 'cause':
-        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+        check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+    else:   # sequelae don't have restrictions
+        check_age_group_ids(data)
+
+    # como should return all sexes regardless of restrictions
+    check_sex_ids(data, male_expected=True, female_expected=True)
+
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
+    if entity.kind == 'cause':
+        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
+                               entity.restrictions.yld_age_group_id_end)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+
+    check_value_columns_boundary(data, 0, 'lower', inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
 
 def _validate_prevalence(data, entity, location_id):
@@ -182,16 +191,25 @@ def _validate_prevalence(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['prevalence'])
     check_metric_id(data.metric_id.unique(), 'rate')
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_years(data, 'annual')
-    check_location(data, location_id)
-    check_all_ages_present(data)
-    check_all_sexes_present(data)
 
     if entity.kind == 'cause':
-        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+        check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+    else:   # sequelae don't have restrictions
+        check_age_group_ids(data)
+
+    # como should all sexes regardless of restrictions
+    check_sex_ids(data, male_expected=True, female_expected=True)
+
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
+    if entity.kind == 'cause':
+        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
+                               entity.restrictions.yld_age_group_id_end)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
 
 def _validate_birth_prevalence(data, entity, location_id):
@@ -202,31 +220,43 @@ def _validate_birth_prevalence(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['incidence'])
     check_metric_id(data.metric_id.unique(), 'rate')
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_years(data, 'annual')
-    check_location(data, location_id)
-    check_all_sexes_present(data)
 
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
         raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond '
                                 f'the expected birth age group (id {birth_age_group_id}.')
 
+    # como should return all sexes regardless of restrictions
+    check_sex_ids(data, male_expected=True, female_expected=True)
+
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+
     if entity.kind == 'cause':
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_disability_weight(data, entity, location_id):
-    check_data_exist(data, zeros_missing=False)  # TODO: is it correct to count all zeros as existing?
+    check_data_exist(data, zeros_missing=False)
 
     expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
                         'healthstate', 'healthstate_id') + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
+    all_ages_age_group_id = 22
+    if data.age_group_id.unique() != all_ages_age_group_id:
+        raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
+                                f'the expected all ages age group (id {all_ages_age_group_id}.')
+
+    check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
+
+    check_location(data, location_id)
+
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_location(data, location_id)
 
 
 def _validate_remission(data, entity, location_id):
@@ -238,12 +268,18 @@ def _validate_remission(data, entity, location_id):
 
     check_measure_id(data.measure_id, ['remission'])
     check_metric_id(data.metric_id.unique(), 'rate')
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+
+    check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+    check_sex_ids(data, entity.restrictions.male_only, entity.restrictions.female_only)
+
     check_years(data, 'binned')
     check_location(data, location_id)
+
     check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
 
 def _validate_deaths(data, entity, location_id):
@@ -255,17 +291,21 @@ def _validate_deaths(data, entity, location_id):
     check_measure_id(data.measure_id, ['deaths'])
     check_metric_id(data.metric_id.unique(), 'number')
 
+    check_age_group_ids(data, entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
+    check_sex_ids(data, entity.restrictions.male_only, entity.restrictions.female_only)
+
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
+    check_age_restrictions(data, entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     pop = gbd.get_population(location_id)
     idx_cols = ['age_group_id', 'year_id', 'sex_id']
     pop = pop[(pop.year_id.isin(data.year_id.unique())) & (pop.sex_id != gbd.COMBINED)].set_index(idx_cols).population
     check_value_columns_boundary(data.set_index(idx_cols), pop, 'upper',
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=False)
-
-    check_years(data, 'annual')
-    check_location(data, location_id)
-    check_age_restrictions(data, entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
 def _validate_exposure(data, entity, location_id):
@@ -449,21 +489,116 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True,
     return True
 
 
-def check_all_ages_present(data: pd.DataFrame):
-    expected_ages = set(gbd.get_age_group_id())
-    if set(data.age_group_id) != expected_ages:
-        raise DataAbnormalError('Data does not contain the full set of GBD age groups as expected.')
+def _get_restriction_ages(start_id: float, end_id: float) -> list:
+    gbd_age_ids = gbd.get_age_group_id()
+    start_index = gbd_age_ids.index(start_id)
+    end_index = gbd_age_ids.index(end_id)
+
+    return gbd_age_ids[start_index:end_index+1]
 
 
-def check_all_sexes_present(data: pd.DataFrame):
-    expected_sexes = {gbd.MALE, gbd.FEMALE}
-    if set(data.sex_id) != expected_sexes:
-        raise DataAbnormalError('Data does not contain the full set of GBD sex ids as expected.')
+def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, restriction_end: float = None):
+    """Check the set of age_group_ids included in data pulled from GBD for
+    the following conditions:
+
+        - if data ages contain invalid age group ids, error.
+        - if data ages are equal to the set of all GBD age groups or the set of
+        age groups within restriction bounds (if restrictions apply), pass.
+        - if data ages are not a contiguous block of GBD age groups, error.
+        - if data ages are a proper subset of the set of restriction age groups
+        or the restriction age groups are a proper subset of the data ages,
+        warn.
+
+
+    Parameters
+    ----------
+    data
+        Dataframe pulled containing age_group_id column.
+    restriction_start
+        Age group id representing the start of the restriction range
+        if applicable.
+    restriction_end
+        Age group id representing the end of the restriction range
+        if applicable.
+
+    Raises
+    ------
+    DataAbnormalError
+        If age group ids contained in data aren't all valid GBD age group ids
+        or they don't make up a contiguous block.
+
+    """
+
+    all_ages = gbd.get_age_group_id().sort()
+    restriction_ages = _get_restriction_ages(restriction_start, restriction_end).sort() if restriction_start else []
+    data_ages = list(data.age_group_id.unique()).sort()
+
+    invalid_age_ids = set(data_ages).difference(all_ages)
+    if invalid_age_ids:
+        raise DataAbnormalError(f'Data contains invalid age group ids: {invalid_age_ids}')
+
+    if data_ages == restriction_ages or data_ages == all_ages:
+        return
+
+    # make sure data_ages is contiguous block
+    if all_ages[all_ages.index(data_ages[0]):all_ages.index(data_ages[-1])+1] != data_ages:
+        raise DataAbnormalError(f'Data contains a non-contiguous age groups: {data_ages}.')
+
+    if set(data_ages).issubset(restriction_ages):
+        warnings.warn('Data does not contain all age groups in restriction range.')
+
+    if set(restriction_ages).issubset(all_ages):
+        warnings.warn('Data contains additional age groups beyond those specifed by restriction range.')
+
+
+def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expected: bool = True,
+                  combined_expected: bool = False):
+    """Check whether the data contains valid GBD sex ids and whether the set of
+    sex ids in the data matches the expected set.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing a sex_id column.
+    male_expected
+        Boolean indicating whether the male sex id is expected in this data.
+        For some data pulling tools, this may correspond to whether the entity
+        the data describes has a male_only sex restriction.
+    female_expected
+        Boolean indicating whether the female sex id is expected in this data.
+        For some data pulling tools, this may correspond to whether the entity
+        the data describes has a female_only sex restriction.
+    combined_expected
+        Boolean indicating whether data is expected to include the
+        combined sex id.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data contains any sex ids that aren't valid GBD sex ids.
+
+    """
+    valid_sex_ids = [gbd.MALE, gbd.FEMALE, gbd.COMBINED]
+    gbd_sex_ids = np.array(valid_sex_ids)[[male_expected, female_expected, combined_expected]]
+    data_sex_ids = set(data.sex_id)
+
+    invalid_sex_ids = data_sex_ids.difference(valid_sex_ids)
+    if invalid_sex_ids:
+        raise DataAbnormalError(f'Data contains invalid sex ids: {invalid_sex_ids}.')
+
+    extra_sex_ids = data_sex_ids.difference(gbd_sex_ids)
+    if extra_sex_ids:
+        warnings.warn(f'Data contains the following extra sex ids {extra_sex_ids}.')
+
+    missing_sex_ids = set(gbd_sex_ids).difference(data_sex_ids)
+    if missing_sex_ids:
+        warnings.warn(f'Data is missing the following expected sex ids: {missing_sex_ids}.')
 
 
 def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int):
     """Check that all expected age groups between age_group_id_start and
-    age_group_id_end, inclusive, and only those age groups, appear in data.
+    age_group_id_end, inclusive, and only those age groups, appear in data with
+    non-missing values in DRAW_COLUMNS.
 
     Parameters
     ----------
@@ -483,11 +618,7 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
         the data.
 
     """
-    gbd_age_ids = gbd.get_age_group_id()
-    start_index = gbd_age_ids.index(age_group_id_start)
-    end_index = gbd_age_ids.index(age_group_id_end)
-
-    expected_gbd_age_ids = gbd_age_ids[start_index:end_index+1]
+    expected_gbd_age_ids = _get_restriction_ages(age_group_id_start, age_group_id_end)
 
     # age groups we expected in data but that are not
     missing_age_groups = set(expected_gbd_age_ids).difference(set(data.age_group_id))
@@ -552,8 +683,8 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
 
 
 def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool):
-    """Check that data only contains sex ids expected from GBD and that any
-    sex restrictions match data.
+    """Check that all expected sex ids based on restrictions, and only those
+    sex ids, appear in data with non-missing values in DRAW_COLUMNS.
 
     Parameters
     ----------
@@ -570,9 +701,6 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
         If data contains any sex ids not in the set defined by GBD or data
         violates passed sex restrictions.
     """
-    gbd_sex_ids = {gbd.MALE, gbd.FEMALE, gbd.COMBINED}
-    if not set(data.sex_id).issubset(gbd_sex_ids):
-        raise DataAbnormalError(f'Data contains unexpected sex ids: {set(data.sex_id).difference(gbd_sex_ids)}')
 
     if male_only:
         if not check_data_exist(data[data.sex_id == gbd.MALE], zeros_missing=True, error=False):
