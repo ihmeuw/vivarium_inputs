@@ -519,7 +519,7 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True,
     Returns
     -------
     bool
-        True if non-missing, non-zero (if zeros_missing) draw values exist in
+        True if non-missing, non-zero (if zeros_missing) values exist in
         data, False otherwise.
 
     Raises
@@ -646,10 +646,11 @@ def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expecte
         warnings.warn(f'Data is missing the following expected sex ids: {missing_sex_ids}.')
 
 
-def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int):
+def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int,
+                           value_columns: list = DRAW_COLUMNS):
     """Check that all expected age groups between age_group_id_start and
     age_group_id_end, inclusive, and only those age groups, appear in data with
-    non-missing values in DRAW_COLUMNS.
+    non-missing values in `value_columns`.
 
     Parameters
     ----------
@@ -659,6 +660,9 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
         Lower boundary of age group ids expected in data, inclusive.
     age_group_id_end
         Upper boundary of age group ids expected in data, exclusive.
+    value_columns
+        List of columns to verify values are non-missing for expected age
+        groups and missing for not expected age groups.
 
     Raises
     ------
@@ -683,10 +687,10 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     if extra_age_groups:
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
-        if not check_data_exist(should_be_zero, zeros_missing=True, error=False):
-            raise DataAbnormalError(f'Data was only expected to contain age groups between ids '
+        if check_data_exist(should_be_zero, zeros_missing=True, value_columns=value_columns, error=False):
+            raise DataAbnormalError(f'Data was only expected to contain values for age groups between ids '
                                     f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
-                                    f'but also included {extra_age_groups}.')
+                                    f'but also included values for age groups {extra_age_groups}.')
 
 
 def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float, pd.Series], boundary_type: str,

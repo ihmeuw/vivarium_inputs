@@ -119,4 +119,17 @@ def test_check_sex_ids():
         raw.check_sex_ids(df, male_expected=True, female_expected=True, combined_expected=True)
 
 
+def test_check_age_restrictions(mocker):
+    gbd_mock = mocker.patch('vivarium_inputs.validation.raw.gbd')
+    gbd_mock.get_age_group_id.return_value = list(range(1, 6))
 
+    df = pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0})
+    with pytest.raises(DataAbnormalError, match='missing the following'):
+        raw.check_age_restrictions(df, 1, 4, value_columns=['a', 'b'])
+
+    df = pd.DataFrame({'age_group_id': [1, 2, 3], 'a': [1, 1, 1], 'b': [2, 3, 4]})
+    with pytest.raises(DataAbnormalError, match='also included values for age groups'):
+        raw.check_age_restrictions(df, 1, 2, value_columns=['a', 'b'])
+
+    df = pd.DataFrame({'age_group_id': [1, 2, 3], 'a': [1, 1, 0], 'b': [2, 3, 0]})
+    raw.check_age_restrictions(df, 1, 2, value_columns=['a', 'b'])
