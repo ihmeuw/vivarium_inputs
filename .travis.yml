@@ -6,7 +6,7 @@ install:
 - pip install hypothesis pytest pytest-mock
 - pip install .
 script:
-  - echo no tests
+  - pytest --ignore tests/old_code
 deploy:
   provider: pypi
   user: vivarium
