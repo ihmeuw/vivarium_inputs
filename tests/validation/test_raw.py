@@ -79,6 +79,24 @@ def test_check_age_group_ids(mocker):
     gbd_mock_utilities.get_age_group_id.return_value = list(range(1, 6))
 
     df = pd.DataFrame({'age_group_id': [1, 2, 3, 100]})
-
     with pytest.raises(DataAbnormalError, match='invalid'):
         raw.check_age_group_ids(df)
+
+    df = pd.DataFrame({'age_group_id': [1, 3, 4, 5]})
+    with pytest.raises(DataAbnormalError, match='non-contiguous'):
+        raw.check_age_group_ids(df)
+
+    df = pd.DataFrame({'age_group_id': [2, 3]})
+    with pytest.warns(Warning, match='not contain all age groups in restriction range'):
+        raw.check_age_group_ids(df, 2, 4)
+
+    df = pd.DataFrame({'age_group_id': [2, 3, 4]})
+    with pytest.warns(Warning, match='additional age groups'):
+        raw.check_age_group_ids(df, 2, 3)
+
+    raw.check_age_group_ids(df, 2, 4)
+
+    df = pd.DataFrame({'age_group_id': range(1, 6)})
+    raw.check_age_group_ids(df, 2, 4)
+
+

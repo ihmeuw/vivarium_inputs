@@ -576,10 +576,13 @@ def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, res
         or they don't make up a contiguous block.
 
     """
+    all_ages = gbd.get_age_group_id()
+    restriction_ages = _get_restriction_ages(restriction_start, restriction_end) if restriction_start is not None else []
+    data_ages = list(set(data.age_group_id))
 
-    all_ages = gbd.get_age_group_id().sort()
-    restriction_ages = _get_restriction_ages(restriction_start, restriction_end).sort() if restriction_start else []
-    data_ages = list(data.age_group_id.unique()).sort()
+    all_ages.sort()
+    restriction_ages.sort()
+    data_ages.sort()
 
     invalid_age_ids = set(data_ages).difference(all_ages)
     if invalid_age_ids:
@@ -596,7 +599,7 @@ def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, res
         warnings.warn('Data does not contain all age groups in restriction range.')
 
     if set(restriction_ages).issubset(all_ages):
-        warnings.warn('Data contains additional age groups beyond those specifed by restriction range.')
+        warnings.warn('Data contains additional age groups beyond those specified by restriction range.')
 
 
 def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expected: bool = True,
