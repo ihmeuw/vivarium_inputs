@@ -720,21 +720,25 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
     Raises
     -------
     DataAbnormalError
-        If any values in DRAW_COLUMNS are above/below `boundary_value`,
+        If any values in `value_columns` are above/below `boundary_value`,
         depending on `boundary_type`, if `error` is turned on.
     """
     msg = f'Data contains values {"below" if boundary_type == "lower" else "above"} ' \
-        f'the expected boundary value{"s" if isinstance(boundary_value, pd.Series) else f" ({boundary_value})"}.'
+        f'{"or equal to " if not inclusive else ""}the expected boundary ' \
+        f'value{"s" if isinstance(boundary_value, pd.Series) else f" ({boundary_value})"}.'
 
     if boundary_type == "lower":
-        op = operator.le if inclusive else operator.lt
+        op = operator.ge if inclusive else operator.gt
         data_values = data[value_columns].min(axis=1)
     else:
-        op = operator.ge if inclusive else operator.gt
+        op = operator.le if inclusive else operator.lt
         data_values = data[value_columns].max(axis=1)
 
     if not np.all(op(data_values, boundary_value)):
-        raise DataAbnormalError(msg) if error else warnings.warn(msg)
+        if error:
+            raise DataAbnormalError(msg)
+        else:
+            warnings.warn(msg)
 
 
 def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool):

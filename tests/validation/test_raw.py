@@ -135,3 +135,29 @@ def test_check_age_restrictions(mock_get_age_group_id):
     raw.check_age_restrictions(df, 1, 2, value_columns=['a', 'b'])
 
 
+def test_check_value_columns_boundary():
+    df = pd.DataFrame({'a': [0, 1], 'b': [2, 20]})
+    raw.check_value_columns_boundary(df, 0, 'lower', ['a', 'b'], inclusive=True, error=True)
+
+    with pytest.raises(DataAbnormalError, match='values below'):
+        raw.check_value_columns_boundary(df, 1, 'lower', ['a', 'b'], inclusive=True, error=True)
+
+    with pytest.warns(Warning, match='values below'):
+        raw.check_value_columns_boundary(df, 1, 'lower', ['a', 'b'], inclusive=True, error=False)
+
+    with pytest.raises(DataAbnormalError, match='values below or equal to'):
+        raw.check_value_columns_boundary(df, 0, 'lower', ['a', 'b'], inclusive=False, error=True)
+
+    df = pd.DataFrame({'a': [0, 1], 'b': [2, 20]})
+    raw.check_value_columns_boundary(df, 20, 'upper', ['a', 'b'], inclusive=True, error=True)
+
+    with pytest.raises(DataAbnormalError, match='values above'):
+        raw.check_value_columns_boundary(df, 20, 'upper', ['a', 'b'], inclusive=False, error=True)
+
+    with pytest.warns(Warning, match='values above'):
+        raw.check_value_columns_boundary(df, 20, 'upper', ['a', 'b'], inclusive=False, error=False)
+
+    max_vals = pd.Series([5, 10], index=df.index)
+    with pytest.raises(DataAbnormalError, match='above the expected boundary values'):
+        raw.check_value_columns_boundary(df, max_vals, 'upper', ['a', 'b'], inclusive=True, error=True)
+
