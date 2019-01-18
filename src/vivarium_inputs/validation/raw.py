@@ -501,7 +501,7 @@ def check_columns(expected_cols: List, existing_cols: List):
 
 def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True,
                      value_columns: list = DRAW_COLUMNS, error: bool = True) -> bool:
-    """Check that values in data exist and are not all missing and, if
+    """Check that values in data exist and none are missing and, if
     `zeros_missing` is turned on, not all zero.
 
     Parameters
@@ -525,12 +525,12 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True,
     Raises
     -------
     DataNotExistError
-        If error flag is set to true and data is empty or contains all NaN
+        If error flag is set to true and data is empty or contains any NaN
         values in `value_columns`, or contains all zeros in `value_columns` and
         zeros_missing is True.
 
     """
-    if data.empty or np.all(pd.isnull(data[value_columns])) or (zeros_missing and not np.all(data[value_columns])):
+    if data.empty or np.any(pd.isnull(data[value_columns])) or (zeros_missing and not np.all(data[value_columns])):
         if error:
             raise DataNotExistError('Data contains no non-missing, non-zero draw values.')
         return False
