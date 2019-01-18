@@ -157,7 +157,12 @@ def test_check_value_columns_boundary():
     with pytest.warns(Warning, match='values above'):
         raw.check_value_columns_boundary(df, 20, 'upper', ['a', 'b'], inclusive=False, error=False)
 
+    max_vals = pd.Series([5, 20], index=df.index)
+    raw.check_value_columns_boundary(df, max_vals, 'upper', ['a', 'b'], inclusive=True, error=True)
+
     max_vals = pd.Series([5, 10], index=df.index)
     with pytest.raises(DataAbnormalError, match='above the expected boundary values'):
         raw.check_value_columns_boundary(df, max_vals, 'upper', ['a', 'b'], inclusive=True, error=True)
+
+
 
