@@ -501,7 +501,8 @@ def check_columns(expected_cols: List, existing_cols: List):
 
 def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True,
                      value_columns: list = DRAW_COLUMNS, error: bool = True) -> bool:
-    """
+    """Check that values in data exist and are not all missing and, if
+    `zeros_missing` is turned on, not all zero.
 
     Parameters
     ----------
@@ -511,7 +512,7 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True,
         Boolean indicating whether to treat all zeros in `value_columns` as
         missing or not.
     value_columns
-        List of columns in `data` to check for missing data.
+        List of columns in `data` to check for missing values.
     error
         Boolean indicating whether or not to error if data is missing.
 

@@ -1,12 +1,13 @@
+import numpy as np
 import pandas as pd
 import pytest
 
 from vivarium_inputs.validation import raw
-from vivarium_inputs.globals import DataAbnormalError
+from vivarium_inputs.globals import DataAbnormalError, DataNotExistError
 
 
 def test_check_years(mocker):
-    gbd_mock_utilities = mocker.patch("vivarium_inputs.globals.gbd")
+    gbd_mock_utilities = mocker.patch("vivarium_inputs.validation.raw.gbd")
     gbd_mock_utilities.get_estimation_years.return_value = list(range(1990, 2015, 5)) + [2017]
 
     df = pd.DataFrame({'year_id': [1990, 1991]})
@@ -55,3 +56,17 @@ def test_check_columns():
         raw.check_columns(expected_cols, expected_cols+['d'])
 
     raw.check_columns(expected_cols, expected_cols)
+
+
+def test_check_data_exist():
+    df = pd.DataFrame()
+    with pytest.raises(DataNotExistError):
+        raw.check_data_exist(df)
+
+    assert raw.check_data_exist(df, error=False) is False
+
+    df = pd.DataFrame({'a': [np.nan, np.nan], 'b': [1, 1]})
+    with pytest.raises(DataNotExistError):
+        raw.check_data_exist(df, value_columns=['a'])
+    assert raw.check_data_exist(df, value_columns=['b'])
+
