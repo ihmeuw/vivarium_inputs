@@ -30,3 +30,18 @@ def test_check_years(mocker):
     raw.check_years(df, 'binned')
 
 
+def test_check_location():
+    df = pd.DataFrame({'location_id': [1, 2]})
+    with pytest.raises(DataAbnormalError, match='multiple'):
+        raw.check_location(df, 2)
+
+    df = pd.DataFrame({'location_id': [3, 3, 3]})
+    with pytest.raises(DataAbnormalError, match='actually has location id'):
+        raw.check_location(df, 5)
+
+    df = pd.DataFrame({'location_id': [1, 1, 1]})
+    raw.check_location(df, 5)
+
+    df = pd.DataFrame({'location_id': [3, 3, 3]})
+    raw.check_location(df, 3)
+

@@ -424,12 +424,12 @@ def _check_paf_types(entity):
 # VALIDATION UTILITIES #
 ########################
 
-def check_years(df: pd.DataFrame, year_type: str):
-    """ Check that years in passed data match expected range based on type.
+def check_years(data: pd.DataFrame, year_type: str):
+    """Check that years in passed data match expected range based on type.
 
     Parameters
     ----------
-    df
+    data
         Dataframe containing 'year_id' column.
     year_type
         String 'annual' or 'binned' indicating expected year range.
@@ -443,22 +443,38 @@ def check_years(df: pd.DataFrame, year_type: str):
     """
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
     expected_years = years[year_type]
-    if set(df.year_id.unique()) < set(expected_years):
-        raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(df.year_id.unique()))}.')
+    if set(data.year_id.unique()) < set(expected_years):
+        raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(data.year_id.unique()))}.')
     # if is it annual, we expect to have extra years from some cases like codcorrect/covariate
-    if year_type == 'binned' and set(df.year_id.unique()) > set(expected_years):
-        raise DataAbnormalError(f'Data has extra years: {set(df.year_id.unique()).difference(set(expected_years))}.')
+    if year_type == 'binned' and set(data.year_id.unique()) > set(expected_years):
+        raise DataAbnormalError(f'Data has extra years: {set(data.year_id.unique()).difference(set(expected_years))}.')
 
 
-def check_location(data: pd.DataFrame, location_id: str):
-    if data.empty:
-        raise InvalidQueryError(f'Data does not have location_id {location_id}.')
+def check_location(data: pd.DataFrame, location_id: int):
+    """Check that data contains only a single unique location id and that that
+    location id matches either the global location id or the
+    requested `location_id`.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing a 'location_id' column.
+    location_id
+        The requested location_id.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data contains multiple location ids or a location id other than the
+        global or requested location id.
+
+    """
     if len(data['location_id'].unique()) > 1:
-        raise DataAbnormalError(f'Data has extra location ids.')
+        raise DataAbnormalError(f'Data contains multiple location ids.')
     data_location_id = data['location_id'].unique()[0]
     global_loc_id = 1
     if data_location_id not in [global_loc_id, location_id]:
-        raise DataAbnormalError(f'Data called for {location_id} has a location id {data_location_id}.')
+        raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}.')
 
 
 def check_columns(expected_cols: List, existing_cols: List):
