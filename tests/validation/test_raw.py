@@ -70,3 +70,12 @@ def test_check_data_exist():
         raw.check_data_exist(df, value_columns=['a'])
     assert raw.check_data_exist(df, value_columns=['b'])
 
+    df['b'] = 0
+    assert raw.check_data_exist(df, value_columns=['b'], zeros_missing=False)
+
+    # TODO: should a mix of NaNs and 0s count as missing? For now: yes
+    with pytest.raises(DataNotExistError):
+        raw.check_data_exist(df, value_columns=['a', 'b'])
+
+
+
