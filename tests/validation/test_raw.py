@@ -2,13 +2,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from unittest import mock
+
 from vivarium_inputs.validation import raw
 from vivarium_inputs.globals import DataAbnormalError, DataNotExistError
 
 
 def test_check_years(mocker):
-    gbd_mock_utilities = mocker.patch("vivarium_inputs.validation.raw.gbd")
-    gbd_mock_utilities.get_estimation_years.return_value = list(range(1990, 2015, 5)) + [2017]
+    gbd_mock = mocker.patch("vivarium_inputs.validation.raw.gbd")
+    gbd_mock.get_estimation_years.return_value = list(range(1990, 2015, 5)) + [2017]
 
     df = pd.DataFrame({'year_id': [1990, 1991]})
     with pytest.raises(DataAbnormalError, match='missing years') as e:
@@ -75,8 +77,8 @@ def test_check_data_exist():
 
 
 def test_check_age_group_ids(mocker):
-    gbd_mock_utilities = mocker.patch("vivarium_inputs.validation.raw.gbd")
-    gbd_mock_utilities.get_age_group_id.return_value = list(range(1, 6))
+    gbd_mock = mocker.patch("vivarium_inputs.validation.raw.gbd")
+    gbd_mock.get_age_group_id.return_value = list(range(1, 6))
 
     df = pd.DataFrame({'age_group_id': [1, 2, 3, 100]})
     with pytest.raises(DataAbnormalError, match='invalid'):
@@ -98,5 +100,23 @@ def test_check_age_group_ids(mocker):
 
     df = pd.DataFrame({'age_group_id': range(1, 6)})
     raw.check_age_group_ids(df, 2, 4)
+
+
+@mock.patch('vivarium_inputs.validation.raw.gbd.MALE', 1)
+@mock.patch('vivarium_inputs.validation.raw.gbd.FEMALE', 2)
+@mock.patch('vivarium_inputs.validation.raw.gbd.COMBINED', 3)
+def test_check_sex_ids():
+    df = pd.DataFrame({'sex_id': [1, 2, 12]})
+    with pytest.raises(DataAbnormalError, match='invalid sex ids'):
+        raw.check_sex_ids(df)
+
+    df = pd.DataFrame({'sex_id': [1, 2, 3]})
+    with pytest.warns(Warning, match='extra sex ids'):
+        raw.check_sex_ids(df, male_expected=True, female_expected=False, combined_expected=False)
+
+    df = pd.DataFrame({'sex_id': [1, 2]})
+    with pytest.warns(Warning, match='missing the following expected sex ids'):
+        raw.check_sex_ids(df, male_expected=True, female_expected=True, combined_expected=True)
+
 
 
