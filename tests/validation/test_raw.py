@@ -8,9 +8,9 @@ from vivarium_inputs.validation import raw
 from vivarium_inputs.globals import DataAbnormalError, DataNotExistError
 
 
-def test_check_years(mocker):
-    gbd_mock = mocker.patch("vivarium_inputs.validation.raw.gbd")
-    gbd_mock.get_estimation_years.return_value = list(range(1990, 2015, 5)) + [2017]
+@mock.patch('vivarium_inputs.validation.raw.gbd.get_estimation_years')
+def test_check_years(mock_get_estimation_years):
+    mock_get_estimation_years.return_value = list(range(1990, 2015, 5)) + [2017]
 
     df = pd.DataFrame({'year_id': [1990, 1991]})
     with pytest.raises(DataAbnormalError, match='missing years') as e:
@@ -76,9 +76,9 @@ def test_check_data_exist():
     assert raw.check_data_exist(df, value_columns=['b'], zeros_missing=False)
 
 
-def test_check_age_group_ids(mocker):
-    gbd_mock = mocker.patch("vivarium_inputs.validation.raw.gbd")
-    gbd_mock.get_age_group_id.return_value = list(range(1, 6))
+@mock.patch('vivarium_inputs.validation.raw.gbd.get_age_group_id')
+def test_check_age_group_ids(mock_get_age_group_id):
+    mock_get_age_group_id.return_value = list(range(1, 6))
 
     df = pd.DataFrame({'age_group_id': [1, 2, 3, 100]})
     with pytest.raises(DataAbnormalError, match='invalid'):
@@ -119,9 +119,9 @@ def test_check_sex_ids():
         raw.check_sex_ids(df, male_expected=True, female_expected=True, combined_expected=True)
 
 
-def test_check_age_restrictions(mocker):
-    gbd_mock = mocker.patch('vivarium_inputs.validation.raw.gbd')
-    gbd_mock.get_age_group_id.return_value = list(range(1, 6))
+@mock.patch('vivarium_inputs.validation.raw.gbd.get_age_group_id')
+def test_check_age_restrictions(mock_get_age_group_id):
+    mock_get_age_group_id.return_value = list(range(1, 6))
 
     df = pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0})
     with pytest.raises(DataAbnormalError, match='missing the following'):
@@ -133,3 +133,5 @@ def test_check_age_restrictions(mocker):
 
     df = pd.DataFrame({'age_group_id': [1, 2, 3], 'a': [1, 1, 0], 'b': [2, 3, 0]})
     raw.check_age_restrictions(df, 1, 2, value_columns=['a', 'b'])
+
+
