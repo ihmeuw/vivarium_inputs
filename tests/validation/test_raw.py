@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -45,3 +44,14 @@ def test_check_location():
     df = pd.DataFrame({'location_id': [3, 3, 3]})
     raw.check_location(df, 3)
 
+
+def test_check_columns():
+    expected_cols = ['a', 'b', 'c']
+
+    with pytest.raises(DataAbnormalError, match='missing columns'):
+        raw.check_columns(expected_cols, ['a', 'b'])
+
+    with pytest.raises(DataAbnormalError, match='extra columns'):
+        raw.check_columns(expected_cols, expected_cols+['d'])
+
+    raw.check_columns(expected_cols, expected_cols)

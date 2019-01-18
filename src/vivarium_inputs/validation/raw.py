@@ -478,6 +478,21 @@ def check_location(data: pd.DataFrame, location_id: int):
 
 
 def check_columns(expected_cols: List, existing_cols: List):
+    """Verify that the passed lists of columns match.
+
+    Parameters
+    ----------
+    expected_cols
+        List of column names expected.
+    existing_cols
+        List of column names actually found in data.
+
+    Raises
+    ------
+    DataAbnormalError
+        If `expected_cols` does not match `existing_cols`.
+
+    """
     if set(existing_cols) < set(expected_cols):
         raise DataAbnormalError(f'Data is missing columns: {set(expected_cols).difference(set(existing_cols))}.')
     elif set(existing_cols) > set(expected_cols):
