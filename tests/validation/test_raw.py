@@ -75,6 +75,9 @@ def test_check_data_exist():
     df['b'] = 0
     assert raw.check_data_exist(df, value_columns=['b'], zeros_missing=False)
 
+    df = pd.DataFrame({'a': [1], 'b': [1], 'c': [0]})
+    raw.check_data_exist(df, value_columns=['b', 'c'], zeros_missing=True)
+
 
 @mock.patch('vivarium_inputs.validation.raw.gbd.get_age_group_id')
 def test_check_age_group_ids(mock_get_age_group_id):
@@ -165,4 +168,39 @@ def test_check_value_columns_boundary():
         raw.check_value_columns_boundary(df, max_vals, 'upper', ['a', 'b'], inclusive=True, error=True)
 
 
+@mock.patch('vivarium_inputs.validation.raw.gbd.MALE', 1)
+@mock.patch('vivarium_inputs.validation.raw.gbd.FEMALE', 2)
+@mock.patch('vivarium_inputs.validation.raw.gbd.COMBINED', 3)
+def test_check_sex_restrictions():
+    df = pd.DataFrame({'sex_id': [1, 1], 'a': 0, 'b': 0})
+    with pytest.raises(DataAbnormalError, match='missing data values for males'):
+        raw.check_sex_restrictions(df, True, False, value_columns=['a', 'b'])
 
+    df = pd.DataFrame({'sex_id': [1, 2], 'a': 1, 'b': 0})
+    with pytest.raises(DataAbnormalError, match='contains non-male sex ids for which data values are not all 0.'):
+        raw.check_sex_restrictions(df, True, False, value_columns=['a', 'b'])
+
+    df = pd.DataFrame({'sex_id': [2], 'a': 0, 'b': 0})
+    with pytest.raises(DataAbnormalError, match='missing data values for females'):
+        raw.check_sex_restrictions(df, False, True, value_columns=['a', 'b'])
+
+    df = pd.DataFrame({'sex_id': [1, 2], 'a': 1, 'b': 0})
+    with pytest.raises(DataAbnormalError, match='contains non-female sex ids for which data values are not all 0.'):
+        raw.check_sex_restrictions(df, False, True, value_columns=['a', 'b'])
+
+    df = pd.DataFrame({'sex_id': [3], 'a': [0], 'b': [0]})
+    with pytest.raises(DataAbnormalError, match='not contain non-zero values for both'):
+        raw.check_sex_restrictions(df, False, False, value_columns=['a', 'b'])
+
+    df['a'] = 1
+    raw.check_sex_restrictions(df, False, False, value_columns=['a', 'b'])
+
+    df = pd.DataFrame({'sex_id': [1, 2], 'a': [0, 1], 'b': [0, 1]})
+    with pytest.raises(DataAbnormalError, match='not contain non-zero values for both'):
+        raw.check_sex_restrictions(df, False, False, value_columns=['a', 'b'])
+
+    df = pd.DataFrame({'sex_id': [3], 'a': [1], 'b': [1]})
+    raw.check_sex_restrictions(df, False, False, value_columns=['a', 'b'])
+
+    df = pd.DataFrame({'sex_id': [1, 2], 'a': [0, 1], 'b': [1, 0]})
+    raw.check_sex_restrictions(df, False, False, value_columns=['a', 'b'])
