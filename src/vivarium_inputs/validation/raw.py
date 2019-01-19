@@ -3,7 +3,7 @@ import warnings
 import operator
 import pandas as pd
 import numpy as np
-from typing import NamedTuple, Union
+from typing import NamedTuple, Union, List
 
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap)
@@ -160,8 +160,8 @@ def _validate_incidence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id, ['incidence'])
-    check_metric_id(data.metric_id.unique(), 'rate')
+    check_measure_id(data, ['incidence'])
+    check_metric_id(data, 'rate')
 
     if entity.kind == 'cause':
         check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
@@ -189,8 +189,8 @@ def _validate_prevalence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id, ['prevalence'])
-    check_metric_id(data.metric_id.unique(), 'rate')
+    check_measure_id(data, ['prevalence'])
+    check_metric_id(data, 'rate')
 
     if entity.kind == 'cause':
         check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
@@ -218,8 +218,8 @@ def _validate_birth_prevalence(data, entity, location_id):
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id, ['incidence'])
-    check_metric_id(data.metric_id.unique(), 'rate')
+    check_measure_id(data, ['incidence'])
+    check_metric_id(data, 'rate')
 
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
@@ -266,8 +266,8 @@ def _validate_remission(data, entity, location_id):
                         'modelable_entity_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id, ['remission'])
-    check_metric_id(data.metric_id.unique(), 'rate')
+    check_measure_id(data, ['remission'])
+    check_metric_id(data, 'rate')
 
     check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
     check_sex_ids(data, entity.restrictions.male_only, entity.restrictions.female_only)
@@ -288,8 +288,8 @@ def _validate_deaths(data, entity, location_id):
     expected_columns = ('measure_id', f'{entity.kind}_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data.measure_id, ['deaths'])
-    check_metric_id(data.metric_id.unique(), 'number')
+    check_measure_id(data, ['deaths'])
+    check_metric_id(data, 'number')
 
     check_age_group_ids(data, entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
     check_sex_ids(data, entity.restrictions.male_only, entity.restrictions.female_only)
@@ -802,15 +802,31 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
                                         'values for both males and females.')
 
 
-def check_measure_id(data_measure_id: pd.Series, allowable_measures: list):
-    if len(set(data_measure_id)) > 1:
-        raise DataAbnormalError(f'Data has multiple measure ids: {set(data_measure_id)}.')
-    if not set(data_measure_id).issubset(set([MEASURES[m.capitalize()] for m in allowable_measures])):
+def check_measure_id(data: pd.DataFrame, allowable_measures: List[str]):
+    """Check that data contains only a single measure id and that it is one of
+    the allowed measure ids.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing 'measure_id' column.
+    allowable_measures
+        List of strings dictating the possible values for measure id when
+        mapped via MEASURES.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data contains multiple measure ids or a non-permissible measure id.
+    """
+    if len(set(data.measure_id)) > 1:
+        raise DataAbnormalError(f'Data has multiple measure ids: {set(data.measure_id)}.')
+    if not set(data.measure_id).issubset(set([MEASURES[m.capitalize()] for m in allowable_measures])):
         raise DataAbnormalError(f'Data includes a measure id not in the expected measure ids for this measure.')
 
 
-def check_metric_id(data_metric_id, expected_metric):
-    if data_metric_id != METRICS[expected_metric.capitalize()]:
+def check_metric_id(data: pd.DataFrame, expected_metric: str):
+    if data.metric_id.unique() != METRICS[expected_metric.capitalize()]:
         raise DataAbnormalError(f'Data includes metrics beyond the expected {expected_metric.lower()} '
                                 f'(metric_id {METRICS[expected_metric.capitalize()]}')
 

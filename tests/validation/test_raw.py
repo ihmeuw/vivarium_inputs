@@ -204,3 +204,19 @@ def test_check_sex_restrictions():
 
     df = pd.DataFrame({'sex_id': [1, 2], 'a': [0, 1], 'b': [1, 0]})
     raw.check_sex_restrictions(df, False, False, value_columns=['a', 'b'])
+
+
+@mock.patch('vivarium_inputs.validation.raw.MEASURES', {'A': 1, 'B': 2})
+def test_check_measure_id():
+    df = pd.DataFrame({'measure_id': [1, 1, 1, 12]})
+    with pytest.raises(DataAbnormalError, match='multiple measure ids'):
+        raw.check_measure_id(df, ['a'])
+
+    df = pd.DataFrame({'measure_id': [3, 3, 3]})
+    with pytest.raises(DataAbnormalError, match='not in the expected measure ids'):
+        raw.check_measure_id(df, ['A', 'b'])
+
+    df = pd.DataFrame({'measure_id': [1, 1]})
+    raw.check_measure_id(df, ['A', 'b'])
+
+
