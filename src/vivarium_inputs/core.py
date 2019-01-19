@@ -3,6 +3,7 @@ from typing import Union
 
 from gbd_mapping import Cause, RiskFactor, Sequela, Covariate
 import pandas as pd
+import numpy as np
 
 from vivarium_inputs import utilities, extract
 from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS
@@ -112,6 +113,7 @@ def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
     csmr = get_cause_specific_mortality(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
     prevalence = get_prevalence(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
     data = (csmr / prevalence).fillna(0)
+    data = data.replace([np.inf, -np.inf], 0)
     return data.reset_index()
 
 
