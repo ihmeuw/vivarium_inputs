@@ -19,8 +19,8 @@ alternative_risk_factors = AlternativeRiskFactors(
         relative_risk_exists=True,
         relative_risk_in_range=False,
         population_attributable_fraction_yll_exists=True,
-        population_attributable_fraction_yld_exists=True,
         population_attributable_fraction_yll_in_range=True,
+        population_attributable_fraction_yld_exists=True,
         population_attributable_fraction_yld_in_range=True,
         restrictions=Restrictions(
             male_only=False,
@@ -54,7 +54,7 @@ alternative_risk_factors = AlternativeRiskFactors(
         distribution='ensemble',
         population_attributable_fraction_calculation_type='categorical',
         exposure_exists=True,
-        exposure_standard_deviation_exists=None,
+        exposure_standard_deviation_exists=True,
         exposure_year_type='binned',
         relative_risk_exists=True,
         relative_risk_in_range=False,
@@ -72,7 +72,7 @@ alternative_risk_factors = AlternativeRiskFactors(
             yld_age_group_id_start=2,
             yld_age_group_id_end=235,
             violated=('exposure_age_restriction_violated', 'relative_risk_age_restriction_violated',
-                      'population_attributable_fraction_yll_age_restriction_violated',)
+                      'population_attributable_fraction_yll_age_restriction_violated', )
         ),
         affected_causes=(causes.all_causes, causes.communicable_maternal_neonatal_and_nutritional_diseases,
                          causes.diarrheal_diseases, causes.lower_respiratory_infections, causes.measles,
