@@ -213,4 +213,6 @@ def _validate_year_columns(data):
 def _validate_value_column(data):
     if np.any(data.value.isna()):
         raise DataFormattingError('Nans found in data.')
+    if np.any(np.isinf(data.value.values)):
+        raise DataFormattingError('Inf found in data')
 
