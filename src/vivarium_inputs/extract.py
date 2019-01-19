@@ -108,7 +108,7 @@ def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'risk_factor':
         data = gbd.get_relative_risk(entity.gbd_id, location_id)
     elif entity.kind == 'coverage_gap':
-        data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
+        data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name, location_id)
     else:
         raise NotImplementedError()
     return data
@@ -147,4 +147,3 @@ def extract_structure(entity, location_id: int) -> pd.DataFrame:
 def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
     return data
-
