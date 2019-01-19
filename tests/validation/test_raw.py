@@ -220,3 +220,15 @@ def test_check_measure_id():
     raw.check_measure_id(df, ['A', 'b'])
 
 
+@mock.patch('vivarium_inputs.validation.raw.METRICS', {'A': 1, 'B': 2})
+def test_check_metric_id():
+    df = pd.DataFrame({'metric_id': [1, 1, 1, 12]})
+    with pytest.raises(DataAbnormalError):
+        raw.check_metric_id(df, 'a')
+
+    df = pd.DataFrame({'metric_id': [2, 2]})
+    with pytest.raises(DataAbnormalError):
+        raw.check_metric_id(df, 'a')
+
+    df = pd.DataFrame({'metric_id': [2, 2]})
+    raw.check_metric_id(df, 'B')

@@ -826,7 +826,24 @@ def check_measure_id(data: pd.DataFrame, allowable_measures: List[str]):
 
 
 def check_metric_id(data: pd.DataFrame, expected_metric: str):
-    if data.metric_id.unique() != METRICS[expected_metric.capitalize()]:
+    """Check that data contains only a single metric id and that it matches the
+    expected metric.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing 'metric_id' column.
+    expected_metric
+        String dictating the expected metric, the id of which can be found via
+        METRICS.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data contains any metric id other than the expected.
+
+    """
+    if set(data.metric_id) != {METRICS[expected_metric.capitalize()]}:
         raise DataAbnormalError(f'Data includes metrics beyond the expected {expected_metric.lower()} '
                                 f'(metric_id {METRICS[expected_metric.capitalize()]}')
 
