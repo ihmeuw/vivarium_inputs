@@ -154,7 +154,7 @@ def check_population_metadata(entity: NamedTuple, measure: str):
     pass
 
 
-def _validate_incidence(data, entity, location_id):
+def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -183,7 +183,7 @@ def _validate_incidence(data, entity, location_id):
     check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
 
-def _validate_prevalence(data, entity, location_id):
+def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -212,7 +212,7 @@ def _validate_prevalence(data, entity, location_id):
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
 
-def _validate_birth_prevalence(data, entity, location_id):
+def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -239,7 +239,7 @@ def _validate_birth_prevalence(data, entity, location_id):
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
-def _validate_disability_weight(data, entity, location_id):
+def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id: int):
     check_data_exist(data, zeros_missing=False)
 
     expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
@@ -259,7 +259,7 @@ def _validate_disability_weight(data, entity, location_id):
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
 
-def _validate_remission(data, entity, location_id):
+def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ('measure_id', 'metric_id', 'model_version_id',
@@ -282,7 +282,7 @@ def _validate_remission(data, entity, location_id):
     check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
 
-def _validate_deaths(data, entity, location_id):
+def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ('measure_id', f'{entity.kind}_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
