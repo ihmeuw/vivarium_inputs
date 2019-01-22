@@ -101,7 +101,7 @@ def test_check_age_group_ids(mock_get_age_group_id):
 
     raw.check_age_group_ids(df, 2, 4)
 
-    df = pd.DataFrame({'age_group_id': range(1, 6)})
+    df = pd.DataFrame({'age_group_id': range(2, 5)})
     raw.check_age_group_ids(df, 2, 4)
 
 
