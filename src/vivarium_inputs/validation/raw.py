@@ -308,21 +308,45 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
 
-def _validate_exposure(data, entity, location_id):
+def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: 180):
+    check_data_exist(data, zeros_missing=True)
 
     expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
                         'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
-    # we can't check years for coverage_gaps, since it's not consistent.
-    if entity.kind == 'risk_factor':
-        check_years(data, 'binned')
+
+    check_measure_id(data,  ['prevalence', 'proportion', 'continuous'])
+    check_metric_id(data, 'rate')
+
+    if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
+        if entity.tmred.inverted:
+            check_value_columns_boundary(data, entity.tmred.max, 'upper',
+                                         value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+        else:
+            check_value_columns_boundary(data, entity.tmred.min, 'lower',
+                                         value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+    # FIXME: what do I do with custom if it has cats? i.e., should this check be does entity have cats?
+    else:
+        check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+        check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+        # TODO: check that draws sum to 1 across categories
+
+    # TODO: do the exposure year types vary by loc? Can I throw an error for
+    #  mix/incomplete above so I don't have to handle it here?
+    check_years(data, entity.exposure_year_type)
     check_location(data, location_id)
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
+    check_data_exist(data, zeros_missing=False)  # TODO: is this right to not count all 0s as missing?
 
-    expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id',
+                        'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+
+    check_years(data, 'annual')
     check_location(data, location_id)
 
 
@@ -330,18 +354,38 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
     key_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
+
+    check_data_exist(data, zeros_missing=True, value_columns=distribution_cols)
+
     check_columns(key_cols + distribution_cols, data.columns)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=distribution_cols, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=distribution_cols, inclusive=True, error=True)
+    if np.all(data[distribution_cols].sum(axis=1) != 1):
+        raise DataAbnormalError(f'Distribution weights for {entity.type} {entity.name} do not sum to 1.')
+
+    check_location(data, location_id)
 
 
 def _validate_relative_risk(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
                         'morbidity', 'metric_id', 'parameter') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+
+    max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
+    check_value_columns_boundary(data, max_val, value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+
     check_years(data, 'binned')
     check_location(data, location_id)
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
     check_years(data, 'annual')
@@ -378,6 +422,7 @@ def _validate_structure(data, entity, location_id):
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):
     pass
+
 
 
 ############################
