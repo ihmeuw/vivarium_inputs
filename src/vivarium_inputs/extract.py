@@ -79,7 +79,7 @@ def extract_exposure(entity, location_id: int) -> pd.DataFrame:
         proper_measure_id = set(data.measure_id).intersection(allowable_measures)
         if len(proper_measure_id) != 1:
             raise DataAbnormalError(f'Exposure data have {len(proper_measure_id)} measure id(s). Data should have'
-                                    f'exact one out of {allowable_measures} but came back with {proper_measure_id}')
+                                    f'exactly one id out of {allowable_measures} but came back with {proper_measure_id}.')
         else:
             data = data[data.measure_id == proper_measure_id.pop()]
 
