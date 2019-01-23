@@ -25,7 +25,7 @@ def get_data(entity, measure: str, location: str):
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
         'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor', 'alternative_risk_factor')),
         'relative_risk': (get_relative_risk, ('risk_factor', 'coverage_gap')),
-        'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'coverage_gap', 'etiology')),
+        'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'etiology')),
         'mediation_factors': (get_mediation_factors, ('risk_factor',)),
         # Covariate measures
         'estimate': (get_estimate, ('covariate',)),
