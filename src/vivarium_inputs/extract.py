@@ -75,14 +75,14 @@ def extract_deaths(entity, location_id: int) -> pd.DataFrame:
 def extract_exposure(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'risk_factor':
         data = gbd.get_exposure(entity.gbd_id, location_id)
-        if MEASURES['Proportion'] in data.measure_id.unique():
-            data = data[data.measure_id == MEASURES['Proportion']]
-        elif MEASURES['Continuous'] in data.measure_id.unique():
-            data = data[data.measure_id == MEASURES['Continuous']]
-        elif MEASURES['Prevalence'] in data.measure_id.unique():  # Exposure comes from a cause model
-            data = data[data.measure_id == MEASURES['Prevalence']]
+        allowable_measures = [MEASURES['Proportion'], MEASURES['Continuous'], MEASURES['Prevalence']]
+        proper_measure_id = set(data.measure_id).intersection(allowable_measures)
+        if len(proper_measure_id) != 1:
+            raise DataAbnormalError(f'Exposure data have {len(proper_measure_id)} measure id(s). Data should have'
+                                    f'exact one out of {allowable_measures} but came back with {proper_measure_id}')
         else:
-            raise DataAbnormalError('No exposure measure')
+            data = data[data.measure_id == proper_measure_id.pop()]
+
     else:  # alternative_risk_factor or coverage_gap
         data = gbd.get_auxiliary_data('exposure', entity.kind, entity.name, location_id)
     return data
