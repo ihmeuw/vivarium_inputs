@@ -505,7 +505,7 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
         if error:
             raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(data.year_id))}.')
         return False
-    # if is it annual, we expect to have extra years from some cases like codcorrect/covariate
+    # if it's annual, we expect to have extra years from some sources (e.g., codcorrect/covariate)
     if year_type == 'binned' and set(data.year_id.unique()) > set(expected_years):
         if error:
             raise DataAbnormalError(f'Data has extra years: {set(data.year_id).difference(set(expected_years))}.')
