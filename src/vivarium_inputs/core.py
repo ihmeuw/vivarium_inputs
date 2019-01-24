@@ -1,12 +1,14 @@
 from collections import namedtuple
 from typing import Union
+import itertools
 
 from gbd_mapping import Cause, RiskFactor, Sequela, Covariate
 import pandas as pd
 import numpy as np
 
+from vivarium_gbd_access import gbd
 from vivarium_inputs import utilities, extract
-from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS
+from vivarium_inputs.globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS
 
 
 def get_data(entity, measure: str, location: str):
@@ -79,14 +81,24 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
-        partial_weights = []
-        for sequela in entity.sequelae:
-            prevalence = get_prevalence(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
-            disability = get_disability_weight(sequela, location_id)
-            disability['location_id'] = location_id
-            disability = disability.set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
-            partial_weights.append(prevalence*disability)
-        data = sum(partial_weights).reset_index()
+        if entity.sequelae:
+            partial_weights = []
+            for sequela in entity.sequelae:
+                prevalence = get_prevalence(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+                disability = get_disability_weight(sequela, location_id)
+                disability['location_id'] = location_id
+                disability = disability.set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+                partial_weights.append(prevalence*disability)
+            data = sum(partial_weights).reset_index()
+        else:  # assume disability weight is zero if no sequela
+            sex_id = [1, 2]
+            age_group_id = gbd.get_age_group_id()
+            location_id = [location_id]
+            year_id = range(1990, 2018)
+            draw = range(1000)
+            value = [0.0]
+            data = pd.DataFrame(data=list(itertools.product(sex_id, age_group_id, location_id, year_id, draw, value)),
+                                columns=["sex_id", "age_group_id", "location_id", "year_id", "draw", "value"])
     else:  # entity.kind == 'sequela'
         data = extract.extract_data(entity, 'disability_weight', location_id)
         data = utilities.normalize(data)
