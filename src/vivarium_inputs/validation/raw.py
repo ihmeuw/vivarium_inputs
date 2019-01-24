@@ -102,6 +102,9 @@ def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor],
         # we don't have any applicable metadata to check
         pass
 
+    if entity.distribution == 'custom':
+        raise NotImplementedError('We do not currently support risk factors with custom distributions.')
+
     if measure == 'population_attributable_fraction':
         _check_paf_types(entity)
     else:
@@ -317,6 +320,28 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     check_measure_id(data,  ['prevalence', 'proportion', 'continuous'])
     check_metric_id(data, 'rate')
 
+    cats = data.groupby('parameter')
+
+    age_start, age_end, male_expected, female_expected = None, None, True, True
+
+    if entity.kind == 'risk_factor':
+        age_start = min(entity.restrictions.yld_age_group_id_start, entity.restrictions.yll_age_group_id_start)
+        age_end = max(entity.restrictions.yld_age_group_id_end, entity.restrictions.yll_age_group_id_end)
+        male_expected = entity.restrictions.male_only
+        female_expected = entity.restrictions.male_only
+
+    cats.apply(check_age_group_ids, age_start, age_end)
+    cats.apply(check_sex_ids, male_expected, female_expected)
+
+    if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
+        raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} contains a year range'
+                                f'that is neither annual nor binned.')
+    check_location(data, location_id)
+
+    if entity.kind == 'risk_factor':
+        cats.apply(check_age_restrictions, age_start, age_end)
+        cats.apply(check_sex_restrictions, male_expected, female_expected)
+
     if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
         if entity.tmred.inverted:
             check_value_columns_boundary(data, entity.tmred.max, 'upper',
@@ -324,16 +349,12 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         else:
             check_value_columns_boundary(data, entity.tmred.min, 'lower',
                                          value_columns=DRAW_COLUMNS, inclusive=True, error=False)
-    # FIXME: what do I do with custom if it has cats? i.e., should this check be does entity have cats?
     else:
         check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
         check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-        # TODO: check that draws sum to 1 across categories
 
-    # TODO: do the exposure year types vary by loc? Can I throw an error for
-    #  mix/incomplete above so I don't have to handle it here?
-    check_years(data, entity.exposure_year_type)
-    check_location(data, location_id)
+
+        # TODO: check that draws sum to 1 across categories
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
@@ -468,7 +489,7 @@ def _check_paf_types(entity):
 # VALIDATION UTILITIES #
 ########################
 
-def check_years(data: pd.DataFrame, year_type: str):
+def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
     """Check that years in passed data match expected range based on type.
 
     Parameters
@@ -478,20 +499,29 @@ def check_years(data: pd.DataFrame, year_type: str):
     year_type
         String 'annual' or 'binned' indicating expected year range.
 
+    Returns
+    -------
+    bool
+        True if years in `data` match expected `year_type`, false otherwise.
+
     Raises
     ------
     DataAbnormalError
-        If any expected years are not found in data or any extra years found
-        and `year_type` is 'binned'.
+        If `error` is turned on and any expected years are not found in data or
+        any extra years found and `year_type` is 'binned'.
 
     """
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
     expected_years = years[year_type]
     if set(data.year_id.unique()) < set(expected_years):
-        raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(data.year_id.unique()))}.')
+        if error:
+            raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(data.year_id))}.')
+        return False
     # if is it annual, we expect to have extra years from some cases like codcorrect/covariate
     if year_type == 'binned' and set(data.year_id.unique()) > set(expected_years):
-        raise DataAbnormalError(f'Data has extra years: {set(data.year_id.unique()).difference(set(expected_years))}.')
+        if error:
+            raise DataAbnormalError(f'Data has extra years: {set(data.year_id).difference(set(expected_years))}.')
+        return False
 
 
 def check_location(data: pd.DataFrame, location_id: int):
