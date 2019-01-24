@@ -322,11 +322,10 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
 
 
 def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int):
-    import pdb; pdb.set_trace()
     check_data_exist(data, zeros_missing=True)
 
-    expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
-                        'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    expected_columns = ['rei_id', 'modelable_entity_id', 'parameter',
+                        'measure_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
     check_measure_id(data,  ['prevalence', 'proportion', 'continuous'])
@@ -337,22 +336,23 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     age_start, age_end, male_expected, female_expected = None, None, True, True
 
     if entity.kind == 'risk_factor':
-        age_start = min(entity.restrictions.yld_age_group_id_start, entity.restrictions.yll_age_group_id_start)
-        age_end = max(entity.restrictions.yld_age_group_id_end, entity.restrictions.yll_age_group_id_end)
-        male_expected = entity.restrictions.male_only
-        female_expected = entity.restrictions.male_only
+        restrictions = entity.restrictions
+        age_start = min(restrictions.yld_age_group_id_start, restrictions.yll_age_group_id_start)
+        age_end = max(restrictions.yld_age_group_id_end, restrictions.yll_age_group_id_end)
+        male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
+        female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
     cats.apply(check_age_group_ids, age_start, age_end)
     cats.apply(check_sex_ids, male_expected, female_expected)
 
     if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
-        raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} contains a year range'
+        raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} contains a year range '
                                 f'that is neither annual nor binned.')
     check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
         cats.apply(check_age_restrictions, age_start, age_end)
-        cats.apply(check_sex_restrictions, male_expected, female_expected)
+        cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
     if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
         if entity.tmred.inverted:
@@ -361,7 +361,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         else:
             check_value_columns_boundary(data, entity.tmred.min, 'lower',
                                          value_columns=DRAW_COLUMNS, inclusive=True, error=False)
-    else:
+    else:  # categorical
         check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
         check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
@@ -536,6 +536,7 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
         if error:
             raise DataAbnormalError(f'Data has extra years: {set(data.year_id).difference(set(expected_years))}.')
         return False
+    return True
 
 
 def check_location(data: pd.DataFrame, location_id: int):
