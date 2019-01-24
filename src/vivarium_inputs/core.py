@@ -91,7 +91,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                 partial_weights.append(prevalence*disability)
             data = sum(partial_weights).reset_index()
         else:  # assume disability weight is zero if no sequela
-            sex_id = [1, 2]
+            sex_id = gbd.MALE + gbd.FEMALE
             age_group_id = gbd.get_age_group_id()
             location_id = [location_id]
             year_id = range(1990, 2018)
