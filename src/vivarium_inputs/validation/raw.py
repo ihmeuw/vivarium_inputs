@@ -354,8 +354,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
         check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
-        # don't include modelable_entity_id in cols because it's NaN for unexposed cat
-        g = data.groupby(['rei_id', 'measure_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
+        g = data.groupby(DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
         if not np.all(g[DRAW_COLUMNS] == 1):
             raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} '
                                     f'does not sum to 1 across all categories.')
