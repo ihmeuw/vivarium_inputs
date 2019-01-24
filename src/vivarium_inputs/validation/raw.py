@@ -1,8 +1,9 @@
 import operator
-import pandas as pd
-import numpy as np
 from typing import NamedTuple, Union, List
 import warnings
+
+import pandas as pd
+import numpy as np
 
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap)
