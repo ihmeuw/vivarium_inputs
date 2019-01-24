@@ -498,7 +498,8 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
         any extra years found and `year_type` is 'binned'.
 
     """
-    years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
+    gbd_years = gbd.get_estimation_years()
+    years = {'annual': list(range(min(gbd_years), max(gbd_years)+1)), 'binned': gbd_years}
     expected_years = years[year_type]
     if set(data.year_id.unique()) < set(expected_years):
         if error:
