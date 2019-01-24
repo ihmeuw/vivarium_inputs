@@ -110,5 +110,5 @@ MEASURES = {
 }
 
 
-DEMOGRAPHIC_COLUMNS = ('location_id', 'sex_id', 'age_group_id', 'year_id')
-DRAW_COLUMNS = tuple([f'draw_{i}' for i in range(1000)])
+DEMOGRAPHIC_COLUMNS = ['location_id', 'sex_id', 'age_group_id', 'year_id']
+DRAW_COLUMNS = [f'draw_{i}' for i in range(1000)]

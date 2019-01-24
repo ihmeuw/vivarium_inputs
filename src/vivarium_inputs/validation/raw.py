@@ -310,7 +310,8 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
 
-def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: 180):
+def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int):
+    import pdb; pdb.set_trace()
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
@@ -353,8 +354,11 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
         check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
-
-        # TODO: check that draws sum to 1 across categories
+        # don't include modelable_entity_id in cols because it's NaN for unexposed cat
+        g = data.groupby(['rei_id', 'measure_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
+        if not np.all(g[DRAW_COLUMNS] == 1):
+            raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} '
+                                    f'does not sum to 1 across all categories.')
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
