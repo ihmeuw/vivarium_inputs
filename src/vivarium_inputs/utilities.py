@@ -185,9 +185,8 @@ def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
 
 
 def reshape(data: pd.DataFrame, to_keep=DEMOGRAPHIC_COLUMNS) -> pd.DataFrame:
-    if 'draw' not in data.columns:
-        data = pd.melt(data, id_vars=to_keep, value_vars=DRAW_COLUMNS, var_name='draw')
-        data["draw"] = data.draw.str.partition("_")[2].astype(int)
+    data = pd.melt(data, id_vars=to_keep, value_vars=DRAW_COLUMNS, var_name='draw')
+    data["draw"] = data.draw.str.partition("_")[2].astype(int)
     return data
 
 

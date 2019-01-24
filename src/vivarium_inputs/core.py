@@ -92,8 +92,8 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
         data = data.reset_index()
     else:  # entity.kind == 'sequela'
         data = extract.extract_data(entity, 'disability_weight', location_id)
-    data = utilities.normalize(data)
-    data = utilities.reshape(data)
+        data = utilities.normalize(data)
+        data = utilities.reshape(data)
 
     return data
 
