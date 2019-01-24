@@ -91,6 +91,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                 disability['location_id'] = location_id
                 disability = disability.set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
                 data += prevalence * disability
+        data = data.reset_index()
     else:  # entity.kind == 'sequela'
         data = extract.extract_data(entity, 'disability_weight', location_id)
     data = utilities.normalize(data)
