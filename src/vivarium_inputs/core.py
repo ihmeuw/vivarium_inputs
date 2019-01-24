@@ -179,8 +179,7 @@ def get_population_attributable_fraction(entity, location_id):
 
 
 def get_mediation_factors(entity, location_id):
-    if entity.kind == 'risk_factor':
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def get_estimate(entity, location_id):
@@ -199,15 +198,17 @@ def get_estimate(entity, location_id):
 
 
 def get_cost(entity, location_id):
-    if entity.kind == 'healthcare_entity':
-        raise NotImplementedError()
-    elif entity.kind == 'health_technology':
-        raise NotImplementedError()
+    data = extract.extract_data(entity, 'cost', location_id)
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + [entity.kind])
+    return data
 
 
 def get_utilization(entity, location_id):
-    if entity.kind == 'healthcare_entity':
-        raise NotImplementedError()
+    data = extract.extract_data(entity, 'cost', location_id)
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data)
+    return data
 
 
 def get_structure(entity, location_id):
