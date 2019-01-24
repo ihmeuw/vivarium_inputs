@@ -601,7 +601,7 @@ def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, res
 
     if data_ages < restriction_ages:
         warnings.warn('Data does not contain all age groups in restriction range.')
-    elif restriction_ages < data_ages:
+    elif restriction_ages and restriction_ages < data_ages:
         warnings.warn('Data contains additional age groups beyond those specified by restriction range.')
     else:  # data_ages == restriction_ages
         pass
@@ -692,10 +692,15 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     if extra_age_groups:
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
-        if check_data_exist(should_be_zero, zeros_missing=True, value_columns=value_columns, error=False):
+        if check_data_exist(should_be_zero, value_columns=value_columns, error=False):
             raise DataAbnormalError(f'Data was only expected to contain values for age groups between ids '
                                     f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
                                     f'but also included values for age groups {extra_age_groups}.')
+
+    # make sure we're not missing data for all ages in restrictions
+    if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)],
+                            value_columns=value_columns, error=False):
+        raise DataAbnormalError(f'Data is missing for all age groups within restriction range.')
 
 
 def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float, pd.Series], boundary_type: str,
@@ -766,8 +771,7 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
     Raises
     -------
     DataAbnormalError
-        If data contains any sex ids not in the set defined by GBD or data
-        violates passed sex restrictions.
+        If data violates passed sex restrictions.
     """
 
     if male_only:
