@@ -163,7 +163,13 @@ def get_relative_risk(entity, location_id):
         data['affected_measure'] = 'exposure_parameters'
 
     categorical = True if entity.distribution in ['dichotomous', 'polytomous', 'ordered_polytomous'] else False
-    data = utilities.normalize(data, fill_value=1, categorical=categorical)
+
+    result = []
+    for affected_entity in data.affected_entity.unique():
+        df = data[data.affected_entity == affected_entity]
+        df = utilities.normalize(df, fill_value=1, categorical=categorical)
+        result.append(df)
+    data = pd.concat(result)
     data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS)
                                            + ['affected_entity', 'affected_measure', 'parameter'])
     return data
