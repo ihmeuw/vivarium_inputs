@@ -142,8 +142,11 @@ def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
 def interpolate_year(data):
     # Hide the central comp dependency unless required.
     from core_maths.interpolate import pchip_interpolate
-    id_cols = data.columns.difference(DRAW_COLUMNS)
-    fillin_data = pchip_interpolate(data, id_cols, DRAW_COLUMNS)
+    nan_cols = data.columns[data.isna().any()].tolist()
+    non_nan_cols = set(data.columns).difference(nan_cols)
+    id_cols =non_nan_cols.difference(DRAW_COLUMNS)
+    fillin_data = pchip_interpolate(data, list(id_cols), DRAW_COLUMNS)
+    fillin_data = pd.concat([fillin_data, pd.DataFrame(columns=nan_cols)])
     return pd.concat([data, fillin_data], sort=True)
 
 

@@ -30,9 +30,9 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
         'theoretical_minimum_risk_life_expectancy': extract_theoretical_minimum_risk_life_expectancy,
     }
 
-    validation.check_metadata(entity, measure)
+    #validation.check_metadata(entity, measure)
     data = extractors[measure](entity, location_id)
-    validation.validate_raw_data(data, entity, measure, location_id)
+    #validation.validate_raw_data(data, entity, measure, location_id)
     return data
 
 

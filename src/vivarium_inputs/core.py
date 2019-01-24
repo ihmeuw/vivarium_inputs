@@ -129,38 +129,23 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_exposure(entity, location_id):
-    if entity.kind == 'risk_factor' and entity.distribution == 'dichotomous':
-        data = extract.extract_data(entity, 'exposure', location_id)
-        cat1 = data[data.parameter == 'cat1']
-        cat1 = utilities.normalize(cat1, fill_value=0)
-        cat2 = cat1.copy()
-        cat2['parameter'] = 'cat2'
-        cat2[list(DRAW_COLUMNS)] = 1 - cat2[list(DRAW_COLUMNS)]
-        data = pd.concat([cat1, cat2], ignore_index=True, sort=True)
-        data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
-    elif entity.kind == 'coverage_gap':
-        data = extract.extract_data(entity, 'exposure', location_id)
-        cat1 = data[data.parameter == 'cat1']
-        cat1 = utilities.normalize(cat1, fill_value=0)
-        cat2 = data[data.parameter == 'cat2']
-        cat2 = utilities.normalize(cat2, fill_value=1)
-        data = pd.concat([cat1, cat2], ignore_index=True)
-        data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
-    elif entity.kind == 'alternative_risk_factor':
-        data = extract.extract_data(entity, 'exposure', location_id)
-        # FIXME: me_id is usually nan which breaks year interpolation. This is a stupid hack.
-        data = data.drop('modelable_entity_id', 'columns')
-        data = utilities.normalize(data, fill_value=0)
-        data = utilities.reshape(data)
+    data = extract.extract_data(entity, 'exposure', location_id)
+    if entity.distribution in ['dichotomous', 'polytomous', 'ordered_polytomous']:
+        cats = data.parameter.unique()
+        df = []
+        for cat in cats:
+            cat_data = data[data.parameter == cat]
+            cat_data = utilities.normalize(cat_data, fill_value=0)
+            df.append(cat_data)
+        data = pd.concat(df, ignore_index=True, sort=True)
     else:
-        raise NotImplementedError()
+        data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
     return data
 
 
 def get_exposure_standard_deviation(entity, location_id):
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
-    # FIXME: me_id is usually nan which breaks year interpolation. This is a stupid hack.
-    data = data.drop('modelable_entity_id', 'columns')
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
     return data
@@ -169,10 +154,10 @@ def get_exposure_standard_deviation(entity, location_id):
 def get_exposure_distribution_weights(entity, location_id):
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
     data = utilities.normalize(data, fill_value=0)
-    key_cols = ['location_id', 'sex_id', 'age_group_id', 'year_id']
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
-    data = pd.melt(data, id_vars=key_cols, value_vars=distribution_cols, var_name='parameter')
+    id_cols = set(data.columns).difference(distribution_cols)
+    data = pd.melt(data, id_vars=id_cols, value_vars=distribution_cols, var_name='parameter')
     return data
 
 
