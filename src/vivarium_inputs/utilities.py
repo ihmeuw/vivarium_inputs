@@ -86,7 +86,21 @@ def scrub_affected_entity(data):
 ###############################################################
 
 
-def normalize(data: pd.DataFrame, fill_value=None) -> pd.DataFrame:
+def normalize(data: pd.DataFrame, fill_value=None, categorical=False):
+    if categorical:
+        cats = data.parameter.unique()
+        df = []
+        for cat in cats:
+            cat_data = data[data.parameter == cat]
+            cat_data = _normalize(cat_data, fill_value)
+            df.append(cat_data)
+        data = pd.concat(df, ignore_index=True, sort=True)
+    else:
+        data = _normalize(data, fill_value)
+    return data
+
+
+def _normalize(data: pd.DataFrame, fill_value=None) -> pd.DataFrame:
     data = normalize_sex(data, fill_value)
     data = normalize_year(data)
     data = normalize_age(data, fill_value)
