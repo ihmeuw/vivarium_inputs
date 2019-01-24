@@ -157,7 +157,7 @@ def check_population_metadata(entity: NamedTuple, measure: str):
 def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
     check_data_exist(data, zeros_missing=True)
 
-    expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
+    expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
     check_measure_id(data, ['incidence'])
@@ -186,7 +186,7 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
 def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
     check_data_exist(data, zeros_missing=True)
 
-    expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
+    expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
     check_measure_id(data, ['prevalence'])
@@ -215,7 +215,7 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
 def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
     check_data_exist(data, zeros_missing=True)
 
-    expected_columns = ('measure_id', 'metric_id', f'{entity.kind}_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
+    expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
     check_measure_id(data, ['incidence'])
@@ -242,8 +242,8 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
 def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id: int):
     check_data_exist(data, zeros_missing=False)
 
-    expected_columns = ('location_id', 'age_group_id', 'sex_id', 'measure',
-                        'healthstate', 'healthstate_id') + DRAW_COLUMNS
+    expected_columns = ['location_id', 'age_group_id', 'sex_id', 'measure',
+                        'healthstate', 'healthstate_id'] + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
     all_ages_age_group_id = 22
@@ -262,21 +262,26 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
 def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
     check_data_exist(data, zeros_missing=True)
 
-    expected_columns = ('measure_id', 'metric_id', 'model_version_id',
-                        'modelable_entity_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    expected_columns = ['measure_id', 'metric_id', 'model_version_id',
+                        'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
     check_measure_id(data, ['remission'])
     check_metric_id(data, 'rate')
 
-    check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    check_sex_ids(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    restrictions = entity.restrictions
+
+    check_age_group_ids(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
+
+    male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
+    female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
+    check_sex_ids(data, male_expected, female_expected)
 
     check_years(data, 'binned')
     check_location(data, location_id)
 
-    check_age_restrictions(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
@@ -285,25 +290,30 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
 def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     check_data_exist(data, zeros_missing=True)
 
-    expected_columns = ('measure_id', f'{entity.kind}_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    expected_columns = ['measure_id', f'{entity.kind}_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
     check_measure_id(data, ['deaths'])
     check_metric_id(data, 'number')
 
-    check_age_group_ids(data, entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
-    check_sex_ids(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    restrictions = entity.restrictions
+
+    check_age_group_ids(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
+
+    male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
+    female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
+    check_sex_ids(data, male_expected, female_expected)
 
     check_years(data, 'annual')
     check_location(data, location_id)
 
-    check_age_restrictions(data, entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_age_restrictions(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
+    check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     pop = gbd.get_population(location_id)
     idx_cols = ['age_group_id', 'year_id', 'sex_id']
-    pop = pop[(pop.year_id.isin(data.year_id.unique())) & (pop.sex_id != gbd.COMBINED)].set_index(idx_cols).population
+    pop = pop[(pop.year_id.isin(data.year_id.unique())) & (pop.sex_id != gbd.COMBINED[0])].set_index(idx_cols).population
     check_value_columns_boundary(data.set_index(idx_cols), pop, 'upper',
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
@@ -635,11 +645,11 @@ def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expecte
         If data contains any sex ids that aren't valid GBD sex ids.
 
     """
-    valid_sex_ids = [gbd.MALE, gbd.FEMALE, gbd.COMBINED]
-    gbd_sex_ids = np.array(valid_sex_ids)[[male_expected, female_expected, combined_expected]]
+    valid_sex_ids = gbd.MALE + gbd.FEMALE + gbd.COMBINED  # these are single-item lists
+    gbd_sex_ids = set(np.array(valid_sex_ids)[[male_expected, female_expected, combined_expected]])
     data_sex_ids = set(data.sex_id)
 
-    invalid_sex_ids = data_sex_ids.difference(valid_sex_ids)
+    invalid_sex_ids = data_sex_ids.difference(set(valid_sex_ids))
     if invalid_sex_ids:
         raise DataAbnormalError(f'Data contains invalid sex ids: {invalid_sex_ids}.')
 
@@ -745,6 +755,10 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
         op = operator.le if inclusive else operator.lt
         data_values = data[value_columns].max(axis=1)
 
+    if isinstance(boundary_value, pd.Series):
+        data_values = data_values.sort_index()
+        boundary_value = boundary_value.sort_index()
+
     if not np.all(op(data_values, boundary_value)):
         if error:
             raise DataAbnormalError(msg)
@@ -774,33 +788,34 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
     DataAbnormalError
         If data violates passed sex restrictions.
     """
+    female, male, combined = gbd.FEMALE[0], gbd.MALE[0], gbd.COMBINED[0]
 
     if male_only:
-        if not check_data_exist(data[data.sex_id == gbd.MALE], value_columns=value_columns, error=False):
+        if not check_data_exist(data[data.sex_id == male], value_columns=value_columns, error=False):
             raise DataAbnormalError('Data is restricted to male only, but is missing data values for males.')
 
-        if (set(data.sex_id) != {gbd.MALE} and
-                check_data_exist(data[data.sex_id != gbd.MALE], value_columns=value_columns, error=False)):
+        if (set(data.sex_id) != {male} and
+                check_data_exist(data[data.sex_id != male], value_columns=value_columns, error=False)):
             raise DataAbnormalError('Data is restricted to male only, but contains '
                                     'non-male sex ids for which data values are not all 0.')
 
     if female_only:
-        if not check_data_exist(data[data.sex_id == gbd.FEMALE], value_columns=value_columns, error=False):
+        if not check_data_exist(data[data.sex_id == female], value_columns=value_columns, error=False):
             raise DataAbnormalError('Data is restricted to female only, but is missing data values for females.')
 
-        if (set(data.sex_id) != {gbd.FEMALE} and
-                check_data_exist(data[data.sex_id != gbd.FEMALE], value_columns=value_columns, error=False)):
+        if (set(data.sex_id) != {female} and
+                check_data_exist(data[data.sex_id != female], value_columns=value_columns, error=False)):
             raise DataAbnormalError('Data is restricted to female only, but contains '
                                     'non-female sex ids for which data values are not all 0.')
 
     if not male_only and not female_only:
-        if {gbd.MALE, gbd.FEMALE}.issubset(set(data.sex_id)):
-            if (not check_data_exist(data[data.sex_id == gbd.MALE], value_columns=value_columns, error=False) or
-               not check_data_exist(data[data.sex_id == gbd.FEMALE], value_columns=value_columns, error=False)):
+        if {male, female}.issubset(set(data.sex_id)):
+            if (not check_data_exist(data[data.sex_id == male], value_columns=value_columns, error=False) or
+               not check_data_exist(data[data.sex_id == female], value_columns=value_columns, error=False)):
                 raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
                                         'values for both males and females.')
         else:  # check combined sex id
-            if not check_data_exist(data[data.sex_id == gbd.COMBINED], value_columns=value_columns, error=False):
+            if not check_data_exist(data[data.sex_id == combined], value_columns=value_columns, error=False):
                 raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
                                         'values for both males and females.')
 
