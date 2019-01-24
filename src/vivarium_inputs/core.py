@@ -1,12 +1,10 @@
 from collections import namedtuple
 from typing import Union
-import itertools
 
-from gbd_mapping import Cause, RiskFactor, Sequela, Covariate
+from gbd_mapping import Cause, Sequela
 import pandas as pd
 import numpy as np
 
-from vivarium_gbd_access import gbd
 from vivarium_inputs import utilities, extract
 from vivarium_inputs.globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS
 
