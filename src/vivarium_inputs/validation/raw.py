@@ -372,10 +372,32 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
 
-    expected_columns = ('rei_id', 'modelable_entity_id', 'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    expected_columns = ['rei_id', 'modelable_entity_id', 'measure_id',
+                        'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_measure_id(data,  ['continuous'])
+    check_metric_id(data, 'rate')
+
+    check_years(data, 'annual')
     check_location(data, location_id)
+
+    if entity.kind == 'risk_factor':
+        age_start = min(entity.restrictions.yld_age_group_id_start, entity.restrictions.yll_age_group_id_start)
+        age_end = max(entity.restrictions.yld_age_group_id_end, entity.restrictions.yll_age_group_id_end)
+
+        check_age_group_ids(data, age_start, age_end)
+        check_sex_ids(data, True, True)
+
+        check_age_restrictions(data, age_start, age_end)
+        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    else:
+        check_age_group_ids(data, None, None)
+        check_sex_ids(data, True, True)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
 
 def _validate_exposure_distribution_weights(data, entity, location_id):
