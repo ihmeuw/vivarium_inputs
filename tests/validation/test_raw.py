@@ -11,9 +11,9 @@ def gbd_mock(mocker):
     gbd_mock = mocker.patch('vivarium_inputs.validation.raw.gbd')
     gbd_mock.get_estimation_years.return_value = list(range(1990, 2015, 5)) + [2017]
     gbd_mock.get_age_group_id.return_value = list(range(1, 6))
-    gbd_mock.MALE = 1
-    gbd_mock.FEMALE = 2
-    gbd_mock.COMBINED = 3
+    gbd_mock.MALE = [1]
+    gbd_mock.FEMALE = [2]
+    gbd_mock.COMBINED = [3]
     return gbd_mock
 
 
