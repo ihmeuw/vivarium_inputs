@@ -2,13 +2,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium_inputs.validation import raw
+from vivarium_inputs.validation import utilities
 from vivarium_inputs.globals import DataAbnormalError, DataNotExistError
 
 
 @pytest.fixture
 def gbd_mock(mocker):
-    gbd_mock = mocker.patch('vivarium_inputs.validation.raw.gbd')
+    gbd_mock = mocker.patch('vivarium_inputs.validation.utilities.gbd')
     gbd_mock.get_estimation_years.return_value = list(range(1990, 2015, 5)) + [2017]
     gbd_mock.get_age_group_id.return_value = list(range(1, 6))
     gbd_mock.MALE = [1]
@@ -19,12 +19,12 @@ def gbd_mock(mocker):
 
 @pytest.fixture
 def measures_mock(mocker):
-    return mocker.patch('vivarium_inputs.validation.raw.MEASURES', {'A': 1, 'B': 2})
+    return mocker.patch('vivarium_inputs.validation.utilities.MEASURES', {'A': 1, 'B': 2})
 
 
 @pytest.fixture
 def metrics_mock(mocker):
-    return mocker.patch('vivarium_inputs.validation.raw.METRICS', {'A': 1, 'B': 2})
+    return mocker.patch('vivarium_inputs.validation.utilities.METRICS', {'A': 1, 'B': 2})
 
 
 @pytest.mark.parametrize('years, bin_type', [(range(1950, 2020), 'annual'),
@@ -33,7 +33,7 @@ def metrics_mock(mocker):
                          ids=['annual with extra', 'annual', 'binned'])
 def test_check_years_pass(years, bin_type, gbd_mock):
     df = pd.DataFrame({'year_id': years})
-    raw.check_years(df, bin_type)
+    utilities.check_years(df, bin_type)
 
 
 @pytest.mark.parametrize('years, bin_type, match', [([1990, 1992], 'annual', 'missing'),
@@ -43,19 +43,19 @@ def test_check_years_pass(years, bin_type, gbd_mock):
 def test_check_years_fail(years, bin_type, match, gbd_mock):
     df = pd.DataFrame({'year_id': years})
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_years(df, bin_type)
+        utilities.check_years(df, bin_type)
 
 
 @pytest.mark.parametrize('location_id', list(range(2, 10)))
 def test_check_location_pass(location_id):
     df = pd.DataFrame({'location_id': [location_id] * 5})
-    raw.check_location(df, location_id)
+    utilities.check_location(df, location_id)
 
 
 @pytest.mark.parametrize('location_id', list(range(2, 10)))
 def test_check_location_global_pass(location_id):
     df = pd.DataFrame({'location_id': [1] * 5})
-    raw.check_location(df, location_id)
+    utilities.check_location(df, location_id)
 
 
 @pytest.mark.parametrize('location_ids, match', [([1, 2], 'multiple'),
@@ -64,24 +64,24 @@ def test_check_location_global_pass(location_id):
 def test_check_location_fail(location_ids, match):
     df = pd.DataFrame({'location_id': location_ids})
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_location(df, -1)
+        utilities.check_location(df, -1)
 
 
 @pytest.mark.parametrize('columns', [['a', 'b'], ['c', 'd', 'e'], ['a'], []])
 def test_check_columns_pass(columns):
-    raw.check_columns(columns, columns)
+    utilities.check_columns(columns, columns)
 
 
 @pytest.mark.parametrize('columns', [['a', 'b'], ['c', 'd', 'e'], ['a'], []])
 def test_check_columns_extra_fail(columns):
     with pytest.raises(DataAbnormalError, match='extra columns'):
-        raw.check_columns(columns, columns+['extra'])
+        utilities.check_columns(columns, columns+['extra'])
 
 
 @pytest.mark.parametrize('columns', [['a', 'b'], ['c', 'd', 'e'], ['a']])
 def test_check_columns_missing_fail(columns):
     with pytest.raises(DataAbnormalError, match='missing columns'):
-        raw.check_columns(columns, columns[:-1])
+        utilities.check_columns(columns, columns[:-1])
 
 
 @pytest.mark.parametrize('data', [pd.DataFrame({'a': [1], 'b': [np.nan], 'c': [0]}),
@@ -92,31 +92,31 @@ def test_check_columns_missing_fail(columns):
                          ids=['Single NaN', 'All NaN', 'Single Inf', 'All Inf', 'Empty'])
 def test_check_data_exist_always_fail(data):
     with pytest.raises(DataNotExistError):
-        raw.check_data_exist(data, value_columns=data.columns, zeros_missing=False)
+        utilities.check_data_exist(data, value_columns=data.columns, zeros_missing=False)
 
-    assert raw.check_data_exist(data, value_columns=data.columns, zeros_missing=False, error=False) is False
+    assert utilities.check_data_exist(data, value_columns=data.columns, zeros_missing=False, error=False) is False
 
     with pytest.raises(DataNotExistError):
-        raw.check_data_exist(data, value_columns=data.columns, zeros_missing=True)
+        utilities.check_data_exist(data, value_columns=data.columns, zeros_missing=True)
 
-    assert raw.check_data_exist(data, value_columns=data.columns, zeros_missing=True, error=False) is False
+    assert utilities.check_data_exist(data, value_columns=data.columns, zeros_missing=True, error=False) is False
 
 
 def test_check_data_exist_fails_only_on_missing_zeros():
     df = pd.DataFrame({'a': [0, 0], 'b': [0, 0]})
 
-    raw.check_data_exist(df, value_columns=df.columns, zeros_missing=False)
+    utilities.check_data_exist(df, value_columns=df.columns, zeros_missing=False)
 
     with pytest.raises(DataNotExistError):
-        raw.check_data_exist(df, value_columns=df.columns, zeros_missing=True)
+        utilities.check_data_exist(df, value_columns=df.columns, zeros_missing=True)
 
 
 def test_check_data_exist_value_columns():
     df = pd.DataFrame({'a': [0, 0], 'b': [0, 0], 'c': [1, 1]})
 
-    assert raw.check_data_exist(df, value_columns=['a', 'b', 'c'], zeros_missing=True, error=False)
+    assert utilities.check_data_exist(df, value_columns=['a', 'b', 'c'], zeros_missing=True, error=False)
 
-    assert raw.check_data_exist(df, value_columns=['a', 'b'], zeros_missing=True, error=False) is False
+    assert utilities.check_data_exist(df, value_columns=['a', 'b'], zeros_missing=True, error=False) is False
 
 
 @pytest.mark.parametrize('data', [pd.DataFrame({'a': [1], 'b': [1], 'c': [0]}),
@@ -124,7 +124,7 @@ def test_check_data_exist_value_columns():
                                   pd.DataFrame({'a': [0.0001], 'b': [0], 'c': [0]}),
                                   pd.DataFrame({'a': [1000], 'b': [-1000]})])
 def test_check_data_exist_pass(data):
-    assert raw.check_data_exist(data, value_columns=data.columns, error=False)
+    assert utilities.check_data_exist(data, value_columns=data.columns, error=False)
 
 
 @pytest.mark.parametrize('age_ids, start, end, match', [([1, 2, 3, 100], None, None, 'invalid'),
@@ -134,7 +134,7 @@ def test_check_data_exist_pass(data):
 def test_check_age_group_ids_fail(age_ids, start, end, match, gbd_mock):
     df = pd.DataFrame({'age_group_id': age_ids})
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_age_group_ids(df, start, end)
+        utilities.check_age_group_ids(df, start, end)
 
 
 @pytest.mark.parametrize('age_ids, start, end, match', [([2, 3], 2, 4, 'contain all age groups in restriction range'),
@@ -144,7 +144,7 @@ def test_check_age_group_ids_fail(age_ids, start, end, match, gbd_mock):
 def test_check_age_group_ids_warn(age_ids, start, end, match, gbd_mock):
     df = pd.DataFrame({'age_group_id': age_ids})
     with pytest.warns(Warning, match=match):
-        raw.check_age_group_ids(df, start, end)
+        utilities.check_age_group_ids(df, start, end)
 
 
 @pytest.mark.parametrize('age_ids, start, end', [([2, 3, 4], 2, 4),
@@ -152,7 +152,7 @@ def test_check_age_group_ids_warn(age_ids, start, end, match, gbd_mock):
                                                  ([1, 2, 3, 4, 5], 1, 5)])
 def test_check_age_group_ids_pass(age_ids, start, end, gbd_mock, recwarn):
     df = pd.DataFrame({'age_group_id': age_ids})
-    raw.check_age_group_ids(df, start, end)
+    utilities.check_age_group_ids(df, start, end)
 
     assert len(recwarn) == 0, 'An unexpected warning was raised.'
 
@@ -163,7 +163,7 @@ def test_check_age_group_ids_pass(age_ids, start, end, gbd_mock, recwarn):
 def test_check_sex_ids_fail(sex_ids, male, female, both, gbd_mock):
     df = pd.DataFrame({'sex_id': sex_ids})
     with pytest.raises(DataAbnormalError):
-        raw.check_sex_ids(df, male, female, both)
+        utilities.check_sex_ids(df, male, female, both)
 
 
 @pytest.mark.parametrize('sex_ids, male, female, both, match', [([1, 2, 1], True, True, True, ['missing']),
@@ -172,7 +172,7 @@ def test_check_sex_ids_fail(sex_ids, male, female, both, gbd_mock):
 def test_check_sex_ids_warn(sex_ids, male, female, both, match, gbd_mock):
     df = pd.DataFrame({'sex_id': sex_ids})
     with pytest.warns(None) as record:
-        raw.check_sex_ids(df, male, female, both)
+        utilities.check_sex_ids(df, male, female, both)
 
     assert len(record) == len(match), 'The expected number of warnings were not raised.'
     for i, m in enumerate(match):
@@ -185,7 +185,7 @@ def test_check_sex_ids_warn(sex_ids, male, female, both, match, gbd_mock):
                                                          ([], False, False, False)])
 def test_check_sex_ids_pass(sex_ids, male, female, both, gbd_mock, recwarn):
     df = pd.DataFrame({'sex_id': sex_ids})
-    raw.check_sex_ids(df, male, female, both)
+    utilities.check_sex_ids(df, male, female, both)
 
     assert len(recwarn) == 0, 'An unexpected warning was raised.'
 
@@ -198,7 +198,7 @@ test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 4, [
 @pytest.mark.parametrize('data, start, end, val_cols, match', test_data)
 def test_check_age_restrictions_fail(data, start, end, val_cols, match, gbd_mock):
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_age_restrictions(data, start, end, value_columns=val_cols)
+        utilities.check_age_restrictions(data, start, end, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 3, ['a', 'b']),
@@ -208,7 +208,7 @@ test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 3, [
 
 @pytest.mark.parametrize('data, start, end, val_cols', test_data)
 def test_check_age_restrictions_pass(data, start, end, val_cols, gbd_mock):
-    raw.check_age_restrictions(data, start, end, value_columns=val_cols)
+    utilities.check_age_restrictions(data, start, end, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 1, 'lower', ['a', 'b'], True, 'values below'),
@@ -222,10 +222,10 @@ test_data = [(pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 1, 'lower', ['a', 'b'],
 @pytest.mark.parametrize('data, boundary, boundary_type, val_cols, inclusive, match', test_data)
 def test_check_value_columns_boundary_fail_warn(data, boundary, boundary_type, val_cols, inclusive, match):
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_value_columns_boundary(data, boundary, boundary_type, val_cols, inclusive=inclusive, error=True)
+        utilities.check_value_columns_boundary(data, boundary, boundary_type, val_cols, inclusive=inclusive, error=True)
 
     with pytest.warns(Warning, match=match):
-        raw.check_value_columns_boundary(data, boundary, boundary_type, val_cols, inclusive=inclusive, error=False)
+        utilities.check_value_columns_boundary(data, boundary, boundary_type, val_cols, inclusive=inclusive, error=False)
 
 
 test_data = [(pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 0, 'lower', ['a', 'b'], True),
@@ -238,7 +238,7 @@ test_data = [(pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 0, 'lower', ['a', 'b'],
 
 @pytest.mark.parametrize('data, boundary, boundary_type, val_cols, inclusive', test_data)
 def test_check_value_columns_boundary_pass(data, boundary, boundary_type, val_cols, inclusive):
-    raw.check_value_columns_boundary(data, boundary, boundary_type, val_cols, inclusive=inclusive, error=True)
+    utilities.check_value_columns_boundary(data, boundary, boundary_type, val_cols, inclusive=inclusive, error=True)
 
 
 test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 0, 'b': 0, 'c': 1}), True, False,
@@ -257,7 +257,7 @@ test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 0, 'b': 0, 'c': 1}), True, Fa
 @pytest.mark.parametrize('data, male, female, val_cols, match', test_data)
 def test_check_sex_restrictions_fail(data, male, female, val_cols, match, gbd_mock):
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_sex_restrictions(data, male, female, value_columns=val_cols)
+        utilities.check_sex_restrictions(data, male, female, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 1, 'b': 0, 'c': 0}), True, False, ['a', 'b']),
@@ -268,7 +268,7 @@ test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 1, 'b': 0, 'c': 0}), True, Fa
 
 @pytest.mark.parametrize('data, male, female, val_cols', test_data)
 def test_check_sex_restrictions_pass(data, male, female, val_cols, gbd_mock):
-    raw.check_sex_restrictions(data, male, female, value_columns=val_cols)
+    utilities.check_sex_restrictions(data, male, female, value_columns=val_cols)
 
 
 @pytest.mark.parametrize('m_ids, expected, match', [([1, 1, 1, 12], ['a'], 'multiple'),
@@ -276,14 +276,14 @@ def test_check_sex_restrictions_pass(data, male, female, val_cols, gbd_mock):
 def test_check_measure_id_fail(m_ids, expected, match, measures_mock):
     df = pd.DataFrame({'measure_id': m_ids})
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_measure_id(df, expected)
+        utilities.check_measure_id(df, expected)
 
 
 @pytest.mark.parametrize('m_ids, expected', [([1], ['a']),
                                              ([2, 2, 2, 2], ['A', 'b'])])
 def test_check_measure_id_pass(m_ids, expected, measures_mock):
     df = pd.DataFrame({'measure_id': m_ids})
-    raw.check_measure_id(df, expected)
+    utilities.check_measure_id(df, expected)
 
 
 
@@ -292,11 +292,11 @@ def test_check_measure_id_pass(m_ids, expected, measures_mock):
 def test_check_metric_id_fail(m_ids, expected, metrics_mock):
     df = pd.DataFrame({'metric_id': m_ids})
     with pytest.raises(DataAbnormalError):
-        raw.check_metric_id(df, expected)
+        utilities.check_metric_id(df, expected)
 
 
 @pytest.mark.parametrize('m_ids, expected', [([1], 'a'),
                                              ([2, 2, 2, 2], 'B')])
 def test_check_metric_id_pass(m_ids, expected, metrics_mock):
     df = pd.DataFrame({'metric_id': m_ids})
-    raw.check_metric_id(df, expected)
+    utilities.check_metric_id(df, expected)
