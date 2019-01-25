@@ -18,10 +18,14 @@ def get_age_bins():
     return age_bins
 
 
+def get_annual_estimation_years():
+    estimation_years = gbd.get_estimation_years()
+    return range(min(estimation_years), max(estimation_years) + 1)
+
+
 def get_demographic_dimensions(location_id, draws=False):
     ages = gbd.get_age_group_id()
-    estimation_years = gbd.get_estimation_years()
-    years = range(min(estimation_years), max(estimation_years) + 1)
+    years = get_annual_estimation_years()
     sexes = gbd.MALE + gbd.FEMALE
     location = [location_id]
     values = [location, sexes, ages, years]
@@ -127,7 +131,7 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
 
 
 def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
-    years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
+    years = {'annual': get_annual_estimation_years(), 'binned': gbd.get_estimation_years()}
     if 'year_id' not in data:
         # Data doesn't vary by year, so copy for each year.
         df = []
