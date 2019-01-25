@@ -131,10 +131,7 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 def _convert_prevalence_to_proportion(data: pd.DataFrame) -> pd.DataFrame:
     data = data.set_index(DEMOGRAPHIC_COLUMNS)
     total_prevalence = data[DRAW_COLUMNS].reset_index().groupby(DEMOGRAPHIC_COLUMNS).sum()
-    for cat in data.parameter.unique():
-        correct_parameter = data['parameter'] == cat
-        data.loc[correct_parameter, DRAW_COLUMNS] /= total_prevalence
-
+    data.groupby('parameter').apply(lambda df: df[DRAW_COLUMNS] / total_prevalence)
     data = data.reset_index()
     data['measure_id'] = MEASURES['Proportion']
     return data
@@ -142,11 +139,11 @@ def _convert_prevalence_to_proportion(data: pd.DataFrame) -> pd.DataFrame:
 
 def get_exposure(entity, location_id):
     data = extract.extract_data(entity, 'exposure', location_id)
-    categorical = True if entity.distribution in ['dichotomous', 'polytomous', 'ordered_polytomous'] else False
+    categorical = True if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] else False
     if set(data.measure_id) == {MEASURES['Prevalence']}:
         data = _convert_prevalence_to_proportion(data)
     data = utilities.normalize(data, fill_value=0, categorical=categorical)
-    data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
+    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
     return data
 
 
@@ -172,7 +169,7 @@ def get_relative_risk(entity, location_id):
     if entity.kind == 'risk_factor':
         data = utilities.convert_affected_entity(data, 'cause_id')
         data['affected_measure'] = 'incidence_rate'
-    else:
+    else:  # coverage_gap
         data = utilities.convert_affected_entity(data, 'rei_id')
         data['affected_measure'] = 'exposure_parameters'
 
@@ -183,8 +180,7 @@ def get_relative_risk(entity, location_id):
         df = utilities.normalize(df, fill_value=1, categorical=categorical)
         result.append(df)
     data = pd.concat(result)
-    data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS)
-                                           + ['affected_entity', 'affected_measure', 'parameter'])
+    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'])
     return data
 
 
@@ -193,7 +189,7 @@ def get_population_attributable_fraction(entity, location_id):
     data = utilities.convert_affected_entity(data, 'cause_id')
     data['affected_measure'] = 'incidence_rate'
     data = utilities.normalize(data, fill_value=0)
-    data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['affected_entity', 'affected_measure'])
+    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'])
     return data
 
 
@@ -219,7 +215,7 @@ def get_estimate(entity, location_id):
 def get_cost(entity, location_id):
     data = extract.extract_data(entity, 'cost', location_id)
     data = utilities.normalize(data, fill_value=0)
-    data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + [entity.kind])
+    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + [entity.kind])
     return data
 
 
