@@ -135,6 +135,9 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
 
 def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
+    if set(data.year_id)=={1}:
+        data.drop('year_id', axis=1, inplace=True)
+        
     if 'year_id' not in data:
         # Data doesn't vary by year, so copy for each year.
         df = []

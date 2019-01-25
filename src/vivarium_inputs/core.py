@@ -177,7 +177,6 @@ def get_relative_risk(entity, location_id):
         data['affected_measure'] = 'exposure_parameters'
 
     categorical = True if entity.distribution in ['dichotomous', 'polytomous', 'ordered_polytomous'] else False
-
     result = []
     for affected_entity in data.affected_entity.unique():
         df = data[data.affected_entity == affected_entity]
@@ -194,7 +193,7 @@ def get_population_attributable_fraction(entity, location_id):
     data = utilities.convert_affected_entity(data, 'cause_id')
     data['affected_measure'] = 'incidence_rate'
     data = utilities.normalize(data, fill_value=0)
-    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ('affected_entity', 'affected_measure',))
+    data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['affected_entity', 'affected_measure'])
     return data
 
 
