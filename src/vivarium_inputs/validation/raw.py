@@ -381,7 +381,9 @@ def _validate_exposure_standard_deviation(data, entity, location_id):
     check_measure_id(data,  ['continuous'])
     check_metric_id(data, 'rate')
 
-    check_years(data, 'annual')
+    if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
+        raise DataAbnormalError(f'Exposure standard deviation data for {entity.kind} {entity.name} contains '
+                                f'a year range that is neither annual nor binned.')
     check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
