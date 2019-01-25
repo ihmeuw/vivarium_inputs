@@ -457,6 +457,9 @@ def _validate_relative_risk(data, entity, location_id):
         cats.apply(check_age_group_ids, age_start, age_end)
         cats.apply(check_sex_ids, male_expected, female_expected)
 
+        cats.apply(check_age_restrictions, age_start, age_end)
+        cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
+
     else:
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
