@@ -56,8 +56,8 @@ def get_data(entity, measure: str, location: str):
 def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'incidence', location_id)
     data = utilities.normalize(data, fill_value=0)
-    data = utilities.reshape(data).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
-    prevalence = get_prevalence(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+    data = utilities.reshape(data).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0).reset_index()
@@ -82,13 +82,13 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
     if entity.kind == 'cause':
         data = utilities.get_demographic_dimensions(location_id, draws=True)
         data['value'] = 0.0
-        data = data.set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+        data = data.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
         if entity.sequelae:
             for sequela in entity.sequelae:
-                prevalence = get_prevalence(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+                prevalence = get_prevalence(sequela, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
                 disability = get_disability_weight(sequela, location_id)
                 disability['location_id'] = location_id
-                disability = disability.set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+                disability = disability.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
                 data += prevalence * disability
         data = data.reset_index()
     else:  # entity.kind == 'sequela'
@@ -115,8 +115,8 @@ def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFram
 
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    csmr = get_cause_specific_mortality(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
-    prevalence = get_prevalence(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+    csmr = get_cause_specific_mortality(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data.reset_index()
