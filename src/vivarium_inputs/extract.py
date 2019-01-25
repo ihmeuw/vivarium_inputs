@@ -1,6 +1,9 @@
 import pandas as pd
 
-from .globals import gbd, METRICS, MEASURES, DataAbnormalError
+from get_draws.api import EmptyDataFrameException
+from gbd_artifacts.exceptions import NoBestVersionError
+
+from .globals import gbd, METRICS, MEASURES, DataAbnormalError, DataNotExistError
 import vivarium_inputs.validation.raw as validation
 
 
@@ -31,7 +34,17 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
     }
 
     validation.check_metadata(entity, measure)
-    data = extractors[measure](entity, location_id)
+
+    try:
+        data = extractors[measure](entity, location_id)
+    except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError) as e:
+        if isinstance(e, ValueError) and f'No RRMetadata associated with rei_id = {entity.gbd_id}' not in e.args:
+            raise e
+        elif isinstance(e, AssertionError) and f'Invalid covariate_id {entity.gbd_id}' not in e.args:
+            raise e
+        else:
+            raise DataNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
+
     validation.validate_raw_data(data, entity, measure, location_id)
     return data
 
