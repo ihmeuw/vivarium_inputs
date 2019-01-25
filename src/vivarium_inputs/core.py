@@ -163,7 +163,8 @@ def get_relative_risk(entity, location_id):
     data = extract.extract_data(entity, 'relative_risk', location_id)
     if entity.kind == 'risk_factor':
         data = utilities.convert_affected_entity(data, 'cause_id')
-        data['affected_measure'] = 'incidence_rate'
+        data.loc[data.morbidity == 1, 'affected_measure'] = 'incidence_rate'
+        data.loc[(data.mortality == 1) & (data.morbidity == 0), 'affected_measure'] = 'excess_mortality'
     else:  # coverage_gap
         data = utilities.convert_affected_entity(data, 'rei_id')
         data['affected_measure'] = 'exposure_parameters'
