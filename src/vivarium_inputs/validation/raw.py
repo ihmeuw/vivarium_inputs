@@ -365,7 +365,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
         g = data.groupby(DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
-        if not np.allclose(g[DRAW_COLUMNS], 1.0):
+        if not np.allclose(g, 1.0):
             raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} '
                                     f'does not sum to 1 across all categories.')
 
