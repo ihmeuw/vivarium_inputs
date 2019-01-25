@@ -482,10 +482,38 @@ def _validate_relative_risk(data, entity, location_id):
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_metric_id(data, 'percent')
+    check_measure_id(data, ['YLL', 'YLD'], single_only=False)
+
     check_years(data, 'annual')
     check_location(data, location_id)
+
+    if entity.kind == 'risk_factor':
+        restrictions = entity.restrictions
+        age_start = _get_restriction_age_boundary(entity, 'start')
+        age_end = _get_restriction_age_boundary(entity, 'end')
+        male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
+        female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
+
+        check_age_group_ids(data, age_start, age_end)
+        check_sex_ids(data, male_expected, female_expected)
+
+        check_age_restrictions(data, age_start, age_end)
+        check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
+    else:
+        check_age_group_ids(data, None, None)
+        check_sex_ids(data, True, True)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+
+
+
 
 
 def _validate_mediation_factors(data, entity, location_id):
@@ -961,9 +989,9 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
                                         'values for both males and females.')
 
 
-def check_measure_id(data: pd.DataFrame, allowable_measures: List[str]):
-    """Check that data contains only a single measure id and that it is one of
-    the allowed measure ids.
+def check_measure_id(data: pd.DataFrame, allowable_measures: List[str], single_only: bool = True):
+    """Check that data contains a measure id that is one of the allowed
+    measure ids.
 
     Parameters
     ----------
@@ -972,13 +1000,17 @@ def check_measure_id(data: pd.DataFrame, allowable_measures: List[str]):
     allowable_measures
         List of strings dictating the possible values for measure id when
         mapped via MEASURES.
+    single_only
+        Boolean indicating whether a single measure id is expected in the data
+        or whether multiple are allowable.
 
     Raises
     ------
     DataAbnormalError
-        If data contains multiple measure ids or a non-permissible measure id.
+        If data contains either multiple measure ids and `single_only` is True
+        or a non-permissible measure id.
     """
-    if len(set(data.measure_id)) > 1:
+    if single_only and len(set(data.measure_id)) > 1:
         raise DataAbnormalError(f'Data has multiple measure ids: {set(data.measure_id)}.')
     if not set(data.measure_id).issubset(set([MEASURES[m.capitalize()] for m in allowable_measures])):
         raise DataAbnormalError(f'Data includes a measure id not in the expected measure ids for this measure.')
