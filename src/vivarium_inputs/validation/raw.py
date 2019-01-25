@@ -252,7 +252,7 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
     check_location(data, location_id)
 
     all_ages_age_group_id = 22
-    if data.age_group_id.unique() != all_ages_age_group_id:
+    if set(data.age_group_id) != {all_ages_age_group_id}:
         raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
                                 f'the expected all ages age group (id {all_ages_age_group_id}.')
 
@@ -368,7 +368,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
         g = data.groupby(DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
-        if not np.all(np.isclose(g[DRAW_COLUMNS], 1.0)):
+        if not np.allclose(g, 1.0):
             raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} '
                                     f'does not sum to 1 across all categories.')
 
@@ -420,7 +420,7 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
     check_location(data, location_id)
 
     all_ages_age_group_id = 22
-    if data.age_group_id.unique() != all_ages_age_group_id:
+    if set(data.age_group_id) != {all_ages_age_group_id}:
         raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} includes '
                                 f'age groups beyond the expected all ages age group (id {all_ages_age_group_id}.')
 
@@ -429,7 +429,7 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
     check_value_columns_boundary(data, 0, 'lower', value_columns=distribution_cols, inclusive=True, error=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=distribution_cols, inclusive=True, error=True)
 
-    if not np.all(np.isclose(data[distribution_cols].sum(axis=1), 1.0)):
+    if not np.allclose(data[distribution_cols].sum(axis=1), 1.0):
         raise DataAbnormalError(f'Distribution weights for {entity.kind} {entity.name} do not sum to 1.')
 
 
