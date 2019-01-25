@@ -2,7 +2,7 @@
 import pandas as pd
 
 from gbd_mapping import causes, risk_factors
-from .globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
+from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 
 
 def get_location_id(location_name):
@@ -18,15 +18,22 @@ def get_age_bins():
     return age_bins
 
 
-def get_demographic_dimensions(location_id):
-    ages = get_age_bins()['age_group_id']
-    years = range(1990, 2018)
-    sexes = (1, 2)
+def get_demographic_dimensions(location_id, draws=False):
+    ages = gbd.get_age_group_id()
+    estimation_years = gbd.get_estimation_years()
+    years = range(min(estimation_years), max(estimation_years) + 1)
+    sexes = gbd.MALE + gbd.FEMALE
     location = [location_id]
+    values = [location, sexes, ages, years]
+    names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
+    if draws:
+        values.append(range(1000))
+        names.append('draw')
+
     dimensions = (pd.MultiIndex
-                  .from_product([location, sexes, ages, years],
-                                names=['location_id', 'sex_id', 'age_group_id', 'year_id'])
+                  .from_product(values, names=names)
                   .to_frame(index=False))
+
     return dimensions
 
 

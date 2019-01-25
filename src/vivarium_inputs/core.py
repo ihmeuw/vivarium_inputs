@@ -1,11 +1,12 @@
 from collections import namedtuple
 from typing import Union
 
-from gbd_mapping import Cause, RiskFactor, Sequela, Covariate
+from gbd_mapping import Cause, Sequela
 import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract
+
 from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS, MEASURES
 
 
@@ -79,18 +80,22 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
-        partial_weights = []
-        for sequela in entity.sequelae:
-            prevalence = get_prevalence(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
-            disability = get_disability_weight(sequela, location_id)
-            disability['location_id'] = location_id
-            disability = disability.set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
-            partial_weights.append(prevalence*disability)
-        data = sum(partial_weights).reset_index()
+        data = utilities.get_demographic_dimensions(location_id, draws=True)
+        data['value'] = 0.0
+        data = data.set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+        if entity.sequelae:
+            for sequela in entity.sequelae:
+                prevalence = get_prevalence(sequela, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+                disability = get_disability_weight(sequela, location_id)
+                disability['location_id'] = location_id
+                disability = disability.set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
+                data += prevalence * disability
+        data = data.reset_index()
     else:  # entity.kind == 'sequela'
         data = extract.extract_data(entity, 'disability_weight', location_id)
         data = utilities.normalize(data)
         data = utilities.reshape(data)
+
     return data
 
 
