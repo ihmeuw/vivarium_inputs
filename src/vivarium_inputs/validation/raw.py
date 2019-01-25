@@ -348,6 +348,9 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         cats.apply(check_age_group_ids, age_start, age_end)
         cats.apply(check_sex_ids, male_expected, female_expected)
 
+        cats.apply(check_age_restrictions, age_start, age_end)
+        cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
+
         # we only have metadata about tmred for risk factors
         if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
             if entity.tmred.inverted:
@@ -433,17 +436,46 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
 def _validate_relative_risk(data, entity, location_id):
     check_data_exist(data, zeros_missing=True)
 
-    expected_columns = ('rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
-                        'morbidity', 'metric_id', 'parameter') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    expected_columns = ['rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
+                        'morbidity', 'metric_id', 'parameter'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_metric_id(data, 'rate')
+
+    check_years(data, 'binned')
+    check_location(data, location_id)
+
+    cats = data.groupby('parameter')
+
+    if entity.kind == 'risk_factor':
+        restrictions = entity.restrictions
+        age_start = min(restrictions.yld_age_group_id_start, restrictions.yll_age_group_id_start)
+        age_end = max(restrictions.yld_age_group_id_end, restrictions.yll_age_group_id_end)
+        male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
+        female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
+
+        cats.apply(check_age_group_ids, age_start, age_end)
+        cats.apply(check_sex_ids, male_expected, female_expected)
+
+    else:
+        cats.apply(check_age_group_ids, None, None)
+        cats.apply(check_sex_ids, True, True)
 
     check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
     max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
     check_value_columns_boundary(data, max_val, value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
-    check_years(data, 'binned')
-    check_location(data, location_id)
+    valid_morb_mort_values = {0, 1}
+    for m in ['morbidity', 'mortality']:
+        if not set(data[m]).issubset(valid_morb_mort_values):
+            raise DataAbnormalError(f'Relative risk data for {entity.kind} {entity.name} '
+                                    f'contains values for {m} outside the expected {valid_morb_mort_values}.')
+
+    if (((data.morbidity == 1) & (data.mortality == 0)).any()
+            and not ((data.morbidity == 0) & (data.mortality == 1)).any()):
+        raise DataAbnormalError(f"Morbidity only relative risk data for {entity.kind} {entity.name} was retrieved, "
+                                f"but no mortality only relative risk data was found.")
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
@@ -672,7 +704,7 @@ def _check_continuity(data_ages: set, all_ages: set):
     all_ages.sort()
     data_ages.sort()
     if all_ages[all_ages.index(data_ages[0]):all_ages.index(data_ages[-1])+1] != data_ages:
-        raise DataAbnormalError(f'Data contains a non-contiguous age groups: {data_ages}.')
+        raise DataAbnormalError(f'Data contains non-contiguous age groups: {data_ages}.')
 
 
 def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, restriction_end: float = None):
