@@ -252,7 +252,7 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
     check_location(data, location_id)
 
     all_ages_age_group_id = 22
-    if data.age_group_id.unique() != all_ages_age_group_id:
+    if set(data.age_group_id) != {all_ages_age_group_id}:
         raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
                                 f'the expected all ages age group (id {all_ages_age_group_id}.')
 
@@ -417,7 +417,7 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
     check_location(data, location_id)
 
     all_ages_age_group_id = 22
-    if data.age_group_id.unique() != all_ages_age_group_id:
+    if set(data.age_group_id) != {all_ages_age_group_id}:
         raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} includes '
                                 f'age groups beyond the expected all ages age group (id {all_ages_age_group_id}.')
 
