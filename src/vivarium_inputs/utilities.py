@@ -151,7 +151,7 @@ def interpolate_year(data):
     # Hide the central comp dependency unless required.
     from core_maths.interpolate import pchip_interpolate
     id_cols = list(set(data.columns).difference(DRAW_COLUMNS))
-    fillin_data = pchip_interpolate(data, list(id_cols), DRAW_COLUMNS)
+    fillin_data = pchip_interpolate(data, id_cols, DRAW_COLUMNS)
     return pd.concat([data, fillin_data], sort=True)
 
 

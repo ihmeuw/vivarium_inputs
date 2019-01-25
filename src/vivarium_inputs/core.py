@@ -136,10 +136,7 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 def get_exposure(entity, location_id):
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
-    if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
-        data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
-    else:
-        data = utilities.normalize(data, fill_value=0)
+    data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
     return data
 
@@ -174,11 +171,7 @@ def get_relative_risk(entity, location_id):
     result = []
     for affected_entity in data.affected_entity.unique():
         df = data[data.affected_entity == affected_entity]
-        if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
-            df.groupby('parameter').apply(lambda d: utilities.normalize(d, fill_value=1))
-        else:
-            df = utilities.normalize(df, fill_value=1)
-
+        df.groupby('parameter').apply(lambda d: utilities.normalize(d, fill_value=1))
         result.append(df)
     data = pd.concat(result)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'])
