@@ -431,9 +431,17 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
 
 
 def _validate_relative_risk(data, entity, location_id):
+    check_data_exist(data, zeros_missing=True)
+
     expected_columns = ('rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
                         'morbidity', 'metric_id', 'parameter') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+
+    max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
+    check_value_columns_boundary(data, max_val, value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+
     check_years(data, 'binned')
     check_location(data, location_id)
 
