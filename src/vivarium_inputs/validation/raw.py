@@ -477,8 +477,8 @@ def _validate_relative_risk(data, entity, location_id):
 
     if (((data.morbidity == 1) & (data.mortality == 0)).any()
             and not ((data.morbidity == 0) & (data.mortality == 1)).any()):
-        raise DataAbnormalError(f"Morbidity only relative risk data for {entity.kind} {entity.name} was retrieved, "
-                                f"but no mortality only relative risk data was found.")
+        raise DataAbnormalError(f"Relative risk data for {entity.kind} {entity.name} contains only morbidity data and"
+                                f"no mortality data.")
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
