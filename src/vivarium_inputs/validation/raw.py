@@ -101,7 +101,7 @@ def check_cause_metadata(entity: Cause, measure: str):
 def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor], measure: str):
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
-        pass
+        return
 
     if entity.distribution == 'custom':
         raise NotImplementedError('We do not currently support risk factors with custom distributions.')
@@ -365,7 +365,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
         g = data.groupby(DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
-        if not np.all(g[DRAW_COLUMNS] == 1):
+        if not np.all(np.isclose(g[DRAW_COLUMNS], 1.0)):
             raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} '
                                     f'does not sum to 1 across all categories.')
 
@@ -405,7 +405,29 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
     key_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
+
+    check_data_exist(data, zeros_missing=True, value_columns=distribution_cols)
+
     check_columns(key_cols + distribution_cols, data.columns)
+
+    if set(data.measure) != {'ensemble_distribution_weight'}:
+        raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} '
+                                f'contains abnormal measure values.')
+
+    check_location(data, location_id)
+
+    all_ages_age_group_id = 22
+    if data.age_group_id.unique() != all_ages_age_group_id:
+        raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} includes '
+                                f'age groups beyond the expected all ages age group (id {all_ages_age_group_id}.')
+
+    check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=distribution_cols, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=distribution_cols, inclusive=True, error=True)
+
+    if not np.all(np.isclose(data[distribution_cols].sum(axis=1), 1.0)):
+        raise DataAbnormalError(f'Distribution weights for {entity.kind} {entity.name} do not sum to 1.')
 
 
 def _validate_relative_risk(data, entity, location_id):
