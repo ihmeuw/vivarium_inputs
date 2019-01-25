@@ -38,7 +38,7 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
     try:
         data = extractors[measure](entity, location_id)
     except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError) as e:
-        if isinstance(e, ValueError) and f'No RRMetadata associated with rei_id = {entity.gbd_id}' not in e.args:
+        if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in e.args:
             raise e
         elif isinstance(e, AssertionError) and f'Invalid covariate_id {entity.gbd_id}' not in e.args:
             raise e
