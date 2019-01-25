@@ -467,7 +467,7 @@ def _validate_relative_risk(data, entity, location_id):
     check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
     max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
-    check_value_columns_boundary(data, max_val, value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+    check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
     valid_morb_mort_values = {0, 1}
     for m in ['morbidity', 'mortality']:
