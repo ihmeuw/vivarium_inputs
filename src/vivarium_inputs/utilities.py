@@ -118,7 +118,7 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
         data.loc[:, 'sex_id'] = 1
         fill_data.loc[:, 'sex_id'] = 2
         data = pd.concat([data, fill_data], ignore_index=True)
-    elif sexes == 1:
+    elif len(sexes) == 1:
         # Data is sex specific, but only applies to one sex, so fill the other with default.
         fill_data = data.copy()
         missing_sex = {1, 2}.difference(set(data.sex_id.unique())).pop()
