@@ -454,15 +454,10 @@ def _validate_mediation_factors(data, entity, location_id):
 
 
 def _validate_estimate(data, entity, location_id):
-    value_columns = ['mean_value', 'lower_value', 'upper_value']
-
-    check_data_exist(data, zeros_missing=False, value_columns=value_columns)
-
     expected_columns = ['model_version_id', 'covariate_id', 'covariate_name_short', 'location_id',
                         'location_name', 'year_id', 'age_group_id', 'age_group_name', 'sex_id',
-                        'sex'] + value_columns
+                        'sex', 'mean_value', 'lower_value', 'upper_value']
     check_columns(expected_columns, data.columns)
-
     check_years(data, 'annual')
     check_location(data, location_id)
 
