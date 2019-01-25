@@ -103,6 +103,9 @@ def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor],
         # we don't have any applicable metadata to check
         pass
 
+    if entity.distribution == 'custom':
+        raise NotImplementedError('We do not currently support risk factors with custom distributions.')
+
     if measure == 'population_attributable_fraction':
         _check_paf_types(entity)
     else:
@@ -163,6 +166,9 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     check_measure_id(data, ['incidence'])
     check_metric_id(data, 'rate')
 
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
     if entity.kind == 'cause':
         check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
     else:   # sequelae don't have restrictions
@@ -170,9 +176,6 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
 
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
-
-    check_years(data, 'annual')
-    check_location(data, location_id)
 
     if entity.kind == 'cause':
         check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
@@ -192,6 +195,9 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     check_measure_id(data, ['prevalence'])
     check_metric_id(data, 'rate')
 
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
     if entity.kind == 'cause':
         check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
     else:   # sequelae don't have restrictions
@@ -199,9 +205,6 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
 
     # como should all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
-
-    check_years(data, 'annual')
-    check_location(data, location_id)
 
     if entity.kind == 'cause':
         check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
@@ -221,6 +224,9 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     check_measure_id(data, ['incidence'])
     check_metric_id(data, 'rate')
 
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
         raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond '
@@ -228,9 +234,6 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
 
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
-
-    check_years(data, 'annual')
-    check_location(data, location_id)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
@@ -246,14 +249,14 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
                         'healthstate', 'healthstate_id'] + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
+    check_location(data, location_id)
+
     all_ages_age_group_id = 22
     if data.age_group_id.unique() != all_ages_age_group_id:
         raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
                                 f'the expected all ages age group (id {all_ages_age_group_id}.')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
-
-    check_location(data, location_id)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
@@ -269,6 +272,9 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
     check_measure_id(data, ['remission'])
     check_metric_id(data, 'rate')
 
+    check_years(data, 'binned')
+    check_location(data, location_id)
+
     restrictions = entity.restrictions
 
     check_age_group_ids(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
@@ -276,9 +282,6 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
     male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
     check_sex_ids(data, male_expected, female_expected)
-
-    check_years(data, 'binned')
-    check_location(data, location_id)
 
     check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
@@ -296,6 +299,9 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     check_measure_id(data, ['deaths'])
     check_metric_id(data, 'number')
 
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
     restrictions = entity.restrictions
 
     check_age_group_ids(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
@@ -303,9 +309,6 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
     check_sex_ids(data, male_expected, female_expected)
-
-    check_years(data, 'annual')
-    check_location(data, location_id)
 
     check_age_restrictions(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
@@ -318,15 +321,53 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
 
-def _validate_exposure(data, entity, location_id):
+def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int):
+    check_data_exist(data, zeros_missing=True)
 
-    expected_columns = ('rei_id', 'modelable_entity_id', 'parameter',
-                        'measure_id', 'metric_id') + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    expected_columns = ['rei_id', 'modelable_entity_id', 'parameter',
+                        'measure_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
-    # we can't check years for coverage_gaps, since it's not consistent.
-    if entity.kind == 'risk_factor':
-        check_years(data, 'binned')
+
+    check_measure_id(data,  ['prevalence', 'proportion', 'continuous'])
+    check_metric_id(data, 'rate')
+
+    if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
+        raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} contains a year range '
+                                f'that is neither annual nor binned.')
     check_location(data, location_id)
+
+    cats = data.groupby('parameter')
+
+    if entity.kind == 'risk_factor':
+        restrictions = entity.restrictions
+        age_start = min(restrictions.yld_age_group_id_start, restrictions.yll_age_group_id_start)
+        age_end = max(restrictions.yld_age_group_id_end, restrictions.yll_age_group_id_end)
+        male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
+        female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
+
+        cats.apply(check_age_group_ids, age_start, age_end)
+        cats.apply(check_sex_ids, male_expected, female_expected)
+
+        # we only have metadata about tmred for risk factors
+        if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
+            if entity.tmred.inverted:
+                check_value_columns_boundary(data, entity.tmred.max, 'upper',
+                                             value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+            else:
+                check_value_columns_boundary(data, entity.tmred.min, 'lower',
+                                             value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+    else:
+        cats.apply(check_age_group_ids, None, None)
+        cats.apply(check_sex_ids, True, True)
+
+    if entity.distribution in ('dichotomous', 'ordered_polytomous', 'unordered_polytomous'):  # categorical
+        check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+        check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+
+        g = data.groupby(DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
+        if not np.all(g[DRAW_COLUMNS] == 1):
+            raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} '
+                                    f'does not sum to 1 across all categories.')
 
 
 def _validate_exposure_standard_deviation(data, entity, location_id):
@@ -434,7 +475,7 @@ def _check_paf_types(entity):
 # VALIDATION UTILITIES #
 ########################
 
-def check_years(data: pd.DataFrame, year_type: str):
+def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
     """Check that years in passed data match expected range based on type.
 
     Parameters
@@ -444,20 +485,31 @@ def check_years(data: pd.DataFrame, year_type: str):
     year_type
         String 'annual' or 'binned' indicating expected year range.
 
+    Returns
+    -------
+    bool
+        True if years in `data` match expected `year_type`, false otherwise.
+
     Raises
     ------
     DataAbnormalError
-        If any expected years are not found in data or any extra years found
-        and `year_type` is 'binned'.
+        If `error` is turned on and any expected years are not found in data or
+        any extra years found and `year_type` is 'binned'.
 
     """
-    years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
+    gbd_years = gbd.get_estimation_years()
+    years = {'annual': list(range(min(gbd_years), max(gbd_years)+1)), 'binned': gbd_years}
     expected_years = years[year_type]
     if set(data.year_id.unique()) < set(expected_years):
-        raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(data.year_id.unique()))}.')
-    # if is it annual, we expect to have extra years from some cases like codcorrect/covariate
+        if error:
+            raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(data.year_id))}.')
+        return False
+    # if it's annual, we expect to have extra years from some sources (e.g., codcorrect/covariate)
     if year_type == 'binned' and set(data.year_id.unique()) > set(expected_years):
-        raise DataAbnormalError(f'Data has extra years: {set(data.year_id.unique()).difference(set(expected_years))}.')
+        if error:
+            raise DataAbnormalError(f'Data has extra years: {set(data.year_id).difference(set(expected_years))}.')
+        return False
+    return True
 
 
 def check_location(data: pd.DataFrame, location_id: int):
