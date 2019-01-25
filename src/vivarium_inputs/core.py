@@ -128,27 +128,20 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
     return data
 
 
-def _convert_prevalence_to_proportion(data: pd.DataFrame) -> pd.DataFrame:
-    data = data.set_index(DEMOGRAPHIC_COLUMNS)
-    total_prevalence = data[DRAW_COLUMNS].reset_index().groupby(DEMOGRAPHIC_COLUMNS).sum()
-    data.groupby('parameter').apply(lambda df: df[DRAW_COLUMNS] / total_prevalence)
-    data = data.reset_index()
-    data['measure_id'] = MEASURES['Proportion']
-    return data
-
-
 def get_exposure(entity, location_id):
     data = extract.extract_data(entity, 'exposure', location_id)
-    categorical = True if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] else False
-    if set(data.measure_id) == {MEASURES['Prevalence']}:
-        data = _convert_prevalence_to_proportion(data)
-    data = utilities.normalize(data, fill_value=0, categorical=categorical)
+    data = data.drop('modelable_entity_id', 'columns')
+    if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
+        data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
+    else:
+        data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
     return data
 
 
 def get_exposure_standard_deviation(entity, location_id):
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
+    data = data.drop('modelable_entity_id', 'columns')
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
     return data
@@ -159,7 +152,7 @@ def get_exposure_distribution_weights(entity, location_id):
     data = utilities.normalize(data, fill_value=0)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
-    id_cols = set(data.columns).difference(distribution_cols)
+    id_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
     data = pd.melt(data, id_vars=id_cols, value_vars=distribution_cols, var_name='parameter')
     return data
 
@@ -173,11 +166,14 @@ def get_relative_risk(entity, location_id):
         data = utilities.convert_affected_entity(data, 'rei_id')
         data['affected_measure'] = 'exposure_parameters'
 
-    categorical = True if entity.distribution in ['dichotomous', 'polytomous', 'ordered_polytomous'] else False
     result = []
     for affected_entity in data.affected_entity.unique():
         df = data[data.affected_entity == affected_entity]
-        df = utilities.normalize(df, fill_value=1, categorical=categorical)
+        if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
+            df.groupby('parameter').apply(lambda d: utilities.normalize(d, fill_value=1))
+        else:
+            df = utilities.normalize(df, fill_value=1)
+
         result.append(df)
     data = pd.concat(result)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'])

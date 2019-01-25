@@ -86,15 +86,7 @@ def scrub_affected_entity(data):
 ###############################################################
 
 
-def normalize(data: pd.DataFrame, fill_value=None, categorical=False):
-    if categorical:
-        data.groupby('parameter').apply(lambda df: _normalize(df, fill_value))
-    else:
-        data = _normalize(data, fill_value)
-    return data
-
-
-def _normalize(data: pd.DataFrame, fill_value=None) -> pd.DataFrame:
+def normalize(data: pd.DataFrame, fill_value=None) -> pd.DataFrame:
     data = normalize_sex(data, fill_value)
     data = normalize_year(data)
     data = normalize_age(data, fill_value)
@@ -130,10 +122,6 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
 def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
 
-    # we drop year_id 1 for the RR data from aux-data. Maybe find a better place to do this.
-    if set(data.year_id)=={1}:
-        data.drop('year_id', axis=1, inplace=True)
-        
     if 'year_id' not in data:
         # Data doesn't vary by year, so copy for each year.
         df = []
@@ -155,11 +143,8 @@ def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
 def interpolate_year(data):
     # Hide the central comp dependency unless required.
     from core_maths.interpolate import pchip_interpolate
-    non_draw_cols = list(set(data.columns).difference(DRAW_COLUMNS))
-    nan_cols = [c for c in non_draw_cols if data[c].isna().any()]
-    id_cols = set(non_draw_cols).difference(nan_cols)
+    id_cols = list(set(data.columns).difference(DRAW_COLUMNS))
     fillin_data = pchip_interpolate(data, list(id_cols), DRAW_COLUMNS)
-    fillin_data = pd.concat([fillin_data, pd.DataFrame(columns=nan_cols)])
     return pd.concat([data, fillin_data], sort=True)
 
 
