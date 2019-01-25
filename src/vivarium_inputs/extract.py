@@ -1,6 +1,6 @@
 import pandas as pd
 
-from get_draws.api import EmptyDataFrameException
+from get_draws.api import EmptyDataFrameException, InputsException
 from gbd_artifacts.exceptions import NoBestVersionError
 
 from .globals import gbd, METRICS, MEASURES, DataAbnormalError, DataNotExistError
@@ -37,10 +37,12 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
 
     try:
         data = extractors[measure](entity, location_id)
-    except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError) as e:
+    except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError, InputsException) as e:
         if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in e.args:
             raise e
         elif isinstance(e, AssertionError) and f'Invalid covariate_id {entity.gbd_id}' not in e.args:
+            raise e
+        elif isinstance(e, InputsException) and measure != 'birth_prevalence':
             raise e
         else:
             raise DataNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
