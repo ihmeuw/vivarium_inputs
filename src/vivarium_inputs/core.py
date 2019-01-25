@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract
-from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS
+from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS, MEASURES
 
 
 def get_data(entity, measure: str, location: str):
@@ -128,9 +128,23 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
     return data
 
 
+def _convert_prevalence_to_proportion(data: pd.DataFrame) -> pd.DataFrame:
+    data = data.set_index(DEMOGRAPHIC_COLUMNS)
+    total_prevalence = data[DRAW_COLUMNS].reset_index().groupby(DEMOGRAPHIC_COLUMNS).sum()
+    for cat in data.parameter.unique():
+        correct_parameter = data['parameter'] == cat
+        data.loc[correct_parameter, DRAW_COLUMNS] /= total_prevalence
+
+    data = data.reset_index()
+    data['measure_id'] = MEASURES['Proportion']
+    return data
+
+
 def get_exposure(entity, location_id):
     data = extract.extract_data(entity, 'exposure', location_id)
     categorical = True if entity.distribution in ['dichotomous', 'polytomous', 'ordered_polytomous'] else False
+    if set(data.measure_id) == {MEASURES['Prevalence']}:
+        data = _convert_prevalence_to_proportion(data)
     data = utilities.normalize(data, fill_value=0, categorical=categorical)
     data = utilities.reshape(data, to_keep=list(DEMOGRAPHIC_COLUMNS) + ['parameter'])
     return data
