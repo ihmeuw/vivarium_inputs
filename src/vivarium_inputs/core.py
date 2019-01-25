@@ -3,6 +3,7 @@ from typing import Union
 
 from gbd_mapping import Cause, RiskFactor, Sequela, Covariate
 import pandas as pd
+import numpy as np
 
 from vivarium_inputs import utilities, extract
 from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS
@@ -24,7 +25,7 @@ def get_data(entity, measure: str, location: str):
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
         'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor', 'alternative_risk_factor')),
         'relative_risk': (get_relative_risk, ('risk_factor', 'coverage_gap')),
-        'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'coverage_gap', 'etiology')),
+        'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'etiology')),
         'mediation_factors': (get_mediation_factors, ('risk_factor',)),
         # Covariate measures
         'estimate': (get_estimate, ('covariate',)),
@@ -112,6 +113,7 @@ def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
     csmr = get_cause_specific_mortality(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
     prevalence = get_prevalence(entity, location_id).set_index(list(DEMOGRAPHIC_COLUMNS) + ['draw'])
     data = (csmr / prevalence).fillna(0)
+    data = data.replace([np.inf, -np.inf], 0)
     return data.reset_index()
 
 

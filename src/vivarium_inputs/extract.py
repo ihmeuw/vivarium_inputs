@@ -73,29 +73,26 @@ def extract_deaths(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_exposure(entity, location_id: int) -> pd.DataFrame:
-    if entity.kind == 'risk_factor' and entity.distribution == 'dichotomous':
+    if entity.kind == 'risk_factor':
         data = gbd.get_exposure(entity.gbd_id, location_id)
-        if MEASURES['Proportion'] in data.measure_id.unique():
-            data = data[data.measure_id == MEASURES['Proportion']]
-        elif MEASURES['Prevalence'] in data.measure_id.unique():  # Exposure comes from a cause model
-            data = data[data.measure_id == MEASURES['Prevalence']]
+        allowable_measures = [MEASURES['Proportion'], MEASURES['Continuous'], MEASURES['Prevalence']]
+        proper_measure_id = set(data.measure_id).intersection(allowable_measures)
+        if len(proper_measure_id) != 1:
+            raise DataAbnormalError(f'Exposure data have {len(proper_measure_id)} measure id(s). Data should have'
+                                    f'exactly one id out of {allowable_measures} but came back with {proper_measure_id}.')
         else:
-            raise DataAbnormalError('No exposure measure')
-    elif entity.kind == 'coverage_gap':
-        data = gbd.get_auxiliary_data('exposure', 'coverage_gap', entity.name, location_id)
-    elif entity.kind == 'alternative_risk_factor':
-        data = gbd.get_auxiliary_data('exposure', 'alternative_risk_factor', entity.name, location_id)
-    else:
-        raise NotImplementedError()
+            data = data[data.measure_id == proper_measure_id.pop()]
+
+    else:  # alternative_risk_factor or coverage_gap
+        data = gbd.get_auxiliary_data('exposure', entity.kind, entity.name, location_id)
     return data
 
 
 def extract_exposure_standard_deviation(entity, location_id: int) -> pd.DataFrame:
-    if entity.kind == 'alternative_risk_factor':
-        data = gbd.get_auxiliary_data('exposure_standard_deviation', 'alternative_risk_factor',
-                                      entity.name, location_id)
-    else:
-        raise NotImplementedError()
+    if entity.kind == 'risk_factor':
+        data = gbd.get_exposure_standard_deviation(entity.gbd_id, location_id)
+    else:  # alternative_risk_factor
+        data = gbd.get_auxiliary_data('exposure_standard_deviation', entity.kind, entity.name, location_id)
     return data
 
 
@@ -107,23 +104,21 @@ def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFr
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'risk_factor':
         data = gbd.get_relative_risk(entity.gbd_id, location_id)
-    elif entity.kind == 'coverage_gap':
-        data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
-    else:
-        raise NotImplementedError()
+    else:  # coverage_gap
+        data = gbd.get_auxiliary_data('relative_risk', entity.kind, entity.name, location_id)
     return data
 
 
 def extract_population_attributable_fraction(entity, location_id: int) -> pd.DataFrame:
-    if entity.kind in ['risk_factor', 'etiology']:
-        data = gbd.get_paf(entity.gbd_id, location_id)
-        data = data[data.measure_id == MEASURES['YLDs']]
-        data = data[data.metric_id == METRICS['Percent']]
+    data = gbd.get_paf(entity.gbd_id, location_id)
+    data = data[data.measure_id == MEASURES['YLDs']]
+    data = data[data.metric_id == METRICS['Percent']]
     return data
 
 
 def extract_mediation_factors(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    data = gbd.get_auxiliary_data('mediation_factor', entity.kind, entity.name, location_id)
+    return data
 
 
 def extract_estimate(entity, location_id: int) -> pd.DataFrame:
@@ -132,11 +127,13 @@ def extract_estimate(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_cost(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    data = gbd.get_auxiliary_data('cost', entity.kind, entity.name, location_id)
+    return data
 
 
 def extract_utilization(entity, location_id: int) -> pd.DataFrame:
-    raise NotImplementedError()
+    data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
+    return data
 
 
 def extract_structure(entity, location_id: int) -> pd.DataFrame:
@@ -147,4 +144,3 @@ def extract_structure(entity, location_id: int) -> pd.DataFrame:
 def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
     return data
-

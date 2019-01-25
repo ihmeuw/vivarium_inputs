@@ -166,6 +166,9 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     check_measure_id(data, ['incidence'])
     check_metric_id(data, 'rate')
 
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
     if entity.kind == 'cause':
         check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
     else:   # sequelae don't have restrictions
@@ -173,9 +176,6 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
 
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
-
-    check_years(data, 'annual')
-    check_location(data, location_id)
 
     if entity.kind == 'cause':
         check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
@@ -195,6 +195,9 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     check_measure_id(data, ['prevalence'])
     check_metric_id(data, 'rate')
 
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
     if entity.kind == 'cause':
         check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
     else:   # sequelae don't have restrictions
@@ -202,9 +205,6 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
 
     # como should all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
-
-    check_years(data, 'annual')
-    check_location(data, location_id)
 
     if entity.kind == 'cause':
         check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
@@ -224,6 +224,9 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     check_measure_id(data, ['incidence'])
     check_metric_id(data, 'rate')
 
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
         raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond '
@@ -231,9 +234,6 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
 
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
-
-    check_years(data, 'annual')
-    check_location(data, location_id)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
@@ -249,14 +249,14 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
                         'healthstate', 'healthstate_id'] + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
+    check_location(data, location_id)
+
     all_ages_age_group_id = 22
     if data.age_group_id.unique() != all_ages_age_group_id:
         raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
                                 f'the expected all ages age group (id {all_ages_age_group_id}.')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
-
-    check_location(data, location_id)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
@@ -272,6 +272,9 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
     check_measure_id(data, ['remission'])
     check_metric_id(data, 'rate')
 
+    check_years(data, 'binned')
+    check_location(data, location_id)
+
     restrictions = entity.restrictions
 
     check_age_group_ids(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
@@ -279,9 +282,6 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
     male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
     check_sex_ids(data, male_expected, female_expected)
-
-    check_years(data, 'binned')
-    check_location(data, location_id)
 
     check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
@@ -299,6 +299,9 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     check_measure_id(data, ['deaths'])
     check_metric_id(data, 'number')
 
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
     restrictions = entity.restrictions
 
     check_age_group_ids(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
@@ -306,9 +309,6 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
     check_sex_ids(data, male_expected, female_expected)
-
-    check_years(data, 'annual')
-    check_location(data, location_id)
 
     check_age_restrictions(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
@@ -331,9 +331,12 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     check_measure_id(data,  ['prevalence', 'proportion', 'continuous'])
     check_metric_id(data, 'rate')
 
-    cats = data.groupby('parameter')
+    if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
+        raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} contains a year range '
+                                f'that is neither annual nor binned.')
+    check_location(data, location_id)
 
-    age_start, age_end, male_expected, female_expected = None, None, True, True
+    cats = data.groupby('parameter')
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
@@ -342,26 +345,22 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
-    cats.apply(check_age_group_ids, age_start, age_end)
-    cats.apply(check_sex_ids, male_expected, female_expected)
+        cats.apply(check_age_group_ids, age_start, age_end)
+        cats.apply(check_sex_ids, male_expected, female_expected)
 
-    if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
-        raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} contains a year range '
-                                f'that is neither annual nor binned.')
-    check_location(data, location_id)
+        # we only have metadata about tmred for risk factors
+        if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
+            if entity.tmred.inverted:
+                check_value_columns_boundary(data, entity.tmred.max, 'upper',
+                                             value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+            else:
+                check_value_columns_boundary(data, entity.tmred.min, 'lower',
+                                             value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+    else:
+        cats.apply(check_age_group_ids, None, None)
+        cats.apply(check_sex_ids, True, True)
 
-    if entity.kind == 'risk_factor':
-        cats.apply(check_age_restrictions, age_start, age_end)
-        cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
-
-    if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
-        if entity.tmred.inverted:
-            check_value_columns_boundary(data, entity.tmred.max, 'upper',
-                                         value_columns=DRAW_COLUMNS, inclusive=True, error=False)
-        else:
-            check_value_columns_boundary(data, entity.tmred.min, 'lower',
-                                         value_columns=DRAW_COLUMNS, inclusive=True, error=False)
-    else:  # categorical
+    if entity.distribution in ('dichotomous', 'ordered_polytomous', 'unordered_polytomous'):  # categorical
         check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
         check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 

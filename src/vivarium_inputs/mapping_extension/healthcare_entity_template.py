@@ -6,7 +6,7 @@ from gbd_mapping.id import meid
 
 class HealthcareEntity(ModelableEntity):
     """Container for healthcare system GBD ids and data."""
-    __slots__ = ('name', 'kind', 'gbd_id', 'utilization', 'cost')
+    __slots__ = ('name', 'kind', 'gbd_id', 'utilization')
 
     def __init__(self,
                  name: str,
