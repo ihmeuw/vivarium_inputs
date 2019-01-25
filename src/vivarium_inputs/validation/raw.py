@@ -277,7 +277,7 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
 
     restrictions = entity.restrictions
 
-    check_age_group_ids(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
+    check_age_group_ids(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
 
     male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
@@ -340,8 +340,8 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = min(restrictions.yld_age_group_id_start, restrictions.yll_age_group_id_start)
-        age_end = max(restrictions.yld_age_group_id_end, restrictions.yll_age_group_id_end)
+        age_start = _get_restriction_age_boundary(entity, 'start')
+        age_end = _get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
@@ -389,8 +389,8 @@ def _validate_exposure_standard_deviation(data, entity, location_id):
     check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
-        age_start = min(entity.restrictions.yld_age_group_id_start, entity.restrictions.yll_age_group_id_start)
-        age_end = max(entity.restrictions.yld_age_group_id_end, entity.restrictions.yll_age_group_id_end)
+        age_start = _get_restriction_age_boundary(entity, 'start')
+        age_end = _get_restriction_age_boundary(entity, 'end')
 
         check_age_group_ids(data, age_start, age_end)
         check_sex_ids(data, True, True)
@@ -449,8 +449,8 @@ def _validate_relative_risk(data, entity, location_id):
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = min(restrictions.yld_age_group_id_start, restrictions.yll_age_group_id_start)
-        age_end = max(restrictions.yld_age_group_id_end, restrictions.yll_age_group_id_end)
+        age_start = _get_restriction_age_boundary(entity, 'start')
+        age_end = _get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
@@ -1007,4 +1007,14 @@ def check_metric_id(data: pd.DataFrame, expected_metric: str):
                                 f'(metric_id {METRICS[expected_metric.capitalize()]}')
 
 
+def _get_restriction_age_boundary(entity: RiskFactor, boundary: str):
+    yld_age= entity.restrictions[f'yld_age_group_id_{boundary}']
+    yll_age = entity.restrictions[f'yld_age_group_id_{boundary}']
+    if yld_age is None:
+        age = yll_age
+    elif yll_age is None:
+        age = yld_age
+    else:
+        age = min(yld_age, yll_age) if boundary == 'start' else max(yld_age, yll_age)
+    return age
 
