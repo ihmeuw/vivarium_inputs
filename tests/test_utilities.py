@@ -58,8 +58,10 @@ def test_normalize_age():
 
 # assert dataframe is unchanged
 def test_normalize_age_no_age_id():
-    pass
+    df = pd.DataFrame({'ColumnA': [1, 2, 3], 'ColumnB': [1, 2 ,3]})
+    normalized = utilities.normalize_age(df, )
 
 
 def test_reshape():
-    pass
+    columns = ['a', 'b', 'c']
+    draws = [f'draw_{i}' for i in range(1000)]
