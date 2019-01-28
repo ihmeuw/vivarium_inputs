@@ -150,11 +150,15 @@ def check_coverage_gap_metadata(entity: CoverageGap, measure: str):
 
 
 def check_health_technology_metadata(entity: HealthTechnology, measure: str):
-    raise NotImplementedError()
+    if measure == 'cost':
+        warnings.warn(f'Cost data for {entity.kind} {entity.name} is constantly extrapolated outside of '
+                      f'years [1990, 2017].')
 
 
 def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str):
-    raise NotImplementedError()
+    if measure == 'cost':
+        warnings.warn(f'Cost data for {entity.kind} {entity.name} is constantly extrapolated outside of '
+                      f'years [1990, 2017].')
 
 
 def check_population_metadata(entity: NamedTuple, measure: str):
