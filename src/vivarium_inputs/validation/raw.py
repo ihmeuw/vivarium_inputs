@@ -453,7 +453,7 @@ def _validate_mediation_factors(data, entity, location_id):
     raise NotImplementedError()
 
 
-def _validate_estimate(data, entity, location_id):
+def _validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int):
     value_columns = ['mean_value', 'upper_value', 'lower_value']
 
     check_data_exist(data, zeros_missing=False, value_columns=value_columns)
@@ -544,7 +544,7 @@ def _check_paf_types(entity):
 # RAW VALIDATOR SPECIFIC UTILITIES #
 ####################################
 
-def _check_covariate_sex_restriction(data, by_sex):
+def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
     """Returns False if sex restriction is violated."""
     if by_sex and {1, 2}.issubset(set(data.sex_id)):
         return True
@@ -553,7 +553,7 @@ def _check_covariate_sex_restriction(data, by_sex):
     return False
 
 
-def _check_covariate_age_restriction(data, by_age):
+def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
     """Returns False if age restriction is violated."""
     if by_age:
         # if we have any of the expected gbd age group ids, restriction is not violated
