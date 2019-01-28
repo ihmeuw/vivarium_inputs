@@ -466,8 +466,23 @@ def _validate_estimate(data, entity, location_id):
     check_location(data, location_id)
 
 
-def _validate_cost(data, entity, location_id):
-    raise NotImplementedError()
+def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology], location_id: int):
+    check_data_exist(data, zeros_missing=True)  # TODO: is it right to say all zeros are missing?
+
+    expected_columns = ['measure', entity.kind] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+
+    if set(data.measure) != {'cost'}:
+        raise DataAbnormalError(f'Cost data for {entity.kind} {entity.name} contains '
+                                f'measures beyond the expected cost.')
+
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
+    all_ages_age_group = 22
+    if set(data.age_group_id) != {all_ages_age_group}:
+
+
 
 
 def _validate_utilization(data, entity, location_id):
