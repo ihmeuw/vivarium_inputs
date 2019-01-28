@@ -545,19 +545,19 @@ def _check_paf_types(entity):
 ####################################
 
 def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
-    """Returns False if sex restriction is violated."""
-    if by_sex and {1, 2}.issubset(set(data.sex_id)):
-        return True
-    elif not by_sex and set(data.sex_id) == {3}:
-        return True
-    return False
+    if by_sex and not {1, 2}.issubset(set(data.sex_id)):
+        raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
+    elif not by_sex and set(data.sex_id) != {3}:
+        raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
+                                'for combined male and female data.')
 
 
 def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
-    """Returns False if age restriction is violated."""
-    if by_age:
+    if by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
         # if we have any of the expected gbd age group ids, restriction is not violated
-        return bool(set(data.age_group_id).intersection(set(gbd.get_age_group_id())))
+        raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
     # if we have any age group ids besides 22, 27, restriction is violated
     all_ages_age_group, age_standardized_age_group = 22, 27
-    return not (set(data.age_group_id) - {all_ages_age_group, age_standardized_age_group})
+    if bool((set(data.age_group_id) - {all_ages_age_group, age_standardized_age_group})):
+        raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
+                                'beyond all ages and age standardized.')
