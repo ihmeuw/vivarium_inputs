@@ -14,7 +14,7 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
                                                   check_age_group_ids, check_sex_ids, check_age_restrictions,
                                                   check_value_columns_boundary, check_sex_restrictions,
-                                                  check_measure_id, check_metric_id)
+                                                  check_measure_id, check_metric_id, get_restriction_age_boundary)
 
 
 MAX_INCIDENCE = 10
@@ -345,8 +345,8 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = _get_restriction_age_boundary(entity, 'start')
-        age_end = _get_restriction_age_boundary(entity, 'end')
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
@@ -395,8 +395,8 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
     check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
-        age_start = _get_restriction_age_boundary(entity, 'start')
-        age_end = _get_restriction_age_boundary(entity, 'end')
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
 
         check_age_group_ids(data, age_start, age_end)
         check_sex_ids(data, True, True)
@@ -456,8 +456,8 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = _get_restriction_age_boundary(entity, 'start')
-        age_end = _get_restriction_age_boundary(entity, 'end')
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
@@ -565,21 +565,4 @@ def _check_paf_types(entity):
     if abnormal_range.size:
         warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
-
-
-############################
-# RAW VALIDATION UTILITIES #
-############################
-
-
-def _get_restriction_age_boundary(entity: RiskFactor, boundary: str):
-    yld_age = entity.restrictions[f'yld_age_group_id_{boundary}']
-    yll_age = entity.restrictions[f'yld_age_group_id_{boundary}']
-    if yld_age is None:
-        age = yll_age
-    elif yll_age is None:
-        age = yld_age
-    else:
-        age = min(yld_age, yll_age) if boundary == 'start' else max(yld_age, yll_age)
-    return age
 
