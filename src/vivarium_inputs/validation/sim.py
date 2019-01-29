@@ -1,5 +1,8 @@
 """Validates data is in the correct shape for the simulation."""
+from typing import Sequence
+
 import numpy as np
+import pandas as pd
 
 from vivarium_inputs import utilities
 from vivarium_inputs.globals import DataFormattingError
@@ -147,20 +150,20 @@ def _validate_demographic_dimensions(data, entity, location):
 #############
 
 
-def _validate_standard_columns(data, location):
+def _validate_standard_columns(data: pd.DataFrame, location: str):
     _validate_demographic_columns(data, location)
     _validate_draw_column(data)
     _validate_value_column(data)
 
 
-def _validate_demographic_columns(data, location):
+def _validate_demographic_columns(data: pd.DataFrame, location: str):
     _validate_location_column(data, location)
     _validate_sex_column(data)
     _validate_age_columns(data)
     _validate_year_columns(data)
 
 
-def _validate_draw_column(data):
+def _validate_draw_column(data: pd.DataFrame):
     if 'draw' not in data.columns:
         raise DataFormattingError('Draw column name improperly specified.')
 
@@ -168,7 +171,7 @@ def _validate_draw_column(data):
         raise DataFormattingError('Draw values improperly specified.')
 
 
-def _validate_location_column(data, location):
+def _validate_location_column(data: pd.DataFrame, location: str):
     if 'location' not in data.columns:
         raise DataFormattingError('Location column name improperly specified.')
 
@@ -176,7 +179,7 @@ def _validate_location_column(data, location):
         raise DataFormattingError('Location value improperly specified.')
 
 
-def _validate_sex_column(data):
+def _validate_sex_column(data: pd.DataFrame):
     if 'sex' not in data.columns:
         raise DataFormattingError('Sex column name improperly specified.')
 
@@ -184,7 +187,7 @@ def _validate_sex_column(data):
         raise DataFormattingError('Sex value improperly specified.')
 
 
-def _validate_age_columns(data):
+def _validate_age_columns(data: pd.DataFrame):
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
         raise DataFormattingError('Age column names improperly specified.')
 
@@ -199,7 +202,7 @@ def _validate_age_columns(data):
         raise DataFormattingError('Age values improperly specified.')
 
 
-def _validate_year_columns(data):
+def _validate_year_columns(data: pd.DataFrame):
     if 'year_start' not in data.columns or 'year_end' not in data.columns:
         raise DataFormattingError('Year column names improperly specified.')
 
@@ -213,7 +216,7 @@ def _validate_year_columns(data):
         raise DataFormattingError('Year values improperly specified.')
 
 
-def _validate_value_column(data):
+def _validate_value_column(data: pd.DataFrame):
     if 'value' not in data.columns:
         raise DataFormattingError('Value column is improperly specified.')
 
@@ -223,7 +226,7 @@ def _validate_value_column(data):
         raise DataFormattingError('Inf found in data')
 
 
-def _translate_age_restrictions(ids):
+def _translate_age_restrictions(ids: Sequence[int]) -> (float, float):
     age_bins = utilities.get_age_bins()
     minimum = age_bins.loc[age_bins.age_group_id.isin(ids), 'age_group_start'].min()
     maximum = age_bins.loc[age_bins.age_group_id.isin(ids), 'age_group_end'].max()
@@ -231,14 +234,14 @@ def _translate_age_restrictions(ids):
     return minimum, maximum
 
 
-def _check_age_restrictions(data, age_start, age_end, fill_value):
-    outside = data.loc[(data.age_group_start < age_start) & (data.age_group_end > age_end)]
+def _check_age_restrictions(data: pd.DataFrame, age_start: int, age_end: int, fill_value: float):
+    outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
     if not outside.empty:
         if (outside.value != fill_value).any():
             raise DataFormattingError(f"Age restrictions are violated by a value other than {fill_value}")
 
 
-def _check_sex_restrictions(data, male_only, female_only, fill_value):
+def _check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool, fill_value: float):
     if male_only:
         if (data.loc[data.sex_id == 'Female', 'value'] == fill_value).any():
             raise DataFormattingError(f"Restriction to male sex only is violated by a value other than {fill_value}")
