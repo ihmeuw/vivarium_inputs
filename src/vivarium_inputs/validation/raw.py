@@ -496,7 +496,7 @@ def _validate_population_attributable_fraction(data, entity, location_id):
     check_columns(expected_columns, data.columns)
 
     check_metric_id(data, 'percent')
-    check_measure_id(data, ['YLL', 'YLD'], single_only=False)
+    check_measure_id(data, ['YLLs', 'YLDs'], single_only=False)
 
     check_years(data, 'annual')
     check_location(data, location_id)
@@ -522,10 +522,10 @@ def _validate_population_attributable_fraction(data, entity, location_id):
 
     for c_id in data.cause_id:
         cause = [c for c in causes if c.gbd_id == c_id][0]
-        if cause.restrictions.yld_only and (data.measure_id == 'YLL').any():
+        if cause.restrictions.yld_only and (data.measure_id == 'YLLs').any():
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
                                     f'values despite the affected entity being restricted to yld only.')
-        if cause.restrictions.yll_only and (data.measure_id == 'YLD').any():
+        if cause.restrictions.yll_only and (data.measure_id == 'YLDs').any():
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
 
