@@ -157,7 +157,7 @@ def check_health_technology_metadata(entity: HealthTechnology, measure: str):
 def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str):
     if measure == 'cost':
         warnings.warn(f'2017 cost data for {entity.kind} {entity.name} is duplicated from 2016 data, and all data '
-                      f'before 1990 is backfilled from 1990 data.')
+                      f'before 1995 is backfilled from 1995 data.')
 
 
 def check_population_metadata(entity: NamedTuple, measure: str):
