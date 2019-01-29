@@ -690,7 +690,7 @@ def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
 
 
 def _get_restriction_age_boundary(entity: RiskFactor, boundary: str):
-    yld_age= entity.restrictions[f'yld_age_group_id_{boundary}']
+    yld_age = entity.restrictions[f'yld_age_group_id_{boundary}']
     yll_age = entity.restrictions[f'yld_age_group_id_{boundary}']
     if yld_age is None:
         age = yll_age

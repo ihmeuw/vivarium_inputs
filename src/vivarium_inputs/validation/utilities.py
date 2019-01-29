@@ -406,9 +406,9 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
                                         'values for both males and females.')
 
 
-def check_measure_id(data: pd.DataFrame, allowable_measures: List[str]):
-    """Check that data contains only a single measure id and that it is one of
-    the allowed measure ids.
+def check_measure_id(data: pd.DataFrame, allowable_measures: List[str], single_only: bool = True):
+    """Check that data contains a measure id that is one of the allowed
+    measure ids.
 
     Parameters
     ----------
@@ -417,13 +417,17 @@ def check_measure_id(data: pd.DataFrame, allowable_measures: List[str]):
     allowable_measures
         List of strings dictating the possible values for measure id when
         mapped via MEASURES.
+    single_only
+        Boolean indicating whether a single measure id is expected in the data
+        or whether multiple are allowable.
 
     Raises
     ------
     DataAbnormalError
-        If data contains multiple measure ids or a non-permissible measure id.
+        If data contains either multiple measure ids and `single_only` is True
+        or a non-permissible measure id.
     """
-    if len(set(data.measure_id)) > 1:
+    if single_only and len(set(data.measure_id)) > 1:
         raise DataAbnormalError(f'Data has multiple measure ids: {set(data.measure_id)}.')
     if not set(data.measure_id).issubset(set([MEASURES[m.capitalize()] for m in allowable_measures])):
         raise DataAbnormalError(f'Data includes a measure id not in the expected measure ids for this measure.')
