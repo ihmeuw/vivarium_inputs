@@ -154,7 +154,7 @@ def check_health_technology_metadata(entity: HealthTechnology, measure: str):
 
 
 def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str):
-    raise NotImplementedError()
+    pass
 
 
 def check_population_metadata(entity: NamedTuple, measure: str):
@@ -466,8 +466,25 @@ def _validate_cost(data, entity, location_id):
     raise NotImplementedError()
 
 
-def _validate_utilization(data, entity, location_id):
-    raise NotImplementedError()
+def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_id: int):
+    check_data_exist(data, zeros_missing=True)
+
+    expected_columns = ['measure_id', 'metric_id', 'model_version_id',
+                        'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+
+    check_measure_id(data, ['continuous'])
+    check_metric_id(data, 'rate')
+
+    check_years(data, 'binned')
+    check_location(data, location_id)
+
+    check_age_group_ids(data, None, None)
+    check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=False)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_UTILIZATION, 'upper', value_columns=DRAW_COLUMNS,
+                                 inclusive=True, error=False)
 
 
 def _validate_structure(data, entity, location_id):
