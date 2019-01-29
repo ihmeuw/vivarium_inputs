@@ -166,7 +166,7 @@ def _validate_demographic_columns(data: pd.DataFrame, location: str):
 
 def _validate_draw_column(data: pd.DataFrame):
     if 'draw' not in data.columns:
-        raise DataFormattingError("Draw data must be contained in a column must be named 'draw'.")
+        raise DataFormattingError("Draw data must be contained in a column named 'draw'.")
 
     if list(data['draw'].unique()) != list(range(1000)):
         raise DataFormattingError('Draw values must contain [0, 999].')
