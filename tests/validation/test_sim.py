@@ -156,3 +156,37 @@ def test__validate_value_column_missing():
     df = pd.DataFrame({'value_column': [1, 2, 3]})
     with pytest.raises(DataFormattingError, match='Value column'):
         sim._validate_value_column(df)
+
+
+@pytest.mark.parametrize('values, restrictions, fill', [
+        ((1, 1, 1, 1, 1), (0, 5), 0.0),
+        ((0, 0, 1, 1, 1), (2, 5), 0.0),
+        ((0, 1, 1, 1, 0), (1, 4), 0.0),
+        ((1, 1, 1, 0, 0), (0, 3), 0.0),
+        ((0, 0, 0, 1, 1), (0, 3), 1.0)
+], ids=('no_restr', 'left_restr', 'outer_restr', 'right_restr', 'nonzero_fill'))
+def test__check_age_restrictions(values, restrictions, fill):
+    df = pd.DataFrame({'age_group_start': range(5), 'age_group_end': range(1, 6)})
+    df['value'] = values
+    sim._check_age_restrictions(df, *restrictions, fill)
+
+
+@pytest.mark.parametrize('values, restrictions, fill', [
+        ((1, 1, 1, 1, 1), (1, 4), 0.0),
+        ((0, 1, 1, 1, 1), (2, 5), 0.0),
+        ((1, 1, 1, 1, 0), (0, 3), 0.0),
+], ids=('both_sides', 'left_side', 'right_side'))
+def test__check_age_restrictions_fail(values, restrictions, fill):
+    df = pd.DataFrame({'age_group_start': range(5), 'age_group_end': range(1, 6)})
+    df['value'] = values
+    with pytest.raises(DataFormattingError):
+        sim._check_age_restrictions(df, *restrictions, fill)
+
+
+def test__check_sex_restrictions():
+    pass
+
+
+def test__check_sex_restrictions_fail():
+    pass
+
