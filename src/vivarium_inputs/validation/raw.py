@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
-                         Etiology, Covariate, CoverageGap)
+                         Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, METRICS, MEASURES,
                                      DataAbnormalError, InvalidQueryError, DataNotExistError, gbd)
@@ -505,15 +505,21 @@ def _validate_population_attributable_fraction(data, entity, location_id):
 
         check_age_restrictions(data, age_start, age_end)
         check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
-    else:
+    else:  # coverage gap
         check_age_group_ids(data, None, None)
         check_sex_ids(data, True, True)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
-
-
+    for c_id in data.cause_id:
+        cause = [c for c in causes if c.gbd_id == c_id][0]
+        if cause.restrictions.yld_only and (data.measure_id == 'YLL').any():
+            raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
+                                    f'values despite the affected entity being restricted to yld only.')
+        if cause.restrictions.yll_only and (data.measure_id == 'YLD').any():
+            raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
+                                    f'values despite the affected entity being restricted to yll only.')
 
 
 def _validate_mediation_factors(data, entity, location_id):
