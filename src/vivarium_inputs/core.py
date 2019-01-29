@@ -1,13 +1,16 @@
 from collections import namedtuple
-from typing import Union
+from typing import Union, NamedTuple
 
-from gbd_mapping import Cause, Sequela
+from gbd_mapping import Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate
 import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract
+from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS, MEASURES
+
+POP = NamedTuple("Population", [('kind', str)])
 
 
 def get_data(entity, measure: str, location: str):
@@ -133,15 +136,15 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
     return data
 
 
-def get_exposure(entity, location_id):
+def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
-    data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
+    data = data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
     return data
 
 
-def get_exposure_standard_deviation(entity, location_id):
+def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
     data = data.drop('modelable_entity_id', 'columns')
     data = utilities.normalize(data, fill_value=0)
@@ -149,7 +152,7 @@ def get_exposure_standard_deviation(entity, location_id):
     return data
 
 
-def get_exposure_distribution_weights(entity, location_id):
+def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
     data = utilities.normalize(data, fill_value=0)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
@@ -159,7 +162,7 @@ def get_exposure_distribution_weights(entity, location_id):
     return data
 
 
-def get_relative_risk(entity, location_id):
+def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'relative_risk', location_id)
     if entity.kind == 'risk_factor':
         data = utilities.convert_affected_entity(data, 'cause_id')
@@ -175,14 +178,14 @@ def get_relative_risk(entity, location_id):
     result = []
     for affected_entity in data.affected_entity.unique():
         df = data[data.affected_entity == affected_entity]
-        df.groupby('parameter').apply(lambda d: utilities.normalize(d, fill_value=1))
+        df = df.groupby('parameter').apply(lambda d: utilities.normalize(d, fill_value=1))
         result.append(df)
     data = pd.concat(result)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'])
     return data
 
 
-def get_population_attributable_fraction(entity, location_id):
+def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
@@ -196,7 +199,7 @@ def get_mediation_factors(entity, location_id):
     raise NotImplementedError()
 
 
-def get_estimate(entity, location_id):
+def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'estimate', location_id)
 
     key_columns = ['location_id', 'year_id']
@@ -211,40 +214,40 @@ def get_estimate(entity, location_id):
     return data
 
 
-def get_cost(entity, location_id):
+def get_cost(entity: Union[HealthcareEntity, HealthTechnology], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'cost', location_id)
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + [entity.kind])
     return data
 
 
-def get_utilization(entity, location_id):
+def get_utilization(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'cost', location_id)
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
     return data
 
 
-def get_structure(entity, location_id):
+def get_structure(entity: POP, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'structure', location_id)
     data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
     data = utilities.normalize(data)
     return data
 
 
-def get_theoretical_minimum_risk_life_expectancy(entity, location_id):
+def get_theoretical_minimum_risk_life_expectancy(entity: POP, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'theoretical_minimum_risk_life_expectancy', location_id)
     data = data.rename(columns={'age': 'age_group_start', 'life_expectancy': 'value'})
     data['age_group_end'] = data.age_group_start.shift(-1).fillna(125.)
     return data
 
 
-def get_age_bins(entity, location_id):
+def get_age_bins(entity: POP, location_id: int) -> pd.DataFrame:
     age_bins = utilities.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
     return age_bins
 
 
-def get_demographic_dimensions(entity, location_id):
+def get_demographic_dimensions(entity: POP, location_id: int) -> pd.DataFrame:
     demographic_dimensions = utilities.get_demographic_dimensions(location_id)
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
