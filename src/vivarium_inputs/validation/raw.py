@@ -466,7 +466,7 @@ def _validate_estimate(data, entity, location_id):
 
 
 def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology], location_id: int):
-    check_data_exist(data, zeros_missing=True)  # TODO: is it right to say all zeros are missing?
+    check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure', entity.kind] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
