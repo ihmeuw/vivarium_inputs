@@ -23,6 +23,7 @@ MAX_CATEG_REL_RISK = 15
 MAX_CONT_REL_RISK = 5
 MAX_UTILIZATION = 20
 MAX_LIFE_EXP = 90
+MAX_POP = 100000000
 
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
@@ -487,19 +488,56 @@ def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTec
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
 
-def _validate_utilization(data, entity, location_id):
-    raise NotImplementedError()
+def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_id: int):
+    check_data_exist(data, zeros_missing=True)
+
+    expected_columns = ['measure_id', 'metric_id', 'model_version_id',
+                        'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+
+    check_measure_id(data, ['continuous'])
+    check_metric_id(data, 'rate')
+
+    check_years(data, 'binned')
+    check_location(data, location_id)
+
+    check_age_group_ids(data, None, None)
+    check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=False)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_UTILIZATION, 'upper', value_columns=DRAW_COLUMNS,
+                                 inclusive=True, error=False)
 
 
-def _validate_structure(data, entity, location_id):
+def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location_id: int):
+    check_data_exist(data, zeros_missing=True, value_columns=['population'])
+
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
     check_columns(expected_columns, data.columns)
+
     check_years(data, 'annual')
     check_location(data, location_id)
 
+    check_age_group_ids(data, None, None)
+    check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=True)
 
-def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):
-    pass
+    check_value_columns_boundary(data, 0, 'lower', value_columns=['population'], inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_POP, 'upper', value_columns=['population'], inclusive=True, error=True)
+
+
+def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: NamedTuple, location_id: int):
+    check_data_exist(data, zeros_missing=True, value_columns=['life_expectancy'])
+
+    expected_columns = ['age', 'life_expectancy']
+    check_columns(expected_columns, data.columns)
+
+    min_age, max_age = 0, 110
+    if data.age.min() > min_age or data.age.max() < max_age:
+        raise DataAbnormalError('Data does not contain life expectancy values for ages [0, 110].')
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=['life_expectancy'], inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_LIFE_EXP, 'upper', value_columns=['life_expectancy'],
+                                 inclusive=True, error=True)
 
 
 ############################
