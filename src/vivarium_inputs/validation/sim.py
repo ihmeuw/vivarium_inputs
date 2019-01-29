@@ -1,8 +1,8 @@
 """Validates data is in the correct shape for the simulation."""
 import numpy as np
-import pandas as pd
 
-from vivarium_inputs.globals import DataFormattingError, gbd
+from vivarium_inputs import utilities
+from vivarium_inputs.globals import DataFormattingError
 
 
 def validate_for_simulation(data, entity, measure, location):
@@ -244,4 +244,4 @@ def _check_sex_restrictions(data, male_only, female_only, fill_value):
             raise DataFormattingError(f"Restriction to male sex only is violated by a value other than {fill_value}")
     elif female_only:
         if (data.loc[data.sex_id == 'Male', 'value'] == fill_value).any():
-raise DataFormattingError(f"Restriction to female sex only is violated by a value other than {fill_value}")
+            raise DataFormattingError(f"Restriction to female sex only is violated by a value other than {fill_value}")
