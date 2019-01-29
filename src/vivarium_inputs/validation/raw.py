@@ -151,8 +151,7 @@ def check_coverage_gap_metadata(entity: CoverageGap, measure: str):
 
 def check_health_technology_metadata(entity: HealthTechnology, measure: str):
     if measure == 'cost':
-        warnings.warn(f'Cost data for {entity.kind} {entity.name} is constantly extrapolated outside of '
-                      f'years [1990, 2017].')
+        warnings.warn(f'Cost data for {entity.kind} {entity.name} does not vary by year.')
 
 
 def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str):
@@ -238,7 +237,7 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
         raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond '
-                                f'the expected birth age group (id {birth_age_group_id}.')
+                                f'the expected birth age group (id {birth_age_group_id}).')
 
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
@@ -262,7 +261,7 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
     all_ages_age_group_id = 22
     if set(data.age_group_id) != {all_ages_age_group_id}:
         raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
-                                f'the expected all ages age group (id {all_ages_age_group_id}.')
+                                f'the expected all ages age group (id {all_ages_age_group_id}).')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
 
@@ -479,10 +478,13 @@ def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTec
     check_years(data, 'annual')
     check_location(data, location_id)
 
-    all_ages_age_group = 22
-    if set(data.age_group_id) != {all_ages_age_group}:
+    all_ages_age_group_id = 22
+    if set(data.age_group_id) != {all_ages_age_group_id}:
+        raise DataAbnormalError(f'Cost data for {entity.kind} {entity.name} includes age groups beyond '
+                                f'the expected all ages age group (id {all_ages_age_group_id}).')
 
-
+    check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
 
 def _validate_utilization(data, entity, location_id):
