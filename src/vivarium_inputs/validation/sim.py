@@ -142,13 +142,22 @@ def _validate_demographic_dimensions(data, entity, location):
     _validate_year_columns(data)
 
 
+#############
+# UTILITIES #
+#############
+
+
 def _validate_standard_columns(data, location):
+    _validate_demographic_columns(data, location)
     _validate_draw_column(data)
+    _validate_value_column(data)
+
+
+def _validate_demographic_columns(data, location):
     _validate_location_column(data, location)
     _validate_sex_column(data)
     _validate_age_columns(data)
     _validate_year_columns(data)
-    _validate_value_column(data)
 
 
 def _validate_draw_column(data):
@@ -179,18 +188,14 @@ def _validate_age_columns(data):
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
         raise DataFormattingError('Age column names improperly specified.')
 
-    expected_age_block = (
-        gbd.get_age_bins()[['age_group_years_start', 'age_group_years_end']]
-            .rename(columns={'age_group_years_start': 'age_group_start',
-                             'age_group_years_end': 'age_group_end'})
-    )
-
+    expected_ages = utilities.get_age_bins()[['age_group_start', 'age_group_end']].sort_values(['age_group_start',
+                                                                                                'age_group_end'])
     age_block = (data[['age_group_start', 'age_group_end']]
                  .drop_duplicates()
                  .sort_values(['age_group_start', 'age_group_end'])
                  .reset_index(drop=True))
 
-    if not age_block.equals(expected_age_block):
+    if not age_block.equals(expected_ages):
         raise DataFormattingError('Age values improperly specified.')
 
 
@@ -198,21 +203,45 @@ def _validate_year_columns(data):
     if 'year_start' not in data.columns or 'year_end' not in data.columns:
         raise DataFormattingError('Year column names improperly specified.')
 
-    expected_year_block = pd.DataFrame({'year_start': range(1990, 2018),
-                                        'year_end': range(1991, 2019)})
+    expected_years = utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
     year_block = (data[['year_start', 'year_end']]
                   .drop_duplicates()
                   .sort_values(['year_start', 'year_end'])
                   .reset_index(drop=True))
 
-    if not year_block.equals(expected_year_block):
-        pass
-        #raise DataFormattingError('Year values improperly specified.')
+    if not year_block.equals(expected_years):
+        raise DataFormattingError('Year values improperly specified.')
 
 
 def _validate_value_column(data):
+    if 'value' not in data.columns:
+        raise DataFormattingError('Value column is improperly specified.')
+
     if np.any(data.value.isna()):
         raise DataFormattingError('Nans found in data.')
     if np.any(np.isinf(data.value.values)):
         raise DataFormattingError('Inf found in data')
 
+
+def _translate_age_restrictions(ids):
+    age_bins = utilities.get_age_bins()
+    minimum = age_bins.loc[age_bins.age_group_id.isin(ids), 'age_group_start'].min()
+    maximum = age_bins.loc[age_bins.age_group_id.isin(ids), 'age_group_end'].max()
+
+    return minimum, maximum
+
+
+def _check_age_restrictions(data, age_start, age_end, fill_value):
+    outside = data.loc[(data.age_group_start < age_start) & (data.age_group_end > age_end)]
+    if not outside.empty:
+        if (outside.value != fill_value).any():
+            raise DataFormattingError(f"Age restrictions are violated by a value other than {fill_value}")
+
+
+def _check_sex_restrictions(data, male_only, female_only, fill_value):
+    if male_only:
+        if (data.loc[data.sex_id == 'Female', 'value'] == fill_value).any():
+            raise DataFormattingError(f"Restriction to male sex only is violated by a value other than {fill_value}")
+    elif female_only:
+        if (data.loc[data.sex_id == 'Male', 'value'] == fill_value).any():
+raise DataFormattingError(f"Restriction to female sex only is violated by a value other than {fill_value}")
