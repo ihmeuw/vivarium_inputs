@@ -8,7 +8,20 @@ from vivarium_inputs import utilities
 from vivarium_inputs.globals import DataFormattingError
 
 
-def validate_for_simulation(data, entity, measure, location):
+def validate_for_simulation(data: pd.DataFrame, entity, measure: str, location: str):
+    """Enforce tight boundary and shape checks on data based on simulation expectations.
+
+    Parameters
+    ----------
+    data
+    entity
+    measure
+    location
+
+    Raises
+    -------
+        DataFormattingError
+    """
     validators = {
         # Cause-like measures
         'incidence': _validate_incidence,
@@ -243,8 +256,8 @@ def _check_age_restrictions(data: pd.DataFrame, age_start: int, age_end: int, fi
 
 def _check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool, fill_value: float):
     if male_only:
-        if (data.loc[data.sex_id == 'Female', 'value'] == fill_value).any():
+        if (data.loc[data.sex == 'Female', 'value'] == fill_value).any():
             raise DataFormattingError(f"Restriction to male sex only is violated by a value other than {fill_value}")
     elif female_only:
-        if (data.loc[data.sex_id == 'Male', 'value'] == fill_value).any():
+        if (data.loc[data.sex == 'Male', 'value'] == fill_value).any():
             raise DataFormattingError(f"Restriction to female sex only is violated by a value other than {fill_value}")
