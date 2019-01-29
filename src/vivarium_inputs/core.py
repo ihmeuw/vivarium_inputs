@@ -182,8 +182,9 @@ def get_relative_risk(entity, location_id):
 def get_population_attributable_fraction(entity, location_id):
     data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
     data = utilities.convert_affected_entity(data, 'cause_id')
-    data['affected_measure'] = 'incidence_rate'
-    data = utilities.normalize(data, fill_value=0)
+    data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
+    data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
+    data = data.groupby('measure_id').apply(lambda df: utilities.normalize(df, fill_value=0))
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'])
     return data
 
