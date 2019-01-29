@@ -489,7 +489,8 @@ def _validate_relative_risk(data, entity, location_id):
                                 f"but no mortality only relative risk data was found.")
 
 
-def _validate_population_attributable_fraction(data, entity, location_id):
+def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
+                                               location_id: int):
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['metric_id', 'measure_id', 'rei_id', 'cause_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
