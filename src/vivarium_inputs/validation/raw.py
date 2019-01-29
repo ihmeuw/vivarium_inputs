@@ -23,6 +23,7 @@ MAX_CATEG_REL_RISK = 15
 MAX_CONT_REL_RISK = 5
 MAX_UTILIZATION = 20
 MAX_LIFE_EXP = 90
+MAX_POP = 100000000
 
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
@@ -487,11 +488,20 @@ def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location
                                  inclusive=True, error=False)
 
 
-def _validate_structure(data, entity, location_id):
+def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location_id: int):
+    check_data_exist(data, zeros_missing=True, value_columns=['population'])
+
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
     check_columns(expected_columns, data.columns)
+
     check_years(data, 'annual')
     check_location(data, location_id)
+
+    check_age_group_ids(data, None, None)
+    check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=True)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=['population'], inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_POP, 'upper', value_columns=['population'], inclusive=True, error=True)
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: NamedTuple, location_id: int):
