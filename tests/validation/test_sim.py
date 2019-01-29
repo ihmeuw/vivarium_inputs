@@ -175,7 +175,8 @@ def test__check_age_restrictions(values, restrictions, fill):
         ((1, 1, 1, 1, 1), (1, 4), 0.0),
         ((0, 1, 1, 1, 1), (2, 5), 0.0),
         ((1, 1, 1, 1, 0), (0, 3), 0.0),
-], ids=('both_sides', 'left_side', 'right_side'))
+        ((0, 0, 0, 0, 1), (0, 3), 1.0),
+], ids=('both_sides', 'left_side', 'right_side', 'nonzero_fill'))
 def test__check_age_restrictions_fail(values, restrictions, fill):
     df = pd.DataFrame({'age_group_start': range(5), 'age_group_end': range(1, 6)})
     df['value'] = values
@@ -183,10 +184,24 @@ def test__check_age_restrictions_fail(values, restrictions, fill):
         sim._check_age_restrictions(df, *restrictions, fill)
 
 
-def test__check_sex_restrictions():
-    pass
+@pytest.mark.parametrize('values, restrictions, fill', [
+    ((1, 1, 1, 1), (False, False), 0.0),
+    ((1, 1, 0, 0), (True, False), 0.0),
+    ((0, 0, 1, 1), (False, True), 0.0),
+    ((1, 1, 2, 2), (False, True), 1.0)
+], ids=('None', 'male', 'female', 'nonzero_fill'))
+def test__check_sex_restrictions(values, restrictions, fill):
+    df = pd.DataFrame({'sex': ['Male', 'Male', 'Female', 'Female'], 'value': values})
+    sim._check_sex_restrictions(df, *restrictions, fill)
 
 
-def test__check_sex_restrictions_fail():
-    pass
+@pytest.mark.parametrize('values, restrictions, fill', [
+    ((1, 1, 1, 0), (True, False), 0.0),
+    ((0, 1, 1, 1), (False, True), 0.0),
+    ((1, 2, 2, 2), (False, True), 1.0)
+], ids=('male', 'female', 'nonzero_fill'))
+def test__check_sex_restrictions_fail(values, restrictions, fill):
+    df = pd.DataFrame({'sex': ['Male', 'Male', 'Female', 'Female'], 'value': values})
+    with pytest.raises(DataFormattingError):
+        sim._check_sex_restrictions(df, *restrictions, fill)
 
