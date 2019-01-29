@@ -457,13 +457,32 @@ def _validate_mediation_factors(data, entity, location_id):
     raise NotImplementedError()
 
 
-def _validate_estimate(data, entity, location_id):
+def _validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int):
+    value_columns = ['mean_value', 'upper_value', 'lower_value']
+
+    check_data_exist(data, zeros_missing=False, value_columns=value_columns)
+
     expected_columns = ['model_version_id', 'covariate_id', 'covariate_name_short', 'location_id',
                         'location_name', 'year_id', 'age_group_id', 'age_group_name', 'sex_id',
-                        'sex', 'mean_value', 'lower_value', 'upper_value']
+                        'sex'] + value_columns
     check_columns(expected_columns, data.columns)
+
     check_years(data, 'annual')
     check_location(data, location_id)
+
+    if entity.by_age:
+        check_age_group_ids(data, None, None)
+    else:
+        all_ages = {22, 27}  # all ages and age-standardized
+        if not set(data.age_group_id).issubset(all_ages):
+            raise DataAbnormalError(f'Estimate data for {entity.kind} {entity.name} is not supposed to be by age, '
+                                    f'but contains age groups beyond all ages and age standardized.')
+
+    check_sex_ids(data, male_expected=entity.by_sex, female_expected=entity.by_sex,
+                  combined_expected=(not entity.by_sex))
+
+    _check_covariate_age_restriction(data, entity.by_age)
+    _check_covariate_sex_restriction(data, entity.by_sex)
 
 
 def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology], location_id: int):
@@ -579,3 +598,25 @@ def _check_paf_types(entity):
         warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
 
+
+####################################
+# RAW VALIDATOR SPECIFIC UTILITIES #
+####################################
+
+def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
+    if by_sex and not {1, 2}.issubset(set(data.sex_id)):
+        raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
+    elif not by_sex and set(data.sex_id) != {3}:
+        raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
+                                'for combined male and female data.')
+
+
+def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
+    if by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
+        # if we have any of the expected gbd age group ids, restriction is not violated
+        raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
+    # if we have any age group ids besides 22, 27, restriction is violated
+    all_ages_age_group, age_standardized_age_group = 22, 27
+    if bool((set(data.age_group_id) - {all_ages_age_group, age_standardized_age_group})):
+        raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
+                                'beyond all ages and age standardized.')
