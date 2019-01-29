@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
-                         Etiology, Covariate, CoverageGap)
+                         Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS,
                                      DataAbnormalError, InvalidQueryError, gbd)
@@ -467,7 +467,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         cats.apply(check_age_restrictions, age_start, age_end)
         cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
-    else:
+    else:  # coverage gap
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
@@ -476,16 +476,9 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
     check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
-    valid_morb_mort_values = {0, 1}
-    for m in ['morbidity', 'mortality']:
-        if not set(data[m]).issubset(valid_morb_mort_values):
-            raise DataAbnormalError(f'Relative risk data for {entity.kind} {entity.name} '
-                                    f'contains values for {m} outside the expected {valid_morb_mort_values}.')
-
-    if (((data.morbidity == 1) & (data.mortality == 0)).any()
-            and not ((data.morbidity == 0) & (data.mortality == 1)).any()):
-        raise DataAbnormalError(f"Relative risk data for {entity.kind} {entity.name} contains only morbidity data and"
-                                f"no mortality data.")
+    for c_id in data.cause_id.unique():
+        cause = [c for c in causes if c.gbd_id == c_id][0]
+        check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
 
 
 def _validate_population_attributable_fraction(data, entity, location_id):
@@ -566,3 +559,59 @@ def _check_paf_types(entity):
         warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
 
+
+############################
+# RAW VALIDATION UTILITIES #
+############################
+
+def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
+    """ Verify that no unexpected values or combinations of mortality and
+    morbidity flags are found in `data`, given the restrictions of the
+    affected entity.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing mortality and morbidity flags for relative risk
+        data of `entity` affecting `cause`.
+    yld_only
+        Boolean indicating whether the affected cause is restricted
+        to yld_only.
+    yll_only
+        Boolean indicating whether the affected cause is restricted
+        to yll_only.
+
+    Raises
+    -------
+    DataAbnormalError
+        If any unexpected values or combinations of mortality and morbidity
+        flags are found.
+
+    """
+    valid_morb_mort_values = {0, 1}
+    for m in ['morbidity', 'mortality']:
+        if not set(data[m]).issubset(valid_morb_mort_values):
+            raise DataAbnormalError(f'Data contains values for {m} outside the expected {valid_morb_mort_values}.')
+
+    base_error_msg = f'Relative risk data includes '
+    if ((data.morbidity == 0) & (data.mortality == 0)).any():
+        raise DataAbnormalError(base_error_msg + 'rows with both mortality and morbidity flags set to 0.')
+
+    if ((data.morbidity == 1) & (data.mortality == 1)).any():
+        if (data.morbidity == 0).any() or (data.mortality == 0).any():
+            raise DataAbnormalError(base_error_msg + 'row with both mortality and morbidity flags set to 1 as well as '
+                                                     'rows with only one of the mortality or morbidity flags set to 1.')
+        else:  # all is fine - we only have rows with both mort and morb set to 1
+            return
+
+    if (data.morbidity == 1).any() and not (data.mortality == 1).any() and not yld_only:
+        raise DataAbnormalError(base_error_msg + 'only rows with the morbidity flag set to 1 but the affected entity '
+                                                 'is not restricted to yld_only.')
+
+    if (data.mortality == 1).any() and not (data.morbidity == 1).any() and not yll_only:
+        raise DataAbnormalError(base_error_msg + 'only rows with the mortality flag set to 1 but the affected entity '
+                                                 'is not restricted to yll_only.')
+
+    if (data.mortality == 1).any() and (data.morbidity == 1).any() and (yld_only or yll_only):
+        raise DataAbnormalError(base_error_msg + f'rows for both morbidity and mortality, but the affected entity '
+                                f'is restricted to {"yll_only" if yll_only else "yld_only"}.')
