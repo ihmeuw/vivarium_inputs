@@ -23,6 +23,7 @@ MAX_CATEG_REL_RISK = 15
 MAX_CONT_REL_RISK = 5
 MAX_UTILIZATION = 20
 MAX_LIFE_EXP = 90
+MAX_POP = 100000000
 
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
@@ -483,6 +484,7 @@ def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location_id: int
     check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=True)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=['population'], inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_POP, 'upper', value_columns=['population'], inclusive=True, error=True)
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):
