@@ -9,19 +9,7 @@ from vivarium_inputs.globals import DataFormattingError
 
 
 def validate_for_simulation(data: pd.DataFrame, entity, measure: str, location: str):
-    """Enforce tight boundary and shape checks on data based on simulation expectations.
 
-    Parameters
-    ----------
-    data
-    entity
-    measure
-    location
-
-    Raises
-    -------
-        DataFormattingError
-    """
     validators = {
         # Cause-like measures
         'incidence': _validate_incidence,
