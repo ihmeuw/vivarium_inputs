@@ -169,7 +169,7 @@ def _validate_draw_column(data: pd.DataFrame):
         raise DataFormattingError("Draw data must be contained in a column named 'draw'.")
 
     if list(data['draw'].unique()) != list(range(1000)):
-        raise DataFormattingError('Draw values must contain [0, 999].')
+        raise DataFormattingError('Draw must contain [0, 999].')
 
 
 def _validate_location_column(data: pd.DataFrame, location: str):
@@ -214,7 +214,7 @@ def _validate_year_columns(data: pd.DataFrame):
                   .reset_index(drop=True))
 
     if not year_block.equals(expected_years):
-        raise DataFormattingError('Year start and year and must cover [1990, 2017] in intervals of one year.')
+        raise DataFormattingError('Year_start and year_end must cover [1990, 2017] in intervals of one year.')
 
 
 def _validate_value_column(data: pd.DataFrame):
@@ -224,7 +224,7 @@ def _validate_value_column(data: pd.DataFrame):
     if np.any(data.value.isna()):
         raise DataFormattingError('Value data found to contain NaN.')
     if np.any(np.isinf(data.value.values)):
-        raise DataFormattingError('value data found to contain infinity.')
+        raise DataFormattingError('Value data found to contain infinity.')
 
 
 def _translate_age_restrictions(ids: Sequence[int]) -> (float, float):
