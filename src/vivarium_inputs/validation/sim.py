@@ -168,7 +168,7 @@ def _validate_draw_column(data: pd.DataFrame):
     if 'draw' not in data.columns:
         raise DataFormattingError("Draw data must be contained in a column named 'draw'.")
 
-    if set(data['draw'].unique()) != set(range(1000)):
+    if set(data['draw']) != set(range(1000)):
         raise DataFormattingError('Draw must contain [0, 999].')
 
 
@@ -184,7 +184,7 @@ def _validate_sex_column(data: pd.DataFrame):
     if 'sex' not in data.columns:
         raise DataFormattingError("Sex data must be contained in a column named 'sex'.")
 
-    if set(data['sex'].unique()) != {'Male', 'Female'}:
+    if set(data['sex']) != {'Male', 'Female'}:
         raise DataFormattingError("Sex must contain 'Male' and 'Female' and nothing else.")
 
 
