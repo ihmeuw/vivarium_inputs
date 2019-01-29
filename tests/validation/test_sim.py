@@ -20,7 +20,7 @@ def test__validate_draw_column_incorrect_number(draws):
         sim._validate_draw_column(df)
 
 
-def test_validate_draw_column_missing_column():
+def test__validate_draw_column_missing_column():
     df = pd.DataFrame({'draw_columns': range(1000)})
     with pytest.raises(DataFormattingError, match='in a column named'):
         sim._validate_draw_column(df)
@@ -64,7 +64,7 @@ def test__validate_sex_column_fail(sexes):
         sim._validate_sex_column(df)
 
 
-def test_validate_sex_column_missing_column():
+def test__validate_sex_column_missing_column():
     df = pd.DataFrame({'sex_column': ['Male', 'Female']})
     with pytest.raises(DataFormattingError, match='in a column named'):
         sim._validate_sex_column(df)

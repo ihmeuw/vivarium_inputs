@@ -168,7 +168,7 @@ def _validate_draw_column(data: pd.DataFrame):
     if 'draw' not in data.columns:
         raise DataFormattingError("Draw data must be contained in a column named 'draw'.")
 
-    if list(data['draw'].unique()) != list(range(1000)):
+    if set(data['draw'].unique()) != set(range(1000)):
         raise DataFormattingError('Draw must contain [0, 999].')
 
 
@@ -237,15 +237,12 @@ def _translate_age_restrictions(ids: Sequence[int]) -> (float, float):
 
 def _check_age_restrictions(data: pd.DataFrame, age_start: int, age_end: int, fill_value: float):
     outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
-    if not outside.empty:
-        if (outside.value != fill_value).any():
-            raise DataFormattingError(f"Age restrictions are violated by a value other than fill={fill_value}.")
+    if not outside.empty and (outside.value != fill_value).any():
+        raise DataFormattingError(f"Age restrictions are violated by a value other than fill={fill_value}.")
 
 
 def _check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool, fill_value: float):
-    if male_only:
-        if (data.loc[data.sex == 'Female', 'value'] != fill_value).any():
-            raise DataFormattingError(f"Restriction to male sex only is violated by a value other than fill={fill_value}.")
-    elif female_only:
-        if (data.loc[data.sex == 'Male', 'value'] != fill_value).any():
-            raise DataFormattingError(f"Restriction to female sex only is violated by a value other than fill={fill_value}.")
+    if male_only and (data.loc[data.sex == 'Female', 'value'] != fill_value).any():
+        raise DataFormattingError(f"Restriction to male sex only is violated by a value other than fill={fill_value}.")
+    elif female_only and (data.loc[data.sex == 'Male', 'value'] != fill_value).any():
+        raise DataFormattingError(f"Restriction to female sex only is violated by a value other than fill={fill_value}.")
