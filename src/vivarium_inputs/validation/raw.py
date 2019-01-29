@@ -171,7 +171,7 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['incidence'])
+    check_measure_id(data, ['Incidence'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'annual')
@@ -200,7 +200,7 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['prevalence'])
+    check_measure_id(data, ['Prevalence'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'annual')
@@ -229,7 +229,7 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['incidence'])
+    check_measure_id(data, ['Incidence'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'annual')
@@ -277,7 +277,7 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
                         'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['remission'])
+    check_measure_id(data, ['Remission'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'binned')
@@ -304,7 +304,7 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     expected_columns = ['measure_id', f'{entity.kind}_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['deaths'])
+    check_measure_id(data, ['Deaths'])
     check_metric_id(data, 'number')
 
     check_years(data, 'annual')
@@ -336,7 +336,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
                         'measure_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data,  ['prevalence', 'proportion', 'continuous'])
+    check_measure_id(data,  ['Prevalence', 'Proportion', 'Continuous'])
     check_metric_id(data, 'rate')
 
     if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
@@ -388,7 +388,7 @@ def _validate_exposure_standard_deviation(data, entity, location_id):
                         'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data,  ['continuous'])
+    check_measure_id(data,  ['Continuous'])
     check_metric_id(data, 'rate')
 
     if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
@@ -495,8 +495,8 @@ def _validate_population_attributable_fraction(data, entity, location_id):
     expected_columns = ['metric_id', 'measure_id', 'rei_id', 'cause_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_metric_id(data, 'percent')
     check_measure_id(data, ['YLLs', 'YLDs'], single_only=False)
+    check_metric_id(data, 'percent')
 
     check_years(data, 'annual')
     check_location(data, location_id)
@@ -591,7 +591,7 @@ def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location
                         'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['continuous'])
+    check_measure_id(data, ['Continuous'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'binned')

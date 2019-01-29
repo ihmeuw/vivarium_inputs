@@ -429,7 +429,7 @@ def check_measure_id(data: pd.DataFrame, allowable_measures: List[str], single_o
     """
     if single_only and len(set(data.measure_id)) > 1:
         raise DataAbnormalError(f'Data has multiple measure ids: {set(data.measure_id)}.')
-    if not set(data.measure_id).issubset(set([MEASURES[m.capitalize()] for m in allowable_measures])):
+    if not set(data.measure_id).issubset(set([MEASURES[m] for m in allowable_measures])):
         raise DataAbnormalError(f'Data includes a measure id not in the expected measure ids for this measure.')
 
 
