@@ -23,6 +23,7 @@ MAX_CATEG_REL_RISK = 15
 MAX_CONT_REL_RISK = 5
 MAX_UTILIZATION = 20
 MAX_LIFE_EXP = 90
+MAX_POP = 100000000
 
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
@@ -150,11 +151,14 @@ def check_coverage_gap_metadata(entity: CoverageGap, measure: str):
 
 
 def check_health_technology_metadata(entity: HealthTechnology, measure: str):
-    raise NotImplementedError()
+    if measure == 'cost':
+        warnings.warn(f'Cost data for {entity.kind} {entity.name} does not vary by year.')
 
 
 def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str):
-    raise NotImplementedError()
+    if measure == 'cost':
+        warnings.warn(f'2017 cost data for {entity.kind} {entity.name} is duplicated from 2016 data, and all data '
+                      f'before 1995 is backfilled from 1995 data.')
 
 
 def check_population_metadata(entity: NamedTuple, measure: str):
@@ -234,7 +238,7 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
         raise DataAbnormalError(f'Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond '
-                                f'the expected birth age group (id {birth_age_group_id}.')
+                                f'the expected birth age group (id {birth_age_group_id}).')
 
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
@@ -258,7 +262,7 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
     all_ages_age_group_id = 22
     if set(data.age_group_id) != {all_ages_age_group_id}:
         raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
-                                f'the expected all ages age group (id {all_ages_age_group_id}.')
+                                f'the expected all ages age group (id {all_ages_age_group_id}).')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
 
@@ -492,32 +496,106 @@ def _validate_mediation_factors(data, entity, location_id):
     raise NotImplementedError()
 
 
-def _validate_estimate(data, entity, location_id):
+def _validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int):
+    value_columns = ['mean_value', 'upper_value', 'lower_value']
+
+    check_data_exist(data, zeros_missing=False, value_columns=value_columns)
+
     expected_columns = ['model_version_id', 'covariate_id', 'covariate_name_short', 'location_id',
                         'location_name', 'year_id', 'age_group_id', 'age_group_name', 'sex_id',
-                        'sex', 'mean_value', 'lower_value', 'upper_value']
+                        'sex'] + value_columns
     check_columns(expected_columns, data.columns)
+
     check_years(data, 'annual')
     check_location(data, location_id)
 
+    if entity.by_age:
+        check_age_group_ids(data, None, None)
+    else:
+        all_ages = {22, 27}  # all ages and age-standardized
+        if not set(data.age_group_id).issubset(all_ages):
+            raise DataAbnormalError(f'Estimate data for {entity.kind} {entity.name} is not supposed to be by age, '
+                                    f'but contains age groups beyond all ages and age standardized.')
 
-def _validate_cost(data, entity, location_id):
-    raise NotImplementedError()
+    check_sex_ids(data, male_expected=entity.by_sex, female_expected=entity.by_sex,
+                  combined_expected=(not entity.by_sex))
+
+    _check_covariate_age_restriction(data, entity.by_age)
+    _check_covariate_sex_restriction(data, entity.by_sex)
 
 
-def _validate_utilization(data, entity, location_id):
-    raise NotImplementedError()
+def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology], location_id: int):
+    check_data_exist(data, zeros_missing=True)
+
+    expected_columns = ['measure', entity.kind] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+
+    if set(data.measure) != {'cost'}:
+        raise DataAbnormalError(f'Cost data for {entity.kind} {entity.name} contains '
+                                f'measures beyond the expected cost.')
+
+    check_years(data, 'annual')
+    check_location(data, location_id)
+
+    all_ages_age_group_id = 22
+    if set(data.age_group_id) != {all_ages_age_group_id}:
+        raise DataAbnormalError(f'Cost data for {entity.kind} {entity.name} includes age groups beyond '
+                                f'the expected all ages age group (id {all_ages_age_group_id}).')
+
+    check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
 
-def _validate_structure(data, entity, location_id):
+def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_id: int):
+    check_data_exist(data, zeros_missing=True)
+
+    expected_columns = ['measure_id', 'metric_id', 'model_version_id',
+                        'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    check_columns(expected_columns, data.columns)
+
+    check_measure_id(data, ['continuous'])
+    check_metric_id(data, 'rate')
+
+    check_years(data, 'binned')
+    check_location(data, location_id)
+
+    check_age_group_ids(data, None, None)
+    check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=False)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_UTILIZATION, 'upper', value_columns=DRAW_COLUMNS,
+                                 inclusive=True, error=False)
+
+
+def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location_id: int):
+    check_data_exist(data, zeros_missing=True, value_columns=['population'])
+
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
     check_columns(expected_columns, data.columns)
+
     check_years(data, 'annual')
     check_location(data, location_id)
 
+    check_age_group_ids(data, None, None)
+    check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=True)
 
-def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):
-    pass
+    check_value_columns_boundary(data, 0, 'lower', value_columns=['population'], inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_POP, 'upper', value_columns=['population'], inclusive=True, error=True)
+
+
+def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: NamedTuple, location_id: int):
+    check_data_exist(data, zeros_missing=True, value_columns=['life_expectancy'])
+
+    expected_columns = ['age', 'life_expectancy']
+    check_columns(expected_columns, data.columns)
+
+    min_age, max_age = 0, 110
+    if data.age.min() > min_age or data.age.max() < max_age:
+        raise DataAbnormalError('Data does not contain life expectancy values for ages [0, 110].')
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=['life_expectancy'], inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_LIFE_EXP, 'upper', value_columns=['life_expectancy'],
+                                 inclusive=True, error=True)
 
 
 ############################
@@ -615,3 +693,22 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
     if (data.mortality == 1).any() and (data.morbidity == 1).any() and (yld_only or yll_only):
         raise DataAbnormalError(base_error_msg + f'rows for both morbidity and mortality, but the affected entity '
                                 f'is restricted to {"yll_only" if yll_only else "yld_only"}.')
+
+
+def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
+    if by_sex and not {1, 2}.issubset(set(data.sex_id)):
+        raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
+    elif not by_sex and set(data.sex_id) != {3}:
+        raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
+                                'for combined male and female data.')
+
+
+def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
+    if by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
+        # if we have any of the expected gbd age group ids, restriction is not violated
+        raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
+    # if we have any age group ids besides 22, 27, restriction is violated
+    all_ages_age_group, age_standardized_age_group = 22, 27
+    if bool((set(data.age_group_id) - {all_ages_age_group, age_standardized_age_group})):
+        raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
+                                'beyond all ages and age standardized.')

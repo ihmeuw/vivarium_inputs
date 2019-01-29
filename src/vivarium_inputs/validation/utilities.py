@@ -130,7 +130,7 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True,
     if (data.empty or np.any(pd.isnull(data[value_columns]))
             or (zeros_missing and np.all(data[value_columns] == 0)) or np.any(np.isinf(data[value_columns]))):
         if error:
-            raise DataNotExistError('Data contains no non-missing, non-zero draw values.')
+            raise DataNotExistError(f'Data contains no non-missing{", non-zero" if zeros_missing else ""} values.')
         return False
     return True
 
