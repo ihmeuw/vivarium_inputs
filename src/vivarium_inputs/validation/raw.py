@@ -477,8 +477,19 @@ def _validate_structure(data, entity, location_id):
     check_location(data, location_id)
 
 
-def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location_id):
-    pass
+def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: NamedTuple, location_id: int):
+    check_data_exist(data, zeros_missing=True, value_columns=['life_expectancy'])
+
+    expected_columns = ['age', 'life_expectancy']
+    check_columns(expected_columns, data.columns)
+
+    min_age, max_age = 0, 110
+    if data.age.min() > min_age or data.age.max() < max_age:
+        raise DataAbnormalError('Data does not contain life expectancy values for ages [0, 110].')
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=['life_expectancy'], inclusive=True, error=True)
+    check_value_columns_boundary(data, MAX_LIFE_EXP, 'upper', value_columns=['life_expectancy'],
+                                 inclusive=True, error=True)
 
 
 ############################
