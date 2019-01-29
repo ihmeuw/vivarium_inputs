@@ -299,4 +299,4 @@ def test_check_metric_id_fail(m_ids, expected, metrics_mock):
                                              ([2, 2, 2, 2], 'B')])
 def test_check_metric_id_pass(m_ids, expected, metrics_mock):
     df = pd.DataFrame({'metric_id': m_ids})
-utilities.check_metric_id(df, expected)
+    utilities.check_metric_id(df, expected)
