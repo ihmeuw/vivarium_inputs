@@ -44,7 +44,7 @@ def test__validate_draw_column_missing_column():
         sim._validate_draw_column(df)
 
 
-@pytest.mark.parametrize("location", ("Kenya", "Papuea New Guinea"))
+@pytest.mark.parametrize("location", ("Kenya", "Papua New Guinea"))
 def test__validate_location_column_pass(location):
     df = pd.DataFrame({'location': [location]})
     sim._validate_location_column(df, location)
