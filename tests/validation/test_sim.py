@@ -22,7 +22,7 @@ def test__validate_draw_column_incorrect_number(draws):
 
 def test_validate_draw_column_missing_column():
     df = pd.DataFrame({'draw_columns': range(1000)})
-    with pytest.raises(DataFormattingError, match='Draw column'):
+    with pytest.raises(DataFormattingError, match='in a column named'):
         sim._validate_draw_column(df)
 
 
@@ -44,7 +44,7 @@ def test__validate_location_column_fail(locations, expected_location):
 
 def test__validate_location_column_missing_column():
     df = pd.DataFrame({'location_column': ['Kenya']})
-    with pytest.raises(DataFormattingError, match='Location column'):
+    with pytest.raises(DataFormattingError, match='in a column named'):
         sim._validate_location_column(df, 'Kenya')
 
 
@@ -66,7 +66,7 @@ def test__validate_sex_column_fail(sexes):
 
 def test_validate_sex_column_missing_column():
     df = pd.DataFrame({'sex_column': ['Male', 'Female']})
-    with pytest.raises(DataFormattingError, match='Sex column'):
+    with pytest.raises(DataFormattingError, match='in a column named'):
         sim._validate_sex_column(df)
 
 
@@ -101,7 +101,7 @@ def test__validate_age_columns_missing_column(columns):
     df = pd.DataFrame()
     for col in columns:
         df[col] = [1, 2]
-    with pytest.raises(DataFormattingError, match='Age column'):
+    with pytest.raises(DataFormattingError, match='in columns named'):
         sim._validate_age_columns(df)
 
 
@@ -133,7 +133,7 @@ def test__validate_year_columns_missing(columns):
     df = pd.DataFrame()
     for col in columns:
         df[col] = [1, 2, 3]
-    with pytest.raises(DataFormattingError, match='Year column'):
+    with pytest.raises(DataFormattingError, match='in columns named'):
         sim._validate_year_columns(df)
 
 
@@ -154,7 +154,7 @@ def test__validate_value_column_fail(values):
 
 def test__validate_value_column_missing():
     df = pd.DataFrame({'value_column': [1, 2, 3]})
-    with pytest.raises(DataFormattingError, match='Value column'):
+    with pytest.raises(DataFormattingError, match='in a column named'):
         sim._validate_value_column(df)
 
 
