@@ -3,12 +3,13 @@ from typing import Sequence
 
 import numpy as np
 import pandas as pd
+from gbd_mapping import ModelableEntity
 
 from vivarium_inputs import utilities
 from vivarium_inputs.globals import DataFormattingError
 
 
-def validate_for_simulation(data: pd.DataFrame, entity, measure: str, location: str):
+def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str):
 
     validators = {
         # Cause-like measures
@@ -200,7 +201,7 @@ def _validate_age_columns(data: pd.DataFrame):
                  .reset_index(drop=True))
 
     if not age_block.equals(expected_ages):
-        raise DataFormattingError('Age_group_start and age_group_end must contain all age gbd groups.')
+        raise DataFormattingError('Age_group_start and age_group_end must contain all gbd age groups.')
 
 
 def _validate_year_columns(data: pd.DataFrame):
