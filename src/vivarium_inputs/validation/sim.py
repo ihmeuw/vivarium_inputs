@@ -29,7 +29,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, N
     Parameters
     ----------
     data
-        data to be validated
+        Data to be validated.
     entity
         The GBD Entity the data pertains to.
     measure
@@ -40,7 +40,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, N
     Raises
     -------
     DataFormattingError
-        If any
+        If any columns are mis-formatted or assumptions about the data are violated.
     """
     validators = {
         # Cause-like measures
