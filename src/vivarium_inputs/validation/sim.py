@@ -17,12 +17,14 @@ VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
 VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 0.4)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
-VALID_COST_RANGE = (0, {'healthcare_entity': 30000, 'health_technology': 50})
+VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 VALID_UTILIZATION_RANGE = (0, 50)
+VALID_POPULATION_RANGE = (0, 100_000_000)
+VALID_LIFE_EXP_RANGE = (0, 90)
 
 
 def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, NamedTuple], measure: str,
-                            location: int):
+                            location: str):
     """Validate data conforms to the format that is expected by the simulation and conforms to normal expectations for a
     measure.
 
@@ -71,6 +73,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, N
         # Population measures
         'structure': _validate_structure,
         'theoretical_minimum_risk_life_expectancy': _validate_theoretical_minimum_risk_life_expectancy,
+        'age_bins': _validate_age_bins,
         'demographic_dimensions': _validate_demographic_dimensions,
     }
 
@@ -227,16 +230,39 @@ def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location
                                                       value_columns=['value'], inclusive=True, error=True)
 
 
-def _validate_structure(data, entity, location):
-    raise NotImplemented()
+def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location: str):
+    _validate_demographic_columns(data, location)
+    _validate_value_column(data)
+
+    validation_utilities.check_value_columns_boundary(data, VALID_POPULATION_RANGE[0], 'lower',
+                                                      value_columns=['value'], inclusive=True, error=True)
+    validation_utilities.check_value_columns_boundary(data, VALID_POPULATION_RANGE[1], 'upper',
+                                                      value_columns=['value'], inclusive=True, error=True)
 
 
-def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location):
-    raise NotImplemented()
+def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: NamedTuple, location: str):
+    if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
+        raise DataFormattingError("Age data must be contained in columns named 'age_group_start' and 'age_group_end'.")
+
+    age_min, age_max = 0, 110
+    if data.age_group_start.min() > age_min or data.age_group_start.max() < age_max:
+        raise DataFormattingError(f'Life expectancy data does not span the entire age range [{age_min}, {age_max}].')
+
+    validation_utilities.check_value_columns_boundary(data, VALID_LIFE_EXP_RANGE[0], 'lower',
+                                                      value_columns=['value'], inclusive=False, error=True)
+    validation_utilities.check_value_columns_boundary(data, VALID_LIFE_EXP_RANGE[1], 'upper',
+                                                      value_columns=['value'], inclusive=False, error=True)
+
+    if not data.sort_values(by='age_group_start', ascending=False).value.is_monotonic:
+        raise DataFormattingError('Life expectancy data is not monotonically decreasing over age.')
 
 
-def _validate_demographic_dimensions(data, entity, location):
-    raise NotImplemented()
+def _validate_age_bins(data: pd.DataFrame, entity: NamedTuple, location: str):
+    _validate_age_columns(data)
+
+
+def _validate_demographic_dimensions(data: pd.DataFrame, entity: NamedTuple, location: str):
+    _validate_demographic_columns(data, location)
 
 
 #############
