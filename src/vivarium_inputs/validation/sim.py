@@ -82,69 +82,51 @@ def _validate_case_fatality(data, entity, location):
 
 
 def _validate_exposure(data, entity, location):
-    _validate_standard_columns(data, location)
+    raise NotImplemented()
 
 
 def _validate_exposure_standard_deviation(data, entity, location):
-    _validate_standard_columns(data, location)
+    raise NotImplemented()
 
 
 def _validate_exposure_distribution_weights(data, entity, location):
-    _validate_location_column(data, location)
-    _validate_sex_column(data)
-    _validate_age_columns(data)
-    _validate_year_columns(data)
-    _validate_value_column(data)
+    raise NotImplemented()
 
 
 def _validate_relative_risk(data, entity, location):
-    _validate_standard_columns(data, location)
+    raise NotImplemented()
 
 
 def _validate_population_attributable_fraction(data, entity, location):
-    _validate_standard_columns(data, location)
+    raise NotImplemented()
 
 
 def _validate_mediation_factors(data, entity, location):
-    _validate_standard_columns(data, location)
     raise NotImplementedError()
 
 
 def _validate_estimate(data, entity, location):
-    _validate_location_column(data, location)
-    _validate_year_columns(data)
-    if entity.by_age:
-        _validate_age_columns(data)
-    if entity.by_sex:
-        _validate_sex_column(data)
+    raise NotImplemented()
 
 
 def _validate_cost(data, entity, location):
-    _validate_standard_columns(data, location)
-    raise NotImplementedError()
+    raise NotImplemented()
 
 
 def _validate_utilization(data, entity, location):
-    _validate_standard_columns(data, location)
-    raise NotImplementedError()
+    raise NotImplemented()
 
 
-def _validate_structure(data, entity, location):
-    _validate_location_column(data, location)
-    _validate_sex_column(data)
-    _validate_age_columns(data)
-    _validate_year_columns(data)
+def _validate_population_structure(data, entity, location):
+    raise NotImplemented()
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location):
-    pass
+    raise NotImplemented()
 
 
 def _validate_demographic_dimensions(data, entity, location):
-    _validate_location_column(data, location)
-    _validate_sex_column(data)
-    _validate_age_columns(data)
-    _validate_year_columns(data)
+    raise NotImplemented()
 
 
 #############
