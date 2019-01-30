@@ -8,6 +8,13 @@ from gbd_mapping import ModelableEntity
 from vivarium_inputs import utilities
 from vivarium_inputs.globals import DataFormattingError
 
+VALID_INCIDENCE_RANGE = (0.0, 50.0)
+VALID_PREVALENCE_RANGE = (0.0, 1.0)
+VALID_BIRTH_PREVALENCE_RANGE = (0.0, 1.0)
+VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
+VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
+VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 0.4)  # used mortality viz, picked worst country 15q45, mul by ~1.25
+VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
 
 def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str):
 
