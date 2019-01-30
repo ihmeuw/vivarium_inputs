@@ -258,12 +258,12 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_relative_risk(data, entity, location):
+def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location: str):
+    risk_relationship = data.groupby(['affected_entity', 'affected_measure', 'parameter'])
+    risk_relationship.apply(_validate_standard_columns, location)
+
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = (entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'])
-
-    affected_entities = data.groupby()  # TODO: proper group?
-    affected_entities.apply(_validate_standard_columns, location)
 
     if is_categorical:
         range_kwd = 'categorical'
@@ -277,20 +277,22 @@ def _validate_relative_risk(data, entity, location):
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
+    if is_categorical:
+        pass
+        #TODO: check TMREL cat
 
     age_start_ids = [entity.restrictions.yll_age_group_id_start]
     age_end_ids = [entity.restrictions.yll_age_group_id_end]
-    if affected measure is incidence:  # TODO: how to check?
+    if data.affected_measure == 'incidence_rate':
         age_start_ids.append(entity.restrictions.yld_age_group_id_start)
         age_end_ids.append(entity.restrictions.yld_age_group_id_end)
     _check_age_restrictions(data, age_start_ids, age_end_ids, type='inner', fill_value=1.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=1.0)
 
 
-def _validate_population_attributable_fraction(data, entity, location):
-
-    affected_entities = data.groupby()  # TODO: proper group?
-    affected_entities.apply(_validate_standard_columns, location)
+def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology], location: str):
+    risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
+    risk_relationship.apply(_validate_standard_columns, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'], error=True)
