@@ -1,4 +1,4 @@
-from typing import Union, NamedTuple
+from typing import Sequence, Union, NamedTuple
 
 import numpy as np
 import pandas as pd
