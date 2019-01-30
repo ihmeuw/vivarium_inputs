@@ -320,7 +320,8 @@ def _validate_value_column(data: pd.DataFrame):
         raise DataFormattingError('Value data found to contain infinity.')
 
 
-def _translate_age_restrictions(start_ids: Sequence[int, None], end_ids: Sequence[int, None], type: str) -> (float, float):
+def _translate_age_restrictions(start_ids: Sequence[Union[int, None]], end_ids: Sequence[Union[int, None]],
+                                type: str) -> (float, float):
     """translates age restrictions as ids into raw ages.
     Parameters
     ----------
@@ -349,8 +350,8 @@ def _translate_age_restrictions(start_ids: Sequence[int, None], end_ids: Sequenc
     return minimum, maximum
 
 
-def _check_age_restrictions(data: pd.DataFrame, start_ids: Sequence[int, None], end_ids: Sequence[int, None],
-                            type: str, fill_value: float):
+def _check_age_restrictions(data: pd.DataFrame, start_ids: Sequence[Union[int, None]],
+                            end_ids: Sequence[Union[int, None]], type: str, fill_value: float):
 
     age_start, age_end = _translate_age_restrictions(start_ids, end_ids, type)
     outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
