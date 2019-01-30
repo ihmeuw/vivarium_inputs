@@ -6,10 +6,9 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract
-#from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_age_ids
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
-from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS, MEASURES
+from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES
 
 POP = NamedTuple("Population", [('kind', str)])
 
