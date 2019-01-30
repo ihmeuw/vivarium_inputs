@@ -17,8 +17,7 @@ VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
 VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 0.4)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
-VALID_CONTINUOUS_EXPOSURE_RANGE = (0.0, 10000.0)
-VALID_CATEGORICAL_EXPOSURE_RANGE = (0.0, 1.0)
+VALID_EXPOSURE_RANGE = (0.0, {'continuous': 10000.0, 'categorical': 1.0})
 VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_EXPOSURE_DIST_WEIGHTS_RANGE = (0.0, 1.0)
 VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 5.0, 'categorical': 15.0})
@@ -94,9 +93,9 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start),
-                                                     (entity.restrictions.yld_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -108,9 +107,9 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start),
-                                                     (entity.restrictions.yld_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -137,9 +136,9 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start),
-                                                     (entity.restrictions.yld_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -151,9 +150,9 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location: str):
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start),
-                                                     (entity.restrictions.yld_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -165,9 +164,9 @@ def _validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, locati
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yll_age_group_id_start),
-                                                     (entity.restrictions.yll_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yll_age_group_id_start]
+    age_end_ids = [entity.restrictions.yll_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -179,9 +178,9 @@ def _validate_excess_mortality(data: pd.DataFrame, entity: Cause, location: str)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yll_age_group_id_start),
-                                                     (entity.restrictions.yll_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yll_age_group_id_start]
+    age_end_ids = [entity.restrictions.yll_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -196,20 +195,19 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     if is_continuous:
         if data.parameter != "continuous":
             raise DataFormattingError("Continuous exposure data should contain 'continuous' in the parameter column.")
-        validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CONTINUOUS_EXPOSURE_RANGE[0],
-                                                          boundary_type='lower', value_columns=['value'], error=True)
-        validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CONTINUOUS_EXPOSURE_RANGE[1],
-                                                          boundary_type='upper', value_columns=['value'], error=True)
+        valid_kwd = 'continuous'
     elif is_categorical:
         if set(data.parameter) != set(entity.categories.to_dict()):  # to_dict removes None
             raise DataFormattingError("Categorical exposure data does not contain all categories in the parameter "
                                       "column.")
-        validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CATEGORICAL_EXPOSURE_RANGE[0],
-                                                          boundary_type='lower', value_columns=['value'], error=True)
-        validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CATEGORICAL_EXPOSURE_RANGE[1],
-                                                          boundary_type='upper', value_columns=['value'], error=True)
+        valid_kwd = 'categorical'
     else:
         raise NotImplementedError()
+
+    validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_RANGE[0],
+                                                      boundary_type='lower', value_columns=['value'], error=True)
+    validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_RANGE[1][valid_kwd],
+                                                      boundary_type='upper', value_columns=['value'], error=True)
 
     cats = data.groupby('parameter')
     cats.apply(_validate_standard_columns, location)
@@ -219,11 +217,9 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         if not np.allclose(data.groupby(non_categorical_columns)['value'].sum(), 1.0):
             raise DataFormattingError("Categorical exposures do not sum to one across categories")
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
-                                                      entity.restrictions.yll_age_group_id_start),
-                                                     (entity.restrictions.yld_age_group_id_end,
-                                                      entity.restrictions.yll_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start, entity.restrictions.yll_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end, entity.restrictions.yll_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -235,11 +231,9 @@ def _validate_exposure_standard_deviation(data, entity, location):
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
-                                                      entity.restrictions.yll_age_group_id_start),
-                                                     (entity.restrictions.yld_age_group_id_end,
-                                                      entity.restrictions.yll_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start, entity.restrictions.yll_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end, entity.restrictions.yll_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -255,11 +249,9 @@ def _validate_exposure_distribution_weights(data, entity, location):
     if not np.allclose(data.groupby(non_weight_columns)['value'].sum(), 1.0):
         raise DataFormattingError("Exposure weights do not sum to one across demographics.")
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
-                                                      entity.restrictions.yll_age_group_id_start),
-                                                     (entity.restrictions.yld_age_group_id_end,
-                                                      entity.restrictions.yll_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start, entity.restrictions.yll_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end, entity.restrictions.yll_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -282,15 +274,13 @@ def _validate_relative_risk(data, entity, location):
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
+
+    age_start_ids = [entity.restrictions.yll_age_group_id_start]
+    age_end_ids = [entity.restrictions.yll_age_group_id_end]
     if affected measure is incidence:  # TODO: how to check?
-        age_start, age_end = _translate_age_restrictions((entity.restrictions.yll_age_group_id_start,
-                                                          entity.restrictions.yld_age_group_id_start),
-                                                         (entity.restrictions.yll_age_group_id_end,
-                                                          entity.restrictions.yld_age_group_id_end), 'inner')
-    else:
-        age_start, age_end = _translate_age_restrictions((entity.restrictions.yll_age_group_id_start),
-                                                         (entity.restrictions.yll_age_group_id_end), 'outer')
-    _check_age_restrictions(data, age_start, age_end, fill_value=1.0)
+        age_start_ids.append(entity.restrictions.yld_age_group_id_start)
+        age_end_ids.append(entity.restrictions.yld_age_group_id_end)
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='inner', fill_value=1.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=1.0)
 
 
@@ -304,11 +294,9 @@ def _validate_population_attributable_fraction(data, entity, location):
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yll_age_group_id_start,
-                                                      entity.restrictions.yld_age_group_id_start),
-                                                     (entity.restrictions.yll_age_group_id_end,
-                                                      entity.restrictions.yld_age_group_id_end), 'inner')
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start, entity.restrictions.yll_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end, entity.restrictions.yll_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='inner', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -459,7 +447,10 @@ def _translate_age_restrictions(start_ids: Sequence[int, None], end_ids: Sequenc
     return minimum, maximum
 
 
-def _check_age_restrictions(data: pd.DataFrame, age_start: int, age_end: int, fill_value: float):
+def _check_age_restrictions(data: pd.DataFrame, start_ids: Sequence[int, None], end_ids: Sequence[int, None],
+                            type: str, fill_value: float):
+
+    age_start, age_end = _translate_age_restrictions(start_ids, end_ids, type)
     outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
     if not outside.empty and (outside.value != fill_value).any():
         raise DataFormattingError(f"Age restrictions are violated by a value other than fill={fill_value}.")
