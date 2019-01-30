@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs.validation import sim
-from vivarium_inputs import utilities
 from vivarium_inputs.globals import DataFormattingError
 
 
@@ -89,13 +88,13 @@ def test__validate_sex_column_missing_column():
 
 
 def test__validate_age_columns_pass(mocked_get_age_bins):
-    expected_ages = utilities.get_age_bins()[['age_group_start',
+    expected_ages = sim.utilities.get_age_bins()[['age_group_start',
                                               'age_group_end']].sort_values(['age_group_start', 'age_group_end'])
     sim._validate_age_columns(expected_ages)
 
 
 def test__validate_age_columns_invalid_age(mocked_get_age_bins):
-    df = utilities.get_age_bins()[['age_group_start',
+    df = sim.utilities.get_age_bins()[['age_group_start',
                                               'age_group_end']].sort_values(['age_group_start', 'age_group_end'])
     df.loc[2, 'age_group_start'] = -1
     with pytest.raises(DataFormattingError):
@@ -103,7 +102,7 @@ def test__validate_age_columns_invalid_age(mocked_get_age_bins):
 
 
 def test__validate_age_columns_missing_group(mocked_get_age_bins):
-    df = utilities.get_age_bins()[['age_group_start',
+    df = sim.utilities.get_age_bins()[['age_group_start',
                                               'age_group_end']].sort_values(['age_group_start', 'age_group_end'])
     df.drop(2, inplace=True)
     with pytest.raises(DataFormattingError):
@@ -124,19 +123,19 @@ def test__validate_age_columns_missing_column(columns):
 
 
 def test__validate_year_columns_pass(mocked_get_estimation_years):
-    expected_years = utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
+    expected_years = sim.utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
     sim._validate_year_columns(expected_years)
 
 
 def test__validate_year_columns_invalid_year(mocked_get_estimation_years):
-    df = utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
+    df = sim.utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
     df.loc[2, 'year_end'] = -1
     with pytest.raises(DataFormattingError):
         sim._validate_year_columns(df)
 
 
 def test__validate_year_columns_missing_group(mocked_get_estimation_years):
-    df = utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
+    df = sim.utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
     df.drop(0, inplace=True)
     with pytest.raises(DataFormattingError):
         sim._validate_year_columns(df)
