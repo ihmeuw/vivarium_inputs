@@ -24,7 +24,7 @@ VALID_LIFE_EXP_RANGE = (0, 90)
 
 
 def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, NamedTuple], measure: str,
-                            location: int):
+                            location: str):
     """Validate data conforms to the format that is expected by the simulation and conforms to normal expectations for a
     measure.
 
