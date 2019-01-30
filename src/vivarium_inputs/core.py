@@ -222,7 +222,7 @@ def get_cost(entity: Union[HealthcareEntity, HealthTechnology], location_id: int
 
 
 def get_utilization(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, 'cost', location_id)
+    data = extract.extract_data(entity, 'utilization', location_id)
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
     return data
