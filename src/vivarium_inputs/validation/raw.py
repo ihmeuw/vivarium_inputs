@@ -14,7 +14,7 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
                                                   check_age_group_ids, check_sex_ids, check_age_restrictions,
                                                   check_value_columns_boundary, check_sex_restrictions,
-                                                  check_measure_id, check_metric_id)
+                                                  check_measure_id, check_metric_id, get_restriction_age_boundary)
 
 
 MAX_INCIDENCE = 10
@@ -329,7 +329,8 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
 
-def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int):
+def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
+                       location_id: int):
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'parameter',
@@ -348,8 +349,8 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = _get_restriction_age_boundary(entity, 'start')
-        age_end = _get_restriction_age_boundary(entity, 'end')
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
@@ -381,7 +382,8 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
                                     f'does not sum to 1 across all categories.')
 
 
-def _validate_exposure_standard_deviation(data, entity, location_id):
+def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
+                                          location_id: int):
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'measure_id',
@@ -397,8 +399,8 @@ def _validate_exposure_standard_deviation(data, entity, location_id):
     check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
-        age_start = _get_restriction_age_boundary(entity, 'start')
-        age_end = _get_restriction_age_boundary(entity, 'end')
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
 
         check_age_group_ids(data, age_start, age_end)
         check_sex_ids(data, True, True)
@@ -412,7 +414,8 @@ def _validate_exposure_standard_deviation(data, entity, location_id):
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
 
 
-def _validate_exposure_distribution_weights(data, entity, location_id):
+def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
+                                            location_id: int):
     key_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
@@ -441,7 +444,7 @@ def _validate_exposure_distribution_weights(data, entity, location_id):
         raise DataAbnormalError(f'Distribution weights for {entity.kind} {entity.name} do not sum to 1.')
 
 
-def _validate_relative_risk(data, entity, location_id):
+def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int):
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
@@ -457,8 +460,8 @@ def _validate_relative_risk(data, entity, location_id):
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = _get_restriction_age_boundary(entity, 'start')
-        age_end = _get_restriction_age_boundary(entity, 'end')
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
@@ -468,7 +471,7 @@ def _validate_relative_risk(data, entity, location_id):
         cats.apply(check_age_restrictions, age_start, age_end)
         cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
-    else:
+    else:  # coverage gap
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
@@ -477,16 +480,9 @@ def _validate_relative_risk(data, entity, location_id):
     max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
     check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
 
-    valid_morb_mort_values = {0, 1}
-    for m in ['morbidity', 'mortality']:
-        if not set(data[m]).issubset(valid_morb_mort_values):
-            raise DataAbnormalError(f'Relative risk data for {entity.kind} {entity.name} '
-                                    f'contains values for {m} outside the expected {valid_morb_mort_values}.')
-
-    if (((data.morbidity == 1) & (data.mortality == 0)).any()
-            and not ((data.morbidity == 0) & (data.mortality == 1)).any()):
-        raise DataAbnormalError(f"Morbidity only relative risk data for {entity.kind} {entity.name} was retrieved, "
-                                f"but no mortality only relative risk data was found.")
+    for c_id in data.cause_id.unique():
+        cause = [c for c in causes if c.gbd_id == c_id][0]
+        check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
 
 
 def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
@@ -504,8 +500,8 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = _get_restriction_age_boundary(entity, 'start')
-        age_end = _get_restriction_age_boundary(entity, 'end')
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
@@ -677,9 +673,67 @@ def _check_paf_types(entity):
                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
 
 
-####################################
-# RAW VALIDATOR SPECIFIC UTILITIES #
-####################################
+
+############################
+# RAW VALIDATION UTILITIES #
+############################
+
+def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
+    """ Verify that no unexpected values or combinations of mortality and
+    morbidity flags are found in `data`, given the restrictions of the
+    affected entity.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing mortality and morbidity flags for relative risk
+        data of `entity` affecting `cause`.
+    yld_only
+        Boolean indicating whether the affected cause is restricted
+        to yld_only.
+    yll_only
+        Boolean indicating whether the affected cause is restricted
+        to yll_only.
+
+    Raises
+    -------
+    DataAbnormalError
+        If any unexpected values or combinations of mortality and morbidity
+        flags are found.
+
+    """
+    valid_morb_mort_values = {0, 1}
+    for m in ['morbidity', 'mortality']:
+        if not set(data[m]).issubset(valid_morb_mort_values):
+            raise DataAbnormalError(f'Data contains values for {m} outside the expected {valid_morb_mort_values}.')
+
+    base_error_msg = f'Relative risk data includes '
+
+    no_morbidity = data.morbidity == 0
+    no_mortality = data.mortality == 0
+
+    morbidity = ~no_morbidity
+    mortality = ~no_mortality
+
+    if (no_morbidity & no_mortality).any():
+        raise DataAbnormalError(base_error_msg + 'rows with both mortality and morbidity flags set to 0.')
+
+    elif (morbidity & mortality).any():
+        if no_morbidity.any() or no_mortality.any():
+            raise DataAbnormalError(base_error_msg + 'row with both mortality and morbidity flags set to 1 as well as '
+                                                     'rows with only one of the mortality or morbidity flags set to 1.')
+    else:
+        if morbidity.any() and no_mortality.all() and not yld_only:
+            raise DataAbnormalError(base_error_msg + 'only rows with the morbidity flag set to 1 but the affected '
+                                                     'entity is not restricted to yld_only.')
+        elif mortality.any() and no_morbidity.all() and not yll_only:
+            raise DataAbnormalError(base_error_msg + 'only rows with the mortality flag set to 1 but the affected '
+                                                     'entity is not restricted to yll_only.')
+        elif mortality.any() and morbidity.any() and (yld_only or yll_only):
+            raise DataAbnormalError(base_error_msg + f'rows for both morbidity and mortality, but the affected entity '
+                                    f'is restricted to {"yll_only" if yll_only else "yld_only"}.')
+        else:
+            pass
 
 
 def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
@@ -688,18 +742,6 @@ def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
     elif not by_sex and set(data.sex_id) != {3}:
         raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
                                 'for combined male and female data.')
-
-
-def _get_restriction_age_boundary(entity: RiskFactor, boundary: str):
-    yld_age = entity.restrictions[f'yld_age_group_id_{boundary}']
-    yll_age = entity.restrictions[f'yld_age_group_id_{boundary}']
-    if yld_age is None:
-        age = yll_age
-    elif yll_age is None:
-        age = yld_age
-    else:
-        age = min(yld_age, yll_age) if boundary == 'start' else max(yld_age, yll_age)
-    return age
 
 
 def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):

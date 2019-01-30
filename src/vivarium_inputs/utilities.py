@@ -128,6 +128,7 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
 
 def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
     years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
+
     if 'year_id' not in data:
         # Data doesn't vary by year, so copy for each year.
         df = []
@@ -136,7 +137,7 @@ def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
             fill_data['year_id'] = year
             df.append(fill_data)
         data = pd.concat(df, ignore_index=True)
-    elif set(data.year_id.unique()) == set(years['binned']):
+    elif set(data.year_id) == set(years['binned']):
         data = interpolate_year(data)
     else:  # set(data.year_id.unique()) == years['annual']
         pass
@@ -149,7 +150,7 @@ def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
 def interpolate_year(data):
     # Hide the central comp dependency unless required.
     from core_maths.interpolate import pchip_interpolate
-    id_cols = data.columns.difference(DRAW_COLUMNS)
+    id_cols = list(set(data.columns).difference(DRAW_COLUMNS))
     fillin_data = pchip_interpolate(data, id_cols, DRAW_COLUMNS)
     return pd.concat([data, fillin_data], sort=True)
 

@@ -1,5 +1,5 @@
 import operator
-from typing import NamedTuple, Union, List
+from typing import Union, List
 import warnings
 
 import pandas as pd
@@ -7,6 +7,7 @@ import numpy as np
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES,
                                      DataAbnormalError, DataNotExistError, gbd)
+from gbd_mapping import RiskFactor
 
 
 def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
@@ -456,4 +457,31 @@ def check_metric_id(data: pd.DataFrame, expected_metric: str):
                                 f'(metric_id {METRICS[expected_metric.capitalize()]}')
 
 
+def get_restriction_age_boundary(entity: RiskFactor, boundary: str):
+    """Find the minimum/maximum age restriction (if both 'yll' and 'yld'
+    restrictions exist) for a RiskFactor.
+
+    Parameters
+    ----------
+    entity
+        RiskFactor for which to find the minimum/maximum age restriction.
+    boundary
+        String 'start' or 'end' indicating whether to return the minimum
+        start age restriction or maximum end age restriction.
+
+    Returns
+    -------
+        The age group id corresponding to the minimum or maximum start or end
+        age restriction, depending on `boundary`, if both 'yll' and 'yld'
+        restrictions exist. Otherwise, returns whichever restriction exists.
+    """
+    yld_age = entity.restrictions[f'yld_age_group_id_{boundary}']
+    yll_age = entity.restrictions[f'yld_age_group_id_{boundary}']
+    if yld_age is None:
+        age = yll_age
+    elif yll_age is None:
+        age = yld_age
+    else:
+        age = min(yld_age, yll_age) if boundary == 'start' else max(yld_age, yll_age)
+    return age
 
