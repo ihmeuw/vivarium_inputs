@@ -10,14 +10,14 @@ from vivarium_inputs.globals import DataFormattingError
 
 @pytest.fixture
 def mocked_get_estimation_years(mocker):
-    gbd_mock = mocker.patch("sim.utilities.gbd.get_estimation_years")
+    gbd_mock = mocker.patch("vivarium_inputs.validation.sim.utilities.gbd.get_estimation_years")
     gbd_mock.return_value = range(1990, 2018)
     return gbd_mock
 
 
 @pytest.fixture
 def mocked_get_age_bins(mocker):
-    gbd_mock = mocker.patch("sim.utilities.gbd.get_age_bins")
+    gbd_mock = mocker.patch("vivarium_inputs.validation.sim.utilities.gbd.get_age_bins")
     df = pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5],
                        'age_group_name': ['youngest', 'young', 'middle', 'older', 'oldest'],
                        'age_group_years_start': [0, 1, 15, 45, 60],
