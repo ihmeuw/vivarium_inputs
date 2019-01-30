@@ -124,7 +124,7 @@ def test_check_data_exist_value_columns():
                                   pd.DataFrame({'a': [0.0001], 'b': [0], 'c': [0]}),
                                   pd.DataFrame({'a': [1000], 'b': [-1000]})])
 def test_check_data_exist_pass(data):
-    assert utilities.check_data_exist(data, value_columns=data.columns, error=False)
+    assert utilities.check_data_exist(data, zeros_missing=True, value_columns=data.columns, error=False)
 
 
 @pytest.mark.parametrize('age_ids, start, end, match', [([1, 2, 3, 100], None, None, 'invalid'),
@@ -287,23 +287,23 @@ def test_check_sex_restrictions_pass(data, male, female, val_cols, gbd_mock):
     utilities.check_sex_restrictions(data, male, female, value_columns=val_cols)
 
 
-@pytest.mark.parametrize('m_ids, expected, match', [([1, 1, 1, 12], ['a'], 'multiple'),
-                                                    ([3, 3, 3], ['A', 'b'], 'not in the expected')])
+@pytest.mark.parametrize('m_ids, expected, match', [([1, 1, 1, 12], ['A'], 'multiple'),
+                                                    ([3, 3, 3], ['A', 'B'], 'not in the expected')])
 def test_check_measure_id_fail(m_ids, expected, match, measures_mock):
     df = pd.DataFrame({'measure_id': m_ids})
     with pytest.raises(DataAbnormalError, match=match):
         utilities.check_measure_id(df, expected)
 
 
-@pytest.mark.parametrize('m_ids, expected', [([1], ['a']),
-                                             ([2, 2, 2, 2], ['A', 'b'])])
+@pytest.mark.parametrize('m_ids, expected', [([1], ['A']),
+                                             ([2, 2, 2, 2], ['A', 'B'])])
 def test_check_measure_id_pass(m_ids, expected, measures_mock):
     df = pd.DataFrame({'measure_id': m_ids})
     utilities.check_measure_id(df, expected)
 
 
 
-@pytest.mark.parametrize('m_ids, expected', [([1, 1, 1, 12], 'a'),
+@pytest.mark.parametrize('m_ids, expected', [([1, 1, 1, 12], 'A'),
                                              ([3, 3, 3], 'A')])
 def test_check_metric_id_fail(m_ids, expected, metrics_mock):
     df = pd.DataFrame({'metric_id': m_ids})
@@ -311,7 +311,7 @@ def test_check_metric_id_fail(m_ids, expected, metrics_mock):
         utilities.check_metric_id(df, expected)
 
 
-@pytest.mark.parametrize('m_ids, expected', [([1], 'a'),
+@pytest.mark.parametrize('m_ids, expected', [([1], 'A'),
                                              ([2, 2, 2, 2], 'B')])
 def test_check_metric_id_pass(m_ids, expected, metrics_mock):
     df = pd.DataFrame({'metric_id': m_ids})
