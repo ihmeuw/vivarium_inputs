@@ -3,7 +3,7 @@ from typing import Sequence, Union, NamedTuple
 import numpy as np
 import pandas as pd
 
-from gbd_mapping import ModelableEntity
+from gbd_mapping import ModelableEntity, Cause, Sequela
 from vivarium_inputs import utilities
 from vivarium_inputs.validation import utilities as validation_utilities
 from vivarium_inputs.globals import DataFormattingError
@@ -76,7 +76,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, N
     validators[measure](data, entity, location)
 
 
-def _validate_incidence(data: pd.DataFrame, entity: ModelableEntity, location: str):
+def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[0],
@@ -90,7 +90,7 @@ def _validate_incidence(data: pd.DataFrame, entity: ModelableEntity, location: s
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_prevalence(data: pd.DataFrame, entity: ModelableEntity, location: str):
+def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[0],
@@ -104,7 +104,7 @@ def _validate_prevalence(data: pd.DataFrame, entity: ModelableEntity, location: 
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_birth_prevalence(data: pd.DataFrame, entity: ModelableEntity, location: str):
+def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location: str):
     _validate_location_column(data, location)
     _validate_sex_column(data)
     _validate_year_columns(data)
@@ -119,7 +119,7 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: ModelableEntity, loca
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_disability_weight(data: pd.DataFrame, entity: ModelableEntity, location: str):
+def _validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela], location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
@@ -133,7 +133,7 @@ def _validate_disability_weight(data: pd.DataFrame, entity: ModelableEntity, loc
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_remission(data: pd.DataFrame, entity: ModelableEntity, location: str):
+def _validate_remission(data: pd.DataFrame, entity: Cause, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[0],
@@ -147,7 +147,7 @@ def _validate_remission(data: pd.DataFrame, entity: ModelableEntity, location: s
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_cause_specific_mortality(data: pd.DataFrame, entity: ModelableEntity, location: str):
+def _validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[0],
@@ -161,7 +161,7 @@ def _validate_cause_specific_mortality(data: pd.DataFrame, entity: ModelableEnti
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_excess_mortality(data: pd.DataFrame, entity: ModelableEntity, location: str):
+def _validate_excess_mortality(data: pd.DataFrame, entity: Cause, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
