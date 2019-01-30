@@ -1,11 +1,16 @@
 """Validates data is in the correct shape for the simulation."""
+from typing import Sequence
+
 import numpy as np
 import pandas as pd
+from gbd_mapping import ModelableEntity
 
-from vivarium_inputs.globals import DataFormattingError, gbd
+from vivarium_inputs import utilities
+from vivarium_inputs.globals import DataFormattingError
 
 
-def validate_for_simulation(data, entity, measure, location):
+def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str):
+
     validators = {
         # Cause-like measures
         'incidence': _validate_incidence,
@@ -142,77 +147,103 @@ def _validate_demographic_dimensions(data, entity, location):
     _validate_year_columns(data)
 
 
-def _validate_standard_columns(data, location):
+#############
+# UTILITIES #
+#############
+
+
+def _validate_standard_columns(data: pd.DataFrame, location: str):
+    _validate_demographic_columns(data, location)
     _validate_draw_column(data)
+    _validate_value_column(data)
+
+
+def _validate_demographic_columns(data: pd.DataFrame, location: str):
     _validate_location_column(data, location)
     _validate_sex_column(data)
     _validate_age_columns(data)
     _validate_year_columns(data)
-    _validate_value_column(data)
 
 
-def _validate_draw_column(data):
+def _validate_draw_column(data: pd.DataFrame):
     if 'draw' not in data.columns:
-        raise DataFormattingError('Draw column name improperly specified.')
+        raise DataFormattingError("Draw data must be contained in a column named 'draw'.")
 
-    if list(data['draw'].unique()) != list(range(1000)):
-        raise DataFormattingError('Draw values improperly specified.')
+    if set(data['draw']) != set(range(1000)):
+        raise DataFormattingError('Draw must contain [0, 999].')
 
 
-def _validate_location_column(data, location):
+def _validate_location_column(data: pd.DataFrame, location: str):
     if 'location' not in data.columns:
-        raise DataFormattingError('Location column name improperly specified.')
+        raise DataFormattingError("Location data must be contained in a column named 'location'.")
 
     if len(data['location'].unique()) != 1 or data['location'].unique()[0] != location:
-        raise DataFormattingError('Location value improperly specified.')
+        raise DataFormattingError('Location must contain a single value that matches specified location.')
 
 
-def _validate_sex_column(data):
+def _validate_sex_column(data: pd.DataFrame):
     if 'sex' not in data.columns:
-        raise DataFormattingError('Sex column name improperly specified.')
+        raise DataFormattingError("Sex data must be contained in a column named 'sex'.")
 
-    if set(data['sex'].unique()) != {'Male', 'Female'}:
-        raise DataFormattingError('Sex value improperly specified.')
+    if set(data['sex']) != {'Male', 'Female'}:
+        raise DataFormattingError("Sex must contain 'Male' and 'Female' and nothing else.")
 
 
-def _validate_age_columns(data):
+def _validate_age_columns(data: pd.DataFrame):
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
-        raise DataFormattingError('Age column names improperly specified.')
+        raise DataFormattingError("Age data must be contained in columns named 'age_group_start' and 'age_group_end'.")
 
-    expected_age_block = (
-        gbd.get_age_bins()[['age_group_years_start', 'age_group_years_end']]
-            .rename(columns={'age_group_years_start': 'age_group_start',
-                             'age_group_years_end': 'age_group_end'})
-    )
-
+    expected_ages = utilities.get_age_bins()[['age_group_start', 'age_group_end']].sort_values(['age_group_start',
+                                                                                                'age_group_end'])
     age_block = (data[['age_group_start', 'age_group_end']]
                  .drop_duplicates()
                  .sort_values(['age_group_start', 'age_group_end'])
                  .reset_index(drop=True))
 
-    if not age_block.equals(expected_age_block):
-        raise DataFormattingError('Age values improperly specified.')
+    if not age_block.equals(expected_ages):
+        raise DataFormattingError('Age_group_start and age_group_end must contain all gbd age groups.')
 
 
-def _validate_year_columns(data):
+def _validate_year_columns(data: pd.DataFrame):
     if 'year_start' not in data.columns or 'year_end' not in data.columns:
-        raise DataFormattingError('Year column names improperly specified.')
+        raise DataFormattingError("Year data must be contained in columns named 'year_start', and 'year_end'.")
 
-    expected_year_block = pd.DataFrame({'year_start': range(1990, 2018),
-                                        'year_end': range(1991, 2019)})
+    expected_years = utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
     year_block = (data[['year_start', 'year_end']]
                   .drop_duplicates()
                   .sort_values(['year_start', 'year_end'])
                   .reset_index(drop=True))
 
-    if not year_block.equals(expected_year_block):
-        pass
-        #raise DataFormattingError('Year values improperly specified.')
+    if not year_block.equals(expected_years):
+        raise DataFormattingError('Year_start and year_end must cover [1990, 2017] in intervals of one year.')
 
 
-def _validate_value_column(data):
+def _validate_value_column(data: pd.DataFrame):
+    if 'value' not in data.columns:
+        raise DataFormattingError("Value data must be contained in a column named 'value'.")
+
     if np.any(data.value.isna()):
-        raise DataFormattingError('Nans found in data.')
+        raise DataFormattingError('Value data found to contain NaN.')
     if np.any(np.isinf(data.value.values)):
-        raise DataFormattingError('Inf found in data')
+        raise DataFormattingError('Value data found to contain infinity.')
 
+
+def _translate_age_restrictions(ids: Sequence[int]) -> (float, float):
+    age_bins = utilities.get_age_bins()
+    minimum = age_bins.loc[age_bins.age_group_id.isin(ids), 'age_group_start'].min()
+    maximum = age_bins.loc[age_bins.age_group_id.isin(ids), 'age_group_end'].max()
+
+    return minimum, maximum
+
+
+def _check_age_restrictions(data: pd.DataFrame, age_start: int, age_end: int, fill_value: float):
+    outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
+    if not outside.empty and (outside.value != fill_value).any():
+        raise DataFormattingError(f"Age restrictions are violated by a value other than fill={fill_value}.")
+
+
+def _check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool, fill_value: float):
+    if male_only and (data.loc[data.sex == 'Female', 'value'] != fill_value).any():
+        raise DataFormattingError(f"Restriction to male sex only is violated by a value other than fill={fill_value}.")
+    elif female_only and (data.loc[data.sex == 'Male', 'value'] != fill_value).any():
+        raise DataFormattingError(f"Restriction to female sex only is violated by a value other than fill={fill_value}.")

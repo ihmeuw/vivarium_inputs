@@ -1,5 +1,6 @@
 """Errors and utility functions for input processing."""
 import pandas as pd
+import numpy as np
 
 from gbd_mapping import causes, risk_factors
 from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
@@ -16,6 +17,13 @@ def get_age_bins():
                              'age_group_years_end': 'age_group_end'})
     )
     return age_bins
+
+
+def get_annual_year_bins():
+    estimation_years = gbd.get_estimation_years()
+    df = pd.DataFrame({'year_id': range(min(estimation_years), max(estimation_years) + 1)})
+
+    return scrub_year(df)
 
 
 def get_demographic_dimensions(location_id, draws=False):
