@@ -25,6 +25,8 @@ MAX_UTILIZATION = 20
 MAX_LIFE_EXP = 90
 MAX_POP = 100000000
 
+ALL_AGES_AGE_GROUP_ID = 22
+
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
     metadata_checkers = {
@@ -259,10 +261,9 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
 
     check_location(data, location_id)
 
-    all_ages_age_group_id = 22
-    if set(data.age_group_id) != {all_ages_age_group_id}:
+    if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
         raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
-                                f'the expected all ages age group (id {all_ages_age_group_id}).')
+                                f'the expected all ages age group (id {ALL_AGES_AGE_GROUP_ID}).')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
 
@@ -430,10 +431,9 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
 
     check_location(data, location_id)
 
-    all_ages_age_group_id = 22
-    if set(data.age_group_id) != {all_ages_age_group_id}:
+    if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
         raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} includes '
-                                f'age groups beyond the expected all ages age group (id {all_ages_age_group_id}.')
+                                f'age groups beyond the expected all ages age group (id {ALL_AGES_AGE_GROUP_ID}.')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
 
@@ -512,8 +512,8 @@ def _validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int):
     if entity.by_age:
         check_age_group_ids(data, None, None)
     else:
-        all_ages = {22, 27}  # all ages and age-standardized
-        if not set(data.age_group_id).issubset(all_ages):
+        age_standardized_age_group_id = 27
+        if not set(data.age_group_id).issubset({ALL_AGES_AGE_GROUP_ID, age_standardized_age_group_id}):
             raise DataAbnormalError(f'Estimate data for {entity.kind} {entity.name} is not supposed to be by age, '
                                     f'but contains age groups beyond all ages and age standardized.')
 
@@ -537,10 +537,9 @@ def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTec
     check_years(data, 'annual')
     check_location(data, location_id)
 
-    all_ages_age_group_id = 22
-    if set(data.age_group_id) != {all_ages_age_group_id}:
+    if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
         raise DataAbnormalError(f'Cost data for {entity.kind} {entity.name} includes age groups beyond '
-                                f'the expected all ages age group (id {all_ages_age_group_id}).')
+                                f'the expected all ages age group (id {ALL_AGES_AGE_GROUP_ID}).')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
@@ -701,9 +700,9 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
 
 
 def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
-    if by_sex and not {1, 2}.issubset(set(data.sex_id)):
+    if by_sex and not {gbd.MALE[0], gbd.FEMALE[0]}.issubset(set(data.sex_id)):
         raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
-    elif not by_sex and set(data.sex_id) != {3}:
+    elif not by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
         raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
                                 'for combined male and female data.')
 
@@ -712,8 +711,8 @@ def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
     if by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
         # if we have any of the expected gbd age group ids, restriction is not violated
         raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
-    # if we have any age group ids besides 22, 27, restriction is violated
-    all_ages_age_group, age_standardized_age_group = 22, 27
-    if bool((set(data.age_group_id) - {all_ages_age_group, age_standardized_age_group})):
+    # if we have any age group ids besides all ages and age standardized, restriction is violated
+    age_standardized_age_group = 27
+    if bool((set(data.age_group_id) - {ALL_AGES_AGE_GROUP_ID, age_standardized_age_group})):
         raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
                                 'beyond all ages and age standardized.')
