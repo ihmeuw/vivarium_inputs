@@ -19,6 +19,29 @@ VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
 
 def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, NamedTuple], measure: str,
                             location: int):
+    """Validate data conforms to the format that is expected by the simulation and conforms to normal expectations for a
+    measure.
+
+    Data coming in to the simulation is expected to have a full demographic set in most instances as well non-missing,
+    non-infinite, reasonable data. This function enforces column names, the demographic extents, and expected ranges and
+    relationships of measure data.
+
+    Parameters
+    ----------
+    data
+        data to be validated
+    entity
+        The GBD Entity the data pertains to.
+    measure
+        The measure the data pertains to.
+    location
+        The location the data pertains to.
+
+    Raises
+    -------
+    DataFormattingError
+        If any
+    """
     validators = {
         # Cause-like measures
         'incidence': _validate_incidence,
@@ -53,7 +76,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, N
     validators[measure](data, entity, location)
 
 
-def _validate_incidence(data, entity, location):
+def _validate_incidence(data: pd.DataFrame, entity: ModelableEntity, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[0],
@@ -67,7 +90,7 @@ def _validate_incidence(data, entity, location):
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_prevalence(data, entity, location):
+def _validate_prevalence(data: pd.DataFrame, entity: ModelableEntity, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[0],
@@ -81,7 +104,7 @@ def _validate_prevalence(data, entity, location):
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_birth_prevalence(data, entity, location):
+def _validate_birth_prevalence(data: pd.DataFrame, entity: ModelableEntity, location: str):
     _validate_location_column(data, location)
     _validate_sex_column(data)
     _validate_year_columns(data)
@@ -96,7 +119,7 @@ def _validate_birth_prevalence(data, entity, location):
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_disability_weight(data, entity, location):
+def _validate_disability_weight(data: pd.DataFrame, entity: ModelableEntity, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
@@ -110,7 +133,7 @@ def _validate_disability_weight(data, entity, location):
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_remission(data, entity, location):
+def _validate_remission(data: pd.DataFrame, entity: ModelableEntity, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[0],
@@ -124,7 +147,7 @@ def _validate_remission(data, entity, location):
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_cause_specific_mortality(data, entity, location):
+def _validate_cause_specific_mortality(data: pd.DataFrame, entity: ModelableEntity, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[0],
@@ -138,7 +161,7 @@ def _validate_cause_specific_mortality(data, entity, location):
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_excess_mortality(data, entity, location):
+def _validate_excess_mortality(data: pd.DataFrame, entity: ModelableEntity, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
