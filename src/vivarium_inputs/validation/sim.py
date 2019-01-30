@@ -10,6 +10,9 @@ from vivarium_inputs.globals import DataFormattingError
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
 from vivarium_inputs.validation.utilities import check_value_columns_boundary
 
+VALID_COST_RANGE = (0, {'healthcare_entity': 30000, 'health_technology': 50})
+VALID_UTILIZATION_RANGE = (0, 50)
+
 
 def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str):
 
@@ -123,16 +126,18 @@ def _validate_estimate(data, entity, location):
 
 def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity], location: str):
     _validate_standard_columns(data, location)
-    check_value_columns_boundary(data, 0, 'lower', value_columns=['value'], inclusive=True, error=True)
-    max_cost = 5000 if entity.kind == 'healthcare_entity' else 50
-    check_value_columns_boundary(data, max_cost, 'upper', value_columns=['value'], inclusive=True, error=True)
+    check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
+                                 value_columns=['value'], inclusive=True, error=True)
+    check_value_columns_boundary(data, VALID_COST_RANGE[1][entity.kind], 'upper',
+                                 value_columns=['value'], inclusive=True, error=True)
 
 
 def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location: str):
     _validate_standard_columns(data, location)
-    check_value_columns_boundary(data, 0, 'lower', value_columns=['value'], inclusive=True, error=True)
-    max_utilization = 20/365
-    check_value_columns_boundary(data, max_utilization, 'upper', value_columns=['value'], inclusive=True, error=True)
+    check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
+                                 value_columns=['value'], inclusive=True, error=True)
+    check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[1], 'upper',
+                                 value_columns=['value'], inclusive=True, error=True)
 
 
 def _validate_structure(data, entity, location):
