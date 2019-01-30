@@ -253,7 +253,7 @@ def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entit
     validation_utilities.check_value_columns_boundary(data, VALID_LIFE_EXP_RANGE[1], 'upper',
                                                       value_columns=['value'], inclusive=False, error=True)
 
-    if not data.sort_values(by='age_group_start', ascending=False).value.is_monotonic():
+    if not data.sort_values(by='age_group_start', ascending=False).value.is_monotonic:
         raise DataFormattingError('Life expectancy data is not monotonically decreasing over age.')
 
 
