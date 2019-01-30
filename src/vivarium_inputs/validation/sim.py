@@ -17,9 +17,9 @@ VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
 VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 0.4)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
-VALID_COST_RANGE = (0, {'healthcare_entity': 30000, 'health_technology': 50})
+VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 VALID_UTILIZATION_RANGE = (0, 50)
-VALID_POPULATION_RANGE = (0, 100000000)
+VALID_POPULATION_RANGE = (0, 100_000_000)
 VALID_LIFE_EXP_RANGE = (0, 90)
 
 
