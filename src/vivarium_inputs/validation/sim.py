@@ -8,7 +8,7 @@ from vivarium_inputs import utilities
 from vivarium_inputs.validation import utilities as validation_utilities
 from vivarium_inputs.globals import DataFormattingError
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
-from vivarium_inputs.validation.utilities import check_value_columns_boundary
+
 
 VALID_INCIDENCE_RANGE = (0.0, 50.0)
 VALID_PREVALENCE_RANGE = (0.0, 1.0)
@@ -213,18 +213,18 @@ def _validate_estimate(data, entity, location):
 
 def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity], location: str):
     _validate_standard_columns(data, location)
-    check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
-                                 value_columns=['value'], inclusive=True, error=True)
-    check_value_columns_boundary(data, VALID_COST_RANGE[1][entity.kind], 'upper',
-                                 value_columns=['value'], inclusive=True, error=True)
+    validation_utilities.check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
+                                                      value_columns=['value'], inclusive=True, error=True)
+    validation_utilities.check_value_columns_boundary(data, VALID_COST_RANGE[1][entity.kind], 'upper',
+                                                      value_columns=['value'], inclusive=True, error=True)
 
 
 def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location: str):
     _validate_standard_columns(data, location)
-    check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
-                                 value_columns=['value'], inclusive=True, error=True)
-    check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[1], 'upper',
-                                 value_columns=['value'], inclusive=True, error=True)
+    validation_utilities.check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
+                                                      value_columns=['value'], inclusive=True, error=True)
+    validation_utilities.check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[1], 'upper',
+                                                      value_columns=['value'], inclusive=True, error=True)
 
 
 def _validate_structure(data, entity, location):
