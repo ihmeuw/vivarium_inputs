@@ -1,11 +1,11 @@
-"""Validates data is in the correct shape for the simulation."""
-from typing import Sequence
+from typing import Union, NamedTuple
 
 import numpy as np
 import pandas as pd
-from gbd_mapping import ModelableEntity
 
+from gbd_mapping import ModelableEntity
 from vivarium_inputs import utilities
+from vivarium_inputs.validation import utilities as validation_utilities
 from vivarium_inputs.globals import DataFormattingError
 
 VALID_INCIDENCE_RANGE = (0.0, 50.0)
@@ -16,8 +16,9 @@ VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
 VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 0.4)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
 
-def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str):
 
+def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, NamedTuple], measure: str,
+                            location: int):
     validators = {
         # Cause-like measures
         'incidence': _validate_incidence,
