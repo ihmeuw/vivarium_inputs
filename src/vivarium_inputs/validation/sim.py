@@ -88,9 +88,9 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
-                                                      entity.restrictions.yld_age_group_id_end))
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -102,9 +102,9 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
-                                                      entity.restrictions.yld_age_group_id_end))
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -131,9 +131,9 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
-                                                      entity.restrictions.yld_age_group_id_end))
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -145,9 +145,9 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location: str):
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
-                                                      entity.restrictions.yld_age_group_id_end))
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yld_age_group_id_start]
+    age_end_ids = [entity.restrictions.yld_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -159,9 +159,9 @@ def _validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, locati
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yll_age_group_id_start,
-                                                      entity.restrictions.yll_age_group_id_end))
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yll_age_group_id_start]
+    age_end_ids = [entity.restrictions.yll_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -173,9 +173,9 @@ def _validate_excess_mortality(data: pd.DataFrame, entity: Cause, location: str)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'], error=True)
 
-    age_start, age_end = _translate_age_restrictions((entity.restrictions.yll_age_group_id_start,
-                                                      entity.restrictions.yll_age_group_id_end))
-    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    age_start_ids = [entity.restrictions.yll_age_group_id_start]
+    age_end_ids = [entity.restrictions.yll_age_group_id_end]
+    _check_age_restrictions(data, age_start_ids, age_end_ids, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -320,15 +320,39 @@ def _validate_value_column(data: pd.DataFrame):
         raise DataFormattingError('Value data found to contain infinity.')
 
 
-def _translate_age_restrictions(ids: Sequence[int]) -> (float, float):
+def _translate_age_restrictions(start_ids: Sequence[int, None], end_ids: Sequence[int, None], type: str) -> (float, float):
+    """translates age restrictions as ids into raw ages.
+    Parameters
+    ----------
+    start_ids
+        a sequence of GBD age group ids, or None.
+    end_ids
+        a sequence of GBD age group ids, or None.
+    type
+        one of 'inner' or 'outer'. Inner will take the  maximum of the start ages and the minimum of the end ages.
+        Outer will take the minimum of the start ages and the maximum of the end ages.
+    """
+
+    start_ids = [i for i in start_ids if i is not None]
+    end_ids = [i for i in end_ids if i is not None]
+
     age_bins = utilities.get_age_bins()
-    minimum = age_bins.loc[age_bins.age_group_id.isin(ids), 'age_group_start'].min()
-    maximum = age_bins.loc[age_bins.age_group_id.isin(ids), 'age_group_end'].max()
+    if type == 'outer':
+        minimum = age_bins.loc[age_bins.age_group_id.isin(start_ids), 'age_group_start'].min()
+        maximum = age_bins.loc[age_bins.age_group_id.isin(end_ids), 'age_group_end'].max()
+    elif type == 'inner':
+        minimum = age_bins.loc[age_bins.age_group_id.isin(start_ids), 'age_group_start'].max()
+        maximum = age_bins.loc[age_bins.age_group_id.isin(end_ids), 'age_group_end'].min()
+    else:
+        raise NotImplementedError()
 
     return minimum, maximum
 
 
-def _check_age_restrictions(data: pd.DataFrame, age_start: int, age_end: int, fill_value: float):
+def _check_age_restrictions(data: pd.DataFrame, start_ids: Sequence[int, None], end_ids: Sequence[int, None],
+                            type: str, fill_value: float):
+
+    age_start, age_end = _translate_age_restrictions(start_ids, end_ids, type)
     outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
     if not outside.empty and (outside.value != fill_value).any():
         raise DataFormattingError(f"Age restrictions are violated by a value other than fill={fill_value}.")
