@@ -510,7 +510,7 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
 
         check_age_restrictions(data, age_start, age_end)
         check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
-    else:  # coverage gap
+    else:  # etiology
         check_age_group_ids(data, None, None)
         check_sex_ids(data, True, True)
 
