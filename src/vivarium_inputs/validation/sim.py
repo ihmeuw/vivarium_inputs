@@ -3,7 +3,7 @@ from typing import Sequence, Union, NamedTuple
 import numpy as np
 import pandas as pd
 
-from gbd_mapping import ModelableEntity, Cause, Sequela
+from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap
 from vivarium_inputs import utilities
 from vivarium_inputs.validation import utilities as validation_utilities
 from vivarium_inputs.globals import DataFormattingError
@@ -17,6 +17,9 @@ VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
 VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 0.4)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
+VALID_CONTINUOUS_EXPOSURE_RANGE = (0.0, 10000.0)
+VALID_CATEGORICAL_EXPOSURE_RANGE = (0.0, 1.0)
+VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_COST_RANGE = (0, {'healthcare_entity': 30000, 'health_technology': 50})
 VALID_UTILIZATION_RANGE = (0, 50)
 
@@ -183,12 +186,64 @@ def _validate_case_fatality(data, entity, location):
     raise NotImplementedError()
 
 
-def _validate_exposure(data, entity, location):
-    raise NotImplemented()
+def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location: str):
+    is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
+    is_categorical = (entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'])
+
+    if is_continuous:
+        if data.parameter != "continuous":
+            raise DataFormattingError("Continuous exposure data should contain 'continuous' in the parameter column.")
+        validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CONTINUOUS_EXPOSURE_RANGE[0],
+                                                          boundary_type='lower', value_columns=['value'], error=True)
+        validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CONTINUOUS_EXPOSURE_RANGE[1],
+                                                          boundary_type='upper', value_columns=['value'], error=True)
+    elif is_categorical:
+        if set(data.parameter) != set(entity.categories.to_dict()):  # to_dict removes None
+            raise DataFormattingError("Categorical exposure data does not contain all categories in the parameter "
+                                      "column.")
+        validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CATEGORICAL_EXPOSURE_RANGE[0],
+                                                          boundary_type='lower', value_columns=['value'], error=True)
+        validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CATEGORICAL_EXPOSURE_RANGE[1],
+                                                          boundary_type='upper', value_columns=['value'], error=True)
+    else:
+        raise NotImplementedError()
+
+    _validate_location_column(data, location)
+    _validate_value_column(data)
+
+    cats = data.groupby('parameter')
+    cats.apply(_validate_age_columns)
+    cats.apply(_validate_year_columns)
+    cats.apply(_validate_sex_column)
+    cats.apply(_validate_draw_column)
+
+    if is_categorical:
+        non_categorical_columns = list(set(data.columns).difference({'parameter', 'value'}))
+        if not np.allclose(data.groupby(non_categorical_columns)['value'].sum(), 1.0):
+            raise DataFormattingError("Categorical exposures do not sum to one across categories")
+
+    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
+                                                      entity.restrictions.yll_age_group_id_start,
+                                                      entity.restrictions.yld_age_group_id_end,
+                                                      entity.restrictions.yll_age_group_id_end))
+    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
 def _validate_exposure_standard_deviation(data, entity, location):
-    raise NotImplemented()
+    _validate_standard_columns(data, location)
+
+    validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[0],
+                                                      boundary_type='lower', value_columns=['value'], error=True)
+    validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[1],
+                                                      boundary_type='upper', value_columns=['value'], error=True)
+
+    age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
+                                                      entity.restrictions.yll_age_group_id_start,
+                                                      entity.restrictions.yld_age_group_id_end,
+                                                      entity.restrictions.yll_age_group_id_end))
+    _check_age_restrictions(data, age_start, age_end, fill_value=0.0)
+    _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
 def _validate_exposure_distribution_weights(data, entity, location):
