@@ -96,7 +96,7 @@ def check_columns(expected_cols: List, existing_cols: List):
         raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')
 
 
-def check_data_exist(data: pd.DataFrame, zeros_missing: bool = True,
+def check_data_exist(data: pd.DataFrame, zeros_missing: bool,
                      value_columns: list = DRAW_COLUMNS, error: bool = True) -> bool:
     """Check that values in data exist and none are missing and, if
     `zeros_missing` is turned on, not all zero.
@@ -290,13 +290,13 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     if extra_age_groups:
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
-        if check_data_exist(should_be_zero, value_columns=value_columns, error=False):
+        if check_data_exist(should_be_zero, zeros_missing=True, value_columns=value_columns, error=False):
             raise DataAbnormalError(f'Data was only expected to contain values for age groups between ids '
                                     f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
                                     f'but also included values for age groups {extra_age_groups}.')
 
     # make sure we're not missing data for all ages in restrictions
-    if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)],
+    if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)], zeros_missing=True,
                             value_columns=value_columns, error=False):
         raise DataAbnormalError(f'Data is missing for all age groups within restriction range.')
 
@@ -378,31 +378,38 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
     female, male, combined = gbd.FEMALE[0], gbd.MALE[0], gbd.COMBINED[0]
 
     if male_only:
-        if not check_data_exist(data[data.sex_id == male], value_columns=value_columns, error=False):
+        if not check_data_exist(data[data.sex_id == male], zeros_missing=True,
+                                value_columns=value_columns, error=False):
             raise DataAbnormalError('Data is restricted to male only, but is missing data values for males.')
 
         if (set(data.sex_id) != {male} and
-                check_data_exist(data[data.sex_id != male], value_columns=value_columns, error=False)):
+                check_data_exist(data[data.sex_id != male], zeros_missing=True,
+                                value_columns=value_columns, error=False)):
             raise DataAbnormalError('Data is restricted to male only, but contains '
                                     'non-male sex ids for which data values are not all 0.')
 
     if female_only:
-        if not check_data_exist(data[data.sex_id == female], value_columns=value_columns, error=False):
+        if not check_data_exist(data[data.sex_id == female], zeros_missing=True,
+                                value_columns=value_columns, error=False):
             raise DataAbnormalError('Data is restricted to female only, but is missing data values for females.')
 
         if (set(data.sex_id) != {female} and
-                check_data_exist(data[data.sex_id != female], value_columns=value_columns, error=False)):
+                check_data_exist(data[data.sex_id != female], zeros_missing=True,
+                                value_columns=value_columns, error=False)):
             raise DataAbnormalError('Data is restricted to female only, but contains '
                                     'non-female sex ids for which data values are not all 0.')
 
     if not male_only and not female_only:
         if {male, female}.issubset(set(data.sex_id)):
-            if (not check_data_exist(data[data.sex_id == male], value_columns=value_columns, error=False) or
-               not check_data_exist(data[data.sex_id == female], value_columns=value_columns, error=False)):
+            if (not check_data_exist(data[data.sex_id == male], zeros_missing=True,
+                                     value_columns=value_columns, error=False) or
+               not check_data_exist(data[data.sex_id == female], zeros_missing=True,
+                                    value_columns=value_columns, error=False)):
                 raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
                                         'values for both males and females.')
         else:  # check combined sex id
-            if not check_data_exist(data[data.sex_id == combined], value_columns=value_columns, error=False):
+            if not check_data_exist(data[data.sex_id == combined], zeros_missing=True,
+                                    value_columns=value_columns, error=False):
                 raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
                                         'values for both males and females.')
 
