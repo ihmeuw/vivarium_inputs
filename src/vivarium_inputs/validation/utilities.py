@@ -291,9 +291,9 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
         if check_data_exist(should_be_zero, value_columns=value_columns, error=False):
-            raise DataAbnormalError(f'Data was only expected to contain values for age groups between ids '
-                                    f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
-                                    f'but also included values for age groups {extra_age_groups}.')
+            warnings.warn(f'Data was only expected to contain values for age groups between ids '
+                          f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
+                          f'but also included values for age groups {extra_age_groups}.')
 
     # make sure we're not missing data for all ages in restrictions
     if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)],
@@ -383,8 +383,8 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
 
         if (set(data.sex_id) != {male} and
                 check_data_exist(data[data.sex_id != male], value_columns=value_columns, error=False)):
-            raise DataAbnormalError('Data is restricted to male only, but contains '
-                                    'non-male sex ids for which data values are not all 0.')
+           warnings.warn('Data is restricted to male only, but contains '
+                         'non-male sex ids for which data values are not all 0.')
 
     if female_only:
         if not check_data_exist(data[data.sex_id == female], value_columns=value_columns, error=False):
@@ -392,8 +392,8 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
 
         if (set(data.sex_id) != {female} and
                 check_data_exist(data[data.sex_id != female], value_columns=value_columns, error=False)):
-            raise DataAbnormalError('Data is restricted to female only, but contains '
-                                    'non-female sex ids for which data values are not all 0.')
+            warnings.warn('Data is restricted to female only, but contains '
+                          'non-female sex ids for which data values are not all 0.')
 
     if not male_only and not female_only:
         if {male, female}.issubset(set(data.sex_id)):
