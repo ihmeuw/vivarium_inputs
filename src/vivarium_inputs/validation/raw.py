@@ -15,7 +15,7 @@ from vivarium_inputs.validation.utilities import (check_years, check_location, c
                                                   check_age_group_ids, check_sex_ids, check_age_restrictions,
                                                   check_value_columns_boundary, check_sex_restrictions,
                                                   check_measure_id, check_metric_id, get_restriction_age_boundary,
-                                                  get_restriction_ages)
+                                                  get_restriction_age_ids)
 
 
 MAX_INCIDENCE = 10
@@ -761,10 +761,10 @@ def _check_cause_age_restrictions(entity: Cause):
     if entity.restrictions.yld_only:
         pass
     else:
-        yll_ages = get_restriction_ages(entity.restrictions.yll_age_group_id_start,
-                                        entity.restrictions.yll_age_group_id_end)
-        yld_ages = get_restriction_ages(entity.restrictions.yld_age_group_id_start,
-                                        entity.restrictions.yld_age_group_id_end)
+        yll_ages = get_restriction_age_ids(entity.restrictions.yll_age_group_id_start,
+                                           entity.restrictions.yll_age_group_id_end)
+        yld_ages = get_restriction_age_ids(entity.restrictions.yld_age_group_id_start,
+                                           entity.restrictions.yld_age_group_id_end)
         if set(yll_ages) > set(yld_ages):
             raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
                                       f' We currently do not support these causes.')

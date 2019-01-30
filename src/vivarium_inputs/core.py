@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract
-from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_ages
+from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_age_ids
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, DRAW_COLUMNS, MEASURES
@@ -65,7 +65,7 @@ def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFra
         cause = [c for c in causes if entity in c.sequelae][0]
         restrictions = cause.restrictions
 
-    ages = get_restriction_ages(restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    ages = get_restriction_age_ids(restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     data = data[data.age_group_id.isin(ages)]
 
     sexes = utilities.get_valid_sex_ids(restrictions)
@@ -87,7 +87,7 @@ def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFr
         cause = [c for c in causes if entity in c.sequelae][0]
         restrictions = cause.restrictions
 
-    ages = get_restriction_ages(restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    ages = get_restriction_age_ids(restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     data = data[data.age_group_id.isin(ages)]
 
     sexes = utilities.get_valid_sex_ids(restrictions)
@@ -130,7 +130,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
 def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'remission', location_id)
 
-    ages = get_restriction_ages(entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
+    ages = get_restriction_age_ids(entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
     data = data[data.age_group_id.isin(ages)]
 
     sexes = utilities.get_valid_sex_ids(entity.restrictions)
@@ -163,7 +163,7 @@ def get_case_fatality(entity: Cause, location_id: int):
 
 def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'deaths', location_id)
-    ages = get_restriction_ages(entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
+    ages = get_restriction_age_ids(entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end)
     data = data[data.age_group_id.isin(ages)]
     sexes = utilities.get_valid_sex_ids(entity.restrictions)
     data = data[data.sex_id.isin(sexes)]
@@ -179,7 +179,7 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
 
     if entity.kind == 'risk_factor':
         start, end = get_restriction_age_boundary(entity, 'start'), get_restriction_age_boundary(entity, 'end')
-        ages = get_restriction_ages(start, end)
+        ages = get_restriction_age_ids(start, end)
         data = data[data.age_group_id.isin(ages)]
         sexes = utilities.get_valid_sex_ids(entity.restrictions)
         data = data[data.sex_id.isin(sexes)]
@@ -195,7 +195,7 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
 
     if entity.kind == 'risk_factor':
         start, end = get_restriction_age_boundary(entity, 'start'), get_restriction_age_boundary(entity, 'end')
-        ages = get_restriction_ages(start, end)
+        ages = get_restriction_age_ids(start, end)
         data = data[data.age_group_id.isin(ages)]
         sexes = utilities.get_valid_sex_ids(entity.restrictions)
         data = data[data.sex_id.isin(sexes)]
@@ -220,7 +220,7 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
     if entity.kind == 'risk_factor':
         start = get_restriction_age_boundary(entity, 'start', reverse=True)
         end = get_restriction_age_boundary(entity, 'end', reverse=True)
-        ages = get_restriction_ages(start, end)
+        ages = get_restriction_age_ids(start, end)
         data = data[data.age_group_id.isin(ages)]
 
         sexes = utilities.get_valid_sex_ids(entity.restrictions)
@@ -257,7 +257,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
 
     start = get_restriction_age_boundary(restriction_entity, 'start', reverse=True)
     end = get_restriction_age_boundary(restriction_entity, 'end', reverse=True)
-    ages = get_restriction_ages(start, end)
+    ages = get_restriction_age_ids(start, end)
     data = data[data.age_group_id.isin(ages)]
 
     sexes = utilities.get_valid_sex_ids(restriction_entity.restrictions)
