@@ -42,7 +42,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, N
         'cost': _validate_cost,
         'utilization': _validate_utilization,
         # Population measures
-        'population_structure': _validate_population_structure,
+        'structure': _validate_structure,
         'theoretical_minimum_risk_life_expectancy': _validate_theoretical_minimum_risk_life_expectancy,
         'demographic_dimensions': _validate_demographic_dimensions,
     }
@@ -192,7 +192,7 @@ def _validate_utilization(data, entity, location):
     raise NotImplemented()
 
 
-def _validate_population_structure(data, entity, location):
+def _validate_structure(data, entity, location):
     raise NotImplemented()
 
 
