@@ -208,14 +208,8 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     else:
         raise NotImplementedError()
 
-    _validate_location_column(data, location)
-    _validate_value_column(data)
-
     cats = data.groupby('parameter')
-    cats.apply(_validate_age_columns)
-    cats.apply(_validate_year_columns)
-    cats.apply(_validate_sex_column)
-    cats.apply(_validate_draw_column)
+    cats.apply(_validate_standard_columns, location)
 
     if is_categorical:
         non_categorical_columns = list(set(data.columns).difference({'parameter', 'value'}))
