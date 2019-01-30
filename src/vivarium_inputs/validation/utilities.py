@@ -19,6 +19,9 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
         Dataframe containing 'year_id' column.
     year_type
         String 'annual' or 'binned' indicating expected year range.
+    error
+        Boolean indicating whether to raise an error if expected years are not
+        found.
 
     Returns
     -------
@@ -384,7 +387,7 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
 
         if (set(data.sex_id) != {male} and
                 check_data_exist(data[data.sex_id != male], zeros_missing=True,
-                                value_columns=value_columns, error=False)):
+                                 value_columns=value_columns, error=False)):
             raise DataAbnormalError('Data is restricted to male only, but contains '
                                     'non-male sex ids for which data values are not all 0.')
 
@@ -395,7 +398,7 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
 
         if (set(data.sex_id) != {female} and
                 check_data_exist(data[data.sex_id != female], zeros_missing=True,
-                                value_columns=value_columns, error=False)):
+                                 value_columns=value_columns, error=False)):
             raise DataAbnormalError('Data is restricted to female only, but contains '
                                     'non-female sex ids for which data values are not all 0.')
 
@@ -487,4 +490,3 @@ def get_restriction_age_boundary(entity: RiskFactor, boundary: str):
     else:
         age = min(yld_age, yll_age) if boundary == 'start' else max(yld_age, yll_age)
     return age
-
