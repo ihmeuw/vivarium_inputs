@@ -131,7 +131,7 @@ def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcar
 def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location: str):
     _validate_standard_columns(data, location)
     check_value_columns_boundary(data, 0, 'lower', value_columns=['value'], inclusive=True, error=True)
-    max_utilization = 20
+    max_utilization = 20/365
     check_value_columns_boundary(data, max_utilization, 'upper', value_columns=['value'], inclusive=True, error=True)
 
 
