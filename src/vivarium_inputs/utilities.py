@@ -2,7 +2,9 @@
 import pandas as pd
 import numpy as np
 
-from gbd_mapping import causes, risk_factors
+from typing import List
+
+from gbd_mapping import causes, risk_factors, Restrictions
 from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 
 
@@ -24,6 +26,13 @@ def get_annual_year_bins():
     df = pd.DataFrame({'year_id': range(min(estimation_years), max(estimation_years) + 1)})
 
     return scrub_year(df)
+
+
+def get_valid_sex_ids(restrictions: Restrictions) -> List:
+    male, female = restrictions.male_only, restrictions.female_only
+    sexes = gbd.MALE if male else []
+    sexes += gbd.FEMALE if female else []
+    return sexes
 
 
 def get_demographic_dimensions(location_id, draws=False):
