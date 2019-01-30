@@ -6,7 +6,7 @@ import pandas as pd
 from gbd_mapping import ModelableEntity, Cause, Sequela
 from vivarium_inputs import utilities
 from vivarium_inputs.validation import utilities as validation_utilities
-from vivarium_inputs.globals import DataFormattingError, DataAbnormalError
+from vivarium_inputs.globals import DataFormattingError
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
 
 
@@ -245,10 +245,10 @@ def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entit
         raise DataFormattingError("Age data must be contained in columns named 'age_group_start' and 'age_group_end'.")
 
     if not np.allclose(data.age_group_end - data.age_group_start, 0.1):
-        raise DataAbnormalError('Life expectancy data is not all in age groups of length 0.1 years.')
+        raise DataFormattingError('Life expectancy data is not all in age groups of length 0.1 years.')
 
     if data.age_group_start.min() > 0 or data.age_group_start.max() < 110 or len(data.age_group_start) != 1100:
-        raise DataAbnormalError('Life expectancy data does not span the entire age range [0, 110].')
+        raise DataFormattingError('Life expectancy data does not span the entire age range [0, 110].')
 
     validation_utilities.check_value_columns_boundary(data, VALID_LIFE_EXP_RANGE[0], 'lower',
                                                       value_columns=['value'], inclusive=False, error=True)
@@ -256,7 +256,7 @@ def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entit
                                                       value_columns=['value'], inclusive=False, error=True)
 
     if not data.sort_values(by='age_group_start', ascending=False).value.is_monotonic():
-        raise DataAbnormalError('Life expectancy data is not monotonically decreasing over age.')
+        raise DataFormattingError('Life expectancy data is not monotonically decreasing over age.')
 
 
 def _validate_age_bins(data: pd.DataFrame, entity: NamedTuple, location: str):
