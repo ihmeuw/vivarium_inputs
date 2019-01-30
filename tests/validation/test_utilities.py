@@ -191,13 +191,22 @@ def test_check_sex_ids_pass(sex_ids, male, female, both, gbd_mock, recwarn):
 
 
 test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 4, ['a', 'b'], 'missing'),
-             (pd.DataFrame({'age_group_id': [1, 2], 'a': [0, 0], 'b': [0, 0]}), 1, 2, ['a', 'b'], 'missing for all age groups'),
-             (pd.DataFrame({'age_group_id': [1, 2, 3], 'a': [1, 1, 1], 'b': [2, 3, 0]}), 1, 2, ['a'], 'also included')]
+             (pd.DataFrame({'age_group_id': [1, 2], 'a': [0, 0], 'b': [0, 0]}), 1, 2, ['a', 'b'], 'missing for all age groups')]
 
 
 @pytest.mark.parametrize('data, start, end, val_cols, match', test_data)
 def test_check_age_restrictions_fail(data, start, end, val_cols, match, gbd_mock):
     with pytest.raises(DataAbnormalError, match=match):
+        utilities.check_age_restrictions(data, start, end, value_columns=val_cols)
+
+
+test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5], 'a': 1, 'b': 0}), 1, 4, ['a', 'b']),
+             (pd.DataFrame({'age_group_id': [1, 2, 3], 'a': [1, 1, 1], 'b': [2, 3, 0]}), 1, 2, ['a'])]
+
+
+@pytest.mark.parametrize('data, start, end, val_cols', test_data)
+def test_check_age_restrictions_warn(data, start, end, val_cols, gbd_mock):
+    with pytest.warns(Warning, match='also included'):
         utilities.check_age_restrictions(data, start, end, value_columns=val_cols)
 
 
@@ -243,12 +252,8 @@ def test_check_value_columns_boundary_pass(data, boundary, boundary_type, val_co
 
 test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 0, 'b': 0, 'c': 1}), True, False,
               ['a', 'b'], 'missing data values for males'),
-             (pd.DataFrame({'sex_id': [1, 2], 'a': 1, 'b': 0}), True, False,
-              ['a', 'b'], 'non-male sex ids'),
              (pd.DataFrame({'sex_id': [2, 2, 2, 3], 'a': 0, 'b': 0}), False, True,
               ['a', 'b'], 'missing data values for females'),
-             (pd.DataFrame({'sex_id': [1, 2], 'a': 1, 'b': 0}), False, True,
-              ['a', 'b'], 'non-female sex ids'),
              (pd.DataFrame({'sex_id': [3], 'a': [0], 'b': [0]}), False, False,
              ['a', 'b'], 'values for both'),
              (pd.DataFrame({'sex_id': [1, 2], 'a': [0, 1], 'b': [0, 1]}), False, False,
@@ -257,6 +262,17 @@ test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 0, 'b': 0, 'c': 1}), True, Fa
 @pytest.mark.parametrize('data, male, female, val_cols, match', test_data)
 def test_check_sex_restrictions_fail(data, male, female, val_cols, match, gbd_mock):
     with pytest.raises(DataAbnormalError, match=match):
+        utilities.check_sex_restrictions(data, male, female, value_columns=val_cols)
+
+
+test_data = [(pd.DataFrame({'sex_id': [1, 2], 'a': 1, 'b': 0}), True, False,
+              ['a', 'b'], 'non-male sex ids'),
+             (pd.DataFrame({'sex_id': [1, 2], 'a': 1, 'b': 0}), False, True,
+              ['a', 'b'], 'non-female sex ids')]
+
+@pytest.mark.parametrize('data, male, female, val_cols, match', test_data)
+def test_check_sex_restrictions_warn(data, male, female, val_cols, match, gbd_mock):
+    with pytest.warns(Warning, match=match):
         utilities.check_sex_restrictions(data, male, female, value_columns=val_cols)
 
 

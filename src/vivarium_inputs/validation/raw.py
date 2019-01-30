@@ -171,24 +171,24 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['incidence'])
+    check_measure_id(data, ['Incidence'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'annual')
     check_location(data, location_id)
 
     if entity.kind == 'cause':
-        check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    else:   # sequelae don't have restrictions
-        check_age_group_ids(data)
+        restrictions = entity.restrictions
+    else:  # sequela
+        cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
+        restrictions = cause.restrictions
 
+    check_age_group_ids(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
 
-    if entity.kind == 'cause':
-        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
-                               entity.restrictions.yld_age_group_id_end)
-        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', inclusive=True, error=True)
     check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
@@ -200,24 +200,24 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['prevalence'])
+    check_measure_id(data, ['Prevalence'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'annual')
     check_location(data, location_id)
 
     if entity.kind == 'cause':
-        check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    else:   # sequelae don't have restrictions
-        check_age_group_ids(data)
+        restrictions = entity.restrictions
+    else:  # sequela
+        cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
+        restrictions = cause.restrictions
 
-    # como should all sexes regardless of restrictions
+    check_age_group_ids(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
 
-    if entity.kind == 'cause':
-        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
-                               entity.restrictions.yld_age_group_id_end)
-        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
@@ -229,7 +229,7 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['incidence'])
+    check_measure_id(data, ['Incidence'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'annual')
@@ -277,7 +277,7 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
                         'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['remission'])
+    check_measure_id(data, ['Remission'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'binned')
@@ -304,7 +304,7 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     expected_columns = ['measure_id', f'{entity.kind}_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['deaths'])
+    check_measure_id(data, ['Deaths'])
     check_metric_id(data, 'number')
 
     check_years(data, 'annual')
@@ -337,7 +337,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
                         'measure_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data,  ['prevalence', 'proportion', 'continuous'])
+    check_measure_id(data,  ['Prevalence', 'Proportion', 'Continuous'])
     check_metric_id(data, 'rate')
 
     if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
@@ -390,7 +390,7 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
                         'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data,  ['continuous'])
+    check_measure_id(data,  ['Continuous'])
     check_metric_id(data, 'rate')
 
     if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
@@ -485,11 +485,46 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
 
 
-def _validate_population_attributable_fraction(data, entity, location_id):
-    expected_columns = ('metric_id', 'measure_id', 'rei_id', 'cause_id') + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
+def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
+                                               location_id: int):
+    check_data_exist(data, zeros_missing=True)
+
+    expected_columns = ['metric_id', 'measure_id', 'rei_id', 'cause_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
+
+    check_measure_id(data, ['YLLs', 'YLDs'], single_only=False)
+    check_metric_id(data, 'percent')
+
     check_years(data, 'annual')
     check_location(data, location_id)
+
+    if entity.kind == 'risk_factor':
+        restrictions = entity.restrictions
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
+        male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
+        female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
+
+        check_age_group_ids(data, age_start, age_end)
+        check_sex_ids(data, male_expected, female_expected)
+
+        check_age_restrictions(data, age_start, age_end)
+        check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
+    else:  # etiology
+        check_age_group_ids(data, None, None)
+        check_sex_ids(data, True, True)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+
+    for c_id in data.cause_id:
+        cause = [c for c in causes if c.gbd_id == c_id][0]
+        if cause.restrictions.yld_only and (data.measure_id == 'YLLs').any():
+            raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
+                                    f'values despite the affected entity being restricted to yld only.')
+        if cause.restrictions.yll_only and (data.measure_id == 'YLDs').any():
+            raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
+                                    f'values despite the affected entity being restricted to yll only.')
 
 
 def _validate_mediation_factors(data, entity, location_id):
@@ -553,7 +588,7 @@ def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location
                         'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['continuous'])
+    check_measure_id(data, ['Continuous'])
     check_metric_id(data, 'rate')
 
     check_years(data, 'binned')
@@ -636,6 +671,7 @@ def _check_paf_types(entity):
     if abnormal_range.size:
         warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
+
 
 
 ############################

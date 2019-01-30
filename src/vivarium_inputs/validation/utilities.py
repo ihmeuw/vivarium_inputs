@@ -294,9 +294,9 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
         if check_data_exist(should_be_zero, zeros_missing=True, value_columns=value_columns, error=False):
-            raise DataAbnormalError(f'Data was only expected to contain values for age groups between ids '
-                                    f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
-                                    f'but also included values for age groups {extra_age_groups}.')
+            warnings.warn(f'Data was only expected to contain values for age groups between ids '
+                          f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
+                          f'but also included values for age groups {extra_age_groups}.')
 
     # make sure we're not missing data for all ages in restrictions
     if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)], zeros_missing=True,
@@ -388,8 +388,8 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
         if (set(data.sex_id) != {male} and
                 check_data_exist(data[data.sex_id != male], zeros_missing=True,
                                  value_columns=value_columns, error=False)):
-            raise DataAbnormalError('Data is restricted to male only, but contains '
-                                    'non-male sex ids for which data values are not all 0.')
+           warnings.warn('Data is restricted to male only, but contains '
+                         'non-male sex ids for which data values are not all 0.')
 
     if female_only:
         if not check_data_exist(data[data.sex_id == female], zeros_missing=True,
@@ -397,10 +397,10 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
             raise DataAbnormalError('Data is restricted to female only, but is missing data values for females.')
 
         if (set(data.sex_id) != {female} and
-                check_data_exist(data[data.sex_id != female], zeros_missing=True,
+                check_data_exist(data[data.sex_id != female], zeros_missing=True, 
                                  value_columns=value_columns, error=False)):
-            raise DataAbnormalError('Data is restricted to female only, but contains '
-                                    'non-female sex ids for which data values are not all 0.')
+            warnings.warn('Data is restricted to female only, but contains '
+                          'non-female sex ids for which data values are not all 0.')
 
     if not male_only and not female_only:
         if {male, female}.issubset(set(data.sex_id)):
@@ -417,9 +417,9 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
                                         'values for both males and females.')
 
 
-def check_measure_id(data: pd.DataFrame, allowable_measures: List[str]):
-    """Check that data contains only a single measure id and that it is one of
-    the allowed measure ids.
+def check_measure_id(data: pd.DataFrame, allowable_measures: List[str], single_only: bool = True):
+    """Check that data contains a measure id that is one of the allowed
+    measure ids.
 
     Parameters
     ----------
@@ -428,15 +428,19 @@ def check_measure_id(data: pd.DataFrame, allowable_measures: List[str]):
     allowable_measures
         List of strings dictating the possible values for measure id when
         mapped via MEASURES.
+    single_only
+        Boolean indicating whether a single measure id is expected in the data
+        or whether multiple are allowable.
 
     Raises
     ------
     DataAbnormalError
-        If data contains multiple measure ids or a non-permissible measure id.
+        If data contains either multiple measure ids and `single_only` is True
+        or a non-permissible measure id.
     """
-    if len(set(data.measure_id)) > 1:
+    if single_only and len(set(data.measure_id)) > 1:
         raise DataAbnormalError(f'Data has multiple measure ids: {set(data.measure_id)}.')
-    if not set(data.measure_id).issubset(set([MEASURES[m.capitalize()] for m in allowable_measures])):
+    if not set(data.measure_id).issubset(set([MEASURES[m] for m in allowable_measures])):
         raise DataAbnormalError(f'Data includes a measure id not in the expected measure ids for this measure.')
 
 
