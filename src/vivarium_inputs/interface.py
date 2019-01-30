@@ -29,7 +29,9 @@ def get_theoretical_minimum_risk_life_expectancy():
 
 def get_age_bins():
     pop = namedtuple('Population', 'kind')('population')
-    return core.get_data(pop, 'age_bins', 'Global')
+    data = core.get_data(pop, 'age_bins', 'Global')
+    validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
+    return utilities.sort_data(data)
 
 
 def get_demographic_dimensions(location):

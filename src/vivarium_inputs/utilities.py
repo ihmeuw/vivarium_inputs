@@ -1,9 +1,11 @@
 """Errors and utility functions for input processing."""
 import pandas as pd
 import numpy as np
+from typing import Union
 
-from gbd_mapping import causes, risk_factors
+from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
+from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_age_ids
 
 
 def get_location_id(location_name):
@@ -245,3 +247,57 @@ def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_ent
     paf['affected_entity'] = affected_entity
     paf['affected_measure'] = affected_measure
     return paf
+
+
+def get_age_group_ids_by_restriction(entity: Union[RiskFactor, Cause], which_age: str) -> (float,float):
+    if which_age == 'yll':
+        start, end = entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end
+    elif which_age == 'yld':
+        start, end = entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end
+    elif which_age == 'inner':
+        start = get_restriction_age_boundary(entity, 'start', reverse=True)
+        end = get_restriction_age_boundary(entity, 'end', reverse=True)
+    elif which_age == 'outer':
+        start = get_restriction_age_boundary(entity, 'start')
+        end = get_restriction_age_boundary(entity, 'end')
+    else:
+        raise NotImplementedError('The second argument of this function should be one of [yll, yld, inner, outer].')
+    return start, end
+
+
+def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Cause], which_age: str) -> pd.DataFrame:
+    """
+    For the given data and restrictions, it applies age/sex restrictions and
+    filter out the data outside of the range. Age restrictions can be applied
+    in 4 different ways:
+        - yld, yll, narrowest(inner) range of yll and yld,
+        broadest(outer) range of yll and yld.
+
+    Parameters
+    ----------
+    data
+        DataFrame containing 'age_group_id' and 'sex_id' columns.
+    entity
+        Cause or RiskFactor
+    which_age
+        one of 4 choices: 'yll', 'yld', 'inner', 'outer'.
+
+    Returns
+    -------
+        DataFrame which is filtered out any data outside of age/sex
+        restriction ranges.
+    """
+    restrictions = entity.restrictions
+    if restrictions.male_only and not restrictions.female_only:
+        sexes = gbd.MALE
+    elif not restrictions.male_only and restrictions.female_only:
+        sexes = gbd.FEMALE
+    else:  # not male only and not female only
+        sexes = gbd.FEMALE + gbd.MALE
+
+    data = data[data.sex_id.isin(sexes)]
+
+    start, end = get_age_group_ids_by_restriction(entity, which_age)
+    ages = get_restriction_age_ids(start, end)
+    data = data[data.age_group_id.isin(ages)]
+    return data
