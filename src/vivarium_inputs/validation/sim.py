@@ -279,7 +279,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
 
     if is_categorical:
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]  # chop 'cat' and sort
-        if (data.loc[data.parameter == tmrel_cat, 'value'] != 1.0).any():
+        if not np.allclose(data.loc[data.parameter == tmrel_cat, 'value'], 1.0):
             raise DataFormattingError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
     age_start_ids = [entity.restrictions.yll_age_group_id_start]
