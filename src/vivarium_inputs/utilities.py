@@ -249,12 +249,29 @@ def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_ent
     return paf
 
 
+def get_age_group_ids_by_restriction(entity: Union[RiskFactor, Cause], which_age: str) -> (float,float):
+    if which_age == 'yll':
+        start, end = entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end
+    elif which_age == 'yld':
+        start, end = entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end
+    elif which_age == 'inner':
+        start = get_restriction_age_boundary(entity, 'start', reverse=True)
+        end = get_restriction_age_boundary(entity, 'end', reverse=True)
+    elif which_age == 'outer':
+        start = get_restriction_age_boundary(entity, 'start')
+        end = get_restriction_age_boundary(entity, 'end')
+    else:
+        raise NotImplementedError('The second argument of this function should be one of [yll, yld, inner, outer].')
+    return start, end
+
+
 def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Cause], which_age: str) -> pd.DataFrame:
     """
     For the given data and restrictions, it applies age/sex restrictions and
     filter out the data outside of the range. Age restrictions can be applied
     in 4 different ways:
-        -yld, yll, narrowest range of yll and yld, broadest range of yll and yld.
+        - yld, yll, narrowest(inner) range of yll and yld,
+        broadest(outer) range of yll and yld.
 
     Parameters
     ----------
@@ -263,7 +280,7 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     entity
         Cause or RiskFactor
     which_age
-        one of 4 choices: 'yll', 'yld', 'narrowest', 'broadest'.
+        one of 4 choices: 'yll', 'yld', 'inner', 'outer'.
 
     Returns
     -------
@@ -280,18 +297,7 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
 
     data = data[data.sex_id.isin(sexes)]
 
-    if which_age == 'yll':
-        ages = get_restriction_age_ids(restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
-    elif which_age == 'yld':
-        ages = get_restriction_age_ids(restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
-    elif which_age == 'narrowest':
-        start = get_restriction_age_boundary(entity, 'start', reverse=True)
-        end = get_restriction_age_boundary(entity, 'end', reverse=True)
-        ages =get_restriction_age_ids(start, end)
-    else:  # broadest
-        start = get_restriction_age_boundary(entity, 'start')
-        end = get_restriction_age_boundary(entity, 'end')
-        ages = get_restriction_age_ids(start, end)
-
+    start, end = get_age_group_ids_by_restriction(entity, which_age)
+    ages = get_restriction_age_ids(start, end)
     data = data[data.age_group_id.isin(ages)]
     return data

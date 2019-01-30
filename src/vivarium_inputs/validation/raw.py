@@ -89,7 +89,7 @@ def check_sequela_metadata(entity: Sequela, measure: str):
 
 
 def check_cause_metadata(entity: Cause, measure: str):
-    if entity.restrictions.yll_only and not entity.restrictions.yld_only:
+    if entity.restrictions.yll_only:
         raise NotImplementedError(f"{entity.name} is YLL only cause and we currently do not have a model to support it.")
 
     _check_cause_age_restrictions(entity)
@@ -757,8 +757,9 @@ def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
         raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
                                 'beyond all ages and age standardized.')
 
+
 def _check_cause_age_restrictions(entity: Cause):
-    if entity.restrictions.yld_only:
+    if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
     else:
         yll_ages = get_restriction_age_ids(entity.restrictions.yll_age_group_id_start,
