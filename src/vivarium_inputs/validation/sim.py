@@ -73,6 +73,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, N
         # Population measures
         'structure': _validate_structure,
         'theoretical_minimum_risk_life_expectancy': _validate_theoretical_minimum_risk_life_expectancy,
+        'age_bins': _validate_age_bins,
         'demographic_dimensions': _validate_demographic_dimensions,
     }
 
@@ -256,6 +257,10 @@ def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entit
 
     if not data.sort_values(by='age_group_start', ascending=False).value.is_monotonic():
         raise DataAbnormalError('Life expectancy data is not monotonically decreasing over age.')
+
+
+def _validate_age_bins(data: pd.DataFrame, entity: NamedTuple, location: str):
+    _validate_age_columns(data)
 
 
 def _validate_demographic_dimensions(data: pd.DataFrame, entity: NamedTuple, location: str):
