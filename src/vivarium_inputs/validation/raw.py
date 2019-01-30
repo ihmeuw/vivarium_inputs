@@ -26,6 +26,7 @@ MAX_LIFE_EXP = 90
 MAX_POP = 100000000
 
 ALL_AGES_AGE_GROUP_ID = 22
+AGE_STANDARDIZED_AGE_GROUP_ID = 27
 
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
@@ -712,7 +713,6 @@ def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
         # if we have any of the expected gbd age group ids, restriction is not violated
         raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
     # if we have any age group ids besides all ages and age standardized, restriction is violated
-    age_standardized_age_group = 27
-    if bool((set(data.age_group_id) - {ALL_AGES_AGE_GROUP_ID, age_standardized_age_group})):
+    if bool((set(data.age_group_id) - {ALL_AGES_AGE_GROUP_ID, AGE_STANDARDIZED_AGE_GROUP_ID})):
         raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
                                 'beyond all ages and age standardized.')
