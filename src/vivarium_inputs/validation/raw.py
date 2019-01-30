@@ -178,17 +178,17 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     check_location(data, location_id)
 
     if entity.kind == 'cause':
-        check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    else:   # sequelae don't have restrictions
-        check_age_group_ids(data)
+        restrictions = entity.restrictions
+    else:  # sequela
+        cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
+        restrictions = cause.restrictions
 
+    check_age_group_ids(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
 
-    if entity.kind == 'cause':
-        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
-                               entity.restrictions.yld_age_group_id_end)
-        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', inclusive=True, error=True)
     check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
@@ -207,17 +207,17 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     check_location(data, location_id)
 
     if entity.kind == 'cause':
-        check_age_group_ids(data, entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)
-    else:   # sequelae don't have restrictions
-        check_age_group_ids(data)
+        restrictions = entity.restrictions
+    else:  # sequela
+        cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
+        restrictions = cause.restrictions
 
-    # como should all sexes regardless of restrictions
+    check_age_group_ids(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
 
-    if entity.kind == 'cause':
-        check_age_restrictions(data, entity.restrictions.yld_age_group_id_start,
-                               entity.restrictions.yld_age_group_id_end)
-        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+    check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
