@@ -181,7 +181,8 @@ def test__validate_value_column_missing():
         ((0, 1, 1, 1, 0), [1], [4], 'outer', 0.0),
         ((1, 1, 1, 0, 0), [0], [3], 'outer', 0.0),
         ((0, 0, 0, 1, 1), [0], [3], 'outer', 1.0),
-], ids=('no_restr', 'left_restr', 'outer_restr', 'right_restr', 'nonzero_fill'))
+        ((0, 1, 0, 0, 0), [0, 2], [3, 5], 'inner', 0.0)
+], ids=('no_restr', 'left_restr', 'outer_restr', 'right_restr', 'nonzero_fill', 'inner'))
 def test__check_age_restrictions(values, start_ids, end_ids, type, fill, mocked_get_age_bins):
     age_bins = mocked_get_age_bins()
     df = pd.DataFrame({'age_group_start': age_bins.age_group_years_start, 'age_group_end': age_bins.age_group_years_end})
