@@ -288,3 +288,4 @@ def get_demographic_dimensions(entity: POP, location_id: int) -> pd.DataFrame:
     demographic_dimensions = utilities.get_demographic_dimensions(location_id)
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
+
