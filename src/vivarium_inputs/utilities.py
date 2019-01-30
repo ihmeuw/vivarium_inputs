@@ -1,11 +1,11 @@
 """Errors and utility functions for input processing."""
 import pandas as pd
 import numpy as np
+from typing import Union
 
-from typing import List
-
-from gbd_mapping import causes, risk_factors, Restrictions
+from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
+from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_age_ids
 
 
 def get_location_id(location_name):
@@ -26,13 +26,6 @@ def get_annual_year_bins():
     df = pd.DataFrame({'year_id': range(min(estimation_years), max(estimation_years) + 1)})
 
     return scrub_year(df)
-
-
-def get_valid_sex_ids(restrictions: Restrictions) -> List:
-    male, female = restrictions.male_only, restrictions.female_only
-    sexes = gbd.MALE if male else []
-    sexes += gbd.FEMALE if female else []
-    return sexes
 
 
 def get_demographic_dimensions(location_id, draws=False):
@@ -254,3 +247,51 @@ def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_ent
     paf['affected_entity'] = affected_entity
     paf['affected_measure'] = affected_measure
     return paf
+
+
+def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Cause], which_age: str) -> pd.DataFrame:
+    """
+    For the given data and restrictions, it applies age/sex restrictions and
+    filter out the data outside of the range. Age restrictions can be applied
+    in 4 different ways:
+        -yld, yll, narrowest range of yll and yld, broadest range of yll and yld.
+
+    Parameters
+    ----------
+    data
+        DataFrame containing 'age_group_id' and 'sex_id' columns.
+    entity
+        Cause or RiskFactor
+    which_age
+        one of 4 choices: 'yll', 'yld', 'narrowest', 'broadest'.
+
+    Returns
+    -------
+        DataFrame which is filtered out any data outside of age/sex
+        restriction ranges.
+    """
+    restrictions = entity.restrictions
+    if restrictions.male_only and not restrictions.female_only:
+        sexes = gbd.MALE
+    elif not restrictions.male_only and restrictions.female_only:
+        sexes = gbd.FEMALE
+    else:  # not male only and not female only
+        sexes = gbd.FEMALE + gbd.MALE
+
+    data = data[data.sex_id.isin(sexes)]
+
+    if which_age == 'yll':
+        ages = get_restriction_age_ids(restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
+    elif which_age == 'yld':
+        ages = get_restriction_age_ids(restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    elif which_age == 'narrowest':
+        start = get_restriction_age_boundary(entity, 'start', reverse=True)
+        end = get_restriction_age_boundary(entity, 'end', reverse=True)
+        ages =get_restriction_age_ids(start, end)
+    else:  # broadest
+        start = get_restriction_age_boundary(entity, 'start')
+        end = get_restriction_age_boundary(entity, 'end')
+        ages = get_restriction_age_ids(start, end)
+
+    data = data[data.age_group_id.isin(ages)]
+    return data
