@@ -244,10 +244,13 @@ def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entit
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
         raise DataFormattingError("Age data must be contained in columns named 'age_group_start' and 'age_group_end'.")
 
-    if not np.allclose(data.age_group_end - data.age_group_start, 0.1):
+    age_min, age_max, age_step = 0, 110, 0.01
+
+    if not np.allclose(data.age_group_end - data.age_group_start, age_step):
         raise DataFormattingError('Life expectancy data is not all in age groups of length 0.1 years.')
 
-    if data.age_group_start.min() > 0 or data.age_group_start.max() < 110 or len(data.age_group_start) != 1100:
+    if (data.age_group_start.min() > age_min or data.age_group_start.max() < age_max or
+            len(data.age_group_start) != (age_max-age_min) * age_step):
         raise DataFormattingError('Life expectancy data does not span the entire age range [0, 110].')
 
     validation_utilities.check_value_columns_boundary(data, VALID_LIFE_EXP_RANGE[0], 'lower',
