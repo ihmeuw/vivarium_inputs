@@ -3,11 +3,11 @@ from typing import Sequence, Union, NamedTuple
 import numpy as np
 import pandas as pd
 
-from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap
+from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology
 from vivarium_inputs import utilities
 from vivarium_inputs.validation import utilities as validation_utilities
 from vivarium_inputs.globals import DataFormattingError
-from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
+from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 
 
 VALID_INCIDENCE_RANGE = (0.0, 50.0)
@@ -188,7 +188,8 @@ def _validate_case_fatality(data, entity, location):
     raise NotImplementedError()
 
 
-def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location: str):
+def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
+                       location: str):
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = (entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'])
 
@@ -223,7 +224,8 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_exposure_standard_deviation(data, entity, location):
+def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
+                                          location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[0],
@@ -237,7 +239,8 @@ def _validate_exposure_standard_deviation(data, entity, location):
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_exposure_distribution_weights(data, entity, location):
+def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
+                                            location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_DIST_WEIGHTS_RANGE[0],
