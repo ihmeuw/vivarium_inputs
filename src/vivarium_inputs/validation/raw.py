@@ -682,24 +682,22 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
     if (no_morbidity & no_mortality).any():
         raise DataAbnormalError(base_error_msg + 'rows with both mortality and morbidity flags set to 0.')
 
-    if (morbidity & mortality).any():
+    elif (morbidity & mortality).any():
         if no_morbidity.any() or no_mortality.any():
             raise DataAbnormalError(base_error_msg + 'row with both mortality and morbidity flags set to 1 as well as '
                                                      'rows with only one of the mortality or morbidity flags set to 1.')
-        else:  # all is fine - we only have rows with both mort and morb set to 1
-            return
-
-    if morbidity.any() and no_mortality.all() and not yld_only:
-        raise DataAbnormalError(base_error_msg + 'only rows with the morbidity flag set to 1 but the affected entity '
-                                                 'is not restricted to yld_only.')
-
-    if mortality.any() and no_morbidity.all() and not yll_only:
-        raise DataAbnormalError(base_error_msg + 'only rows with the mortality flag set to 1 but the affected entity '
-                                                 'is not restricted to yll_only.')
-
-    if mortality.any() and morbidity.any() and (yld_only or yll_only):
-        raise DataAbnormalError(base_error_msg + f'rows for both morbidity and mortality, but the affected entity '
-                                f'is restricted to {"yll_only" if yll_only else "yld_only"}.')
+    else:
+        if morbidity.any() and no_mortality.all() and not yld_only:
+            raise DataAbnormalError(base_error_msg + 'only rows with the morbidity flag set to 1 but the affected '
+                                                     'entity is not restricted to yld_only.')
+        elif mortality.any() and no_morbidity.all() and not yll_only:
+            raise DataAbnormalError(base_error_msg + 'only rows with the mortality flag set to 1 but the affected '
+                                                     'entity is not restricted to yll_only.')
+        elif mortality.any() and morbidity.any() and (yld_only or yll_only):
+            raise DataAbnormalError(base_error_msg + f'rows for both morbidity and mortality, but the affected entity '
+                                    f'is restricted to {"yll_only" if yll_only else "yld_only"}.')
+        else:
+            pass
 
 
 def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
