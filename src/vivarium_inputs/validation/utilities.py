@@ -283,8 +283,7 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
 
     # age groups we expected in data but that are not
     missing_age_groups = set(expected_gbd_age_ids).difference(set(data.age_group_id))
-    # age groups we do not expect in data but that are (allow 235 because of metadata oversight)
-    extra_age_groups = set(data.age_group_id).difference(set(expected_gbd_age_ids)) - {235}
+    extra_age_groups = set(data.age_group_id).difference(set(expected_gbd_age_ids))
 
     if missing_age_groups:
         raise DataAbnormalError(f'Data was expected to contain all age groups between ids '
