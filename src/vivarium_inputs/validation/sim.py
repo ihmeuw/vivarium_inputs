@@ -257,7 +257,7 @@ def _validate_mediation_factors(data, entity, location):
 
 
 def _validate_estimate(data, entity, location):
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity], location: str):
@@ -277,15 +277,15 @@ def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location
 
 
 def _validate_structure(data, entity, location):
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data, entity, location):
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 def _validate_demographic_dimensions(data, entity, location):
-    raise NotImplemented()
+    raise NotImplementedError()
 
 
 #############
