@@ -672,25 +672,32 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
             raise DataAbnormalError(f'Data contains values for {m} outside the expected {valid_morb_mort_values}.')
 
     base_error_msg = f'Relative risk data includes '
-    if ((data.morbidity == 0) & (data.mortality == 0)).any():
+
+    no_morbidity = data.morbidity == 0
+    no_mortality = data.mortality == 0
+
+    morbidity = ~no_morbidity
+    mortality = ~no_mortality
+
+    if (no_morbidity & no_mortality).any():
         raise DataAbnormalError(base_error_msg + 'rows with both mortality and morbidity flags set to 0.')
 
-    if ((data.morbidity == 1) & (data.mortality == 1)).any():
-        if (data.morbidity == 0).any() or (data.mortality == 0).any():
+    if (morbidity & mortality).any():
+        if no_morbidity.any() or no_mortality.any():
             raise DataAbnormalError(base_error_msg + 'row with both mortality and morbidity flags set to 1 as well as '
                                                      'rows with only one of the mortality or morbidity flags set to 1.')
         else:  # all is fine - we only have rows with both mort and morb set to 1
             return
 
-    if (data.morbidity == 1).any() and not (data.mortality == 1).any() and not yld_only:
+    if morbidity.any() and no_mortality.all() and not yld_only:
         raise DataAbnormalError(base_error_msg + 'only rows with the morbidity flag set to 1 but the affected entity '
                                                  'is not restricted to yld_only.')
 
-    if (data.mortality == 1).any() and not (data.morbidity == 1).any() and not yll_only:
+    if mortality.any() and no_morbidity.all() and not yll_only:
         raise DataAbnormalError(base_error_msg + 'only rows with the mortality flag set to 1 but the affected entity '
                                                  'is not restricted to yll_only.')
 
-    if (data.mortality == 1).any() and (data.morbidity == 1).any() and (yld_only or yll_only):
+    if mortality.any() and morbidity.any() and (yld_only or yll_only):
         raise DataAbnormalError(base_error_msg + f'rows for both morbidity and mortality, but the affected entity '
                                 f'is restricted to {"yll_only" if yll_only else "yld_only"}.')
 
