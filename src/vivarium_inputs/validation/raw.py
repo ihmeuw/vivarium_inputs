@@ -513,8 +513,7 @@ def _validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int):
     if entity.by_age:
         check_age_group_ids(data, None, None)
     else:
-        age_standardized_age_group_id = 27
-        if not set(data.age_group_id).issubset({ALL_AGES_AGE_GROUP_ID, age_standardized_age_group_id}):
+        if not set(data.age_group_id).issubset({ALL_AGES_AGE_GROUP_ID, AGE_STANDARDIZED_AGE_GROUP_ID}):
             raise DataAbnormalError(f'Estimate data for {entity.kind} {entity.name} is not supposed to be by age, '
                                     f'but contains age groups beyond all ages and age standardized.')
 
