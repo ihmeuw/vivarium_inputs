@@ -42,26 +42,3 @@ def test_normalize_sex_no_sex_id():
     normalized = utilities.normalize_sex(df, fill_value=0.0)
     pd.testing.assert_frame_equal(df, normalized)
 
-
-# # get bins, add and subtract years from
-# def test_normalize_year_annual():
-#     pass
-#
-
-
-# test age 22 passed in, results in all ages
-# test age deficient, fills in ages
-# test extra ages, should subset like year?
-def test_normalize_age():
-    pass
-
-
-# assert dataframe is unchanged
-def test_normalize_age_no_age_id():
-    df = pd.DataFrame({'ColumnA': [1, 2, 3], 'ColumnB': [1, 2 ,3]})
-    normalized = utilities.normalize_age(df, )
-
-
-def test_reshape():
-    columns = ['a', 'b', 'c']
-    draws = [f'draw_{i}' for i in range(1000)]
