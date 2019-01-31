@@ -124,7 +124,7 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
         data.loc[:, 'sex_id'] = 1
         fill_data.loc[:, 'sex_id'] = 2
         data = pd.concat([data, fill_data], ignore_index=True)
-    elif sexes == 1:
+    elif len(sexes) == 1:
         # Data is sex specific, but only applies to one sex, so fill the other with default.
         fill_data = data.copy()
         missing_sex = {1, 2}.difference(set(data.sex_id.unique())).pop()
@@ -137,7 +137,8 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
 
 
 def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
-    years = {'annual': list(range(1990, 2018)), 'binned': gbd.get_estimation_years()}
+    binned_years = gbd.get_estimation_years()
+    years = {'annual': list(range(binned_years.min(), binned_years.max() + 1)), 'binned': binned_years}
 
     if 'year_id' not in data:
         # Data doesn't vary by year, so copy for each year.
