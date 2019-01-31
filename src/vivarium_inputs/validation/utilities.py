@@ -11,7 +11,6 @@ from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES,
 from gbd_mapping import RiskFactor, Cause
 
 
-
 def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
     """Check that years in passed data match expected range based on type.
 
@@ -310,7 +309,7 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
 
 def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float, pd.Series], boundary_type: str,
                                  value_columns: list = DRAW_COLUMNS, inclusive: bool = True,
-                                 error: Union[VivariumInputsError, ValueError] = None):
+                                 error: type(VivariumInputsError) = None):
     """Check that all values in DRAW_COLUMNS in data are above or below given
     boundary_value.
 
