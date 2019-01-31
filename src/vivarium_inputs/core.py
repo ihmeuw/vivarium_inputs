@@ -159,7 +159,7 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     data = data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
 
     if entity.kind == 'risk_factor':
-        data = utilities.filter_data_by_restrictions(data, entity, 'broadest')
+        data = utilities.filter_data_by_restrictions(data, entity, 'outer')
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
@@ -171,7 +171,7 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
     data = data.drop('modelable_entity_id', 'columns')
 
     if entity.kind == 'risk_factor':
-        data = utilities.filter_data_by_restrictions(data, entity, 'broadest')
+        data = utilities.filter_data_by_restrictions(data, entity, 'outer')
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
@@ -191,7 +191,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
 def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'relative_risk', location_id)
     if entity.kind == 'risk_factor':
-        data = utilities.filter_data_by_restrictions(data, entity, 'narrowest')
+        data = utilities.filter_data_by_restrictions(data, entity, 'inner')
 
         data = utilities.convert_affected_entity(data, 'cause_id')
         morbidity = data.morbidity == 1
@@ -222,7 +222,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
         cause = [c for c in causes if entity in c.etiologies][0]
         restriction_entity = cause
 
-    data = utilities.filter_data_by_restrictions(data, restriction_entity, 'narrowest')
+    data = utilities.filter_data_by_restrictions(data, restriction_entity, 'inner')
 
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
