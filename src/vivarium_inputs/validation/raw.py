@@ -20,7 +20,7 @@ from vivarium_inputs.validation.utilities import (check_years, check_location, c
 
 MAX_INCIDENCE = 10
 MAX_REMISSION = 365/3
-MAX_CATEG_REL_RISK = 15
+MAX_CATEG_REL_RISK = 20
 MAX_CONT_REL_RISK = 5
 MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
