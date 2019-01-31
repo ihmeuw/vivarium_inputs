@@ -3,7 +3,7 @@ from typing import Sequence, Union, NamedTuple
 import numpy as np
 import pandas as pd
 
-from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology
+from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate
 from vivarium_inputs import utilities
 from vivarium_inputs.validation import utilities as validation_utilities
 from vivarium_inputs.globals import DataFormattingError
@@ -291,8 +291,19 @@ def _validate_mediation_factors(data, entity, location):
     raise NotImplementedError()
 
 
-def _validate_estimate(data, entity, location):
-    raise NotImplementedError()
+def _validate_estimate(data: pd.DataFrame, entity: Covariate, location: str):
+    cols = ['location', 'year_start', 'year_end']
+    _validate_location_column(data, location)
+    if entity.by_sex:
+        _validate_sex_column(data)
+        cols += ['sex']
+    if entity.by_age:
+        _validate_age_columns(data)
+        cols += ['age_group_start', 'age_group_end']
+    _validate_year_columns(data)
+    _validate_value_column(data)
+
+    data.groupby(cols).apply(_check_covariate_values)
 
 
 def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity], location: str):
@@ -444,3 +455,15 @@ def _check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bo
         raise DataFormattingError(f"Restriction to male sex only is violated by a value other than fill={fill_value}.")
     elif female_only and (data.loc[data.sex == 'Male', 'value'] != fill_value).any():
         raise DataFormattingError(f"Restriction to female sex only is violated by a value other than fill={fill_value}.")
+
+
+def _check_covariate_values(data: pd.DataFrame):
+    lower = data[data.parameter == 'lower_value'].value.values
+    mean = data[data.parameter == 'mean_value'].value.values
+    upper = data[data.parameter == 'upper_value'].value.values
+
+    # allow the case where lower = mean = upper = 0 b/c of things like age
+    # specific fertility rate where all estimates are 0 for young age groups
+    if np.all(data.value != 0) and not np.all(lower < mean < upper):
+        raise DataFormattingError('Covariate data contains demographic groups for which the estimates for lower, mean, '
+                                  'and upper values are not all 0 and it is not the case that lower < mean < upper. ')
