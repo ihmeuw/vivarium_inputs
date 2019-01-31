@@ -7,7 +7,7 @@ import numpy as np
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES,
                                      DataAbnormalError, DataNotExistError, gbd)
-from gbd_mapping import RiskFactor
+from gbd_mapping import RiskFactor, Cause
 
 
 def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
@@ -138,7 +138,10 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool,
     return True
 
 
-def _get_restriction_ages(start_id: Union[float, None], end_id: Union[float, None]) -> list:
+def get_restriction_age_ids(start_id: Union[float, None], end_id: Union[float, None]) -> list:
+    """Get the start/end age group id and return the list of GBD age_group_ids
+    in-between.
+    """
     if start_id is None:
         return []
 
@@ -191,7 +194,7 @@ def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, res
 
     """
     all_ages = set(gbd.get_age_group_id())
-    restriction_ages = set(_get_restriction_ages(restriction_start, restriction_end))
+    restriction_ages = set(get_restriction_age_ids(restriction_start, restriction_end))
     data_ages = set(data.age_group_id)
 
     invalid_ages = data_ages.difference(all_ages)
@@ -279,7 +282,7 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
         the data.
 
     """
-    expected_gbd_age_ids = _get_restriction_ages(age_group_id_start, age_group_id_end)
+    expected_gbd_age_ids = get_restriction_age_ids(age_group_id_start, age_group_id_end)
 
     # age groups we expected in data but that are not
     missing_age_groups = set(expected_gbd_age_ids).difference(set(data.age_group_id))
@@ -466,17 +469,20 @@ def check_metric_id(data: pd.DataFrame, expected_metric: str):
                                 f'(metric_id {METRICS[expected_metric.capitalize()]}')
 
 
-def get_restriction_age_boundary(entity: RiskFactor, boundary: str):
+def get_restriction_age_boundary(entity: Union[RiskFactor, Cause], boundary: str, reverse=False):
     """Find the minimum/maximum age restriction (if both 'yll' and 'yld'
     restrictions exist) for a RiskFactor.
 
     Parameters
     ----------
     entity
-        RiskFactor for which to find the minimum/maximum age restriction.
+        RiskFactor or Cause for which to find the minimum/maximum age restriction.
     boundary
-        String 'start' or 'end' indicating whether to return the minimum
-        start age restriction or maximum end age restriction.
+        String 'start' or 'end' indicating whether to return the minimum(maximum)
+        start age restriction or maximum(minimum) end age restriction.
+    reverse
+        if reverse is True, return the maximum of start age restriction
+        and minimum of end age restriction.
 
     Returns
     -------
@@ -491,5 +497,8 @@ def get_restriction_age_boundary(entity: RiskFactor, boundary: str):
     elif yll_age is None:
         age = yld_age
     else:
-        age = min(yld_age, yll_age) if boundary == 'start' else max(yld_age, yll_age)
+        start_op = max if reverse else min
+        end_op = min if reverse else max
+        age = end_op(yld_age, yll_age) if boundary == 'start' else start_op(yld_age, yll_age)
     return age
+

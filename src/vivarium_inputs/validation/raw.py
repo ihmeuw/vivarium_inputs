@@ -14,7 +14,8 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
                                                   check_age_group_ids, check_sex_ids, check_age_restrictions,
                                                   check_value_columns_boundary, check_sex_restrictions,
-                                                  check_measure_id, check_metric_id, get_restriction_age_boundary)
+                                                  check_measure_id, check_metric_id, get_restriction_age_boundary,
+                                                  get_restriction_age_ids)
 
 
 MAX_INCIDENCE = 10
@@ -23,7 +24,7 @@ MAX_CATEG_REL_RISK = 15
 MAX_CONT_REL_RISK = 5
 MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
-MAX_POP = 100000000
+MAX_POP = 100_000_000
 
 ALL_AGES_AGE_GROUP_ID = 22
 AGE_STANDARDIZED_AGE_GROUP_ID = 27
@@ -88,6 +89,10 @@ def check_sequela_metadata(entity: Sequela, measure: str):
 
 
 def check_cause_metadata(entity: Cause, measure: str):
+    if entity.restrictions.yll_only:
+        raise NotImplementedError(f"{entity.name} is YLL only cause and we currently do not have a model to support it.")
+
+    _check_cause_age_restrictions(entity)
     _check_exists_in_range(entity, measure)
 
     _warn_violated_restrictions(entity, measure)
@@ -752,3 +757,16 @@ def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
     if bool((set(data.age_group_id) - {ALL_AGES_AGE_GROUP_ID, AGE_STANDARDIZED_AGE_GROUP_ID})):
         raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
                                 'beyond all ages and age standardized.')
+
+
+def _check_cause_age_restrictions(entity: Cause):
+    if entity.restrictions.yld_only or entity.restrictions.yll_only:
+        pass
+    else:
+        yll_ages = get_restriction_age_ids(entity.restrictions.yll_age_group_id_start,
+                                           entity.restrictions.yll_age_group_id_end)
+        yld_ages = get_restriction_age_ids(entity.restrictions.yld_age_group_id_start,
+                                           entity.restrictions.yld_age_group_id_end)
+        if set(yll_ages) > set(yld_ages):
+            raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
+                                      f' We currently do not support these causes.')
