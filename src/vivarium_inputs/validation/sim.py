@@ -199,7 +199,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
     if is_continuous:
-        if data.parameter != "continuous":
+        if set(data.parameter) != {"continuous"}:
             raise DataFormattingError("Continuous exposure data should contain 'continuous' in the parameter column.")
         valid_kwd = 'continuous'
     elif is_categorical:
