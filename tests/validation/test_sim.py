@@ -175,34 +175,36 @@ def test__validate_value_column_missing():
         sim._validate_value_column(df)
 
 
-@pytest.mark.parametrize('values, start_ids, end_ids, type, fill', [
-        ((1, 1, 1, 1, 1), [0], [5], 'outer', 0.0),
-        ((0, 0, 1, 1, 1), [2], [5], 'outer', 0.0),
-        ((0, 1, 1, 1, 0), [1], [4], 'outer', 0.0),
-        ((1, 1, 1, 0, 0), [0], [3], 'outer', 0.0),
-        ((0, 0, 0, 1, 1), [0], [3], 'outer', 1.0),
-        ((0, 1, 0, 0, 0), [0, 2], [3, 5], 'inner', 0.0)
-], ids=('no_restr', 'left_restr', 'outer_restr', 'right_restr', 'nonzero_fill', 'inner'))
-def test__check_age_restrictions(values, start_ids, end_ids, type, fill, mocked_get_age_bins):
+@pytest.mark.parametrize('values, ids, type, fill', [
+        ((1, 1, 1, 1, 1), (1, 5), 'outer', 0.0),
+        ((0, 0, 1, 1, 1), (3, 5), 'outer', 0.0),
+        ((0, 1, 1, 1, 0), (2, 4), 'outer', 0.0),
+        ((1, 1, 1, 0, 0), (1, 3), 'outer', 0.0),
+        ((2, 2, 2, 1, 1), (1, 3), 'outer', 1.0),
+], ids=('no_restr', 'left_restr', 'outer_restr', 'right_restr', 'nonzero_fill'))
+def test__check_age_restrictions(mocker, mocked_get_age_bins, values, ids, type, fill):
+    entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
+    entity.return_value = ids
     age_bins = mocked_get_age_bins()
     df = pd.DataFrame({'age_group_start': age_bins.age_group_years_start, 'age_group_end': age_bins.age_group_years_end})
     df['value'] = values
-    sim._check_age_restrictions(df, start_ids, end_ids, type, fill)
+    sim._check_age_restrictions(df, entity, type, fill)
 
 
-@pytest.mark.parametrize('values, start_ids, end_ids, type, fill', [
-        ((1, 1, 1, 1, 1), [1], [4], 'outer', 0.0),
-        ((1, 1, 1, 1, 1), [2], [5], 'outer', 0.0),
-        ((1, 1, 1, 1, 0), [0], [3], 'outer', 0.0),
-        ((0, 0, 0, 0, 1), [0], [3], 'outer', 1.0),
-        ((0, 1, 1, 1, 0), [0, 2], [3, 5], 'inner', 0.0)
-], ids=('both_sides', 'left_side', 'right_side', 'nonzero_fill', 'inner'))
-def test__check_age_restrictions_fail(values, start_ids, end_ids, type, fill, mocked_get_age_bins):
+@pytest.mark.parametrize('values, ids, type, fill', [
+        ((1, 1, 1, 1, 1), (1, 4), 'outer', 0.0),
+        ((0, 1, 1, 1, 1), (1, 3), 'outer', 0.0),
+        ((1, 1, 1, 1, 0), (1, 3), 'outer', 0.0),
+        ((2, 2, 2, 2, 1), (2, 5), 'outer', 1.0),
+], ids=('both_sides', 'left_side', 'right_side', 'nonzero_fill'))
+def test__check_age_restrictions_fail(mocker, mocked_get_age_bins, values, ids, type, fill):
+    entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
+    entity.return_value = ids
     age_bins = mocked_get_age_bins()
     df = pd.DataFrame({'age_group_start': age_bins.age_group_years_start, 'age_group_end': age_bins.age_group_years_end})
     df['value'] = values
     with pytest.raises(DataFormattingError):
-        sim._check_age_restrictions(df, start_ids, end_ids, type, fill)
+        sim._check_age_restrictions(df, entity, type, fill)
 
 
 @pytest.mark.parametrize('values, restrictions, fill', [

@@ -431,8 +431,8 @@ def _check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, type: s
 
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, type)
     age_bins = utilities.get_age_bins()
-    age_start = age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start']
-    age_end = age_bins.loc[age_bins.age_group_id == end_id, 'age_group_end']
+    age_start = float(age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start'])
+    age_end = float(age_bins.loc[age_bins.age_group_id == end_id, 'age_group_end'])
 
     outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
     if not outside.empty and (outside.value != fill_value).any():
