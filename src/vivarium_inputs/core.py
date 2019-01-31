@@ -61,7 +61,7 @@ def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFra
     if entity.kind == 'cause':
         restrictions_entity = entity
     else:  # sequela
-        cause = [c for c in causes if entity in c.sequelae][0]
+        cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
         restrictions_entity = cause
 
     data = utilities.filter_data_by_restrictions(data, restrictions_entity, 'yld')
@@ -78,7 +78,7 @@ def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFr
     if entity.kind == 'cause':
         restrictions_entity = entity
     else:  # sequela
-        cause = [c for c in causes if entity in c.sequelae][0]
+        cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
         restrictions_entity = cause
 
     data = utilities.filter_data_by_restrictions(data, restrictions_entity, 'yld')
