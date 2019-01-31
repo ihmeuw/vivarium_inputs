@@ -427,9 +427,9 @@ def _validate_value_column(data: pd.DataFrame):
         raise DataFormattingError('Value data found to contain infinity.')
 
 
-def _check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, type: str, fill_value: float):
+def _check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_type: str, fill_value: float):
 
-    start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, type)
+    start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = utilities.get_age_bins()
     age_start = float(age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start'])
     age_end = float(age_bins.loc[age_bins.age_group_id == end_id, 'age_group_end'])
