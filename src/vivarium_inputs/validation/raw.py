@@ -331,7 +331,8 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
     pop = gbd.get_population(location_id)
     idx_cols = ['age_group_id', 'year_id', 'sex_id']
-    pop = pop[(pop.year_id.isin(data.year_id.unique())) & (pop.sex_id != gbd.COMBINED[0])].set_index(idx_cols).population
+    pop = pop[(pop.age_group_id.isin(data.age_group_id.unique())) & (pop.year_id.isin(data.year_id.unique())) & (
+               pop.sex_id != gbd.COMBINED[0])].set_index(idx_cols).population
     check_value_columns_boundary(data.set_index(idx_cols), pop, 'upper',
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
