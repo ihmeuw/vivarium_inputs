@@ -72,10 +72,18 @@ def check_location(data: pd.DataFrame, location_id: int):
     """
     if len(data['location_id'].unique()) > 1:
         raise DataAbnormalError(f'Data contains multiple location ids.')
+
     data_location_id = data['location_id'].unique()[0]
-    global_loc_id = 1
-    if data_location_id not in [global_loc_id, location_id]:
-        raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}.')
+
+    location_metadata = gbd.get_location_metadata()
+    path_to_parent = location_metadata.loc[location_metadata.location_id == location_id, 'path_to_top_parent'].max().split(',')
+    path_to_parent = [int(i) for i in path_to_parent]
+
+    if data_location_id not in path_to_parent:  
+        raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}, which is not not in its hiararchy.')
+
+    if data_location_id != location_id:
+        data['location_id'] = location_id
 
 
 def check_columns(expected_cols: List, existing_cols: List):
