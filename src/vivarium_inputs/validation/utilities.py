@@ -351,7 +351,7 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
         boundary_value = boundary_value.sort_index()
 
     if not np.all(op(data_values, boundary_value)):
-        if error:
+        if error is not None:
             raise error(msg)
         else:
             warnings.warn(msg)
