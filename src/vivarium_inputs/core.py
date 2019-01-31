@@ -7,6 +7,7 @@ import numpy as np
 
 from vivarium_inputs import utilities, extract
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
+from vivarium_inputs.validation.raw import check_age_groups_relative_risk, check_age_groups_paf
 
 from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES
 
@@ -196,6 +197,11 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
     data = extract.extract_data(entity, 'relative_risk', location_id)
     if entity.kind == 'risk_factor':
         data = utilities.filter_data_by_restrictions(data, entity, 'inner')
+        cause_ids = set(data.cause_id)
+        most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
+        data = data[data.cause_id.isin(most_detailed_cause_ids)]
+        exposure = get_exposure(entity, location_id)
+        check_age_groups_relative_risk(data, exposure)
 
         data = utilities.convert_affected_entity(data, 'cause_id')
         morbidity = data.morbidity == 1
@@ -231,6 +237,11 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     else:  # etiology
         cause = [c for c in causes if c.etiologies and entity in c.etiologies][0]
         restriction_entity = cause
+    cause_ids = set(data.cause_id)
+    most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
+    data = data[data.cause_id.isin(most_detailed_cause_ids)]
+    rr = get_relative_risk(entity, location_id)
+    check_age_groups_paf(data, rr)
 
     data = utilities.filter_data_by_restrictions(data, restriction_entity, 'inner')
 

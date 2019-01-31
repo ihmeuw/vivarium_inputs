@@ -357,15 +357,11 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = get_restriction_age_boundary(entity, 'start')
-        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
-        cats.apply(check_age_group_ids, age_start, age_end)
         cats.apply(check_sex_ids, male_expected, female_expected)
 
-        cats.apply(check_age_restrictions, age_start, age_end)
         cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
         # we only have metadata about tmred for risk factors
@@ -407,13 +403,8 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
     check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
-        age_start = get_restriction_age_boundary(entity, 'start')
-        age_end = get_restriction_age_boundary(entity, 'end')
-
-        check_age_group_ids(data, age_start, age_end)
         check_sex_ids(data, True, True)
 
-        check_age_restrictions(data, age_start, age_end)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
     else:
         check_age_group_ids(data, None, None)
@@ -469,15 +460,11 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = get_restriction_age_boundary(entity, 'start')
-        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
-        cats.apply(check_age_group_ids, age_start, age_end)
         cats.apply(check_sex_ids, male_expected, female_expected)
 
-        cats.apply(check_age_restrictions, age_start, age_end)
         cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
     else:  # coverage gap
@@ -513,15 +500,11 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
         restrictions_entity = [c for c in causes if c.etiologies and entity in c.etiologies][0]
 
     restrictions = restrictions_entity.restrictions
-    age_start = get_restriction_age_boundary(restrictions_entity, 'start')
-    age_end = get_restriction_age_boundary(restrictions_entity, 'end')
     male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
-    check_age_group_ids(data, age_start, age_end)
     check_sex_ids(data, male_expected, female_expected)
 
-    check_age_restrictions(data, age_start, age_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
@@ -775,3 +758,28 @@ def _check_cause_age_restrictions(entity: Cause):
         if set(yll_ages) > set(yld_ages):
             raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
                                       f' We currently do not support these causes.')
+
+
+def check_age_groups_relative_risk(relative_risk: pd.DataFrame, exposure: pd.DataFrame):
+    cids = set(relative_risk.cause_id)
+    for cid in cids:
+        rr = relative_risk[relative_risk.cause_id == cid]
+        if set(rr.age_group_id) > set(exposure.age_group_id):
+            raise DataAbnormalError(f"relative risk for cause_id {cid} has age groups that do not have risk exposure:"
+                                    f"{set(rr.age_group_id)-set(exposure.age_group_id)}.")
+
+
+def check_age_groups_paf(pafs: pd.DataFrame, relative_risk: pd.DataFrame):
+    rr_cids = set(relative_risk.cause_id)
+    paf_cids = set(pafs.cause_id)
+    if rr_cids != paf_cids:
+        raise DataAbnormalError("Relative risk and PAF does not have the same set of cause ids.")
+    for cid in rr_cids:
+        rr = relative_risk[relative_risk.cause_id == cid]
+        paf = pafs[pafs.cause_id == cid]
+        if set(rr.age_group_id) > set(paf.age_group_id):
+            raise DataAbnormalError(f"Relative risk for cause_id {cid} has extra age groups that do not have PAF data:"
+                                    f"{set(rr.age_group_id)-set(paf.age_group_id)}.")
+        elif set(rr.age_group_id) < set(paf.age_group_id):
+            warnings.warn(f"PAF for cause_id {cid} has extra age_groups that do not have RR data:"
+                          f"{set(paf.age_group_id)-set(rr.age_group_id)}")
