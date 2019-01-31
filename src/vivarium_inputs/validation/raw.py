@@ -193,8 +193,8 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
-    check_value_columns_boundary(data, 0, 'lower', inclusive=True, error=True)
-    check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+    check_value_columns_boundary(data, 0, 'lower', inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
 def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
@@ -222,8 +222,8 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
 def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
@@ -246,8 +246,8 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
     if entity.kind == 'cause':
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
@@ -268,8 +268,8 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
 def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
@@ -296,8 +296,8 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
     check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
 def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
@@ -323,12 +323,12 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     check_age_restrictions(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
     pop = gbd.get_population(location_id)
     idx_cols = ['age_group_id', 'year_id', 'sex_id']
     pop = pop[(pop.year_id.isin(data.year_id.unique())) & (pop.sex_id != gbd.COMBINED[0])].set_index(idx_cols).population
     check_value_columns_boundary(data.set_index(idx_cols), pop, 'upper',
-                                 value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+                                 value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
 def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
@@ -366,17 +366,17 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
             if entity.tmred.inverted:
                 check_value_columns_boundary(data, entity.tmred.max, 'upper',
-                                             value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+                                             value_columns=DRAW_COLUMNS, inclusive=True, error=None)
             else:
                 check_value_columns_boundary(data, entity.tmred.min, 'lower',
-                                             value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+                                             value_columns=DRAW_COLUMNS, inclusive=True, error=None)
     else:
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
     if entity.distribution in ('dichotomous', 'ordered_polytomous', 'unordered_polytomous'):  # categorical
-        check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-        check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+        check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+        check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
         g = data.groupby(DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
         if not np.allclose(g, 1.0):
@@ -413,7 +413,7 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
         check_age_group_ids(data, None, None)
         check_sex_ids(data, True, True)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
 def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
@@ -438,8 +438,10 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=distribution_cols, inclusive=True, error=True)
-    check_value_columns_boundary(data, 1, 'upper', value_columns=distribution_cols, inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=distribution_cols,
+                                 inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=distribution_cols,
+                                 inclusive=True, error=DataAbnormalError)
 
     if not np.allclose(data[distribution_cols].sum(axis=1), 1.0):
         raise DataAbnormalError(f'Distribution weights for {entity.kind} {entity.name} do not sum to 1.')
@@ -476,10 +478,10 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
-    check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
     max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
-    check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=False)
+    check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
     for c_id in data.cause_id.unique():
         cause = [c for c in causes if c.gbd_id == c_id][0]
@@ -515,8 +517,8 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
         check_age_group_ids(data, None, None)
         check_sex_ids(data, True, True)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
-    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
     for c_id in data.cause_id:
         cause = [c for c in causes if c.gbd_id == c_id][0]
@@ -577,7 +579,7 @@ def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTec
                                 f'the expected all ages age group (id {ALL_AGES_AGE_GROUP_ID}).')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
 def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_id: int):
@@ -596,9 +598,9 @@ def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location
     check_age_group_ids(data, None, None)
     check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=False)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
     check_value_columns_boundary(data, MAX_UTILIZATION, 'upper', value_columns=DRAW_COLUMNS,
-                                 inclusive=True, error=False)
+                                 inclusive=True, error=None)
 
 
 def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location_id: int):
@@ -613,8 +615,10 @@ def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location_id: int
     check_age_group_ids(data, None, None)
     check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=True)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=['population'], inclusive=True, error=True)
-    check_value_columns_boundary(data, MAX_POP, 'upper', value_columns=['population'], inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=['population'],
+                                 inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, MAX_POP, 'upper', value_columns=['population'],
+                                 inclusive=True, error=DataAbnormalError)
 
 
 def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: NamedTuple, location_id: int):
@@ -627,9 +631,10 @@ def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entit
     if data.age.min() > min_age or data.age.max() < max_age:
         raise DataAbnormalError('Data does not contain life expectancy values for ages [0, 110].')
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=['life_expectancy'], inclusive=True, error=True)
+    check_value_columns_boundary(data, 0, 'lower', value_columns=['life_expectancy'],
+                                 inclusive=True, error=DataAbnormalError)
     check_value_columns_boundary(data, MAX_LIFE_EXP, 'upper', value_columns=['life_expectancy'],
-                                 inclusive=True, error=True)
+                                 inclusive=True, error=DataAbnormalError)
 
 
 ############################
@@ -670,7 +675,6 @@ def _check_paf_types(entity):
     if abnormal_range.size:
         warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
-
 
 
 ############################
