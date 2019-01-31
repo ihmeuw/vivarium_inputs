@@ -502,7 +502,7 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
     if entity.kind == 'risk_factor':
         restrictions_entity = entity
     else:  # etiology
-        restrictions_entity = [c for c in causes if entity in c.etiologies][0]
+        restrictions_entity = [c for c in causes if c.etiologies and entity in c.etiologies][0]
 
     restrictions = restrictions_entity.restrictions
     age_start = get_restriction_age_boundary(restrictions_entity, 'start')
