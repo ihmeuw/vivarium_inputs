@@ -219,7 +219,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     if entity.kind == 'risk_factor':
         restriction_entity = entity
     else:  # etiology
-        cause = [c for c in causes if entity in c.etiologies][0]
+        cause = [c for c in causes if c.etiologies and entity in c.etiologies][0]
         restriction_entity = cause
 
     data = utilities.filter_data_by_restrictions(data, restriction_entity, 'narrowest')
