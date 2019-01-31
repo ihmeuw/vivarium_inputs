@@ -199,7 +199,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
     if is_continuous:
-        if data.parameter != "continuous":
+        if set(data.parameter) != {"continuous"}:
             raise DataFormattingError("Continuous exposure data should contain 'continuous' in the parameter column.")
         valid_kwd = 'continuous'
     elif is_categorical:
@@ -246,7 +246,8 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
 
 def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                                             location: str):
-    _validate_standard_columns(data, location)
+    _validate_demographic_columns(data, location)
+    _validate_value_column(data)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_DIST_WEIGHTS_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'],

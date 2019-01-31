@@ -180,6 +180,10 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
 
 def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
+
+    if entity.kind == 'risk_factor':
+        data = utilities.filter_data_by_restrictions(data, entity, 'outer')
+
     data = utilities.normalize(data, fill_value=0)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
