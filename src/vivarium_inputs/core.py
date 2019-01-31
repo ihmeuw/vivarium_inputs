@@ -210,6 +210,12 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         result.append(df)
     data = pd.concat(result)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'])
+
+    if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
+        tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+        if np.allclose(data.loc[data.parameter == tmrel_cat, 'value'], 1.0):
+            data.loc[data.parameter == tmrel_cat, 'value'] = 1.0
+
     return data
 
 
