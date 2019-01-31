@@ -84,9 +84,11 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'], error=True)
+                                                      boundary_type='lower', value_columns=['value'],
+                                                      error=DataFormattingError)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[1],
-                                                      boundary_type='upper', value_columns=['value'], error=True)
+                                                      boundary_type='upper', value_columns=['value'],
+                                                      error=DataFormattingError)
 
     age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
                                                       entity.restrictions.yld_age_group_id_end))
@@ -98,9 +100,11 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'], error=True)
+                                                      boundary_type='lower', value_columns=['value'],
+                                                      error=DataFormattingError)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[1],
-                                                      boundary_type='upper', value_columns=['value'], error=True)
+                                                      boundary_type='upper', value_columns=['value'],
+                                                      error=DataFormattingError)
 
     age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
                                                       entity.restrictions.yld_age_group_id_end))
@@ -116,9 +120,11 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     _validate_value_column(data)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_BIRTH_PREVALENCE_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'], error=True)
+                                                      boundary_type='lower', value_columns=['value'],
+                                                      error=DataFormattingError)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_BIRTH_PREVALENCE_RANGE[1],
-                                                      boundary_type='upper', value_columns=['value'], error=True)
+                                                      boundary_type='upper', value_columns=['value'],
+                                                      error=DataFormattingError)
 
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
@@ -127,9 +133,11 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'], error=True)
+                                                      boundary_type='lower', value_columns=['value'],
+                                                      error=DataFormattingError)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[1],
-                                                      boundary_type='upper', value_columns=['value'], error=True)
+                                                      boundary_type='upper', value_columns=['value'],
+                                                      error=DataFormattingError)
 
     age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
                                                       entity.restrictions.yld_age_group_id_end))
@@ -141,9 +149,11 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location: str):
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'], error=True)
+                                                      boundary_type='lower', value_columns=['value'],
+                                                      error=DataFormattingError)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[1],
-                                                      boundary_type='upper', value_columns=['value'], error=True)
+                                                      boundary_type='upper', value_columns=['value'],
+                                                      error=DataFormattingError)
 
     age_start, age_end = _translate_age_restrictions((entity.restrictions.yld_age_group_id_start,
                                                       entity.restrictions.yld_age_group_id_end))
@@ -155,9 +165,11 @@ def _validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, locati
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'], error=True)
+                                                      boundary_type='lower', value_columns=['value'],
+                                                      error=DataFormattingError)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[1],
-                                                      boundary_type='upper', value_columns=['value'], error=True)
+                                                      boundary_type='upper', value_columns=['value'],
+                                                      error=DataFormattingError)
 
     age_start, age_end = _translate_age_restrictions((entity.restrictions.yll_age_group_id_start,
                                                       entity.restrictions.yll_age_group_id_end))
@@ -169,9 +181,11 @@ def _validate_excess_mortality(data: pd.DataFrame, entity: Cause, location: str)
     _validate_standard_columns(data, location)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'], error=True)
+                                                      boundary_type='lower', value_columns=['value'],
+                                                      error=DataFormattingError)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[1],
-                                                      boundary_type='upper', value_columns=['value'], error=True)
+                                                      boundary_type='upper', value_columns=['value'],
+                                                      error=DataFormattingError)
 
     age_start, age_end = _translate_age_restrictions((entity.restrictions.yll_age_group_id_start,
                                                       entity.restrictions.yll_age_group_id_end))
@@ -214,17 +228,21 @@ def _validate_estimate(data, entity, location):
 def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity], location: str):
     _validate_standard_columns(data, location)
     validation_utilities.check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
-                                                      value_columns=['value'], inclusive=True, error=True)
+                                                      value_columns=['value'], inclusive=True,
+                                                      error=DataFormattingError)
     validation_utilities.check_value_columns_boundary(data, VALID_COST_RANGE[1][entity.kind], 'upper',
-                                                      value_columns=['value'], inclusive=True, error=True)
+                                                      value_columns=['value'], inclusive=True,
+                                                      error=DataFormattingError)
 
 
 def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location: str):
     _validate_standard_columns(data, location)
     validation_utilities.check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
-                                                      value_columns=['value'], inclusive=True, error=True)
+                                                      value_columns=['value'], inclusive=True,
+                                                      error=DataFormattingError)
     validation_utilities.check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[1], 'upper',
-                                                      value_columns=['value'], inclusive=True, error=True)
+                                                      value_columns=['value'], inclusive=True,
+                                                      error=DataFormattingError)
 
 
 def _validate_structure(data, entity, location):
