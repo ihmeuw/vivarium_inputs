@@ -98,7 +98,7 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataFormattingError)
 
-    _check_age_restrictions(data, entity, type='yld', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -112,7 +112,7 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataFormattingError)
 
-    _check_age_restrictions(data, entity, type='yld', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -143,7 +143,7 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataFormattingError)
 
-    _check_age_restrictions(data, entity, type='yld', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -157,7 +157,7 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location: str):
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataFormattingError)
 
-    _check_age_restrictions(data, entity, type='yld', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -171,7 +171,7 @@ def _validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, locati
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataFormattingError)
 
-    _check_age_restrictions(data, entity, type='yll', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -185,7 +185,7 @@ def _validate_excess_mortality(data: pd.DataFrame, entity: Cause, location: str)
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataFormattingError)
 
-    _check_age_restrictions(data, entity, type='yll', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -225,7 +225,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         if not np.allclose(data.groupby(non_categorical_columns)['value'].sum(), 1.0):
             raise DataFormattingError("Categorical exposures do not sum to one across categories.")
 
-    _check_age_restrictions(data, entity, type='outer', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -240,7 +240,7 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataFormattingError)
 
-    _check_age_restrictions(data, entity, type='outer', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -259,7 +259,7 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
     if not np.allclose(data.groupby(non_weight_columns)['value'].sum(), 1.0):
         raise DataFormattingError("Exposure weights do not sum to one across demographics.")
 
-    _check_age_restrictions(data, entity, type='outer', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
@@ -290,9 +290,9 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
             raise DataFormattingError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
     if data.affected_measure == 'incidence_rate':
-        _check_age_restrictions(data, entity, type='inner', fill_value=1.0)
+        _check_age_restrictions(data, entity, rest_type='inner', fill_value=1.0)
     else:
-        _check_age_restrictions(data, entity, type='yll', fill_value=1.0)
+        _check_age_restrictions(data, entity, rest_type='yll', fill_value=1.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=1.0)
 
 
@@ -307,7 +307,7 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataFormattingError)
 
-    _check_age_restrictions(data, entity, type='inner', fill_value=0.0)
+    _check_age_restrictions(data, entity, rest_type='inner', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
