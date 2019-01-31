@@ -182,7 +182,7 @@ def _validate_case_fatality(data, entity, location):
 def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
                        location: str):
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
-    is_categorical = (entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'])
+    is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
     if is_continuous:
         if data.parameter != "continuous":
@@ -207,7 +207,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     if is_categorical:
         non_categorical_columns = list(set(data.columns).difference({'parameter', 'value'}))
         if not np.allclose(data.groupby(non_categorical_columns)['value'].sum(), 1.0):
-            raise DataFormattingError("Categorical exposures do not sum to one across categories")
+            raise DataFormattingError("Categorical exposures do not sum to one across categories.")
 
     _check_age_restrictions(data, entity, type='outer', fill_value=0.0)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
@@ -248,7 +248,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     risk_relationship.apply(_validate_standard_columns, location)
 
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
-    is_categorical = (entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'])
+    is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
     if is_categorical:
         range_kwd = 'categorical'
