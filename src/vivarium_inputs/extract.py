@@ -1,6 +1,9 @@
 import pandas as pd
 
-from .globals import gbd, METRICS, MEASURES, DataAbnormalError
+from get_draws.api import EmptyDataFrameException, InputsException
+from gbd_artifacts.exceptions import NoBestVersionError
+
+from .globals import gbd, METRICS, MEASURES, DataAbnormalError, DataNotExistError
 import vivarium_inputs.validation.raw as validation
 
 
@@ -31,7 +34,19 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
     }
 
     validation.check_metadata(entity, measure)
-    data = extractors[measure](entity, location_id)
+
+    try:
+        data = extractors[measure](entity, location_id)
+    except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError, InputsException) as e:
+        if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in e.args:
+            raise e
+        elif isinstance(e, AssertionError) and f'Invalid covariate_id {entity.gbd_id}' not in e.args:
+            raise e
+        elif isinstance(e, InputsException) and measure != 'birth_prevalence':
+            raise e
+        else:
+            raise DataNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
+
     validation.validate_raw_data(data, entity, measure, location_id)
     return data
 
@@ -111,8 +126,8 @@ def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
 
 def extract_population_attributable_fraction(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_paf(entity.gbd_id, location_id)
-    data = data[data.measure_id == MEASURES['YLDs']]
     data = data[data.metric_id == METRICS['Percent']]
+    data = data[data.measure_id.isin([MEASURES['YLDs'], MEASURES['YLLs']])]
     return data
 
 

@@ -1,8 +1,11 @@
 """Errors and utility functions for input processing."""
 import pandas as pd
+import numpy as np
+from typing import Union
 
-from gbd_mapping import causes, risk_factors
+from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
+from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_age_ids
 
 
 def get_location_id(location_name):
@@ -18,14 +21,16 @@ def get_age_bins():
     return age_bins
 
 
-def get_annual_estimation_years():
+def get_annual_year_bins():
     estimation_years = gbd.get_estimation_years()
-    return range(min(estimation_years), max(estimation_years) + 1)
+    df = pd.DataFrame({'year_id': range(min(estimation_years), max(estimation_years) + 1)})
+
+    return scrub_year(df)
 
 
 def get_demographic_dimensions(location_id, draws=False):
     ages = gbd.get_age_group_id()
-    years = get_annual_estimation_years()
+    years = get_annual_year_bins()
     sexes = gbd.MALE + gbd.FEMALE
     location = [location_id]
     values = [location, sexes, ages, years]
@@ -131,7 +136,9 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
 
 
 def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
-    years = {'annual': get_annual_estimation_years(), 'binned': gbd.get_estimation_years()}
+    estimation_years = get_annual_year_bins()['year_start']
+    years = {'annual': list(range(estimation_years.min(), estimation_years.max() + 1)), 'binned': gbd.get_estimation_years()}
+
     if 'year_id' not in data:
         # Data doesn't vary by year, so copy for each year.
         df = []
@@ -140,7 +147,7 @@ def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
             fill_data['year_id'] = year
             df.append(fill_data)
         data = pd.concat(df, ignore_index=True)
-    elif set(data.year_id.unique()) == set(years['binned']):
+    elif set(data.year_id) == set(years['binned']):
         data = interpolate_year(data)
     else:  # set(data.year_id.unique()) == years['annual']
         pass
@@ -153,7 +160,7 @@ def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
 def interpolate_year(data):
     # Hide the central comp dependency unless required.
     from core_maths.interpolate import pchip_interpolate
-    id_cols = data.columns.difference(DRAW_COLUMNS)
+    id_cols = list(set(data.columns).difference(DRAW_COLUMNS))
     fillin_data = pchip_interpolate(data, id_cols, DRAW_COLUMNS)
     return pd.concat([data, fillin_data], sort=True)
 
@@ -240,3 +247,57 @@ def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_ent
     paf['affected_entity'] = affected_entity
     paf['affected_measure'] = affected_measure
     return paf
+
+
+def get_age_group_ids_by_restriction(entity: Union[RiskFactor, Cause], which_age: str) -> (float,float):
+    if which_age == 'yll':
+        start, end = entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end
+    elif which_age == 'yld':
+        start, end = entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end
+    elif which_age == 'inner':
+        start = get_restriction_age_boundary(entity, 'start', reverse=True)
+        end = get_restriction_age_boundary(entity, 'end', reverse=True)
+    elif which_age == 'outer':
+        start = get_restriction_age_boundary(entity, 'start')
+        end = get_restriction_age_boundary(entity, 'end')
+    else:
+        raise NotImplementedError('The second argument of this function should be one of [yll, yld, inner, outer].')
+    return start, end
+
+
+def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Cause], which_age: str) -> pd.DataFrame:
+    """
+    For the given data and restrictions, it applies age/sex restrictions and
+    filter out the data outside of the range. Age restrictions can be applied
+    in 4 different ways:
+        - yld, yll, narrowest(inner) range of yll and yld,
+        broadest(outer) range of yll and yld.
+
+    Parameters
+    ----------
+    data
+        DataFrame containing 'age_group_id' and 'sex_id' columns.
+    entity
+        Cause or RiskFactor
+    which_age
+        one of 4 choices: 'yll', 'yld', 'inner', 'outer'.
+
+    Returns
+    -------
+        DataFrame which is filtered out any data outside of age/sex
+        restriction ranges.
+    """
+    restrictions = entity.restrictions
+    if restrictions.male_only and not restrictions.female_only:
+        sexes = gbd.MALE
+    elif not restrictions.male_only and restrictions.female_only:
+        sexes = gbd.FEMALE
+    else:  # not male only and not female only
+        sexes = gbd.FEMALE + gbd.MALE
+
+    data = data[data.sex_id.isin(sexes)]
+
+    start, end = get_age_group_ids_by_restriction(entity, which_age)
+    ages = get_restriction_age_ids(start, end)
+    data = data[data.age_group_id.isin(ages)]
+    return data
