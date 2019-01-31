@@ -76,7 +76,7 @@ def check_location(data: pd.DataFrame, location_id: int):
     data_location_id = data['location_id'].unique()[0]
 
     location_metadata = gbd.get_location_metadata()
-    path_to_parent = location_metadata.loc[location_metadata.location_id == location_id, 'path_to_top_parent'].max().split(',')
+    path_to_parent = location_metadata.loc[location_metadata.location_id == location_id, 'path_to_top_parent'].values[0].split(',')
     path_to_parent = [int(i) for i in path_to_parent]
 
     if data_location_id not in path_to_parent:  
