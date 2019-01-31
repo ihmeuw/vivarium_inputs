@@ -427,36 +427,6 @@ def _validate_value_column(data: pd.DataFrame):
         raise DataFormattingError('Value data found to contain infinity.')
 
 
-def _translate_age_restrictions(start_ids: Sequence[Union[int, None]], end_ids: Sequence[Union[int, None]],
-                                type: str) -> (float, float):
-    """translates age restrictions as ids into raw ages.
-    Parameters
-    ----------
-    start_ids
-        a sequence of GBD age group ids, or None.
-    end_ids
-        a sequence of GBD age group ids, or None.
-    type
-        one of 'inner' or 'outer'. Inner will take the  maximum of the start ages and the minimum of the end ages.
-        Outer will take the minimum of the start ages and the maximum of the end ages.
-    """
-
-    start_ids = [i for i in start_ids if i is not None]
-    end_ids = [i for i in end_ids if i is not None]
-
-    age_bins = utilities.get_age_bins()
-    if type == 'outer':
-        minimum = age_bins.loc[age_bins.age_group_id.isin(start_ids), 'age_group_start'].min()
-        maximum = age_bins.loc[age_bins.age_group_id.isin(end_ids), 'age_group_end'].max()
-    elif type == 'inner':
-        minimum = age_bins.loc[age_bins.age_group_id.isin(start_ids), 'age_group_start'].max()
-        maximum = age_bins.loc[age_bins.age_group_id.isin(end_ids), 'age_group_end'].min()
-    else:
-        raise NotImplementedError()
-
-    return minimum, maximum
-
-
 def _check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, type: str, fill_value: float):
 
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, type)
