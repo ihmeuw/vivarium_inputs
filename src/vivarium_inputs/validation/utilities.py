@@ -6,7 +6,8 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES,
-                                     DataAbnormalError, DataNotExistError, gbd)
+                                     DataAbnormalError, DataNotExistError, VivariumInputsError,
+                                     gbd)
 from gbd_mapping import RiskFactor, Cause
 
 
@@ -307,7 +308,8 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
 
 
 def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float, pd.Series], boundary_type: str,
-                                 value_columns: list = DRAW_COLUMNS, inclusive: bool = True, error: bool = False):
+                                 value_columns: list = DRAW_COLUMNS, inclusive: bool = True,
+                                 error: type(VivariumInputsError) = None):
     """Check that all values in DRAW_COLUMNS in data are above or below given
     boundary_value.
 
@@ -327,8 +329,8 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
     inclusive
         Boolean indicating whether `boundary_value` is inclusive or not.
     error
-        Boolean indicating whether error (True) or warning (False) should be
-        raised if values are found outside `boundary_value`.
+        Exception class indicating what error should be raised if values are
+        found outside `boundary_value`. If none, warn instead of raising error.
 
     Raises
     -------
@@ -352,8 +354,8 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
         boundary_value = boundary_value.sort_index()
 
     if not np.all(op(data_values, boundary_value)):
-        if error:
-            raise DataAbnormalError(msg)
+        if error is not None:
+            raise error(msg)
         else:
             warnings.warn(msg)
 
