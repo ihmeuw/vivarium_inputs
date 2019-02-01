@@ -769,13 +769,17 @@ def check_age_groups_relative_risk(relative_risk: pd.DataFrame, exposure: pd.Dat
 
 
 def check_age_groups_paf(pafs: pd.DataFrame, relative_risk: pd.DataFrame):
+    # cause and measure should be single element set since it is called after groupby cause/measure
     cause = set(pafs.affected_entity)
     measure = set(pafs.affected_measure)
-    rr = relative_risk[(relative_risk.affected_entity == cause) & (relative_risk.affected_measure == measure)]
+    rr = relative_risk[(relative_risk.affected_entity == cause.pop()) & (relative_risk.affected_measure == measure).pop()]
 
+    if rr.empty:
+        raise DataAbnormalError(f"Relative risk for {cause} has no data for affected_measure {measure}.")
     if set(rr.age_group_id) > set(pafs.age_group_id):
-        raise DataAbnormalError(f"Relative risk for {cause} has extra age groups that do not have PAF data:"
+        raise DataAbnormalError(f"Relative risk for {cause} has extra age groups that do not have PAF dat for {measure}:"
                                 f"{set(rr.age_group_id)-set(pafs.age_group_id)}.")
     elif set(rr.age_group_id) < set(pafs.age_group_id):
-        warnings.warn(f"PAF for {cause} has extra age_groups that do not have RR data:"
+        import pdb; pdb.set_trace()
+        warnings.warn(f"PAF for {cause} has extra age_groups that do not have RR data for {measure}:"
                       f"{set(pafs.age_group_id)-set(rr.age_group_id)}")
