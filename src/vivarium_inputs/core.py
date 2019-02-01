@@ -196,8 +196,6 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         cause_ids = set(data.cause_id)
         most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
         data = data[data.cause_id.isin(most_detailed_cause_ids)]
-        exposure = get_exposure(entity, location_id)
-        check_age_groups_relative_risk(data, exposure)
 
         data = utilities.convert_affected_entity(data, 'cause_id')
         morbidity = data.morbidity == 1
@@ -205,6 +203,8 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         data.loc[morbidity & mortality, 'affected_measure'] = 'incidence_rate'
         data.loc[morbidity & ~mortality, 'affected_measure'] = 'incidence_rate'
         data.loc[~morbidity & mortality, 'affected_measure'] = 'excess_mortality'
+        exposure = get_exposure(entity, location_id)
+        check_age_groups_relative_risk(data, exposure)
     else:  # coverage_gap
         data = utilities.convert_affected_entity(data, 'rei_id')
         data['affected_measure'] = 'exposure_parameters'
@@ -235,12 +235,13 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     cause_ids = set(data.cause_id)
     most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
     data = data[data.cause_id.isin(most_detailed_cause_ids)]
-    rr = get_relative_risk(entity, location_id)
-    check_age_groups_paf(data, rr)
 
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
     data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
+
+    rr = get_relative_risk(entity, location_id)
+    check_age_groups_paf(data, rr)
     data = data.groupby('measure_id').apply(lambda df: utilities.normalize(df, fill_value=0))
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'])
     return data
