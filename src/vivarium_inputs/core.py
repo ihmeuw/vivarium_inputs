@@ -241,6 +241,11 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
 
     rr = get_relative_risk(entity, location_id)
+    entity_measure_maps = {keys: set(df.affected_measure) for keys, df in rr.groupby(['affected_entity'])}
+    data = data[data.affected_entity.isin(entity_measure_maps.keys())]
+    import pdb; pdb.set_trace()
+    data = data.groupby('affected_entity', as_index=False).apply(lambda df: df[df.affected_measure.isin(entity_measure_maps[df.affected_entity.unique()[0]])])
+
     data.groupby(['affected_entity', 'affected_measure'], as_index=False).apply(lambda df: check_age_groups_paf(df, rr))
     data = data.groupby('measure_id').apply(lambda df: utilities.normalize(df, fill_value=0))
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'])
