@@ -241,7 +241,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
 
     rr = get_relative_risk(entity, location_id)
-    data.groupby(['affected_entity', 'affected_measure']).apply(lambda df: check_age_groups_paf(df, rr))
+    data.groupby(['affected_entity', 'affected_measure'], as_index=False).apply(lambda df: check_age_groups_paf(df, rr))
     data = data.groupby('measure_id').apply(lambda df: utilities.normalize(df, fill_value=0))
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'])
     return data
