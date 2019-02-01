@@ -75,7 +75,7 @@ def check_location(data: pd.DataFrame, location_id: int):
 
     data_location_id = data['location_id'].unique()[0]
 
-    location_metadata = gbd.get_location_metadata()
+    location_metadata = gbd.get_location_path_to_global()
     path_to_parent = location_metadata.loc[location_metadata.location_id == location_id, 'path_to_top_parent'].values[0].split(',')
     path_to_parent = [int(i) for i in path_to_parent]
 
