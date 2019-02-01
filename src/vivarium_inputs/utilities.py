@@ -294,7 +294,7 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     elif not restrictions.male_only and restrictions.female_only:
         sexes = gbd.FEMALE
     else:  # not male only and not female only
-        sexes = gbd.FEMALE + gbd.MALE
+        sexes = gbd.FEMALE + gbd.MALE + gbd.COMBINED
 
     data = data[data.sex_id.isin(sexes)]
 
