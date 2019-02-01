@@ -38,9 +38,10 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
     try:
         data = extractors[measure](entity, location_id)
     except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError, InputsException) as e:
-        if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in e.args:
+        if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in str(e):
             raise e
-        elif isinstance(e, AssertionError) and f'Invalid covariate_id {entity.gbd_id}' not in e.args:
+        elif (isinstance(e, AssertionError) and f'Invalid covariate_id {entity.gbd_id}' not in str(e)
+                and 'No best model found' not in str(e)):
             raise e
         elif isinstance(e, InputsException) and measure != 'birth_prevalence':
             raise e
