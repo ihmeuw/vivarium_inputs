@@ -257,7 +257,8 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
                                                       error=DataFormattingError)
 
     non_weight_columns = list(set(data.columns).difference({'parameter', 'value'}))
-    if not np.allclose(data.groupby(non_weight_columns)['value'].sum(), 1.0):
+    if not np.allclose(data.groupby(non_weight_columns)['value'].sum(), 1.0) and \
+            not np.allclose(data.groupby(non_weight_columns)['value'].sum(), 0.0):
         raise DataFormattingError("Exposure weights do not sum to one across demographics.")
 
     _check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0)
