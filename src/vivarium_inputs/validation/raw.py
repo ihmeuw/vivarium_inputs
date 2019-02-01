@@ -763,24 +763,19 @@ def _check_cause_age_restrictions(entity: Cause):
 
 
 def check_age_groups_relative_risk(relative_risk: pd.DataFrame, exposure: pd.DataFrame):
-    
     if set(relative_risk.age_group_id) > set(exposure.age_group_id):
-        raise DataAbnormalError(f"relative risk for {cause} has age groups that do not have risk exposure:"
+        raise DataAbnormalError(f"relative risk has age groups that do not have risk exposure:"
                                 f"{set(relative_risk.age_group_id)-set(exposure.age_group_id)}.")
 
 
 def check_age_groups_paf(pafs: pd.DataFrame, relative_risk: pd.DataFrame):
-    rr_affected_causes = set(relative_risk.affcted_entity)
-    paf_affected_causes = set(pafs.affected_entity)
-    affected_measures = set(relative_risk.affected_measures)
-    if rr_affected_causes != paf_affected_causes:
-        raise DataAbnormalError("Relative risk and PAF does not have the same set of affected causes.")
-    for cause, measure in product(rr_affected_causes, affected_measures):
-        rr = relative_risk[(relative_risk.affected_entity == cause) & (relative_risk.affected_measure == measure)]
-        paf = pafs[(pafs.affected_entity == cause) & (pafs.affected_measure == measure)]
-        if set(rr.age_group_id) > set(paf.age_group_id):
-            raise DataAbnormalError(f"Relative risk for {cause} has extra age groups that do not have PAF data:"
-                                    f"{set(rr.age_group_id)-set(paf.age_group_id)}.")
-        elif set(rr.age_group_id) < set(paf.age_group_id):
-            warnings.warn(f"PAF for {cause} has extra age_groups that do not have RR data:"
-                          f"{set(paf.age_group_id)-set(rr.age_group_id)}")
+    cause = set(pafs.affected_entity)
+    measure = set(pafs.affected_measure)
+    rr = relative_risk[(relative_risk.affected_entity == cause) & (relative_risk.affected_measure == measure)]
+
+    if set(rr.age_group_id) > set(pafs.age_group_id):
+        raise DataAbnormalError(f"Relative risk for {cause} has extra age groups that do not have PAF data:"
+                                f"{set(rr.age_group_id)-set(pafs.age_group_id)}.")
+    elif set(rr.age_group_id) < set(pafs.age_group_id):
+        warnings.warn(f"PAF for {cause} has extra age_groups that do not have RR data:"
+                      f"{set(pafs.age_group_id)-set(rr.age_group_id)}")
