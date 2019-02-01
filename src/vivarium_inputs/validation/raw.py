@@ -315,7 +315,7 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     check_metric_id(data, 'number')
 
     check_years(data, 'annual')
-    data = check_location(data, location_id)
+    check_location(data, location_id)
 
     restrictions = entity.restrictions
 
@@ -351,7 +351,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
         raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} contains a year range '
                                 f'that is neither annual nor binned.')
-    data = check_location(data, location_id)
+    check_location(data, location_id)
 
     cats = data.groupby('parameter')
 
@@ -404,7 +404,7 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
     if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
         raise DataAbnormalError(f'Exposure standard deviation data for {entity.kind} {entity.name} contains '
                                 f'a year range that is neither annual nor binned.')
-    data = check_location(data, location_id)
+    check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
         age_start = get_restriction_age_boundary(entity, 'start')
@@ -436,7 +436,7 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
         raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} '
                                 f'contains abnormal measure values.')
 
-    data = check_location(data, location_id)
+    check_location(data, location_id)
 
     if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
         raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} includes '
@@ -463,7 +463,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     check_metric_id(data, 'rate')
 
     check_years(data, 'binned')
-    data = check_location(data, location_id)
+    check_location(data, location_id)
 
     cats = data.groupby('parameter')
 
@@ -505,7 +505,7 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
     check_metric_id(data, 'percent')
 
     check_years(data, 'annual')
-    data = check_location(data, location_id)
+    check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
         restrictions_entity = entity
