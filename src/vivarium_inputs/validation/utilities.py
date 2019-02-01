@@ -53,7 +53,8 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
 
 def check_location(data: pd.DataFrame, location_id: int):
     """Check that data contains only a single unique location id and that that
-    location id matches either the global location id or the requested `location_id`.
+    location id matches the requested `location_id` or one of its parents up to
+    the global id.
 
     Parameters
     ----------
