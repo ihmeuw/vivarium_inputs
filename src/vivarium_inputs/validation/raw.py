@@ -763,19 +763,16 @@ def _check_cause_age_restrictions(entity: Cause):
 
 
 def check_age_groups_relative_risk(relative_risk: pd.DataFrame, exposure: pd.DataFrame):
-    affected_causes = set(relative_risk.affected_entity)
-    affected_measures = ['incidence_rate', 'excess_mortality']
-    for cause, measure in product(affected_causes, affected_measures):
-        rr = relative_risk[(relative_risk.affected_entity == cause) & (relative_risk.affected_measure == measure)]
-        if set(rr.age_group_id) > set(exposure.age_group_id):
-            raise DataAbnormalError(f"relative risk for {cause} has age groups that do not have risk exposure:"
-                                    f"{set(rr.age_group_id)-set(exposure.age_group_id)}.")
+    
+    if set(relative_risk.age_group_id) > set(exposure.age_group_id):
+        raise DataAbnormalError(f"relative risk for {cause} has age groups that do not have risk exposure:"
+                                f"{set(relative_risk.age_group_id)-set(exposure.age_group_id)}.")
 
 
 def check_age_groups_paf(pafs: pd.DataFrame, relative_risk: pd.DataFrame):
     rr_affected_causes = set(relative_risk.affcted_entity)
     paf_affected_causes = set(pafs.affected_entity)
-    affected_measures = ['incidence_rate', 'excess_mortality']
+    affected_measures = set(relative_risk.affected_measures)
     if rr_affected_causes != paf_affected_causes:
         raise DataAbnormalError("Relative risk and PAF does not have the same set of affected causes.")
     for cause, measure in product(rr_affected_causes, affected_measures):

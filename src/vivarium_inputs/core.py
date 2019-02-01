@@ -204,7 +204,8 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         data.loc[morbidity & ~mortality, 'affected_measure'] = 'incidence_rate'
         data.loc[~morbidity & mortality, 'affected_measure'] = 'excess_mortality'
         exposure = get_exposure(entity, location_id)
-        check_age_groups_relative_risk(data, exposure)
+        import pdb; pdb.set_trace()
+        data.groupby(['affected_entity', 'affected_measure']).apply(lambda g: check_age_groups_relative_risk(g, exposure))
     else:  # coverage_gap
         data = utilities.convert_affected_entity(data, 'rei_id')
         data['affected_measure'] = 'exposure_parameters'
