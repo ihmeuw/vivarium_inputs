@@ -492,7 +492,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     for c_id in data.cause_id.unique():
         cause_matches = [c for c in causes if c.gbd_id == c_id]
         if cause_matches:
-            cause = cause[0]
+            cause = cause_matches[0]
             check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
         else:
             continue
