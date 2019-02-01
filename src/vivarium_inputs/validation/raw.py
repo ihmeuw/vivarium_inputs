@@ -1,6 +1,6 @@
 from typing import NamedTuple, Union
 import warnings
-from itertools import product
+
 import pandas as pd
 import numpy as np
 
