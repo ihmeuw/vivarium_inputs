@@ -11,7 +11,7 @@ from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS,
                                      DataAbnormalError, InvalidQueryError, gbd)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
-from vivarium_inputs.validation.utilities import (check_years, check_and_replace_location, check_columns, check_data_exist,
+from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
                                                   check_age_group_ids, check_sex_ids, check_age_restrictions,
                                                   check_value_columns_boundary, check_sex_restrictions,
                                                   check_measure_id, check_metric_id, get_restriction_age_boundary,
@@ -183,7 +183,7 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     check_metric_id(data, 'rate')
 
     check_years(data, 'annual')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     if entity.kind == 'cause':
         restrictions = entity.restrictions
@@ -212,7 +212,7 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     check_metric_id(data, 'rate')
 
     check_years(data, 'annual')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     if entity.kind == 'cause':
         restrictions = entity.restrictions
@@ -241,7 +241,7 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     check_metric_id(data, 'rate')
 
     check_years(data, 'annual')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
@@ -265,7 +265,7 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
                         'healthstate', 'healthstate_id'] + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
         raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
@@ -288,7 +288,7 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
     check_metric_id(data, 'rate')
 
     check_years(data, 'binned')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     restrictions = entity.restrictions
 
@@ -315,7 +315,7 @@ def _validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
     check_metric_id(data, 'number')
 
     check_years(data, 'annual')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     restrictions = entity.restrictions
 
@@ -351,7 +351,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
     if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
         raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} contains a year range '
                                 f'that is neither annual nor binned.')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     cats = data.groupby('parameter')
 
@@ -404,7 +404,7 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
     if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
         raise DataAbnormalError(f'Exposure standard deviation data for {entity.kind} {entity.name} contains '
                                 f'a year range that is neither annual nor binned.')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
         age_start = get_restriction_age_boundary(entity, 'start')
@@ -436,7 +436,7 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
         raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} '
                                 f'contains abnormal measure values.')
 
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
         raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} includes '
@@ -463,7 +463,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     check_metric_id(data, 'rate')
 
     check_years(data, 'binned')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     cats = data.groupby('parameter')
 
@@ -505,7 +505,7 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
     check_metric_id(data, 'percent')
 
     check_years(data, 'annual')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
         restrictions_entity = entity
@@ -552,7 +552,7 @@ def _validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int):
     check_columns(expected_columns, data.columns)
 
     check_years(data, 'annual')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     if entity.by_age:
         check_age_group_ids(data, None, None)
@@ -579,7 +579,7 @@ def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTec
                                 f'measures beyond the expected cost.')
 
     check_years(data, 'annual')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
         raise DataAbnormalError(f'Cost data for {entity.kind} {entity.name} includes age groups beyond '
@@ -600,7 +600,7 @@ def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location
     check_metric_id(data, 'rate')
 
     check_years(data, 'binned')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     check_age_group_ids(data, None, None)
     check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=False)
@@ -617,7 +617,7 @@ def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location_id: int
     check_columns(expected_columns, data.columns)
 
     check_years(data, 'annual')
-    data = check_and_replace_location(data, location_id)
+    data = check_location(data, location_id)
 
     check_age_group_ids(data, None, None)
     check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=True)

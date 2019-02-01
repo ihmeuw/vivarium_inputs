@@ -51,10 +51,9 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
     return True
 
 
-def check_and_replace_location(data: pd.DataFrame, location_id: int) -> pd.DataFrame:
+def check_location(data: pd.DataFrame, location_id: int):
     """Check that data contains only a single unique location id and that that
-    location id matches either the global location id or the
-    requested `location_id`.
+    location id matches either the global location id or the requested `location_id`.
 
     Parameters
     ----------
@@ -62,10 +61,6 @@ def check_and_replace_location(data: pd.DataFrame, location_id: int) -> pd.DataF
         Dataframe containing a 'location_id' column.
     location_id
         The requested location_id.
-
-    Returns
-    -------
-        Data with location_id potentially overwritten to the passed location_id.
 
     Raises
     ------
@@ -85,10 +80,6 @@ def check_and_replace_location(data: pd.DataFrame, location_id: int) -> pd.DataF
 
     if data_location_id not in path_to_parent:  
         raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}, which is not not in its hiararchy.')
-
-    data['location_id'] = location_id
-
-    return data
 
 
 def check_columns(expected_cols: List, existing_cols: List):
