@@ -361,7 +361,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
         cats.apply(check_sex_ids, male_expected, female_expected)
-
+        cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
         # we only have metadata about tmred for risk factors
@@ -404,7 +404,7 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
 
     if entity.kind == 'risk_factor':
         check_sex_ids(data, True, True)
-
+        check_age_group_ids(data, None, None)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
     else:
         check_age_group_ids(data, None, None)
@@ -464,7 +464,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
         cats.apply(check_sex_ids, male_expected, female_expected)
-
+        cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
     else:  # coverage gap
@@ -504,7 +504,7 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
     check_sex_ids(data, male_expected, female_expected)
-
+    check_age_group_ids(data, None, None)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
@@ -512,10 +512,11 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
 
     for c_id in data.cause_id:
         cause = [c for c in causes if c.gbd_id == c_id][0]
-        if cause.restrictions.yld_only and (data.measure_id == MEASURES['YLLs']).any():
+        df = data[data.cause_id == c_id]
+        if cause.restrictions.yld_only and np.any(df.measure_id == MEASURES['YLLs']):
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
                                     f'values despite the affected entity being restricted to yld only.')
-        if cause.restrictions.yll_only and (data.measure_id == MEASURES['YLDs']).any():
+        if cause.restrictions.yll_only and np.any(df.measure_id == MEASURES['YLDs']):
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
 
