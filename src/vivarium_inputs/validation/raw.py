@@ -7,7 +7,7 @@ import numpy as np
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap, causes)
 
-from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS,
+from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES,
                                      DataAbnormalError, InvalidQueryError, gbd)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
@@ -357,15 +357,12 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = get_restriction_age_boundary(entity, 'start')
-        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
-        cats.apply(check_age_group_ids, age_start, age_end)
+        cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, male_expected, female_expected)
 
-        cats.apply(check_age_restrictions, age_start, age_end)
         cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
         # we only have metadata about tmred for risk factors
@@ -407,13 +404,9 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
     check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
-        age_start = get_restriction_age_boundary(entity, 'start')
-        age_end = get_restriction_age_boundary(entity, 'end')
-
-        check_age_group_ids(data, age_start, age_end)
+        check_age_group_ids(data, None, None)
         check_sex_ids(data, True, True)
 
-        check_age_restrictions(data, age_start, age_end)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
     else:
         check_age_group_ids(data, None, None)
