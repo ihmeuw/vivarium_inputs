@@ -103,10 +103,10 @@ def scrub_affected_entity(data):
 ###############################################################
 
 
-def normalize(data: pd.DataFrame, fill_value=None) -> pd.DataFrame:
+def normalize(data: pd.DataFrame, fill_value=None, cols_to_fill=DRAW_COLUMNS) -> pd.DataFrame:
     data = normalize_sex(data, fill_value)
     data = normalize_year(data)
-    data = normalize_age(data, fill_value)
+    data = normalize_age(data, fill_value, cols_to_fill)
     return data
 
 
@@ -166,7 +166,7 @@ def interpolate_year(data):
     return pd.concat([data, fillin_data], sort=True)
 
 
-def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
+def normalize_age(data: pd.DataFrame, fill_value, cols_to_fill) -> pd.DataFrame:
     data_ages = set(data.age_group_id.unique()) if 'age_group_id' in data.columns else set()
     gbd_ages = set(gbd.get_age_group_id())
 
@@ -183,7 +183,7 @@ def normalize_age(data: pd.DataFrame, fill_value) -> pd.DataFrame:
         data = pd.concat(dfs, ignore_index=True)
     elif data_ages < gbd_ages:
         # Data applies to subset, so fill other ages with fill value.
-        key_columns = list(data.columns.difference(DRAW_COLUMNS))
+        key_columns = list(data.columns.difference(cols_to_fill))
         key_columns.remove('age_group_id')
         expected_index = pd.MultiIndex.from_product([data[c].unique() for c in key_columns] + [gbd_ages],
                                                     names=key_columns + ['age_group_id'])

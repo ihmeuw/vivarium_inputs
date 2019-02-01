@@ -179,12 +179,13 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
 
     if entity.kind == 'risk_factor':
-        data = handle_risk_data_age_groups(data, entity, 'exposure_distribution_weights', )
+        data = handle_risk_data_age_groups(data, entity, 'exposure_distribution_weights', location_id)
 
-    data = utilities.normalize(data, fill_value=0)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
+
     id_cols = ['rei_id', 'location_id', 'sex_id', 'year_id', 'age_group_id', 'measure']
+    data = utilities.normalize(data, fill_value=0, cols_to_fill=distribution_cols)
     data = pd.melt(data, id_vars=id_cols, value_vars=distribution_cols, var_name='parameter')
     return data
 

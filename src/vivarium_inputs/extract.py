@@ -47,7 +47,7 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
         else:
             raise DataNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
 
-    validation.validate_raw_data(data, entity, measure, location_id)
+    #validation.validate_raw_data(data, entity, measure, location_id)
     return data
 
 
