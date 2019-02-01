@@ -1,8 +1,0 @@
-click
-tables
-numpy
-pandas
-joblib
-vivarium
-vivarium_public_health
-gbd_mapping
