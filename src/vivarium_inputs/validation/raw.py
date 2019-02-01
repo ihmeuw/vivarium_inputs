@@ -780,6 +780,5 @@ def check_age_groups_paf(pafs: pd.DataFrame, relative_risk: pd.DataFrame):
         raise DataAbnormalError(f"Relative risk for {cause} has extra age groups that do not have PAF dat for {measure}:"
                                 f"{set(rr.age_group_id)-set(pafs.age_group_id)}.")
     elif set(rr.age_group_id) < set(pafs.age_group_id):
-        import pdb; pdb.set_trace()
         warnings.warn(f"PAF for {cause} has extra age_groups that do not have RR data for {measure}:"
                       f"{set(pafs.age_group_id)-set(rr.age_group_id)}")
