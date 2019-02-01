@@ -299,7 +299,6 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     data = data[data.sex_id.isin(sexes)]
 
     start, end = get_age_group_ids_by_restriction(entity, which_age)
-    all_ages_id = 22
-    ages = get_restriction_age_ids(start, end) + [all_ages_id]
+    ages = get_restriction_age_ids(start, end)
     data = data[data.age_group_id.isin(ages)]
     return data
