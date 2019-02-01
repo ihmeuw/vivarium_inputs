@@ -49,13 +49,13 @@ def test_check_years_fail(years, bin_type, match, gbd_mock):
 @pytest.mark.parametrize('location_id', list(range(2, 10)))
 def test_check_location_pass(location_id):
     df = pd.DataFrame({'location_id': [location_id] * 5})
-    utilities.check_location(df, location_id)
+    utilities.check_and_replace_location(df, location_id)
 
 
 @pytest.mark.parametrize('location_id', list(range(2, 10)))
 def test_check_location_global_pass(location_id):
     df = pd.DataFrame({'location_id': [1] * 5})
-    utilities.check_location(df, location_id)
+    utilities.check_and_replace_location(df, location_id)
 
 
 @pytest.mark.parametrize('location_ids, match', [([1, 2], 'multiple'),
@@ -64,7 +64,7 @@ def test_check_location_global_pass(location_id):
 def test_check_location_fail(location_ids, match):
     df = pd.DataFrame({'location_id': location_ids})
     with pytest.raises(DataAbnormalError, match=match):
-        utilities.check_location(df, -1)
+        utilities.check_and_replace_location(df, -1)
 
 
 @pytest.mark.parametrize('columns', [['a', 'b'], ['c', 'd', 'e'], ['a'], []])
