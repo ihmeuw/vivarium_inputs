@@ -158,10 +158,6 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
     data = data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
-
-    if entity.kind == 'risk_factor':
-        data = utilities.filter_data_by_restrictions(data, entity, 'outer')
-
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
     return data
@@ -172,7 +168,7 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
     data = data.drop('modelable_entity_id', 'columns')
 
     if entity.kind == 'risk_factor':
-        data = utilities.filter_data_by_restrictions(data, entity, 'outer')
+        data = handle_risk_data_age_groups(data, entity, 'exposure_standard_deviation', location_id)
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
@@ -183,7 +179,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
 
     if entity.kind == 'risk_factor':
-        data = utilities.filter_data_by_restrictions(data, entity, 'outer')
+        data = handle_risk_data_age_groups(data, entity, 'exposure_distribution_weights', )
 
     data = utilities.normalize(data, fill_value=0)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
@@ -196,7 +192,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
 def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'relative_risk', location_id)
     if entity.kind == 'risk_factor':
-        data = utilities.filter_data_by_restrictions(data, entity, 'inner')
+        data = handle_risk_data_age_groups(data, entity, 'relative_risk', location_id)
         cause_ids = set(data.cause_id)
         most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
         data = data[data.cause_id.isin(most_detailed_cause_ids)]
@@ -232,18 +228,15 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
 def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
 
-    if entity.kind == 'risk_factor':
-        restriction_entity = entity
-    else:  # etiology
+    if entity.kind == 'etiology':
         cause = [c for c in causes if c.etiologies and entity in c.etiologies][0]
-        restriction_entity = cause
+        data = utilities.filter_data_by_restrictions(data, cause, 'inner')
+
     cause_ids = set(data.cause_id)
     most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
     data = data[data.cause_id.isin(most_detailed_cause_ids)]
     rr = get_relative_risk(entity, location_id)
     check_age_groups_paf(data, rr)
-
-    data = utilities.filter_data_by_restrictions(data, restriction_entity, 'inner')
 
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
@@ -310,3 +303,44 @@ def get_demographic_dimensions(entity: POP, location_id: int) -> pd.DataFrame:
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
 
+
+def handle_risk_data_age_groups(data: pd.DataFrame, entity: RiskFactor, measure:str, location_id: int)-> pd.DataFrame:
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    exposure_age_groups = set(exposure.age_group_id)
+    if measure == 'relative_risk':
+        data = _handle_relative_risk_age_groups(data, exposure_age_groups)
+    elif measure == 'exposure_distribution_weights':
+        data = _handle_exposure_distribution_weights_age_groups(data, exposure_age_groups)
+    else:  # exposure_standard_deviation
+        data = data[data.age_group_id.isin(exposure_age_groups)]
+    return data
+
+
+def _handle_relative_risk_age_groups(data, exposure_age_groups):
+    causes_map = {c.gbd_id: c for c in causes}
+    temp = []
+    for c_id in set(data.cause_id):
+        df = data[data.cause_id == c_id]
+        cause = causes_map[c_id]
+        if cause.restrictions.yll_only:
+            _start, _end = utilities.get_age_group_ids_by_restriction(cause, 'yll')
+        elif cause.restrictions.yld_only:
+            _start, _end = utilities.get_age_group_ids_by_restriction(cause, 'yld')
+        else:
+            _start, _end = utilities.get_age_group_ids_by_restriction(cause, 'inner')
+        start = max(_start, min(exposure_age_groups))
+        end = min(_end, max(exposure_age_groups))
+        temp.append(df[df.age_group_id.isin(range(start, end + 1))])
+    data = pd.concat(temp)
+    return data
+
+
+def _handle_exposure_distribution_weights_age_groups(data, exposure_age_groups):
+    data.drop('age_group_id', axis=1, inplace=True)
+    df = []
+    for age_id in exposure_age_groups:
+        copied = data.copy()
+        copied['age_group_id'] = age_id
+        df.append(copied)
+    data = pd.concat(df)
+    return data

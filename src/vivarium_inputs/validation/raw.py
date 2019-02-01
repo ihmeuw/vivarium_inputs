@@ -1,6 +1,6 @@
 from typing import NamedTuple, Union
 import warnings
-
+from itertools import product
 import pandas as pd
 import numpy as np
 
@@ -471,7 +471,8 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
-    check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    # We have to loose this check to warning because of many risks have ab
+    check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
 
     max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
     check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
@@ -762,25 +763,27 @@ def _check_cause_age_restrictions(entity: Cause):
 
 
 def check_age_groups_relative_risk(relative_risk: pd.DataFrame, exposure: pd.DataFrame):
-    cids = set(relative_risk.cause_id)
-    for cid in cids:
-        rr = relative_risk[relative_risk.cause_id == cid]
+    affected_causes = set(relative_risk.affected_entity)
+    affected_measures = ['incidence_rate', 'excess_mortality']
+    for cause, measure in product(affected_causes, affected_measures):
+        rr = relative_risk[(relative_risk.affected_entity == cause) & (relative_risk.affected_measure == measure)]
         if set(rr.age_group_id) > set(exposure.age_group_id):
-            raise DataAbnormalError(f"relative risk for cause_id {cid} has age groups that do not have risk exposure:"
+            raise DataAbnormalError(f"relative risk for {cause} has age groups that do not have risk exposure:"
                                     f"{set(rr.age_group_id)-set(exposure.age_group_id)}.")
 
 
 def check_age_groups_paf(pafs: pd.DataFrame, relative_risk: pd.DataFrame):
-    rr_cids = set(relative_risk.cause_id)
-    paf_cids = set(pafs.cause_id)
-    if rr_cids != paf_cids:
-        raise DataAbnormalError("Relative risk and PAF does not have the same set of cause ids.")
-    for cid in rr_cids:
-        rr = relative_risk[relative_risk.cause_id == cid]
-        paf = pafs[pafs.cause_id == cid]
+    rr_affected_causes = set(relative_risk.affcted_entity)
+    paf_affected_causes = set(pafs.affected_entity)
+    affected_measures = ['incidence_rate', 'excess_mortality']
+    if rr_affected_causes != paf_affected_causes:
+        raise DataAbnormalError("Relative risk and PAF does not have the same set of affected causes.")
+    for cause, measure in product(rr_affected_causes, affected_measures):
+        rr = relative_risk[(relative_risk.affected_entity == cause) & (relative_risk.affected_measure == measure)]
+        paf = pafs[(pafs.affected_entity == cause) & (pafs.affected_measure == measure)]
         if set(rr.age_group_id) > set(paf.age_group_id):
-            raise DataAbnormalError(f"Relative risk for cause_id {cid} has extra age groups that do not have PAF data:"
+            raise DataAbnormalError(f"Relative risk for {cause} has extra age groups that do not have PAF data:"
                                     f"{set(rr.age_group_id)-set(paf.age_group_id)}.")
         elif set(rr.age_group_id) < set(paf.age_group_id):
-            warnings.warn(f"PAF for cause_id {cid} has extra age_groups that do not have RR data:"
+            warnings.warn(f"PAF for {cause} has extra age_groups that do not have RR data:"
                           f"{set(paf.age_group_id)-set(rr.age_group_id)}")

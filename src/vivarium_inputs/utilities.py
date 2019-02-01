@@ -302,3 +302,5 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     ages = get_restriction_age_ids(start, end)
     data = data[data.age_group_id.isin(ages)]
     return data
+
+
