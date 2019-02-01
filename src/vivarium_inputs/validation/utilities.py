@@ -73,9 +73,9 @@ def check_location(data: pd.DataFrame, location_id: int):
     if len(data['location_id'].unique()) > 1:
         raise DataAbnormalError(f'Data contains multiple location ids.')
     data_location_id = data['location_id'].unique()[0]
-    global_loc = 1
+    global_loc_id = 1
     if data_location_id not in [global_loc_id, location_id]:
-        rais DataAbnormalError(f'Data Pulled for {location_id} actually has location id {data_location_id}.')
+        raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}.')
 
 
 def check_columns(expected_cols: List, existing_cols: List):
