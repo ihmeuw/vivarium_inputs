@@ -490,8 +490,12 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
     for c_id in data.cause_id.unique():
-        cause = [c for c in causes if c.gbd_id == c_id][0]
-        check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
+        cause_matches = [c for c in causes if c.gbd_id == c_id]
+        if cause_matches:
+            cause = cause[0]
+            check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
+        else:
+            continue
 
 
 def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
