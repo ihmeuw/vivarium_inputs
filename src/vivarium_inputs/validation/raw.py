@@ -47,7 +47,7 @@ def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
     metadata_checkers[entity.kind](entity, measure)
 
 
-def validate_raw_data(data, entity, measure, location_id):
+def validate_raw_data(data, entity, measure, location_id, *additional_data):
     validators = {
         # Cause-like measures
         'incidence': _validate_incidence,
@@ -76,7 +76,7 @@ def validate_raw_data(data, entity, measure, location_id):
     if measure not in validators:
         raise NotImplementedError()
 
-    validators[measure](data, entity, location_id)
+    validators[measure](data, entity, location_id, *additional_data)
 
 
 def check_sequela_metadata(entity: Sequela, measure: str):
