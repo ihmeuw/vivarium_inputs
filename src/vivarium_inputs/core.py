@@ -161,7 +161,13 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     if entity.kind == 'risk_factor':
         data = utilities.filter_data_by_restrictions(data, entity, 'outer')
 
-    data = utilities.normalize(data, fill_value=0)
+    if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
+        tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+        exposed = data[~data.isin(tmrel_cat)]
+        unexposed = data[data.isin(tmrel_cat)]
+        data = pd.concat([utilities.normalize(exposed, fill_value=0), utilities.normalize(unexposed, fill_value=1)])
+    else:
+        data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
     return data
 
