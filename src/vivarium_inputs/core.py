@@ -188,12 +188,18 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
 
     if entity.kind == 'risk_factor':
-        data = utilities.filter_data_by_restrictions(data, entity, 'outer')
+        data.drop('age_group_id', axis=1, inplace=True)
+        df = []
+        for age_id in get_exposure_age_groups(entity, location_id):
+            copied = data.copy()
+            copied['age_group_id'] = age_id
+            df.append(copied)
+        data = pd.concat(df)
 
-    data = utilities.normalize(data, fill_value=0)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
     id_cols = ['rei_id', 'location_id', 'sex_id', 'year_id', 'age_group_id', 'measure']
+    data = utilities.normalize(data, fill_value=0, cols_to_fill=distribution_cols)
     data = pd.melt(data, id_vars=id_cols, value_vars=distribution_cols, var_name='parameter')
     return data
 
@@ -305,3 +311,7 @@ def get_demographic_dimensions(entity: POP, location_id: int) -> pd.DataFrame:
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
 
+
+def get_exposure_age_groups(entity: RiskFactor, location_id: int):
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    return set(exposure.age_group_id)

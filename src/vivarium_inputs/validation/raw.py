@@ -7,7 +7,7 @@ import numpy as np
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap, causes)
 
-from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS,
+from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES,
                                      DataAbnormalError, InvalidQueryError, gbd)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
@@ -47,7 +47,7 @@ def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
     metadata_checkers[entity.kind](entity, measure)
 
 
-def validate_raw_data(data, entity, measure, location_id):
+def validate_raw_data(data, entity, measure, location_id, *additional_data):
     validators = {
         # Cause-like measures
         'incidence': _validate_incidence,
@@ -76,7 +76,7 @@ def validate_raw_data(data, entity, measure, location_id):
     if measure not in validators:
         raise NotImplementedError()
 
-    validators[measure](data, entity, location_id)
+    validators[measure](data, entity, location_id, *additional_data)
 
 
 def check_sequela_metadata(entity: Sequela, measure: str):

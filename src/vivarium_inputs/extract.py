@@ -10,33 +10,35 @@ import vivarium_inputs.validation.raw as validation
 def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
     extractors = {
         # Cause-like measures
-        'incidence': extract_incidence,
-        'prevalence': extract_prevalence,
-        'birth_prevalence': extract_birth_prevalence,
-        'disability_weight': extract_disability_weight,
-        'remission': extract_remission,
-        'deaths': extract_deaths,
+        'incidence': (extract_incidence, ()),
+        'prevalence': (extract_prevalence, ()),
+        'birth_prevalence': (extract_birth_prevalence, ()),
+        'disability_weight': (extract_disability_weight, ()),
+        'remission': (extract_remission, ()),
+        'deaths': (extract_deaths, ()),
         # Risk-like measures
-        'exposure': extract_exposure,
-        'exposure_standard_deviation': extract_exposure_standard_deviation,
-        'exposure_distribution_weights': extract_exposure_distribution_weights,
-        'relative_risk': extract_relative_risk,
-        'population_attributable_fraction': extract_population_attributable_fraction,
-        'mediation_factors': extract_mediation_factors,
+        'exposure': (extract_exposure, ()),
+        'exposure_standard_deviation': (extract_exposure_standard_deviation, ()),
+        'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
+        'relative_risk': (extract_relative_risk, ()),
+        'population_attributable_fraction': (extract_population_attributable_fraction, ()),
+        'mediation_factors': (extract_mediation_factors, ()),
         # Covariate measures
-        'estimate': extract_estimate,
+        'estimate': (extract_estimate, ()),
         # Health system measures
-        'cost': extract_cost,
-        'utilization': extract_utilization,
+        'cost': (extract_cost, ()),
+        'utilization': (extract_utilization, ()),
         # Population measures
-        'structure': extract_structure,
-        'theoretical_minimum_risk_life_expectancy': extract_theoretical_minimum_risk_life_expectancy,
+        'structure': (extract_structure, ()),
+        'theoretical_minimum_risk_life_expectancy': (extract_theoretical_minimum_risk_life_expectancy, ()),
     }
 
     validation.check_metadata(entity, measure)
 
     try:
-        data = extractors[measure](entity, location_id)
+        main_extractor, additional_extractors = extractors[measure]
+        data = main_extractor(entity, location_id)
+        additional_data = [additional_extractor(entity, location_id) for additional_extractor in additional_extractors]
     except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError, InputsException) as e:
         if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in str(e):
             raise e
@@ -48,7 +50,7 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
         else:
             raise DataNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
 
-    validation.validate_raw_data(data, entity, measure, location_id)
+    validation.validate_raw_data(data, entity, measure, location_id, *additional_data)
     return data
 
 
