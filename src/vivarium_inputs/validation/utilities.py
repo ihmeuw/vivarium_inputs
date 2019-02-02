@@ -80,7 +80,8 @@ def check_location(data: pd.DataFrame, location_id: int):
     path_to_parent = [int(i) for i in path_to_parent]
 
     if data_location_id not in path_to_parent:  
-        raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}, which is not not in its hierarchy.')
+        raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}, which is '
+                                'not in its hierarchy.')
 
 
 def check_columns(expected_cols: List, existing_cols: List):
