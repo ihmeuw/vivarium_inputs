@@ -391,8 +391,11 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
 
 
 def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
-                                          location_id: int):
-    check_data_exist(data, zeros_missing=True)
+                                          location_id: int, exposure: pd.DataFrame):
+    exposure_age_groups = set(exposure.age_group_id)
+    valid_age_group_data = data[data.age_group_id.isin(exposure_age_groups)]
+
+    check_data_exist(valid_age_group_data, zeros_missing=True)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'measure_id',
                         'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
@@ -406,20 +409,14 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
                                 f'a year range that is neither annual nor binned.')
     check_location(data, location_id)
 
-    if entity.kind == 'risk_factor':
-        age_start = get_restriction_age_boundary(entity, 'start')
-        age_end = get_restriction_age_boundary(entity, 'end')
+    age_start = min(exposure_age_groups)
+    age_end = max(exposure_age_groups)
 
-        check_age_group_ids(data, age_start, age_end)
-        check_sex_ids(data, True, True)
+    check_age_group_ids(data, age_start, age_end)
+    check_sex_ids(data, True, True)
 
-        check_age_restrictions(data, age_start, age_end)
-        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
-    else:
-        check_age_group_ids(data, None, None)
-        check_sex_ids(data, True, True)
-
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(valid_age_group_data, 0, 'lower',
+                                 value_columns=DRAW_COLUMNS, inclusive=False, error=DataAbnormalError)
 
 
 def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
