@@ -170,8 +170,7 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    if entity.kind == 'risk_factor':
-        data = data[data.age_group_id.isin(get_exposure_age_groups(entity, location_id))]
+    data = data[data.age_group_id.isin(get_exposure_age_groups(entity, location_id))]
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
