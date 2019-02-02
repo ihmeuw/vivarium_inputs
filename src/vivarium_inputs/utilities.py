@@ -1,9 +1,11 @@
 """Errors and utility functions for input processing."""
-import pandas as pd
-import numpy as np
-from typing import Union
+from numbers import Real
+from typing import Union, List
 
 from gbd_mapping import causes, risk_factors, Cause, RiskFactor
+import numpy as np
+import pandas as pd
+
 from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
 from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_age_ids
 
@@ -103,7 +105,7 @@ def scrub_affected_entity(data):
 ###############################################################
 
 
-def normalize(data: pd.DataFrame, fill_value=None, cols_to_fill=DRAW_COLUMNS) -> pd.DataFrame:
+def normalize(data: pd.DataFrame, fill_value: Real=None, cols_to_fill: List[str]=DRAW_COLUMNS) -> pd.DataFrame:
     data = normalize_sex(data, fill_value)
     data = normalize_year(data)
     data = normalize_age(data, fill_value, cols_to_fill)
@@ -166,7 +168,7 @@ def interpolate_year(data):
     return pd.concat([data, fillin_data], sort=True)
 
 
-def normalize_age(data: pd.DataFrame, fill_value, cols_to_fill) -> pd.DataFrame:
+def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str]) -> pd.DataFrame:
     data_ages = set(data.age_group_id.unique()) if 'age_group_id' in data.columns else set()
     gbd_ages = set(gbd.get_age_group_id())
 
@@ -230,7 +232,7 @@ def convert_affected_entity(data: pd.DataFrame, column: str) -> pd.DataFrame:
     return data
 
 
-def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_entity:str) -> pd.DataFrame:
+def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_entity: str) -> pd.DataFrame:
     rr = rr_data[rr_data.affected_entity == affected_entity]
     affected_measure = rr.affected_measure.unique()[0]
     rr.drop(['affected_entity', 'affected_measure'], axis=1, inplace=True)
