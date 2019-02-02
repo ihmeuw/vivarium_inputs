@@ -7,7 +7,7 @@ import numpy as np
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap, causes)
 
-from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS,
+from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES,
                                      DataAbnormalError, InvalidQueryError, gbd)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
