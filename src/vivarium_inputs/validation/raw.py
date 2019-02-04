@@ -580,7 +580,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
-                                              location_id: int) -> None:
+                                              location_id: int, relative_risk: pd.DataFrame) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['metric_id', 'measure_id', 'rei_id', 'cause_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -598,8 +598,8 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         restrictions_entity = [c for c in causes if c.etiologies and entity in c.etiologies][0]
 
     restrictions = restrictions_entity.restrictions
-    age_start = get_restriction_age_boundary(restrictions_entity, 'start')
-    age_end = get_restriction_age_boundary(restrictions_entity, 'end')
+    age_start = get_restriction_age_boundary(restrictions_entity, 'start') if entity.kind == 'etiology' else None
+    age_end = get_restriction_age_boundary(restrictions_entity, 'end') if entity.kind == 'etiology' else None
     male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
@@ -620,6 +620,8 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         if cause.restrictions.yll_only and (data.measure_id == 'YLDs').any():
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
+
+    data.groupby(['cause_id', 'measure_id'], as_indx=False).apply(lambda df: check_paf_rr_age_groups(df, relative_risk))
 
 
 def validate_mediation_factors(data, entity, location_id) -> None:
@@ -769,7 +771,6 @@ def check_paf_types(entity) -> None:
         warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
 
-
 ############################
 # RAW VALIDATION UTILITIES #
 ############################
@@ -868,3 +869,24 @@ def check_cause_age_restrictions(entity: Cause) -> None:
             raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
                                       f' We currently do not support these causes.')
 
+
+def check_paf_rr_age_groups(paf: pd.DataFrame, rr: pd.DataFrame) -> None:
+    """Raise an error if relative risk includes any age_group_ids with non
+    trivial data, it raises an error. But paf still can have an extra data
+    while there is no exposure, no relative risk exist.
+    """
+    cid = paf.cause_id.unique()[0]
+    measure = paf.measure_id.unique()[0]
+
+    if measure == MEASURES['YLLs']:
+        rr_data = rr[(rr.cause_id == cid) & (rr.morbidity == 0)]
+    else:
+        rr_data = rr[(rr.cause_id == cid) & (rr.morbidity == 1)]
+    missing_age_ids = set(rr_data.age_group_id)-set(paf.age_group_id)
+    if missing_age_ids and not np.allclose(rr_data[missing_age_ids][DRAW_COLUMNS], 0):
+        raise DataAbnormalError(f"Relative risk for cause_id {cid} has extra age groups that do not have Paf data"
+                                f" for {measure}: {missing_age_ids}.")
+    extra_age_ids = set(paf.age_group_id) - set(rr_data.age_group_id)
+    if extra_age_ids:
+        warnings.warn(f"Paf for cause_id {cid} has extra age_groups that do not have RR data for {measure}:"
+                      f"{extra_age_ids}.")
