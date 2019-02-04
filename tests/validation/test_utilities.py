@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from vivarium_inputs.validation import utilities
-from vivarium_inputs.globals import DataAbnormalError, DataNotExistError, DataFormattingError
+from vivarium_inputs.globals import DataAbnormalError, DataDoesNotExistError, DataTransformationError
 
 
 @pytest.fixture
@@ -91,12 +91,12 @@ def test_check_columns_missing_fail(columns):
                                   pd.DataFrame(columns=['a', 'b'])],
                          ids=['Single NaN', 'All NaN', 'Single Inf', 'All Inf', 'Empty'])
 def test_check_data_exist_always_fail(data):
-    with pytest.raises(DataNotExistError):
+    with pytest.raises(DataDoesNotExistError):
         utilities.check_data_exist(data, value_columns=data.columns, zeros_missing=False)
 
     assert utilities.check_data_exist(data, value_columns=data.columns, zeros_missing=False, error=False) is False
 
-    with pytest.raises(DataNotExistError):
+    with pytest.raises(DataDoesNotExistError):
         utilities.check_data_exist(data, value_columns=data.columns, zeros_missing=True)
 
     assert utilities.check_data_exist(data, value_columns=data.columns, zeros_missing=True, error=False) is False
@@ -107,7 +107,7 @@ def test_check_data_exist_fails_only_on_missing_zeros():
 
     utilities.check_data_exist(df, value_columns=df.columns, zeros_missing=False)
 
-    with pytest.raises(DataNotExistError):
+    with pytest.raises(DataDoesNotExistError):
         utilities.check_data_exist(df, value_columns=df.columns, zeros_missing=True)
 
 
@@ -229,7 +229,7 @@ test_data = [(pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 1, 'lower', ['a', 'b'],
              (pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 20, 'upper', ['a', 'b'],
               False, 'values above', DataAbnormalError),
              (pd.DataFrame({'a': [0, 1], 'b': [2, 20]}, index=[0, 1]), pd.Series([5, 10], index=[0, 1]), 'upper',
-              ['a', 'b'], True, 'above the expected', DataFormattingError)]
+              ['a', 'b'], True, 'above the expected', DataTransformationError)]
 
 
 @pytest.mark.parametrize('data, boundary, boundary_type, val_cols, inclusive, match, error', test_data)
