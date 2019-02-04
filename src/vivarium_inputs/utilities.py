@@ -304,3 +304,11 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     ages = get_restriction_age_ids(start, end)
     data = data[data.age_group_id.isin(ages)]
     return data
+
+
+def filter_to_most_detailed_causes(data: pd.DataFrame)-> pd.DataFrame:
+    """For the DataFrame including the cause_ids, it filters rows with
+    cause_ids for the most detailed causes """
+    cause_ids = set(data.cause_id)
+    most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
+    return data[data.cause_id.isin(most_detailed_cause_ids)]

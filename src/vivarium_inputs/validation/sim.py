@@ -258,7 +258,7 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
 
     non_weight_columns = list(set(data.columns).difference({'parameter', 'value'}))
     weights_sum = data.groupby(non_weight_columns)['value'].sum()
-    if not np.allclose(weights_sum, 1.0) and not np.allclose(weights_sum, 0.0):
+    if not weights_sum.apply(lambda s: np.isclose(s, 1.0) or np.isclose(s, 0.0)).all():
         raise DataTransformationError("Exposure weights do not sum to one across demographics.")
 
     _check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0)
@@ -279,8 +279,12 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     else:
         raise NotImplementedError()
 
+    #  We want to have hard lower limit 0 for RR and soft low limit 1 for RR
+    #  because some risks are protective against some causes.
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'],
+                                                      boundary_type='lower', value_columns=['value'])
+    validation_utilities.check_value_columns_boundary(data, boundary_value=0, boundary_type='lower',
+                                                      value_columns=['value'], inclusive=False,
                                                       error=DataTransformationError)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd],
                                                       boundary_type='upper', value_columns=['value'],
