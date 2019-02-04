@@ -11,8 +11,6 @@ from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES
                                      DataAbnormalError, InvalidQueryError, gbd, Population)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
-from vivarium_inputs.utilities import filter_to_most_detailed_causes
-
 from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
                                                   check_age_group_ids, check_sex_ids, check_age_restrictions,
                                                   check_value_columns_boundary, check_sex_restrictions,
@@ -187,7 +185,7 @@ def check_sequela_metadata(entity: Sequela, measure: str) -> None:
 def check_cause_metadata(entity: Cause, measure: str) -> None:
     """Check all relevant metadata flags for cause pertaining to measure.
 
-    If the entity is restricted to YLL Only or the age group set corresponding
+    If the entity is restricted to YLL only or the age group set corresponding
     to the YLL restrictions is greater than that corresponding to the YLD
     restrictions, error as we don't currently know how to model such causes.
 
@@ -251,8 +249,18 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
 def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
     """Check all relevant metadata flags for risk pertaining to measure.
 
+    For measures other than exposure distribution weights and mediation factors,
+    for which there is no metadata: check that the correspond 'exists' flag in
+    metadata is True and that the 'in_range' is also True. Warn if either is
+    False. For measure 'population_attributable_fraction', this consists of
+    checking the flags for both the yll and yld versions of this measure.
 
+    For exposure, additionally check that the exposure_year_type flag is not
+    'mix' or 'incomplete', which would indicate a non-standard set of years
+    in the data.
 
+    If the `entity` has any violated restrictions pertaining to `measure`
+    listed in metadata, warn about them.
 
     Almost all checks result in warnings rather than errors because most flags
     are based on a survey done on data from a single location.
@@ -297,10 +305,46 @@ def check_alternative_risk_factor_metadata(entity: AlternativeRiskFactor, measur
 
 
 def check_etiology_metadata(entity: Etiology, measure: str) -> None:
+    """Check all relevant metadata flags for etiology pertaining to measure.
+
+    For measure 'population_attributable_fraction', check that the correspond
+    'exists' flags for the yll and yld versions of the measure in metadata are
+    True and that the 'in_range' flags are also True. Warn if any is
+    False.
+
+    All checks result in warnings rather than errors because metadata flags
+    are based on a survey done on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        RiskFactor for which to check metadata.
+    measure
+        Measure for which to check metadata.
+    """
     check_paf_types(entity)
 
 
 def check_covariate_metadata(entity: Covariate, measure: str) -> None:
+    """Check all relevant metadata flags for covariate pertaining to measure.
+
+    Warn if metadata flags for the existence of mean_value or the uncertainty
+    values of lower_value and upper_value are False.
+
+    If the `entity` has any violated restrictions of by_age or by_sex listed
+    in metadata.
+
+    All checks result in warnings rather than errors because metadata flags
+    are based on a survey done on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        RiskFactor for which to check metadata.
+    measure
+        Measure for which to check metadata.
+
+    """
     if not entity.mean_value_exists:
         warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain'
                       f'mean values for all locations.')
@@ -320,11 +364,33 @@ def check_coverage_gap_metadata(entity: CoverageGap, measure: str) -> None:
 
 
 def check_health_technology_metadata(entity: HealthTechnology, measure: str) -> None:
+    """ Because HealthTechnology does not contain any metadata flags, this
+    check simply warns the user that cost data is constant over years.
+
+    Parameters
+    ----------
+    entity
+        HealthTechnology for which to check metadata.
+    measure
+        Measure for which to check metadata.
+    """
     if measure == 'cost':
         warnings.warn(f'Cost data for {entity.kind} {entity.name} does not vary by year.')
 
 
 def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str) -> None:
+    """ Because HealthCareEntity does not contain any metadata flags, this
+    check simply warns the user that cost data outside of years between
+    [1995, 2016] has been duplicated from the nearest year for which there is
+    data.
+
+    Parameters
+    ----------
+    entity
+        HealthEntity for which to check metadata.
+    measure
+        Measure for which to check metadata.
+    """
     if measure == 'cost':
         warnings.warn(f'2017 cost data for {entity.kind} {entity.name} is duplicated from 2016 data, and all data '
                       f'before 1995 is backfilled from 1995 data.')
