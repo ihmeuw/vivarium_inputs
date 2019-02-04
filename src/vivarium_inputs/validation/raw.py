@@ -144,7 +144,7 @@ def check_sequela_metadata(entity: Sequela, measure: str):
         _check_exists_in_range(entity, measure)
     else:  # measure == 'disability_weight
         if not entity.healthstate[f'{measure}_exists']:
-            # throw warning so won't break if pulled for a cause where not all sequelae may be missing dws
+            # warn instead of error so won't break if pulled for a cause where not all sequelae may be missing dws
             warnings.warn(f'Sequela {entity.name} does not have {measure} data.')
 
 
@@ -436,13 +436,15 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
             else:
                 check_value_columns_boundary(data, entity.tmred.min, 'lower',
                                              value_columns=DRAW_COLUMNS, inclusive=True, error=None)
-    else:
+    else:  # CoverageGap, AlternativeRiskFactor
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
     if entity.distribution in ('dichotomous', 'ordered_polytomous', 'unordered_polytomous'):  # categorical
-        check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
-        check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+        check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS,
+                                     inclusive=True, error=DataAbnormalError)
+        check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS,
+                                     inclusive=True, error=DataAbnormalError)
 
         g = data.groupby(DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
         if not np.allclose(g, 1.0):
