@@ -606,7 +606,8 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     check_age_group_ids(data, age_start, age_end)
     check_sex_ids(data, male_expected, female_expected)
 
-    # we cannot check paf age restrictions using RR age groups here since we allow paf to have more age groups than RR.
+    # we cannot check risk_factor paf age restrictions using RR age groups here
+    # because we allow paf to have more age groups than RR and do not want to raise an error.
     if entity.kind == 'etiology':
         check_age_restrictions(data, age_start, age_end)
 
