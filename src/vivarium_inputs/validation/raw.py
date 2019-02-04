@@ -606,7 +606,8 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     check_age_group_ids(data, age_start, age_end)
     check_sex_ids(data, male_expected, female_expected)
 
-    check_age_restrictions(data, age_start, age_end)
+    if entity.kind == 'etiology':
+        check_age_restrictions(data, age_start, age_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
