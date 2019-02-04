@@ -459,8 +459,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     exposure_age_groups = set(exposure.age_group_id)
     data.groupby(['cause_id', 'morbidity']).apply(lambda df: _check_age_groups_relative_risk(df, exposure_age_groups))
 
-    valid_age_group_data = data[data.age_group_id.isin(exposure_age_groups)]
-    valid_age_group_data.groupby(['cause_id', 'morbidity']).apply(lambda df: check_data_exist(df, zeros_missing=True))
+    data.groupby(['cause_id', 'morbidity']).apply(lambda df: check_data_exist(df, zeros_missing=True))
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
                         'morbidity', 'metric_id', 'parameter'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
@@ -489,10 +488,10 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
-    check_value_columns_boundary(valid_age_group_data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
+    check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
 
     max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
-    check_value_columns_boundary(valid_age_group_data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True)
+    check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True)
 
     for c_id in data.cause_id.unique():
         cause = [c for c in causes if c.gbd_id == c_id][0]
