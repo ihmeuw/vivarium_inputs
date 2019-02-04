@@ -139,6 +139,13 @@ def validate_raw_data(data: pd.DataFrame, entity: Union[ModelableEntity, NamedTu
     validators[measure](data, entity, location_id, *additional_data)
 
 
+##############################################
+#   CHECK METADATA ENTITY SPECIFIC METHODS   #
+# ------------------------------------------ #
+# Signatures to match wrapper check_metadata #
+##############################################
+
+
 def check_sequela_metadata(entity: Sequela, measure: str):
     if measure in ['incidence', 'prevalence', 'birth_prevalence']:
         check_exists_in_range(entity, measure)
@@ -231,6 +238,13 @@ def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str):
 
 def check_population_metadata(entity: NamedTuple, measure: str):
     pass
+
+
+#################################################
+#   VALIDATE RAW DATA ENTITY SPECIFIC METHODS   #
+# --------------------------------------------- #
+# Signatures to match wrapper validate_raw_data #
+#################################################
 
 
 def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
@@ -806,6 +820,9 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
 
 
 def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
+    """ Because covariate sex restrictions are simply by_sex or not rather than
+    specific male_only, female_only, etc. as with other entities, a custom
+    validation function is required."""
     if by_sex and not {gbd.MALE[0], gbd.FEMALE[0]}.issubset(set(data.sex_id)):
         raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
     elif not by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
@@ -814,6 +831,9 @@ def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
 
 
 def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
+    """ Because covariate age restrictions are simply by_age or not rather than
+    specific age ranges as with other entities, a custom validation function
+    is required. """
     if by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
         # if we have any of the expected gbd age group ids, restriction is not violated
         raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
