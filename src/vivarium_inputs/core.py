@@ -269,7 +269,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
     data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
-    data = data.groupby('measure_id').apply(lambda df: utilities.normalize(df, fill_value=0))
+    data = data.groupby(['affected_entity', 'affected_measure']).apply(lambda df: utilities.normalize(df, fill_value=0))
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'])
     return data
 
