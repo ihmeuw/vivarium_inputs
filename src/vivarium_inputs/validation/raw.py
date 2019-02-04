@@ -7,7 +7,7 @@ import numpy as np
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap, causes)
 
-from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES,
+from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES,
                                      DataAbnormalError, InvalidQueryError, gbd)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
@@ -26,8 +26,7 @@ MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
 MAX_POP = 100_000_000
 
-ALL_AGES_AGE_GROUP_ID = 22
-AGE_STANDARDIZED_AGE_GROUP_ID = 27
+
 
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
@@ -267,9 +266,9 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id
 
     check_location(data, location_id)
 
-    if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
+    if set(data.age_group_id) != {SPECIAL_AGES['all_ages']}:
         raise DataAbnormalError(f'Disability weight data for {entity.kind} {entity.name} includes age groups beyond '
-                                f'the expected all ages age group (id {ALL_AGES_AGE_GROUP_ID}).')
+                                f'the expected all ages age group (id {SPECIAL_AGES["all_ages"]}).')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
 
@@ -435,9 +434,9 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
 
     check_location(data, location_id)
 
-    if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
+    if set(data.age_group_id) != {SPECIAL_AGES["all_ages"]}:
         raise DataAbnormalError(f'Exposure distribution weight data for {entity.kind} {entity.name} includes '
-                                f'age groups beyond the expected all ages age group (id {ALL_AGES_AGE_GROUP_ID}.')
+                                f'age groups beyond the expected all ages age group (id {SPECIAL_AGES["all_ages"]}.')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
 
@@ -554,7 +553,7 @@ def _validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int):
     if entity.by_age:
         check_age_group_ids(data, None, None)
     else:
-        if not set(data.age_group_id).issubset({ALL_AGES_AGE_GROUP_ID, AGE_STANDARDIZED_AGE_GROUP_ID}):
+        if not set(data.age_group_id).issubset({SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']}):
             raise DataAbnormalError(f'Estimate data for {entity.kind} {entity.name} is not supposed to be by age, '
                                     f'but contains age groups beyond all ages and age standardized.')
 
@@ -578,9 +577,9 @@ def _validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTec
     check_years(data, 'annual')
     check_location(data, location_id)
 
-    if set(data.age_group_id) != {ALL_AGES_AGE_GROUP_ID}:
+    if set(data.age_group_id) != {SPECIAL_AGES['all_ages']}:
         raise DataAbnormalError(f'Cost data for {entity.kind} {entity.name} includes age groups beyond '
-                                f'the expected all ages age group (id {ALL_AGES_AGE_GROUP_ID}).')
+                                f'the expected all ages age group (id {SPECIAL_AGES["all_ages"]}).')
 
     check_sex_ids(data, male_expected=False, female_expected=False, combined_expected=True)
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
@@ -744,7 +743,7 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
 
 
 def _check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
-    if by_sex and not {gbd.MALE[0], gbd.FEMALE[0]}.issubset(set(data.sex_id)):
+    if by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
         raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
     elif not by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
         raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
@@ -756,7 +755,7 @@ def _check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
         # if we have any of the expected gbd age group ids, restriction is not violated
         raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
     # if we have any age group ids besides all ages and age standardized, restriction is violated
-    if not by_age and bool((set(data.age_group_id) - {ALL_AGES_AGE_GROUP_ID, AGE_STANDARDIZED_AGE_GROUP_ID})):
+    if not by_age and bool((set(data.age_group_id) - {SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']})):
         raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
                                 'beyond all ages and age standardized.')
 

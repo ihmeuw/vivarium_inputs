@@ -6,7 +6,7 @@ from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 import numpy as np
 import pandas as pd
 
-from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
+from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_age_ids
 
 
@@ -34,7 +34,7 @@ def get_demographic_dimensions(location_id, draws=False):
     ages = gbd.get_age_group_id()
     estimation_years = gbd.get_estimation_years()
     years = range(min(estimation_years), max(estimation_years) + 1)
-    sexes = gbd.MALE + gbd.FEMALE
+    sexes = [SEXES['Male'], SEXES['Female']]
     location = [location_id]
     values = [location, sexes, ages, years]
     names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
@@ -175,7 +175,7 @@ def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str])
     if not data_ages:
         # Data does not correspond to individuals, so no age column necessary.
         pass
-    elif data_ages == {22}:
+    elif data_ages == {SPECIAL_AGES['all_ages']}:
         # Data applies to all ages, so copy.
         dfs = []
         for age in gbd_ages:
@@ -292,11 +292,11 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     """
     restrictions = entity.restrictions
     if restrictions.male_only and not restrictions.female_only:
-        sexes = gbd.MALE
+        sexes = [SEXES['Male']]
     elif not restrictions.male_only and restrictions.female_only:
-        sexes = gbd.FEMALE
+        sexes = [SEXES['Female']]
     else:  # not male only and not female only
-        sexes = gbd.FEMALE + gbd.MALE + gbd.COMBINED
+        sexes = [SEXES['Male'], SEXES['Female'], SEXES['Combined']]
 
     data = data[data.sex_id.isin(sexes)]
 
