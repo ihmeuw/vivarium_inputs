@@ -1,5 +1,5 @@
 """Global constants, errors, and module imports for inputs processing."""
-from typing import NamedTuple
+from gbd_mapping import ModelableEntity
 
 
 # The purpose of this import block is to mask the dependency on internal
@@ -107,6 +107,7 @@ DEMOGRAPHIC_COLUMNS = ['location_id', 'sex_id', 'age_group_id', 'year_id']
 DRAW_COLUMNS = [f'draw_{i}' for i in range(1000)]
 
 
-class Population(NamedTuple):
+class Population(ModelableEntity):
     """Entity wrapper for querying population measures."""
-    kind: str
+    def __init__(self):
+        super().__init__(name='population', kind='population', gbd_id=None)
