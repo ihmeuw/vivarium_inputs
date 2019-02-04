@@ -12,7 +12,7 @@ def get_measure(entity, measure, location):
 
 
 def get_population_structure(location):
-    pop = Population('population')
+    pop = Population()
     data = core.get_data(pop, 'structure', location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'structure', location)
@@ -20,21 +20,21 @@ def get_population_structure(location):
 
 
 def get_theoretical_minimum_risk_life_expectancy():
-    pop = Population('population')
+    pop = Population()
     data = core.get_data(pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
     validation.validate_for_simulation(data, pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
     return utilities.sort_data(data)
 
 
 def get_age_bins():
-    pop = Population('population')
+    pop = Population()
     data = core.get_data(pop, 'age_bins', 'Global')
     validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
     return utilities.sort_data(data)
 
 
 def get_demographic_dimensions(location):
-    pop = Population('population')
+    pop = Population()
     data = core.get_data(pop, 'demographic_dimensions', location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
