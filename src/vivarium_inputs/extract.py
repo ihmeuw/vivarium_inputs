@@ -3,7 +3,7 @@ import pandas as pd
 from get_draws.api import EmptyDataFrameException, InputsException
 from gbd_artifacts.exceptions import NoBestVersionError
 
-from .globals import gbd, METRICS, MEASURES, DataAbnormalError, DataNotExistError
+from .globals import gbd, METRICS, MEASURES, DataAbnormalError, DataDoesNotExistError
 import vivarium_inputs.validation.raw as validation
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
 
@@ -49,7 +49,7 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
         elif isinstance(e, InputsException) and measure != 'birth_prevalence':
             raise e
         else:
-            raise DataNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
+            raise DataDoesNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
 
     validation.validate_raw_data(data, entity, measure, location_id, *additional_data)
     return data
