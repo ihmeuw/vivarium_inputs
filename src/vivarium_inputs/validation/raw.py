@@ -199,7 +199,6 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
     the estimates for the subcauses/sequela aggregate were found to correctly
     aggregate to the `entity` estimates. Warn if either are False.
 
-
     Almost all checks result in warnings rather than errors because most flags
     are based on a survey done on data from a single location.
 
