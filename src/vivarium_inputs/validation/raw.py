@@ -457,8 +457,9 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
 
     data = filter_to_most_detailed_causes(data)
     exposure_age_groups = set(exposure.age_group_id)
-    valid_age_group_data = data[data.age_group_id.isin(exposure_age_groups)]
+    data.groupby(['cause_id', 'morbidity']).apply(lambda df: _check_age_groups_relative_risk(df, exposure_age_groups))
 
+    valid_age_group_data = data[data.age_group_id.isin(exposure_age_groups)]
     valid_age_group_data.groupby(['cause_id', 'morbidity']).apply(lambda df: check_data_exist(df, zeros_missing=True))
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
@@ -496,8 +497,6 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     for c_id in data.cause_id.unique():
         cause = [c for c in causes if c.gbd_id == c_id][0]
         check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
-
-    data.groupby(['cause_id', 'morbidity']).apply(_check_age_groups_relative_risk)
 
 
 def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
@@ -783,7 +782,7 @@ def _check_cause_age_restrictions(entity: Cause):
                                       f' We currently do not support these causes.')
 
 
-def _check_age_groups_relative_risk(relative_risk: pd.DataFrame, exposure: pd.DataFrame):
-    if set(relative_risk.age_group_id) > set(exposure.age_group_id):
+def _check_age_groups_relative_risk(relative_risk: pd.DataFrame, exposure_age_groups: set):
+    if set(relative_risk.age_group_id) > exposure_age_groups:
         raise DataAbnormalError(f"Relative risk has age groups that do not have risk exposure: "
-                                f"{set(relative_risk.age_group_id)-set(exposure.age_group_id)}.")
+                                f"{set(relative_risk.age_group_id) - exposure_age_groups}.")
