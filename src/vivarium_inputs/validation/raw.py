@@ -109,6 +109,9 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
         If critical verifications (e.g., data exist, expected columns are all
         present) fail.
 
+    InvalidQueryError
+        If an unknown measure is requested for which no validator exists.
+
     """
     validators = {
         # Cause-like measures
@@ -149,6 +152,28 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
 
 
 def check_sequela_metadata(entity: Sequela, measure: str) -> None:
+    """Check all relevant metadata flags for sequela pertaining to measure.
+
+    For incidence, prevalence, and birth prevalence measures: check that the
+    corresponding 'exists' flag in metadata is True and that the 'in_range'
+    flag is also True. Warn if either is False.
+
+    Almost all checks result in warnings rather than errors because most flags
+    are based on a survey done on a single location.
+
+    Parameters
+    ----------
+    entity
+        Sequela for which to check metadata.
+    measure
+        Measure for which to check metadata.
+
+    Raises
+    ------
+    InvalidQueryError
+        If the 'exists' metadata flag on `entity` for `measure` is None.
+
+    """
     if measure in ['incidence', 'prevalence', 'birth_prevalence']:
         check_exists_in_range(entity, measure)
     else:  # measure == 'disability_weight
@@ -158,10 +183,51 @@ def check_sequela_metadata(entity: Sequela, measure: str) -> None:
 
 
 def check_cause_metadata(entity: Cause, measure: str) -> None:
-    if entity.restrictions.yll_only:
-        raise NotImplementedError(f"{entity.name} is YLL only cause and we currently do not have a model to support it.")
+    """Check all relevant metadata flags for cause pertaining to measure.
 
-    check_cause_age_restrictions(entity)
+    If the entity is restricted to YLL Only or the age group set corresponding
+    to the YLL restrictions is greater than that corresponding to the YLD
+    restrictions, error as we don't currently know how to model such causes.
+
+    For measures incidence, prevalence, birth_prevalence, deaths, and remission:
+    check that the correspond 'exists' flag in metadata is True and that the
+    'in_range' is also True. Warn if either is False.
+
+    If the `entity` has any violated restrictions pertaining to `measure`
+    listed in metadata, warn about them.
+
+    For all measures except remission, check the `consistent` and `aggregates`
+    flags for measure, which indicate whether the data was found to
+    exist/not exist consistently with any subcauses or sequela and whether
+    the estimates for the subcauses/sequela aggregate were found to correctly
+    aggregate to the `entity` estimates. Warn if either are False.
+
+
+    Almost all checks result in warnings rather than errors because most flags
+    are based on a survey done on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        Cause for which to check metadata.
+    measure
+        Measure for which to check metadata.
+
+    Raises
+    ------
+    NotImplementedError
+        If the `entity` is YLL only or the YLL age range is broader than the
+        YLD age range.
+
+    InvalidQueryError
+        If the 'exists' metadata flag on `entity` for `measure` is None.
+
+    """
+    if entity.restrictions.yll_only:
+        raise NotImplementedError(f"{entity.name.capitalize()} is YLL only cause, and we currently do not have a"
+                                  f" model to support such a cause.")
+
+    check_cause_age_restrictions_sets(entity)
     check_exists_in_range(entity, measure)
 
     warn_violated_restrictions(entity, measure)
@@ -180,7 +246,31 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
                           f"be consistent with models for this cause.")
 
 
-def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor], measure: str) -> None:
+def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
+    """Check all relevant metadata flags for risk pertaining to measure.
+
+
+
+
+    Almost all checks result in warnings rather than errors because most flags
+    are based on a survey done on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        RiskFactor for which to check metadata.
+    measure
+        Measure for which to check metadata.
+
+    Raises
+    ------
+    NotImplementedError
+        If the `entity` has a 'custom' distribution.
+
+    InvalidQueryError
+        If the 'exists' metadata flag on `entity` for `measure` is None.
+
+    """
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
         return
@@ -846,7 +936,7 @@ def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool) -> None:
                                 'beyond all ages and age standardized.')
 
 
-def check_cause_age_restrictions(entity: Cause) -> None:
+def check_cause_age_restrictions_sets(entity: Cause) -> None:
     if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
     else:
