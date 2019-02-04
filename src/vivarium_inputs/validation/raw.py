@@ -622,7 +622,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
 
-    data.groupby(['cause_id', 'measure_id'], as_indx=False).apply(lambda df: check_paf_rr_age_groups(df, relative_risk))
+    data.groupby(['cause_id', 'measure_id'], as_index=False).apply(lambda df: check_paf_rr_age_groups(df, relative_risk))
 
 
 def validate_mediation_factors(data, entity, location_id) -> None:
