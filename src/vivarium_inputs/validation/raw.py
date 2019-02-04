@@ -890,5 +890,5 @@ def check_paf_rr_age_groups(paf: pd.DataFrame, rr: pd.DataFrame) -> None:
                                 f" for measure: {measure_map[measure]}: {missing_age_ids}.")
     extra_age_ids = set(paf.age_group_id) - set(rr_data.age_group_id)
     if extra_age_ids:
-        warnings.warn(f"Paf for cause_id {cid} has extra age_groups that do not have RR data for {measure}:"
+        warnings.warn(f"Paf for cause_id {cid} has extra age_groups that do not have RR data for {measure_map[measure]}:"
                       f"{extra_age_ids}.")
