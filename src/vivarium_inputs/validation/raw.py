@@ -30,7 +30,7 @@ ALL_AGES_AGE_GROUP_ID = 22
 AGE_STANDARDIZED_AGE_GROUP_ID = 27
 
 
-def check_metadata(entity: Union[ModelableEntity, Population], measure: str):
+def check_metadata(entity: ModelableEntity, measure: str) -> None:
     """ Check metadata associated with the given entity and measure for any
     relevant warnings or errors.
 
@@ -60,12 +60,14 @@ def check_metadata(entity: Union[ModelableEntity, Population], measure: str):
         'population': check_population_metadata,
         'alternative_risk_factor': check_alternative_risk_factor_metadata,
     }
+    if entity.kind not in metadata_checkers:
+        raise InvalidQueryError(f'No metadata checker found for {entity.kind}.')
 
     metadata_checkers[entity.kind](entity, measure)
 
 
-def validate_raw_data(data: pd.DataFrame, entity: Union[ModelableEntity, Population],
-                      measure: str, location_id: int, *additional_data):
+def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
+                      measure: str, location_id: int, *additional_data) -> None:
     """Validate data conforms to the format expected from raw GBD data, that all
     values are within expected ranges,
 
@@ -134,7 +136,7 @@ def validate_raw_data(data: pd.DataFrame, entity: Union[ModelableEntity, Populat
     }
 
     if measure not in validators:
-        raise NotImplementedError()
+        raise InvalidQueryError(f'No raw validator found for {measure}.')
 
     validators[measure](data, entity, location_id, *additional_data)
 
@@ -146,7 +148,7 @@ def validate_raw_data(data: pd.DataFrame, entity: Union[ModelableEntity, Populat
 ##############################################
 
 
-def check_sequela_metadata(entity: Sequela, measure: str):
+def check_sequela_metadata(entity: Sequela, measure: str) -> None:
     if measure in ['incidence', 'prevalence', 'birth_prevalence']:
         check_exists_in_range(entity, measure)
     else:  # measure == 'disability_weight
@@ -155,7 +157,7 @@ def check_sequela_metadata(entity: Sequela, measure: str):
             warnings.warn(f'Sequela {entity.name} does not have {measure} data.')
 
 
-def check_cause_metadata(entity: Cause, measure: str):
+def check_cause_metadata(entity: Cause, measure: str) -> None:
     if entity.restrictions.yll_only:
         raise NotImplementedError(f"{entity.name} is YLL only cause and we currently do not have a model to support it.")
 
@@ -178,7 +180,7 @@ def check_cause_metadata(entity: Cause, measure: str):
                           f"be consistent with models for this cause.")
 
 
-def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor], measure: str):
+def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor], measure: str) -> None:
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
         return
@@ -198,15 +200,15 @@ def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor],
     warn_violated_restrictions(entity, measure)
 
 
-def check_alternative_risk_factor_metadata(entity: AlternativeRiskFactor, measure: str):
+def check_alternative_risk_factor_metadata(entity: AlternativeRiskFactor, measure: str) -> None:
     pass
 
 
-def check_etiology_metadata(entity: Etiology, measure: str):
+def check_etiology_metadata(entity: Etiology, measure: str) -> None:
     check_paf_types(entity)
 
 
-def check_covariate_metadata(entity: Covariate, measure: str):
+def check_covariate_metadata(entity: Covariate, measure: str) -> None:
     if not entity.mean_value_exists:
         warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain'
                       f'mean values for all locations.')
@@ -221,22 +223,22 @@ def check_covariate_metadata(entity: Covariate, measure: str):
                       f'restrictions: {", ".join(violated_restrictions)}.')
 
 
-def check_coverage_gap_metadata(entity: CoverageGap, measure: str):
+def check_coverage_gap_metadata(entity: CoverageGap, measure: str) -> None:
     pass
 
 
-def check_health_technology_metadata(entity: HealthTechnology, measure: str):
+def check_health_technology_metadata(entity: HealthTechnology, measure: str) -> None:
     if measure == 'cost':
         warnings.warn(f'Cost data for {entity.kind} {entity.name} does not vary by year.')
 
 
-def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str):
+def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str) -> None:
     if measure == 'cost':
         warnings.warn(f'2017 cost data for {entity.kind} {entity.name} is duplicated from 2016 data, and all data '
                       f'before 1995 is backfilled from 1995 data.')
 
 
-def check_population_metadata(entity: Population, measure: str):
+def check_population_metadata(entity: Population, measure: str) -> None:
     pass
 
 
@@ -247,7 +249,7 @@ def check_population_metadata(entity: Population, measure: str):
 #################################################
 
 
-def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
+def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -276,7 +278,7 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locati
     check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
-def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
+def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -305,7 +307,7 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int):
+def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -332,7 +334,7 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
 
 
-def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id: int):
+def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id: int) -> None:
     check_data_exist(data, zeros_missing=False)
 
     expected_columns = ['location_id', 'age_group_id', 'sex_id', 'measure',
@@ -351,7 +353,7 @@ def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id:
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
+def validate_remission(data: pd.DataFrame, entity: Cause, location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', 'model_version_id',
@@ -379,7 +381,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause, location_id: int):
     check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
-def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
+def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', f'{entity.kind}_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
@@ -412,7 +414,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int):
 
 
 def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
-                      location_id: int):
+                      location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'parameter',
@@ -467,7 +469,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
-                                         location_id: int, exposure: pd.DataFrame):
+                                         location_id: int, exposure: pd.DataFrame) -> None:
     exposure_age_groups = set(exposure.age_group_id)
     valid_age_group_data = data[data.age_group_id.isin(exposure_age_groups)]
 
@@ -496,7 +498,7 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
 
 
 def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
-                                           location_id: int):
+                                           location_id: int) -> None:
     key_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
@@ -526,7 +528,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
         raise DataAbnormalError(f'Distribution weights for {entity.kind} {entity.name} do not sum to 1.')
 
 
-def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int):
+def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
@@ -568,7 +570,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
-                                              location_id: int):
+                                              location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['metric_id', 'measure_id', 'rei_id', 'cause_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -610,11 +612,11 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
                                     f'values despite the affected entity being restricted to yll only.')
 
 
-def validate_mediation_factors(data, entity, location_id):
+def validate_mediation_factors(data, entity, location_id) -> None:
     raise NotImplementedError()
 
 
-def validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int):
+def validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int) -> None:
     value_columns = ['mean_value', 'upper_value', 'lower_value']
 
     check_data_exist(data, zeros_missing=False, value_columns=value_columns)
@@ -641,7 +643,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int):
     check_covariate_sex_restriction(data, entity.by_sex)
 
 
-def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology], location_id: int):
+def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology], location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure', entity.kind] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
@@ -662,7 +664,7 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTech
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_id: int):
+def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_id: int) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', 'model_version_id',
@@ -683,7 +685,7 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_
                                  inclusive=True, error=None)
 
 
-def validate_structure(data: pd.DataFrame, entity: Population, location_id: int):
+def validate_structure(data: pd.DataFrame, entity: Population, location_id: int) -> None:
     check_data_exist(data, zeros_missing=True, value_columns=['population'])
 
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
@@ -701,7 +703,8 @@ def validate_structure(data: pd.DataFrame, entity: Population, location_id: int)
                                  inclusive=True, error=DataAbnormalError)
 
 
-def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: Population, location_id: int):
+def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: Population,
+                                                      location_id: int) -> None:
     check_data_exist(data, zeros_missing=True, value_columns=['life_expectancy'])
 
     expected_columns = ['age', 'life_expectancy']
@@ -721,7 +724,7 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
 # CHECK METADATA UTILITIES #
 ############################
 
-def check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: str):
+def check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: str) -> None:
     exists = entity[f'{measure}_exists']
     if exists is None:
         raise InvalidQueryError(f'{measure.capitalize()} data is not expected to exist '
@@ -732,7 +735,7 @@ def check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: st
         warnings.warn(f'{measure.capitalize()} for {entity.kind} {entity.name} may be outside the normal range.')
 
 
-def warn_violated_restrictions(entity, measure):
+def warn_violated_restrictions(entity, measure) -> None:
     violated_restrictions = [r.replace(f'by_{measure}', '').replace(measure, '').replace('_', ' ').replace(' violated', '')
                              for r in entity.restrictions.violated if measure in r]
     if violated_restrictions:
@@ -740,7 +743,7 @@ def warn_violated_restrictions(entity, measure):
                       f'following restrictions: {", ".join(violated_restrictions)}.')
 
 
-def check_paf_types(entity):
+def check_paf_types(entity) -> None:
     paf_types = np.array(['yll', 'yld'])
     missing_pafs = paf_types[[not entity.population_attributable_fraction_yll_exists,
                               not entity.population_attributable_fraction_yld_exists]]
@@ -761,7 +764,7 @@ def check_paf_types(entity):
 # RAW VALIDATION UTILITIES #
 ############################
 
-def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
+def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool) -> None:
     """ Verify that no unexpected values or combinations of mortality and
     morbidity flags are found in `data`, given the restrictions of the
     affected entity.
@@ -819,7 +822,7 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool):
             pass
 
 
-def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
+def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool) -> None:
     """ Because covariate sex restrictions are simply by_sex or not rather than
     specific male_only, female_only, etc. as with other entities, a custom
     validation function is required."""
@@ -830,7 +833,7 @@ def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
                                 'for combined male and female data.')
 
 
-def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
+def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool) -> None:
     """ Because covariate age restrictions are simply by_age or not rather than
     specific age ranges as with other entities, a custom validation function
     is required. """
@@ -843,7 +846,7 @@ def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool):
                                 'beyond all ages and age standardized.')
 
 
-def check_cause_age_restrictions(entity: Cause):
+def check_cause_age_restrictions(entity: Cause) -> None:
     if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
     else:
