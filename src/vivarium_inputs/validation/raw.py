@@ -10,7 +10,6 @@ from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES,
                                      DataAbnormalError, InvalidQueryError, gbd, Population)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
-
 from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
                                                   check_age_group_ids, check_sex_ids, check_age_restrictions,
                                                   check_value_columns_boundary, check_sex_restrictions,
@@ -30,6 +29,16 @@ MAX_POP = 100_000_000
 def check_metadata(entity: ModelableEntity, measure: str) -> None:
     """ Check metadata associated with the given entity and measure for any
     relevant warnings or errors.
+
+    Check that the 'exists' flag in metadata corresponding to `measure` is
+    True and that the corresponding 'in_range' flag is also True. Warn if
+    either is False.
+
+    If the `entity` has any violated restrictions pertaining to `measure`
+    listed in metadata, warn about them.
+
+    Almost all checks result in warnings rather than errors because most flags
+    are based on a survey done on data from a single location.
 
     Parameters
     ----------
@@ -151,13 +160,6 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
 def check_sequela_metadata(entity: Sequela, measure: str) -> None:
     """Check all relevant metadata flags for sequela pertaining to measure.
 
-    For incidence, prevalence, and birth prevalence measures: check that the
-    corresponding 'exists' flag in metadata is True and that the 'in_range'
-    flag is also True. Warn if either is False.
-
-    Almost all checks result in warnings rather than errors because most flags
-    are based on a survey done on a single location.
-
     Parameters
     ----------
     entity
@@ -186,21 +188,11 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
     to the YLL restrictions is greater than that corresponding to the YLD
     restrictions, error as we don't currently know how to model such causes.
 
-    For measures incidence, prevalence, birth_prevalence, deaths, and remission:
-    check that the correspond 'exists' flag in metadata is True and that the
-    'in_range' is also True. Warn if either is False.
-
-    If the `entity` has any violated restrictions pertaining to `measure`
-    listed in metadata, warn about them.
-
     For all measures except remission, check the `consistent` and `aggregates`
     flags for measure, which indicate whether the data was found to
     exist/not exist consistently with any subcauses or sequela and whether
     the estimates for the subcauses/sequela aggregate were found to correctly
     aggregate to the `entity` estimates. Warn if either are False.
-
-    Almost all checks result in warnings rather than errors because most flags
-    are based on a survey done on data from a single location.
 
     Parameters
     ----------
@@ -245,21 +237,9 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
 def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
     """Check all relevant metadata flags for risk pertaining to measure.
 
-    For measures other than exposure distribution weights and mediation factors,
-    for which there is no metadata: check that the correspond 'exists' flag in
-    metadata is True and that the 'in_range' is also True. Warn if either is
-    False. For measure 'population_attributable_fraction', this consists of
-    checking the flags for both the yll and yld versions of this measure.
-
-    For exposure, additionally check that the exposure_year_type flag is not
-    'mix' or 'incomplete', which would indicate a non-standard set of years
-    in the data.
-
-    If the `entity` has any violated restrictions pertaining to `measure`
-    listed in metadata, warn about them.
-
-    Almost all checks result in warnings rather than errors because most flags
-    are based on a survey done on data from a single location.
+    For measure exposure, additionally check that the exposure_year_type flag
+    is not 'mix' or 'incomplete', which would indicate a non-standard set of
+    years in the data.
 
     Parameters
     ----------
@@ -303,18 +283,10 @@ def check_alternative_risk_factor_metadata(entity: AlternativeRiskFactor, measur
 def check_etiology_metadata(entity: Etiology, measure: str) -> None:
     """Check all relevant metadata flags for etiology pertaining to measure.
 
-    For measure 'population_attributable_fraction', check that the correspond
-    'exists' flags for the yll and yld versions of the measure in metadata are
-    True and that the 'in_range' flags are also True. Warn if any is
-    False.
-
-    All checks result in warnings rather than errors because metadata flags
-    are based on a survey done on data from a single location.
-
     Parameters
     ----------
     entity
-        RiskFactor for which to check metadata.
+        Etiology for which to check metadata.
     measure
         Measure for which to check metadata.
     """
@@ -323,15 +295,6 @@ def check_etiology_metadata(entity: Etiology, measure: str) -> None:
 
 def check_covariate_metadata(entity: Covariate, measure: str) -> None:
     """Check all relevant metadata flags for covariate pertaining to measure.
-
-    Warn if metadata flags for the existence of mean_value or the uncertainty
-    values of lower_value and upper_value are False.
-
-    If the `entity` has any violated restrictions of by_age or by_sex listed
-    in metadata.
-
-    All checks result in warnings rather than errors because metadata flags
-    are based on a survey done on data from a single location.
 
     Parameters
     ----------
