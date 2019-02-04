@@ -606,7 +606,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     check_age_group_ids(data, age_start, age_end)
     check_sex_ids(data, male_expected, female_expected)
 
-    # we cannot check risk_factor paf age restrictions using RR age groups here
+    # We cannot check risk_factor paf age restrictions using RR age groups here,
     # because we allow paf to have more age groups than RR and do not want to raise an error.
     if entity.kind == 'etiology':
         check_age_restrictions(data, age_start, age_end)
@@ -876,8 +876,8 @@ def check_cause_age_restrictions(entity: Cause) -> None:
 
 def check_paf_rr_age_groups(paf: pd.DataFrame, rr: pd.DataFrame) -> None:
     """Raise an error if relative risk includes any age_group_ids with non
-    trivial data, it raises an error. But paf still can have an extra data
-    while there is no exposure, no relative risk exist.
+    trivial data. But paf still can have an extra data while there is no
+    relative risk matching with.
     """
     measure_map = {MEASURES['YLLs']: 'YLLs', MEASURES['YLDs']: 'YLDs'}
     cid = paf.cause_id.unique()[0]
