@@ -600,14 +600,16 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     restrictions = restrictions_entity.restrictions
     age_start = get_restriction_age_boundary(restrictions_entity, 'start') if entity.kind == 'etiology' else None
     age_end = get_restriction_age_boundary(restrictions_entity, 'end') if entity.kind == 'etiology' else None
-    male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
-    female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
+    male_expected = not restrictions.female_only
+    female_expected = not restrictions.male_only
 
     check_age_group_ids(data, age_start, age_end)
     check_sex_ids(data, male_expected, female_expected)
 
+    # we cannot check paf age restrictions using RR age groups here since we allow paf to have more age groups than RR.
     if entity.kind == 'etiology':
         check_age_restrictions(data, age_start, age_end)
+
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
