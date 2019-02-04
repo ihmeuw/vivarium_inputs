@@ -31,6 +31,23 @@ AGE_STANDARDIZED_AGE_GROUP_ID = 27
 
 
 def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
+    """ Check metadata associated with the given entity and measure for any
+    relevant warnings or errors.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to check metadata.
+    measure
+        Measure for which to check metadata.
+
+    Raises
+    -------
+    InvalidQueryError
+        If a measure is requested for an entity for which that measure is not
+        expected to exist.
+
+    """
     metadata_checkers = {
         'sequela': check_sequela_metadata,
         'cause': check_cause_metadata,
@@ -47,7 +64,50 @@ def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
     metadata_checkers[entity.kind](entity, measure)
 
 
-def validate_raw_data(data, entity, measure, location_id, *additional_data):
+def validate_raw_data(data: pd.DataFrame, entity: Union[ModelableEntity, NamedTuple],
+                      measure: str, location_id: int, *additional_data):
+    """Validate data conforms to the format expected from raw GBD data, that all
+    values are within expected ranges,
+
+    The following checks are performed for each entity-measure pair (some may
+    be excluded for certain pairs if not applicable):
+
+    1. Verify data exist.
+    2. Verify all expected columns and only expected columns are present.
+    3. Verify measure_id, metric_id, year, and location columns contain only
+        expected values.
+    4. Verify expected age and sex ids are present in data, based on data
+        source and entity type.
+    5. Verify age and sex restrictions for entity match values in data.
+    6. Verify values in value columns are within expected ranges.
+    7. Any entity-measure specific checks.
+
+    Verifications that do not pass result in errors or warnings, depending on
+    the entity, measure, and verification.
+
+    Parameters
+    ----------
+    data
+        Data to be validated.
+    entity
+        Entity to which the data belong.
+    measure
+        Measure to which the data pertain.
+    location_id
+        Location for which the data were pulled.
+    additional_data
+        Any additional data needed to validate the measure-entity data. This
+        most often applies to RiskFactor data where data from an additional
+        measure are often required to validate the necessary extents of the
+        data.
+
+    Raises
+    -------
+    DataAbnormalError
+        If critical verifications (e.g., data exist, expected columns are all
+        present) fail.
+
+    """
     validators = {
         # Cause-like measures
         'incidence': _validate_incidence,
