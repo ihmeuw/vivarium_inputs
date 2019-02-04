@@ -5,6 +5,7 @@ from gbd_artifacts.exceptions import NoBestVersionError
 
 from .globals import gbd, METRICS, MEASURES, DataAbnormalError, DataDoesNotExistError
 import vivarium_inputs.validation.raw as validation
+from vivarium_inputs.utilities import filter_to_most_detailed_causes
 
 
 def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
@@ -18,9 +19,9 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
         'deaths': (extract_deaths, ()),
         # Risk-like measures
         'exposure': (extract_exposure, ()),
-        'exposure_standard_deviation': (extract_exposure_standard_deviation, (extract_exposure)),
+        'exposure_standard_deviation': (extract_exposure_standard_deviation, (extract_exposure,)),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
-        'relative_risk': (extract_relative_risk, ()),
+        'relative_risk': (extract_relative_risk, (extract_exposure,)),
         'population_attributable_fraction': (extract_population_attributable_fraction, ()),
         'mediation_factors': (extract_mediation_factors, ()),
         # Covariate measures
@@ -122,6 +123,7 @@ def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFr
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'risk_factor':
         data = gbd.get_relative_risk(entity.gbd_id, location_id)
+        data = filter_to_most_detailed_causes(data)
     else:  # coverage_gap
         data = gbd.get_auxiliary_data('relative_risk', entity.kind, entity.name, location_id)
     return data
