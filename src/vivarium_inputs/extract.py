@@ -22,7 +22,7 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
         'exposure_standard_deviation': (extract_exposure_standard_deviation, (extract_exposure,)),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
         'relative_risk': (extract_relative_risk, (extract_exposure,)),
-        'population_attributable_fraction': (extract_population_attributable_fraction, ()),
+        'population_attributable_fraction': (extract_population_attributable_fraction, (extract_relative_risk, )),
         'mediation_factors': (extract_mediation_factors, ()),
         # Covariate measures
         'estimate': (extract_estimate, ()),
@@ -133,6 +133,7 @@ def extract_population_attributable_fraction(entity, location_id: int) -> pd.Dat
     data = gbd.get_paf(entity.gbd_id, location_id)
     data = data[data.metric_id == METRICS['Percent']]
     data = data[data.measure_id.isin([MEASURES['YLDs'], MEASURES['YLLs']])]
+    data = filter_to_most_detailed_causes(data)
     return data
 
 
