@@ -5,7 +5,7 @@ import warnings
 import pandas as pd
 import numpy as np
 
-from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES,
+from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES, SEXES,
                                      DataAbnormalError, DataDoesNotExistError, VivariumInputsError,
                                      gbd)
 from gbd_mapping import RiskFactor, Cause
@@ -76,7 +76,8 @@ def check_location(data: pd.DataFrame, location_id: int):
     data_location_id = data['location_id'].unique()[0]
 
     location_metadata = gbd.get_location_path_to_global()
-    path_to_parent = location_metadata.loc[location_metadata.location_id == location_id, 'path_to_top_parent'].values[0].split(',')
+    path_to_parent = location_metadata.loc[location_metadata.location_id == location_id,
+                                           'path_to_top_parent'].values[0].split(',')
     path_to_parent = [int(i) for i in path_to_parent]
 
     if data_location_id not in path_to_parent:
@@ -245,7 +246,7 @@ def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expecte
         If data contains any sex ids that aren't valid GBD sex ids.
 
     """
-    valid_sex_ids = gbd.MALE + gbd.FEMALE + gbd.COMBINED  # these are single-item lists
+    valid_sex_ids = [SEXES['Male'], SEXES['Female'], SEXES['Combined']]
     gbd_sex_ids = set(np.array(valid_sex_ids)[[male_expected, female_expected, combined_expected]])
     data_sex_ids = set(data.sex_id)
 
@@ -388,7 +389,7 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
     DataAbnormalError
         If data violates passed sex restrictions.
     """
-    female, male, combined = gbd.FEMALE[0], gbd.MALE[0], gbd.COMBINED[0]
+    female, male, combined = SEXES['Female'], SEXES['Male'], SEXES['Combined']
 
     if male_only:
         if not check_data_exist(data[data.sex_id == male], zeros_missing=True,
@@ -398,8 +399,8 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
         if (set(data.sex_id) != {male} and
                 check_data_exist(data[data.sex_id != male], zeros_missing=True,
                                  value_columns=value_columns, error=False)):
-           warnings.warn('Data is restricted to male only, but contains '
-                         'non-male sex ids for which data values are not all 0.')
+            warnings.warn('Data is restricted to male only, but contains '
+                          'non-male sex ids for which data values are not all 0.')
 
     if female_only:
         if not check_data_exist(data[data.sex_id == female], zeros_missing=True,
@@ -509,4 +510,3 @@ def get_restriction_age_boundary(entity: Union[RiskFactor, Cause], boundary: str
         end_op = min if reverse else max
         age = end_op(yld_age, yll_age) if boundary == 'start' else start_op(yld_age, yll_age)
     return age
-

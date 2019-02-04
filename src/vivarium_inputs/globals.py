@@ -105,6 +105,13 @@ MEASURES = {
 DEMOGRAPHIC_COLUMNS = ['location_id', 'sex_id', 'age_group_id', 'year_id']
 # List of standard GBD draw column names.
 DRAW_COLUMNS = [f'draw_{i}' for i in range(1000)]
+# Mapping of GBD sex ids
+SEXES = {'Male': 1,
+         'Female': 2,
+         'Combined': 3}
+# Mapping of non-standard age group ids sometimes found in GBD data
+SPECIAL_AGES = {'all_ages': 22,
+                'age_standardized': 27}
 
 
 class Population(ModelableEntity):
