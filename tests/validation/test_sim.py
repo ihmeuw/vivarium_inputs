@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs.validation import sim
-from vivarium_inputs.globals import DataFormattingError
+from vivarium_inputs.globals import DataTransformationError
 
 
 @pytest.fixture
@@ -33,13 +33,13 @@ def test__validate_draw_column_pass():
 @pytest.mark.parametrize('draws', (900, 1100), ids=('too_few', 'too_many'))
 def test__validate_draw_column_incorrect_number(draws):
     df = pd.DataFrame({'draw': range(draws)})
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._validate_draw_column(df)
 
 
 def test__validate_draw_column_missing_column():
     df = pd.DataFrame({'draw_columns': range(1000)})
-    with pytest.raises(DataFormattingError, match='in a column named'):
+    with pytest.raises(DataTransformationError, match='in a column named'):
         sim._validate_draw_column(df)
 
 
@@ -55,13 +55,13 @@ def test__validate_location_column_pass(location):
 ), ids=('mismatch', 'multiple'))
 def test__validate_location_column_fail(locations, expected_location):
     df = pd.DataFrame({'location': locations})
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._validate_location_column(df, expected_location)
 
 
 def test__validate_location_column_missing_column():
     df = pd.DataFrame({'location_column': ['Kenya']})
-    with pytest.raises(DataFormattingError, match='in a column named'):
+    with pytest.raises(DataTransformationError, match='in a column named'):
         sim._validate_location_column(df, 'Kenya')
 
 
@@ -77,13 +77,13 @@ def test__validate_sex_column_pass():
 ), ids=('lowercase', 'missing_female', 'missing_male'))
 def test__validate_sex_column_fail(sexes):
     df = pd.DataFrame({'sex': sexes})
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._validate_sex_column(df)
 
 
 def test__validate_sex_column_missing_column():
     df = pd.DataFrame({'sex_column': ['Male', 'Female']})
-    with pytest.raises(DataFormattingError, match='in a column named'):
+    with pytest.raises(DataTransformationError, match='in a column named'):
         sim._validate_sex_column(df)
 
 
@@ -97,7 +97,7 @@ def test__validate_age_columns_invalid_age(mocked_get_age_bins):
     df = sim.utilities.get_age_bins()[['age_group_start',
                                               'age_group_end']].sort_values(['age_group_start', 'age_group_end'])
     df.loc[2, 'age_group_start'] = -1
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._validate_age_columns(df)
 
 
@@ -105,7 +105,7 @@ def test__validate_age_columns_missing_group(mocked_get_age_bins):
     df = sim.utilities.get_age_bins()[['age_group_start',
                                               'age_group_end']].sort_values(['age_group_start', 'age_group_end'])
     df.drop(2, inplace=True)
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._validate_age_columns(df)
 
 
@@ -118,7 +118,7 @@ def test__validate_age_columns_missing_column(columns):
     df = pd.DataFrame()
     for col in columns:
         df[col] = [1, 2]
-    with pytest.raises(DataFormattingError, match='in columns named'):
+    with pytest.raises(DataTransformationError, match='in columns named'):
         sim._validate_age_columns(df)
 
 
@@ -130,14 +130,14 @@ def test__validate_year_columns_pass(mocked_get_estimation_years):
 def test__validate_year_columns_invalid_year(mocked_get_estimation_years):
     df = sim.utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
     df.loc[2, 'year_end'] = -1
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._validate_year_columns(df)
 
 
 def test__validate_year_columns_missing_group(mocked_get_estimation_years):
     df = sim.utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
     df.drop(0, inplace=True)
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._validate_year_columns(df)
 
 
@@ -150,7 +150,7 @@ def test__validate_year_columns_missing(columns):
     df = pd.DataFrame()
     for col in columns:
         df[col] = [1, 2, 3]
-    with pytest.raises(DataFormattingError, match='in columns named'):
+    with pytest.raises(DataTransformationError, match='in columns named'):
         sim._validate_year_columns(df)
 
 
@@ -165,13 +165,13 @@ def test__validate_value_column_pass(values):
                          ids=["infinity", "missing"])
 def test__validate_value_column_fail(values):
     df = pd.DataFrame({'value': values})
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._validate_value_column(df)
 
 
 def test__validate_value_column_missing():
     df = pd.DataFrame({'value_column': [1, 2, 3]})
-    with pytest.raises(DataFormattingError, match='in a column named'):
+    with pytest.raises(DataTransformationError, match='in a column named'):
         sim._validate_value_column(df)
 
 
@@ -203,7 +203,7 @@ def test__check_age_restrictions_fail(mocker, mocked_get_age_bins, values, ids, 
     age_bins = mocked_get_age_bins()
     df = pd.DataFrame({'age_group_start': age_bins.age_group_years_start, 'age_group_end': age_bins.age_group_years_end})
     df['value'] = values
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._check_age_restrictions(df, entity, type, fill)
 
 
@@ -225,6 +225,6 @@ def test__check_sex_restrictions(values, restrictions, fill):
 ], ids=('male', 'female', 'nonzero_fill'))
 def test__check_sex_restrictions_fail(values, restrictions, fill):
     df = pd.DataFrame({'sex': ['Male', 'Male', 'Female', 'Female'], 'value': values})
-    with pytest.raises(DataFormattingError):
+    with pytest.raises(DataTransformationError):
         sim._check_sex_restrictions(df, *restrictions, fill)
 

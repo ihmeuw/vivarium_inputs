@@ -1,4 +1,9 @@
+"""Global constants, errors, and module imports for inputs processing."""
+from typing import NamedTuple
 
+
+# The purpose of this import block is to mask the dependency on internal
+# IHME data and allow CI and automated testing to work.
 try:
     from vivarium_gbd_access import gbd
 except ModuleNotFoundError:
@@ -14,42 +19,28 @@ class VivariumInputsError(Exception):
     pass
 
 
-class GbdDataError(VivariumInputsError):
-    """Base exception for errors related to GBD data."""
-    pass
-
-
-class DataNotExistError(VivariumInputsError, FileNotFoundError):
-    """Exception raised when the gbd data for the entity-measure pair do not exist"""
+class DataDoesNotExistError(VivariumInputsError, FileNotFoundError):
+    """Exception raised when requested GBD data does not exist."""
     pass
 
 
 class DataAbnormalError(VivariumInputsError, ValueError):
-    """Exception raised when data has extra columns or values that we do not expect to have"""
+    """Exception raised when raw GBD data does not have an expected format."""
     pass
 
 
-class EtlError(VivariumInputsError):
-    """Base exception for errors related to vivarium_inputs improperly handling data."""
+class DataTransformationError(VivariumInputsError, ValueError):
+    """Exception raised when data is incorrectly transformed."""
     pass
 
 
-class DataFormattingError(EtlError, ValueError):
-    """Exception raised when data has been improperly formatted."""
-    pass
-
-
-class UserError(VivariumInputsError):
-    """Base exception for user errors."""
-    pass
-
-
-class InvalidQueryError(UserError, ValueError):
+class InvalidQueryError(VivariumInputsError, ValueError):
     """Exception raised when the user makes an invalid query."""
     pass
 
 
 METRICS = {
+    # Mapping of GBD metric names to their GBD ids.
     'Number': 1,
     'Percent': 2,
     'Rate': 3,
@@ -62,6 +53,7 @@ METRICS = {
 }
 
 MEASURES = {
+    # Mapping of GBD measure names to their GBD ids.
     'Deaths': 1,
     'DALYs': 2,
     'YLDs': 3,
@@ -109,6 +101,12 @@ MEASURES = {
     'Fertility': 45
 }
 
-
+# List of standard demographic id column names.
 DEMOGRAPHIC_COLUMNS = ['location_id', 'sex_id', 'age_group_id', 'year_id']
+# List of standard GBD draw column names.
 DRAW_COLUMNS = [f'draw_{i}' for i in range(1000)]
+
+
+class Population(NamedTuple):
+    """Entity wrapper for querying population measures."""
+    kind: str

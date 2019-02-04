@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES,
-                                     DataAbnormalError, DataNotExistError, VivariumInputsError,
+                                     DataAbnormalError, DataDoesNotExistError, VivariumInputsError,
                                      gbd)
 from gbd_mapping import RiskFactor, Cause
 
@@ -79,7 +79,7 @@ def check_location(data: pd.DataFrame, location_id: int):
     path_to_parent = location_metadata.loc[location_metadata.location_id == location_id, 'path_to_top_parent'].values[0].split(',')
     path_to_parent = [int(i) for i in path_to_parent]
 
-    if data_location_id not in path_to_parent:  
+    if data_location_id not in path_to_parent:
         raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}, which is '
                                 'not in its hierarchy.')
 
@@ -131,7 +131,7 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool,
 
     Raises
     -------
-    DataNotExistError
+    DataDoesNotExistError
         If error flag is set to true and data is empty or contains any NaN
         values in `value_columns`, or contains all zeros in `value_columns` and
         zeros_missing is True.
@@ -140,7 +140,7 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool,
     if (data.empty or np.any(pd.isnull(data[value_columns]))
             or (zeros_missing and np.all(data[value_columns] == 0)) or np.any(np.isinf(data[value_columns]))):
         if error:
-            raise DataNotExistError(f'Data contains no non-missing{", non-zero" if zeros_missing else ""} values.')
+            raise DataDoesNotExistError(f'Data contains no non-missing{", non-zero" if zeros_missing else ""} values.')
         return False
     return True
 
@@ -407,7 +407,7 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
             raise DataAbnormalError('Data is restricted to female only, but is missing data values for females.')
 
         if (set(data.sex_id) != {female} and
-                check_data_exist(data[data.sex_id != female], zeros_missing=True, 
+                check_data_exist(data[data.sex_id != female], zeros_missing=True,
                                  value_columns=value_columns, error=False)):
             warnings.warn('Data is restricted to female only, but contains '
                           'non-female sex ids for which data values are not all 0.')
