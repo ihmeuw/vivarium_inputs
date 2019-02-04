@@ -876,6 +876,7 @@ def check_paf_rr_age_groups(paf: pd.DataFrame, rr: pd.DataFrame) -> None:
     trivial data, it raises an error. But paf still can have an extra data
     while there is no exposure, no relative risk exist.
     """
+    measure_map = {MEASURES['YLLs']: 'YLLs', MEASURES['YLDs']: 'YLDs'}
     cid = paf.cause_id.unique()[0]
     measure = paf.measure_id.unique()[0]
 
@@ -886,7 +887,7 @@ def check_paf_rr_age_groups(paf: pd.DataFrame, rr: pd.DataFrame) -> None:
     missing_age_ids = set(rr_data.age_group_id)-set(paf.age_group_id)
     if missing_age_ids and not np.allclose(rr_data[missing_age_ids][DRAW_COLUMNS], 0):
         raise DataAbnormalError(f"Relative risk for cause_id {cid} has extra age groups that do not have Paf data"
-                                f" for {measure}: {missing_age_ids}.")
+                                f" for measure: {measure_map[measure]}: {missing_age_ids}.")
     extra_age_ids = set(paf.age_group_id) - set(rr_data.age_group_id)
     if extra_age_ids:
         warnings.warn(f"Paf for cause_id {cid} has extra age_groups that do not have RR data for {measure}:"
