@@ -109,7 +109,12 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                 data += prevalence * disability
         data = data.reset_index()
     else:  # entity.kind == 'sequela'
-        data = extract.extract_data(entity, 'disability_weight', location_id)
+        if not entity.healthstate.disability_weight_exists:
+            cols = {'location_id': [location_id], 'sex_id': [3], 'age_group_id': [22]}
+            cols.update({f'draw_{i}': [0.0] for i in range(1000)})
+            data = pd.DataFrame(cols)
+        else:
+            data = extract.extract_data(entity, 'disability_weight', location_id)
         data = utilities.normalize(data)
         data = utilities.reshape(data)
 
