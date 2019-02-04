@@ -455,11 +455,13 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
 def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int,
                             exposure: pd.DataFrame):
 
-    data = filter_to_most_detailed_causes(data)
-    exposure_age_groups = set(exposure.age_group_id)
-    data.groupby(['cause_id', 'morbidity']).apply(lambda df: _check_age_groups_relative_risk(df, exposure_age_groups))
+    check_data_exist(data, zeros_missing=True)
 
-    data.groupby(['cause_id', 'morbidity']).apply(lambda df: check_data_exist(df, zeros_missing=True))
+    for c_id in data.cause_id.unique():
+        cause = [c for c in causes if c.gbd_id == c_id][0]
+        check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
+
+    exposure_age_groups = set(exposure.age_group_id)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
                         'morbidity', 'metric_id', 'parameter'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
@@ -470,8 +472,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     check_years(data, 'binned')
     check_location(data, location_id)
 
-    cats = data.groupby('parameter')
-
+    grouped = data.groupby(['cause_id', 'morbidity', 'mortality', 'parameter'])
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
         age_start = min(exposure_age_groups)
@@ -479,23 +480,19 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
-        cats.apply(check_age_group_ids, age_start, age_end)
-        cats.apply(check_sex_ids, male_expected, female_expected)
+        grouped.apply(check_age_group_ids, age_start, age_end)
+        grouped.apply(check_sex_ids, male_expected, female_expected)
 
-        cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
+        grouped.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
     else:  # coverage gap
-        cats.apply(check_age_group_ids, None, None)
-        cats.apply(check_sex_ids, True, True)
+        grouped.apply(check_age_group_ids, None, None)
+        grouped.apply(check_sex_ids, True, True)
 
     check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
 
     max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
     check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True)
-
-    for c_id in data.cause_id.unique():
-        cause = [c for c in causes if c.gbd_id == c_id][0]
-        check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
 
 
 def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
@@ -780,8 +777,3 @@ def _check_cause_age_restrictions(entity: Cause):
             raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
                                       f' We currently do not support these causes.')
 
-
-def _check_age_groups_relative_risk(relative_risk: pd.DataFrame, exposure_age_groups: set):
-    if set(relative_risk.age_group_id) > exposure_age_groups:
-        raise DataAbnormalError(f"Relative risk has age groups that do not have risk exposure: "
-                                f"{set(relative_risk.age_group_id) - exposure_age_groups}.")

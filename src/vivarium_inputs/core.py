@@ -205,11 +205,29 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     return data
 
 
+def _handle_relative_risk_age_groups(data):
+    causes_map = {c.gbd_id: c for c in causes}
+    temp = []
+    for c_id in set(data.cause_id):
+        df = data[data.cause_id == c_id]
+        cause = causes_map[c_id]
+        if cause.restrictions.yll_only:
+            start, end = utilities.get_age_group_ids_by_restriction(cause, 'yll')
+        elif cause.restrictions.yld_only:
+            start, end = utilities.get_age_group_ids_by_restriction(cause, 'yld')
+        else:
+            start, end = utilities.get_age_group_ids_by_restriction(cause, 'inner')
+        temp.append(df[df.age_group_id.isin(range(start, end + 1))])
+    data = pd.concat(temp)
+    return data
+
+
 def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'relative_risk', location_id)
     data = utilities.filter_to_most_detailed_causes(data)
 
     if entity.kind == 'risk_factor':
+        data = _handle_relative_risk_age_groups(data)
         data = utilities.convert_affected_entity(data, 'cause_id')
         morbidity = data.morbidity == 1
         mortality = data.mortality == 1

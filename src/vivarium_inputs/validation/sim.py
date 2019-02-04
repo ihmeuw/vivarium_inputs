@@ -280,8 +280,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         raise NotImplementedError()
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'],
-                                                      error=DataFormattingError)
+                                                      boundary_type='lower', value_columns=['value'])
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd],
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataFormattingError)
