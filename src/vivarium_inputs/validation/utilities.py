@@ -16,11 +16,11 @@ def check_years(data: pd.DataFrame, year_type: str, estimation_years: pd.Series)
 
     Parameters
     ----------
-    data :
+    data
         Dataframe containing 'year_id' column.
-    year_type :
-        String 'annual' or 'binned' indicating expected year range.
-    estimation_years :
+    year_type
+        'annual', 'binned', or 'either' indicating expected year range.
+    estimation_years
         The set of years the data should be estimated for.
 
     Raises
