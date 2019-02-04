@@ -457,10 +457,6 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
 
     check_data_exist(data, zeros_missing=True)
 
-    for c_id in data.cause_id.unique():
-        cause = [c for c in causes if c.gbd_id == c_id][0]
-        check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
-
     exposure_age_groups = set(exposure.age_group_id)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
@@ -471,6 +467,10 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
 
     check_years(data, 'binned')
     check_location(data, location_id)
+
+    for c_id in data.cause_id.unique():
+        cause = [c for c in causes if c.gbd_id == c_id][0]
+        check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
 
     grouped = data.groupby(['cause_id', 'morbidity', 'mortality', 'parameter'])
     if entity.kind == 'risk_factor':
