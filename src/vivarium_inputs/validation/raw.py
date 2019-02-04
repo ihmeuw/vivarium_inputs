@@ -1,4 +1,4 @@
-from typing import NamedTuple, Union
+from typing import Union
 import warnings
 
 import pandas as pd
@@ -8,7 +8,7 @@ from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES,
-                                     DataAbnormalError, InvalidQueryError, gbd)
+                                     DataAbnormalError, InvalidQueryError, gbd, Population)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
@@ -30,7 +30,7 @@ ALL_AGES_AGE_GROUP_ID = 22
 AGE_STANDARDIZED_AGE_GROUP_ID = 27
 
 
-def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
+def check_metadata(entity: Union[ModelableEntity, Population], measure: str):
     """ Check metadata associated with the given entity and measure for any
     relevant warnings or errors.
 
@@ -64,7 +64,7 @@ def check_metadata(entity: Union[ModelableEntity, NamedTuple], measure: str):
     metadata_checkers[entity.kind](entity, measure)
 
 
-def validate_raw_data(data: pd.DataFrame, entity: Union[ModelableEntity, NamedTuple],
+def validate_raw_data(data: pd.DataFrame, entity: Union[ModelableEntity, Population],
                       measure: str, location_id: int, *additional_data):
     """Validate data conforms to the format expected from raw GBD data, that all
     values are within expected ranges,
@@ -236,7 +236,7 @@ def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str):
                       f'before 1995 is backfilled from 1995 data.')
 
 
-def check_population_metadata(entity: NamedTuple, measure: str):
+def check_population_metadata(entity: Population, measure: str):
     pass
 
 
@@ -683,7 +683,7 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_
                                  inclusive=True, error=None)
 
 
-def validate_structure(data: pd.DataFrame, entity: NamedTuple, location_id: int):
+def validate_structure(data: pd.DataFrame, entity: Population, location_id: int):
     check_data_exist(data, zeros_missing=True, value_columns=['population'])
 
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
@@ -701,7 +701,7 @@ def validate_structure(data: pd.DataFrame, entity: NamedTuple, location_id: int)
                                  inclusive=True, error=DataAbnormalError)
 
 
-def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: NamedTuple, location_id: int):
+def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: Population, location_id: int):
     check_data_exist(data, zeros_missing=True, value_columns=['life_expectancy'])
 
     expected_columns = ['age', 'life_expectancy']
