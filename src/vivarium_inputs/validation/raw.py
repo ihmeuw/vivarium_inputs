@@ -248,7 +248,8 @@ def check_population_metadata(entity: Population, measure: str) -> None:
 #################################################
 
 
-def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int) -> None:
+def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela],
+                       location_id: int, estimation_years: pd.Series) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -257,7 +258,7 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locati
     check_measure_id(data, ['Incidence'])
     check_metric_id(data, 'rate')
 
-    check_years(data, 'annual')
+    check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
     if entity.kind == 'cause':
@@ -277,7 +278,8 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locati
     check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
-def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int) -> None:
+def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
+                        location_id: int, estimation_years: pd.Series) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -286,7 +288,7 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     check_measure_id(data, ['Prevalence'])
     check_metric_id(data, 'rate')
 
-    check_years(data, 'annual')
+    check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
     if entity.kind == 'cause':
@@ -306,7 +308,8 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int) -> None:
+def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
+                              location_id: int, estimation_years: pd.Series) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -315,7 +318,7 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     check_measure_id(data, ['Incidence'])
     check_metric_id(data, 'rate')
 
-    check_years(data, 'annual')
+    check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
     birth_age_group_id = 164
@@ -352,7 +355,8 @@ def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id:
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_remission(data: pd.DataFrame, entity: Cause, location_id: int) -> None:
+def validate_remission(data: pd.DataFrame, entity: Cause,
+                       location_id: int, estimation_years: pd.Series) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', 'model_version_id',
@@ -362,7 +366,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause, location_id: int) -> N
     check_measure_id(data, ['Remission'])
     check_metric_id(data, 'rate')
 
-    check_years(data, 'binned')
+    check_years(data, 'binned', estimation_years)
     check_location(data, location_id)
 
     restrictions = entity.restrictions
@@ -380,7 +384,8 @@ def validate_remission(data: pd.DataFrame, entity: Cause, location_id: int) -> N
     check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
-def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int) -> None:
+def validate_deaths(data: pd.DataFrame, entity: Cause,
+                    location_id: int, estimation_years: pd.Series) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', f'{entity.kind}_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
@@ -389,7 +394,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int) -> None
     check_measure_id(data, ['Deaths'])
     check_metric_id(data, 'number')
 
-    check_years(data, 'annual')
+    check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
     restrictions = entity.restrictions
@@ -413,7 +418,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int) -> None
 
 
 def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
-                      location_id: int) -> None:
+                      location_id: int, estimation_years: pd.Series) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'parameter',
@@ -423,9 +428,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
     check_measure_id(data,  ['Prevalence', 'Proportion', 'Continuous'])
     check_metric_id(data, 'rate')
 
-    if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
-        raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} contains a year range '
-                                f'that is neither annual nor binned.')
+    check_years(data, 'either', estimation_years)
     check_location(data, location_id)
 
     cats = data.groupby('parameter')
@@ -468,7 +471,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
-                                         location_id: int, exposure: pd.DataFrame) -> None:
+                                         location_id: int, exposure: pd.DataFrame, estimation_years: pd.Series) -> None:
     exposure_age_groups = set(exposure.age_group_id)
     valid_age_group_data = data[data.age_group_id.isin(exposure_age_groups)]
 
@@ -481,9 +484,7 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
     check_measure_id(data,  ['Continuous'])
     check_metric_id(data, 'rate')
 
-    if not check_years(data, 'annual', error=False) and not check_years(data, 'binned', error=False):
-        raise DataAbnormalError(f'Exposure standard deviation data for {entity.kind} {entity.name} contains '
-                                f'a year range that is neither annual nor binned.')
+    check_years(data, 'either', estimation_years)
     check_location(data, location_id)
 
     age_start = min(exposure_age_groups)
@@ -528,7 +529,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
 
 
 def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int,
-                            exposure: pd.DataFrame)-> None:
+                           exposure: pd.DataFrame, estimation_years: pd.Series)-> None:
 
     check_data_exist(data, zeros_missing=True)
 
@@ -540,7 +541,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
     check_metric_id(data, 'rate')
 
-    check_years(data, 'binned')
+    check_years(data, 'binned', estimation_years)
     check_location(data, location_id)
 
     for c_id in data.cause_id.unique():
@@ -574,7 +575,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
-                                              location_id: int, relative_risk: pd.DataFrame) -> None:
+                                    location_id: int, estimation_years: pd.Series, relative_risk: pd.DataFrame) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['metric_id', 'measure_id', 'rei_id', 'cause_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -583,7 +584,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     check_measure_id(data, ['YLLs', 'YLDs'], single_only=False)
     check_metric_id(data, 'percent')
 
-    check_years(data, 'annual')
+    check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
     if entity.kind == 'risk_factor':
@@ -626,7 +627,8 @@ def validate_mediation_factors(data, entity, location_id) -> None:
     raise NotImplementedError()
 
 
-def validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int) -> None:
+def validate_estimate(data: pd.DataFrame, entity: Covariate,
+                      location_id: int, estimation_years: pd.Series) -> None:
     value_columns = ['mean_value', 'upper_value', 'lower_value']
 
     check_data_exist(data, zeros_missing=False, value_columns=value_columns)
@@ -636,7 +638,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int) -
                         'sex'] + value_columns
     check_columns(expected_columns, data.columns)
 
-    check_years(data, 'annual')
+    check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
     if entity.by_age:
@@ -653,7 +655,8 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int) -
     check_covariate_sex_restriction(data, entity.by_sex)
 
 
-def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology], location_id: int) -> None:
+def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology],
+                  location_id: int, estimation_years: pd.Series) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure', entity.kind] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
@@ -663,7 +666,7 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTech
         raise DataAbnormalError(f'Cost data for {entity.kind} {entity.name} contains '
                                 f'measures beyond the expected cost.')
 
-    check_years(data, 'annual')
+    check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
     if set(data.age_group_id) != {SPECIAL_AGES['all_ages']}:
@@ -674,7 +677,8 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTech
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_id: int) -> None:
+def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity,
+                         location_id: int, estimation_years: pd.Series) -> None:
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', 'model_version_id',
@@ -684,7 +688,7 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_
     check_measure_id(data, ['Continuous'])
     check_metric_id(data, 'rate')
 
-    check_years(data, 'binned')
+    check_years(data, 'binned', estimation_years)
     check_location(data, location_id)
 
     check_age_group_ids(data, None, None)
@@ -695,13 +699,14 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_
                                  inclusive=True, error=None)
 
 
-def validate_structure(data: pd.DataFrame, entity: Population, location_id: int) -> None:
+def validate_structure(data: pd.DataFrame, entity: Population,
+                       location_id: int, estimation_years: pd.Series) -> None:
     check_data_exist(data, zeros_missing=True, value_columns=['population'])
 
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
     check_columns(expected_columns, data.columns)
 
-    check_years(data, 'annual')
+    check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
     check_age_group_ids(data, None, None)

@@ -11,7 +11,7 @@ from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES, SEXES,
 from gbd_mapping import RiskFactor, Cause
 
 
-def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
+def check_years(data: pd.DataFrame, year_type: str, estimation_years: pd.Series) -> None:
     """Check that years in passed data match expected range based on type.
 
     Parameters
@@ -19,15 +19,9 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
     data
         Dataframe containing 'year_id' column.
     year_type
-        String 'annual' or 'binned' indicating expected year range.
-    error
-        Boolean indicating whether to raise an error if expected years are not
-        found.
-
-    Returns
-    -------
-    bool
-        True if years in `data` match expected `year_type`, false otherwise.
+        'annual', 'binned', or 'either' indicating expected year range.
+    estimation_years
+        The set of years the data should be estimated for.
 
     Raises
     ------
@@ -36,19 +30,22 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
         any extra years found and `year_type` is 'binned'.
 
     """
-    gbd_years = gbd.get_estimation_years()
-    years = {'annual': list(range(min(gbd_years), max(gbd_years)+1)), 'binned': gbd_years}
-    expected_years = years[year_type]
-    if set(data.year_id.unique()) < set(expected_years):
-        if error:
-            raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(data.year_id))}.')
-        return False
-    # if it's annual, we expect to have extra years from some sources (e.g., codcorrect/covariate)
-    if year_type == 'binned' and set(data.year_id.unique()) > set(expected_years):
-        if error:
-            raise DataAbnormalError(f'Data has extra years: {set(data.year_id).difference(set(expected_years))}.')
-        return False
-    return True
+    data_years = set(data.year_id.unique())
+    estimation_years = set(estimation_years)
+    annual_estimation_years = set(range(min(estimation_years), max(estimation_years) + 1))
+    if year_type == 'annual':
+        if data_years < annual_estimation_years:
+            raise DataAbnormalError(f'Data has missing years: {annual_estimation_years.difference(data_years)}.')
+    elif year_type == 'binned':
+        if data_years < estimation_years:
+            raise DataAbnormalError(f'Data has missing years: {estimation_years.difference(data_years)}.')
+        if data_years > estimation_years:
+            raise DataAbnormalError(f'Data has extra years: {data_years.difference(estimation_years)}.')
+    else:  # year_type == either
+        valid = (data_years == estimation_years) or (data_years >= annual_estimation_years)
+        if not valid:
+            raise DataAbnormalError(f'Data year range is neither annual or appropriately binned '
+                                    f'with the expected year range.')
 
 
 def check_location(data: pd.DataFrame, location_id: int):
