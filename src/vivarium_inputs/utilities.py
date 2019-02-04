@@ -117,23 +117,23 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
     if not sexes:
         # Data does not correspond to individuals, so no age column necessary.
         pass
-    elif sexes == {1, 2, 3}:
+    elif sexes == set(SEXES.values()):
         # We have variation across sex, don't need the column for both.
-        data = data[data.sex_id.isin([1, 2])]
-    elif sexes == {3}:
+        data = data[data.sex_id.isin([SEXES['Male'], SEXES['Female']])]
+    elif sexes == {SEXES['Combined']}:
         # Data is not sex specific, but does apply to both sexes, so copy.
         fill_data = data.copy()
-        data.loc[:, 'sex_id'] = 1
-        fill_data.loc[:, 'sex_id'] = 2
+        data.loc[:, 'sex_id'] = SEXES['Male']
+        fill_data.loc[:, 'sex_id'] = SEXES['Female']
         data = pd.concat([data, fill_data], ignore_index=True)
     elif len(sexes) == 1:
         # Data is sex specific, but only applies to one sex, so fill the other with default.
         fill_data = data.copy()
-        missing_sex = {1, 2}.difference(set(data.sex_id.unique())).pop()
+        missing_sex = {SEXES['Male'], SEXES['Female']}.difference(set(data.sex_id.unique())).pop()
         fill_data.loc[:, 'sex_id'] = missing_sex
         fill_data.loc[:, 'value'] = fill_value
         data = pd.concat([data, fill_data], ignore_index=True)
-    else:  # sexes == {1, 2}
+    else:  # sexes == {SEXES['Male'], SEXES['Female']}
         pass
     return data
 
