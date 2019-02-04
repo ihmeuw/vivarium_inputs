@@ -1,5 +1,6 @@
 from collections import namedtuple
 from typing import Union
+from itertools import product
 
 from gbd_mapping import Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 import pandas as pd
@@ -203,18 +204,24 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     return data
 
 
-def _handle_relative_risk_age_groups(data):
-    causes_map = {c.gbd_id: c for c in causes}
+def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFrame:
+    """ It applies age restrictions according to affected causes
+    and affected measures. If affected measure is incidence_rate,
+    it applies the yld_age_restrictions. If affected measure is
+    excess_mortality, it applies the yll_age_restrictions to filter
+    the relative_risk data"""
+
+    causes_map = {c.name: c for c in causes}
     temp = []
-    for c_id in set(data.cause_id):
-        df = data[data.cause_id == c_id]
-        cause = causes_map[c_id]
-        if cause.restrictions.yll_only:
+    affected_entities = set(data.affected_entity)
+    affected_measures = set(data.affected_measure)
+    for cause, measure in product(affected_entities, affected_measures):
+        df = data[(data.affected_entity == cause) & (data.affected_measure)]
+        cause = causes_map[cause]
+        if measure == 'excess_mortality':
             start, end = utilities.get_age_group_ids_by_restriction(cause, 'yll')
-        elif cause.restrictions.yld_only:
+        else:  # incidence_rate
             start, end = utilities.get_age_group_ids_by_restriction(cause, 'yld')
-        else:
-            start, end = utilities.get_age_group_ids_by_restriction(cause, 'inner')
         temp.append(df[df.age_group_id.isin(range(start, end + 1))])
     data = pd.concat(temp)
     return data
@@ -224,13 +231,13 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
     data = extract.extract_data(entity, 'relative_risk', location_id)
 
     if entity.kind == 'risk_factor':
-        data = _handle_relative_risk_age_groups(data)
         data = utilities.convert_affected_entity(data, 'cause_id')
         morbidity = data.morbidity == 1
         mortality = data.mortality == 1
         data.loc[morbidity & mortality, 'affected_measure'] = 'incidence_rate'
         data.loc[morbidity & ~mortality, 'affected_measure'] = 'incidence_rate'
         data.loc[~morbidity & mortality, 'affected_measure'] = 'excess_mortality'
+        data = filter_relative_risk_to_cause_restrictions(data)
     else:  # coverage_gap
         data = utilities.convert_affected_entity(data, 'rei_id')
         data['affected_measure'] = 'exposure_parameters'

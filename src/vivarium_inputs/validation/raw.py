@@ -477,12 +477,14 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         restrictions = entity.restrictions
         age_start = min(exposure_age_groups)
         age_end = max(exposure_age_groups)
-        male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
-        female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
+        male_expected = not restrictions.female_only
+        female_expected = not restrictions.male_only
 
         grouped.apply(check_age_group_ids, age_start, age_end)
         grouped.apply(check_sex_ids, male_expected, female_expected)
 
+        #  We cannot check age_restrictions with exposure_age_groups since RR may have a subset of age_group_ids and
+        #  we do not want to raise an error for this case.
         grouped.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
     else:  # coverage gap
