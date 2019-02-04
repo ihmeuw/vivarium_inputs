@@ -109,6 +109,9 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
         If critical verifications (e.g., data exist, expected columns are all
         present) fail.
 
+    InvalidQueryError
+        If an unknown measure is requested for which no validator exists.
+
     """
     validators = {
         # Cause-like measures
