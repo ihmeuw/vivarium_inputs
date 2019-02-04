@@ -9,12 +9,13 @@ from vivarium_inputs.globals import DataAbnormalError, DataDoesNotExistError, Da
 @pytest.fixture
 def gbd_mock(mocker):
     gbd_mock = mocker.patch('vivarium_inputs.validation.utilities.gbd')
-    gbd_mock.get_estimation_years.return_value = list(range(1990, 2015, 5)) + [2017]
     gbd_mock.get_age_group_id.return_value = list(range(1, 6))
-    gbd_mock.MALE = [1]
-    gbd_mock.FEMALE = [2]
-    gbd_mock.COMBINED = [3]
     return gbd_mock
+
+
+@pytest.fixture
+def estimation_years():
+    return list(range(1990, 2015, 5)) + [2017]
 
 
 @pytest.fixture
@@ -31,19 +32,19 @@ def metrics_mock(mocker):
                                              (range(1990, 2018), 'annual'),
                                              (list(range(1990, 2015, 5)) + [2017], 'binned')],
                          ids=['annual with extra', 'annual', 'binned'])
-def test_check_years_pass(years, bin_type, gbd_mock):
+def test_check_years_pass(years, bin_type, estimation_years):
     df = pd.DataFrame({'year_id': years})
-    utilities.check_years(df, bin_type)
+    utilities.check_years(df, bin_type, estimation_years)
 
 
 @pytest.mark.parametrize('years, bin_type, match', [([1990, 1992], 'annual', 'missing'),
                                                     ([1990, 1995], 'binned', 'missing'),
                                                     (list(range(1990, 2015, 5)) + [2017, 2020], 'binned', 'extra')],
                          ids=['annual with gap', 'binned with gap', 'binned with extra'])
-def test_check_years_fail(years, bin_type, match, gbd_mock):
+def test_check_years_fail(years, bin_type, match, estimation_years):
     df = pd.DataFrame({'year_id': years})
     with pytest.raises(DataAbnormalError, match=match):
-        utilities.check_years(df, bin_type)
+        utilities.check_years(df, bin_type, estimation_years)
 
 
 @pytest.mark.parametrize('location_id', list(range(2, 10)))
@@ -52,10 +53,9 @@ def test_check_location_pass(location_id):
     utilities.check_location(df, location_id)
 
 
-@pytest.mark.parametrize('location_id', list(range(2, 10)))
-def test_check_location_global_pass(location_id):
+def test_check_location_global_pass():
     df = pd.DataFrame({'location_id': [1] * 5})
-    utilities.check_location(df, location_id)
+    utilities.check_location(df, 100)
 
 
 @pytest.mark.parametrize('location_ids, match', [([1, 2], 'multiple'),
