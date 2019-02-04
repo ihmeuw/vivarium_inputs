@@ -1,7 +1,6 @@
 """Access to vivarium simulation input data."""
-from collections import namedtuple
-
 from vivarium_inputs import core, utilities
+from vivarium_inputs.globals import Population
 import vivarium_inputs.validation.sim as validation
 
 
@@ -13,7 +12,7 @@ def get_measure(entity, measure, location):
 
 
 def get_population_structure(location):
-    pop = namedtuple('Population', 'kind')('population')
+    pop = Population('population')
     data = core.get_data(pop, 'structure', location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'structure', location)
@@ -21,21 +20,21 @@ def get_population_structure(location):
 
 
 def get_theoretical_minimum_risk_life_expectancy():
-    pop = namedtuple('Population', 'kind')('population')
+    pop = Population('population')
     data = core.get_data(pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
     validation.validate_for_simulation(data, pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
     return utilities.sort_data(data)
 
 
 def get_age_bins():
-    pop = namedtuple('Population', 'kind')('population')
+    pop = Population('population')
     data = core.get_data(pop, 'age_bins', 'Global')
     validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
     return utilities.sort_data(data)
 
 
 def get_demographic_dimensions(location):
-    pop = namedtuple('Population', 'kind')('population')
+    pop = Population('population')
     data = core.get_data(pop, 'demographic_dimensions', location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)

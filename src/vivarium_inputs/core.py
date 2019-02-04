@@ -1,5 +1,5 @@
 from collections import namedtuple
-from typing import Union, NamedTuple
+from typing import Union
 
 from gbd_mapping import Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 import pandas as pd
@@ -8,9 +8,7 @@ import numpy as np
 from vivarium_inputs import utilities, extract
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
-from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES
-
-POP = NamedTuple("Population", [('kind', str)])
+from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, Population
 
 
 def get_data(entity, measure: str, location: str):
@@ -281,26 +279,26 @@ def get_utilization(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
     return data
 
 
-def get_structure(entity: POP, location_id: int) -> pd.DataFrame:
+def get_structure(entity: Population, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'structure', location_id)
     data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
     data = utilities.normalize(data)
     return data
 
 
-def get_theoretical_minimum_risk_life_expectancy(entity: POP, location_id: int) -> pd.DataFrame:
+def get_theoretical_minimum_risk_life_expectancy(entity: Population, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'theoretical_minimum_risk_life_expectancy', location_id)
     data = data.rename(columns={'age': 'age_group_start', 'life_expectancy': 'value'})
     data['age_group_end'] = data.age_group_start.shift(-1).fillna(125.)
     return data
 
 
-def get_age_bins(entity: POP, location_id: int) -> pd.DataFrame:
+def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
     age_bins = utilities.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
     return age_bins
 
 
-def get_demographic_dimensions(entity: POP, location_id: int) -> pd.DataFrame:
+def get_demographic_dimensions(entity: Population, location_id: int) -> pd.DataFrame:
     demographic_dimensions = utilities.get_demographic_dimensions(location_id)
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
