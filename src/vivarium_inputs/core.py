@@ -199,6 +199,9 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
 
 def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'relative_risk', location_id)
+    data = utilities.filter_to_most_detailed_causes(data)
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+
     if entity.kind == 'risk_factor':
         data = utilities.filter_data_by_restrictions(data, entity, 'inner')
 

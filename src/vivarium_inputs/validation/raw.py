@@ -11,6 +11,8 @@ from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES
                                      DataAbnormalError, InvalidQueryError, gbd)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
+from vivarium_inputs.utilities import filter_to_most_detailed_causes
+
 from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
                                                   check_age_group_ids, check_sex_ids, check_age_restrictions,
                                                   check_value_columns_boundary, check_sex_restrictions,
@@ -450,8 +452,14 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
         raise DataAbnormalError(f'Distribution weights for {entity.kind} {entity.name} do not sum to 1.')
 
 
-def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int):
-    check_data_exist(data, zeros_missing=True)
+def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int,
+                            exposure: pd.DataFrame):
+
+    data = filter_to_most_detailed_causes(data)
+    exposure_age_groups = set(exposure.age_group_id)
+    valid_age_group_data = data[data.age_group_id.isin(exposure_age_groups)]
+
+    valid_age_group_data.groupby(['cause_id', 'morbidity']).apply(lambda df: check_data_exist(df, zeros_missing=True))
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
                         'morbidity', 'metric_id', 'parameter'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
@@ -466,29 +474,30 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
 
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
-        age_start = get_restriction_age_boundary(entity, 'start')
-        age_end = get_restriction_age_boundary(entity, 'end')
+        age_start = min(exposure_age_groups)
+        age_end = max(exposure_age_groups)
         male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
         female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
 
         cats.apply(check_age_group_ids, age_start, age_end)
         cats.apply(check_sex_ids, male_expected, female_expected)
 
-        cats.apply(check_age_restrictions, age_start, age_end)
         cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
 
     else:  # coverage gap
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
-    check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(valid_age_group_data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
 
     max_val = MAX_CATEG_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CONT_REL_RISK
-    check_value_columns_boundary(data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
+    check_value_columns_boundary(valid_age_group_data, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True)
 
     for c_id in data.cause_id.unique():
         cause = [c for c in causes if c.gbd_id == c_id][0]
         check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
+
+    data.groupby(['cause_id', 'morbidity']).apply(_check_age_groups_relative_risk)
 
 
 def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
@@ -772,3 +781,9 @@ def _check_cause_age_restrictions(entity: Cause):
         if set(yll_ages) > set(yld_ages):
             raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
                                       f' We currently do not support these causes.')
+
+
+def _check_age_groups_relative_risk(relative_risk: pd.DataFrame, exposure: pd.DataFrame):
+    if set(relative_risk.age_group_id) > set(exposure.age_group_id):
+        raise DataAbnormalError(f"Relative risk has age groups that do not have risk exposure: "
+                                f"{set(relative_risk.age_group_id)-set(exposure.age_group_id)}.")

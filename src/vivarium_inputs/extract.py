@@ -20,7 +20,7 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
         'exposure': (extract_exposure, ()),
         'exposure_standard_deviation': (extract_exposure_standard_deviation, (extract_exposure)),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
-        'relative_risk': (extract_relative_risk, ()),
+        'relative_risk': (extract_relative_risk, (extract_exposure)),
         'population_attributable_fraction': (extract_population_attributable_fraction, ()),
         'mediation_factors': (extract_mediation_factors, ()),
         # Covariate measures
