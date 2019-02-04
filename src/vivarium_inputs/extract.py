@@ -19,7 +19,7 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
         'deaths': (extract_deaths, ()),
         # Risk-like measures
         'exposure': (extract_exposure, ()),
-        'exposure_standard_deviation': (extract_exposure_standard_deviation, (extract_exposure)),
+        'exposure_standard_deviation': (extract_exposure_standard_deviation, (extract_exposure,)),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
         'relative_risk': (extract_relative_risk, (extract_exposure,)),
         'population_attributable_fraction': (extract_population_attributable_fraction, ()),
