@@ -162,8 +162,8 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
-        exposed = data[~data.isin(tmrel_cat)]
-        unexposed = data[data.isin(tmrel_cat)]
+        exposed = data[~data.isin([tmrel_cat])]
+        unexposed = data[data.isin([tmrel_cat])]
         #  FIXME: We fill 1 as exposure of tmrel category, which is not correct.
         data = pd.concat([utilities.normalize(exposed, fill_value=0), utilities.normalize(unexposed, fill_value=1)],
                          ignore_index=True)
