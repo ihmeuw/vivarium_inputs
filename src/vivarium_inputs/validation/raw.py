@@ -663,6 +663,34 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
 
 def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
                       location_id: int, estimation_years: pd.Series) -> None:
+    """Check the standard set of validations on raw exposure data for entity.
+    Check age group and sex ids and restrictions for each category individually
+    for risk factors, all together for coverage gaps and alternative risk
+    factors. Check draw column value boundaries based on distribution type and
+    verify that exposure sums to 1 over demographic groups for categorical
+    entities.
+
+    Parameters
+    ----------
+    data
+        Exposure data for `entity` in location `location_id`.
+    entity
+        Risk factor, coverage gap, or alternative risk factor to which the
+        data pertain.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data,
+        any values in columns do not match the expected set of values,
+        or values do not sum to 1 across demographic groups for a categorical
+        entity.
+
+    """
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'parameter',
@@ -713,6 +741,31 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                                          location_id: int, exposure: pd.DataFrame, estimation_years: pd.Series) -> None:
+    """Check the standard set of validations on raw exposure standard
+    deviation data for entity. Check that the data exist for age groups where
+    we have exposure data. Use the age groups from the corresponding
+    exposure data as the boundaries for age group checks. Skip age restriction
+    checks as risk factor age restrictions don't correspond to this data.
+
+    Parameters
+    ----------
+    data
+        Exposure standard deviation data for `entity` in location `location_id`.
+    entity
+        Risk factor or alternative risk factor to which the data pertains.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+
+    """
+
     exposure_age_groups = set(exposure.age_group_id)
     valid_age_group_data = data[data.age_group_id.isin(exposure_age_groups)]
 
@@ -734,12 +787,43 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
     check_age_group_ids(data, age_start, age_end)
     check_sex_ids(data, True, True)
 
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+
     check_value_columns_boundary(valid_age_group_data, 0, 'lower',
                                  value_columns=DRAW_COLUMNS, inclusive=False, error=DataAbnormalError)
 
 
 def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                                            location_id: int) -> None:
+    """Check the standard set of validations on raw exposure distribution
+    weights data for entity, replacing the age ids check with a custom check
+    for the all ages age group since distribution weights are not age specific.
+    Because exposure distribution weights are neither age nor sex specific
+    (and risk factor age restrictions don't correspond to data), skip all
+    restriction checks for risk factors.
+
+    Additionally, verify that distribution weights sum to 1.
+
+    Parameters
+    ----------
+    data
+        Exposure distribution weight data for `entity` in location
+        `location_id`.
+    entity
+        Risk factor or alternative risk factor to which the data pertain.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data,
+        any values in columns do not match the expected set of values,
+        or distribution weights do not sum to 1.
+
+    """
     key_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
@@ -771,6 +855,37 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
 
 def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int,
                            exposure: pd.DataFrame, estimation_years: pd.Series)-> None:
+    """Check the standard set of validations on raw relative risk data for
+    entity, replacing the age ids check with a custom check based on the age
+    groups present in the exposure data for this entity. Check age and sex ids
+    on data grouped by cause, mortality, morbidity, and parameter. Only sex
+    restrictions are checked because risk factor age restrictions don't
+    correspond to this data and exposure age ranges may not apply to relative
+    risk data for a cause applicable to a different age range.
+
+    Additionally, mortality and morbidity flags in data are checked to ensure
+    they contain only valid values and only valid combinations of those values
+    across mortality and morbidity.
+
+    Parameters
+    ----------
+    data
+        Relative risk data for `entity` in location `location_id`.
+    entity
+        Risk factor or alternative risk factor to which the data pertain.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values (or the
+        expected combinations of values in the case of the mortality and
+        morbidity columns).
+    """
 
     check_data_exist(data, zeros_missing=True)
 
