@@ -6,6 +6,28 @@ from vivarium_inputs.validation import raw
 from vivarium_inputs.globals import DataAbnormalError, DataDoesNotExistError, DataTransformationError
 
 
+@pytest.fixture
+def gbd_mock(mocker):
+    gbd_mock = mocker.patch('vivarium_inputs.validation.raw.gbd')
+    gbd_mock.get_age_group_id.return_value = list(range(1, 6))
+    return gbd_mock
+
+
+@pytest.fixture
+def estimation_years():
+    return list(range(1990, 2015, 5)) + [2017]
+
+
+@pytest.fixture
+def measures_mock(mocker):
+    return mocker.patch('vivarium_inputs.validation.raw.MEASURES', {'A': 1, 'B': 2})
+
+
+@pytest.fixture
+def metrics_mock(mocker):
+    return mocker.patch('vivarium_inputs.validation.raw.METRICS', {'A': 1, 'B': 2})
+
+
 @pytest.mark.parametrize('mort, morb, yld_only, yll_only, match',
                          [([0, 1, 1], [0, 1, 1], True, False, 'set to 0'),
                           ([1, 1, 0], [1, 1, 1], True, False, 'only one'),
@@ -28,29 +50,6 @@ def test_check_mort_morb_flags_fail(mort, morb, yld_only, yll_only, match):
 def test_check_mort_morb_flags_pass(mort, morb, yld_only, yll_only):
     data = pd.DataFrame({'mortality': mort, 'morbidity': morb})
     raw.check_mort_morb_flags(data, yld_only, yll_only)
-
-
-
-@pytest.fixture
-def gbd_mock(mocker):
-    gbd_mock = mocker.patch('vivarium_inputs.validation.raw.gbd')
-    gbd_mock.get_age_group_id.return_value = list(range(1, 6))
-    return gbd_mock
-
-
-@pytest.fixture
-def estimation_years():
-    return list(range(1990, 2015, 5)) + [2017]
-
-
-@pytest.fixture
-def measures_mock(mocker):
-    return mocker.patch('vivarium_inputs.validation.raw.MEASURES', {'A': 1, 'B': 2})
-
-
-@pytest.fixture
-def metrics_mock(mocker):
-    return mocker.patch('vivarium_inputs.validation.raw.METRICS', {'A': 1, 'B': 2})
 
 
 @pytest.mark.parametrize('years, bin_type', [(range(1950, 2020), 'annual'),
@@ -245,40 +244,7 @@ def test_check_age_restrictions_pass(data, start, end, val_cols, gbd_mock):
     raw.check_age_restrictions(data, start, end, value_columns=val_cols)
 
 
-test_data = [(pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 1, 'lower', ['a', 'b'],
-              True, 'values below', DataAbnormalError),
-             (pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 0, 'lower', ['a', 'b'],
-              False, 'values below or equal to', ValueError),
-             (pd.DataFrame({'a': [0], 'b': [10], 'c': [100]}), 10, 'lower', ['a'],
-              True, 'values below', ValueError),
-             (pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 20, 'upper', ['a', 'b'],
-              False, 'values above', DataAbnormalError),
-             (pd.DataFrame({'a': [0, 1], 'b': [2, 20]}, index=[0, 1]), pd.Series([5, 10], index=[0, 1]), 'upper',
-              ['a', 'b'], True, 'above the expected', DataTransformationError)]
 
-
-@pytest.mark.parametrize('data, boundary, boundary_type, val_cols, inclusive, match, error', test_data)
-def test_check_value_columns_boundary_fail_warn(data, boundary, boundary_type, val_cols, inclusive, match, error):
-    with pytest.raises(error, match=match):
-        raw.check_value_columns_boundary(data, boundary, boundary_type,
-                                               val_cols, inclusive=inclusive, error=error)
-
-    with pytest.warns(Warning, match=match):
-        raw.check_value_columns_boundary(data, boundary, boundary_type, val_cols, inclusive=inclusive, error=None)
-
-
-test_data = [(pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 0, 'lower', ['a', 'b'], True),
-             (pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), -1, 'lower', ['a', 'b'], False),
-             (pd.DataFrame({'a': [0], 'b': [10], 'c': [100]}), 10, 'lower', ['b', 'c'], True),
-             (pd.DataFrame({'a': [0, 1], 'b': [2, 20]}), 20, 'upper', ['a', 'b'], True),
-             (pd.DataFrame({'a': [0, 1], 'b': [2, 20]}, index=[0, 1]), pd.Series([0, 1], index=[0, 1]), 'upper',
-              ['a'], True)]
-
-
-@pytest.mark.parametrize('data, boundary, boundary_type, val_cols, inclusive', test_data)
-def test_check_value_columns_boundary_pass(data, boundary, boundary_type, val_cols, inclusive):
-    raw.check_value_columns_boundary(data, boundary, boundary_type, val_cols,
-                                           inclusive=inclusive, error=ValueError)
 
 
 test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 0, 'b': 0, 'c': 1}), True, False,
