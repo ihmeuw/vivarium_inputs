@@ -1354,7 +1354,7 @@ def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
     Parameters
     ----------
     data
-        Dataframe containing 'sex_id' column to check by_sex on.
+        Dataframe containing 'sex_id' column on which to check by_sex.
     by_sex
         Boolean indicating whether the data should be sex specific or not.
 
@@ -1382,7 +1382,7 @@ def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool) -> None:
     Parameters
     ----------
     data
-        Dataframe containing 'age_group_id' column to check by_sex on.
+        Dataframe containing 'age_group_id' column on which to check by_age.
     by_age
         Boolean indicating whether the data should be age specific or not.
 
