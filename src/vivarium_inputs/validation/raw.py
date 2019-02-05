@@ -373,7 +373,7 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     Parameters
     ----------
     data
-        Incidence data for `entity` in location `location_id`.
+        Incidence data pulled for entity in location_id.
     entity
         Cause or sequela to which the data pertains.
     location_id
@@ -423,7 +423,7 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     Parameters
     ----------
     data
-        Prevalence data for `entity` in location `location_id`.
+        Prevalence data pulled for entity in location_id.
     entity
         Cause or sequela to which the data pertains.
     location_id
@@ -475,7 +475,7 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     Parameters
     ----------
     data
-        Birth prevalence data for `entity` in location `location_id`.
+        Birth prevalence data pulled for entity in location_id.
     entity
         Cause or sequela to which the data pertains.
     location_id
@@ -524,7 +524,7 @@ def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id:
     Parameters
     ----------
     data
-        Disability weight data for `entity` in location `location_id`.
+        Disability weight data pulled for entity in location_id.
     entity
         Cause or sequela to which the data pertains.
     location_id
@@ -564,7 +564,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause,
     Parameters
     ----------
     data
-        Remission data for `entity` in location `location_id`.
+        Remission data pulled for entity in location_id.
     entity
         Cause to which the data pertains.
     location_id
@@ -609,13 +609,13 @@ def validate_remission(data: pd.DataFrame, entity: Cause,
 def validate_deaths(data: pd.DataFrame, entity: Cause,
                     location_id: int, estimation_years: pd.Series) -> None:
     """ Check the standard set of validations on raw deaths data for entity,
-    pulling population data for `location_id` to use as the upper boundary
+    pulling population data for location_id to use as the upper boundary
     for values in deaths.
 
     Parameters
     ----------
     data
-        Deaths data for `entity` in location `location_id`.
+        Deaths data pulled for entity in location_id.
     entity
         Cause to which the data pertains.
     location_id
