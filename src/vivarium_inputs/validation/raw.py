@@ -123,6 +123,7 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
         'exposure_distribution_weights': validate_exposure_distribution_weights,
         'relative_risk': validate_relative_risk,
         'population_attributable_fraction': validate_population_attributable_fraction,
+        'etiology_population_attributable_fraction': validate_population_attributable_fraction,
         'mediation_factors': validate_mediation_factors,
         # Covariate measures
         'estimate': validate_estimate,
