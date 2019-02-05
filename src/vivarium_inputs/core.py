@@ -6,11 +6,9 @@ from gbd_mapping import Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covar
 import pandas as pd
 import numpy as np
 
-from vivarium_inputs import utilities, extract
+from vivarium_inputs import utilities, extract, utility_data
 from vivarium_inputs.globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, Population, gbd
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
-
-
 
 
 def get_data(entity, measure: str, location: str):
@@ -41,7 +39,6 @@ def get_data(entity, measure: str, location: str):
         'structure': (get_structure, ('population',)),
         'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
         'age_bins': (get_age_bins, ('population',)),
-        'estimation_years': (get_estimation_years, ('population',)),
         'demographic_dimensions': (get_demographic_dimensions, ('population',))
 
     }
@@ -338,16 +335,9 @@ def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
     return age_bins
 
 
-def get_estimation_years(entity: Population, location_id: int) -> pd.DataFrame:
-    estimation_years = extract.extract_data(entity, 'estimation_years', location_id)
-    estimation_years = pd.DataFrame({'year_start': range(min(estimation_years), max(estimation_years) + 1)})
-    estimation_years['year_end'] = estimation_years['year_start'] + 1
-    return estimation_years
-
-
 def get_demographic_dimensions(entity: Population, location_id: int, draws: bool = False) -> pd.DataFrame:
     ages = gbd.get_age_group_id()
-    estimation_years = extract.extract_data(entity, 'estimation_years', location_id)
+    estimation_years = utility_data.get_estimation_years()
     years = range(min(estimation_years), max(estimation_years) + 1)
     sexes = [SEXES['Male'], SEXES['Female']]
     location = [location_id]

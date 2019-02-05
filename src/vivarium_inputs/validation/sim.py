@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate
-from vivarium_inputs import utilities, core
+from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.validation import utilities as validation_utilities
-from vivarium_inputs.globals import DataTransformationError, Population
+from vivarium_inputs.globals import DataTransformationError
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 
 
@@ -33,9 +33,9 @@ class SimulationValidationContext:
     def __init__(self, location, estimation_years: pd.DataFrame = None, **kwargs):
         self.context_data = {'location': location}
         if estimation_years is None:
-            self.context_data['estimation_years'] = core.get_data(Population(), 'estimation_years', location)
+            self.context_data['years'] = utility_data.get_year_block()
         else:
-            self.context_data['estimation_years'] = estimation_years
+            self.context_data['years'] = estimation_years
 
         self.context_data.update(kwargs)
 
@@ -473,7 +473,7 @@ def _validate_year_columns(data: pd.DataFrame, context: SimulationValidationCont
     if 'year_start' not in data.columns or 'year_end' not in data.columns:
         raise DataTransformationError("Year data must be contained in columns named 'year_start', and 'year_end'.")
 
-    expected_years = context['estimation_years'].sort_values(['year_start', 'year_end'])
+    expected_years = context['years'].sort_values(['year_start', 'year_end'])
     year_block = (data[['year_start', 'year_end']]
                   .drop_duplicates()
                   .sort_values(['year_start', 'year_end'])
