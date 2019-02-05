@@ -604,7 +604,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause,
 
 
 def validate_deaths(data: pd.DataFrame, entity: Cause,
-                    location_id: int, estimation_years: pd.Series) -> None:
+                    location_id: int, estimation_years: pd.Series, population: pd.DataFrame) -> None:
     """ Check the standard set of validations on raw deaths data for entity,
     pulling population data for location_id to use as the upper boundary
     for values in deaths.
@@ -650,11 +650,11 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
-    pop = gbd.get_population(location_id)
     idx_cols = ['age_group_id', 'year_id', 'sex_id']
-    pop = pop[(pop.age_group_id.isin(data.age_group_id.unique())) & (pop.year_id.isin(data.year_id.unique())) & (
-               pop.sex_id != gbd.COMBINED[0])].set_index(idx_cols).population
-    check_value_columns_boundary(data.set_index(idx_cols), pop, 'upper',
+    population = population[(population.age_group_id.isin(data.age_group_id.unique()))
+                            & (population.year_id.isin(data.year_id.unique()))
+                            & (population.sex_id != SEXES['Combined'])].set_index(idx_cols).population
+    check_value_columns_boundary(data.set_index(idx_cols), population, 'upper',
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
@@ -1303,7 +1303,7 @@ def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
         validation function is required."""
     if by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
         raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
-    elif not by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
+    elif not by_sex and set(data.sex_id) != {SEXES['Combined']}:
         raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
                                 'for combined male and female data.')
 
