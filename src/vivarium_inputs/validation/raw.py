@@ -554,7 +554,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
     if entity.kind == 'risk_factor':
         restrictions = entity.restrictions
         male_expected = not restrictions.female_only
-        female_expected =not restrictions.male_only
+        female_expected = not restrictions.male_only
 
         cats.apply(check_age_group_ids, None, None)
         cats.apply(check_sex_ids, male_expected, female_expected)
