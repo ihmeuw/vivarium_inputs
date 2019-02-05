@@ -690,11 +690,12 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
         # we only have metadata about tmred for risk factors
         if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
+            tmrel = (entity.tmred.max + entity.tmred.min)/2
             if entity.tmred.inverted:
-                check_value_columns_boundary(data, entity.tmred.max, 'upper',
+                check_value_columns_boundary(data, tmrel, 'upper',
                                              value_columns=DRAW_COLUMNS, inclusive=True, error=None)
             else:
-                check_value_columns_boundary(data, entity.tmred.min, 'lower',
+                check_value_columns_boundary(data, tmrel, 'lower',
                                              value_columns=DRAW_COLUMNS, inclusive=True, error=None)
     else:  # CoverageGap, AlternativeRiskFactor
         cats.apply(check_age_group_ids, None, None)
@@ -845,16 +846,16 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
-    for c_id in data.cause_id:
+    for c_id in set(data.cause_id):
         cause = [c for c in causes if c.gbd_id == c_id][0]
-        if cause.restrictions.yld_only and (data.measure_id == 'YLLs').any():
+        if cause.restrictions.yld_only and (data.measure_id == MEASURES['YLLs']).any():
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
                                     f'values despite the affected entity being restricted to yld only.')
-        if cause.restrictions.yll_only and (data.measure_id == 'YLDs').any():
+        if cause.restrictions.yll_only and (data.measure_id == MEASURES['YLDs']).any():
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
 
-    grouped.apply(lambda df: check_paf_rr_exposure_age_groups(df, relative_risk, exposure))
+    grouped.apply(lambda df: check_paf_rr_exposure_age_groups(df, relative_risk, exposure, entity))
 
 
 def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
@@ -890,10 +891,10 @@ def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entit
 
     for c_id in data.cause_id:
         cause = [c for c in causes if c.gbd_id == c_id][0]
-        if cause.restrictions.yld_only and (data.measure_id == 'YLLs').any():
+        if cause.restrictions.yld_only and (data.measure_id == MEASURES['YLLs']).any():
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
                                     f'values despite the affected entity being restricted to yld only.')
-        if cause.restrictions.yll_only and (data.measure_id == 'YLDs').any():
+        if cause.restrictions.yll_only and (data.measure_id == MEASURES['YLDs']).any():
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
 
@@ -1167,5 +1168,20 @@ def check_paf_age_groups_cause_restrictions(paf: pd.DataFrame) -> None:
     check_age_restrictions(paf, start, end)
 
 
-def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposure:pd.DataFrame) -> None:
-    pass
+def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposure:pd.DataFrame,
+                                     entity: RiskFactor)-> None:
+    measure_map = {MEASURES['YLLs']: 'YLLs', MEASURES['YLDs']: 'YLDs'}
+    cause_map = {c.gbd_is : c for c in causes}
+    rr_measures = {'YLLs': (rr.morbidity == 0) & (rr.mortality == 1), 'YLDs': (rr.mortality == 0)}
+
+    cause_id = paf.cause_id.unique()[0]
+    measure_id = paf.measure_id.unique()[0]
+    measure = measure_map[measure_id]
+
+    if entity.distribution in ['ensemble', 'lognormal', 'normal']:
+        tmrel = (entity.tmred.max + entity.tmred.min) / 2
+        rr = [(rr.cause_id == cause_id)& rr_measures[measure]]
+        exposed = exposure[exposure[DRAW_COLUMNS] < tmrel] if entity.tmred.inverted else exposure[exposure[DRAW_COLUMNS] > tmrel]
+        valid_age_groups = set(exposed.age_group_id)
+
+    else: # categorical distribution
