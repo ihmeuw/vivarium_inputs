@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 
 from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
-from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_age_ids
 
 
 def get_location_id(location_name):
@@ -286,3 +285,51 @@ def filter_to_most_detailed_causes(data: pd.DataFrame)-> pd.DataFrame:
     cause_ids = set(data.cause_id)
     most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
     return data[data.cause_id.isin(most_detailed_cause_ids)]
+
+
+def get_restriction_age_ids(start_id: Union[float, None], end_id: Union[float, None]) -> list:
+    """Get the start/end age group id and return the list of GBD age_group_ids
+    in-between.
+    """
+    if start_id is None:
+        return []
+
+    gbd_age_ids = gbd.get_age_group_id()
+    start_index = gbd_age_ids.index(start_id)
+    end_index = gbd_age_ids.index(end_id)
+
+    return gbd_age_ids[start_index:end_index+1]
+
+
+def get_restriction_age_boundary(entity: Union[RiskFactor, Cause], boundary: str, reverse=False):
+    """Find the minimum/maximum age restriction (if both 'yll' and 'yld'
+    restrictions exist) for a RiskFactor.
+
+    Parameters
+    ----------
+    entity
+        RiskFactor or Cause for which to find the minimum/maximum age restriction.
+    boundary
+        String 'start' or 'end' indicating whether to return the minimum(maximum)
+        start age restriction or maximum(minimum) end age restriction.
+    reverse
+        if reverse is True, return the maximum of start age restriction
+        and minimum of end age restriction.
+
+    Returns
+    -------
+        The age group id corresponding to the minimum or maximum start or end
+        age restriction, depending on `boundary`, if both 'yll' and 'yld'
+        restrictions exist. Otherwise, returns whichever restriction exists.
+    """
+    yld_age = entity.restrictions[f'yld_age_group_id_{boundary}']
+    yll_age = entity.restrictions[f'yld_age_group_id_{boundary}']
+    if yld_age is None:
+        age = yll_age
+    elif yll_age is None:
+        age = yld_age
+    else:
+        start_op = max if reverse else min
+        end_op = min if reverse else max
+        age = end_op(yld_age, yll_age) if boundary == 'start' else start_op(yld_age, yll_age)
+    return age
