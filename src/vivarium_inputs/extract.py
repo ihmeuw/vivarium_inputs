@@ -6,37 +6,36 @@ import pandas as pd
 
 from vivarium_inputs.globals import gbd, METRICS, MEASURES, DataAbnormalError, DataDoesNotExistError
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
+from vivarium_inputs.utility_data import get_estimation_years
 import vivarium_inputs.validation.raw as validation
 
 
 def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.DataFrame]:
     extractors = {
         # Cause-like measures
-        'incidence': (extract_incidence, (extract_estimation_years,)),
-        'prevalence': (extract_prevalence, (extract_estimation_years,)),
-        'birth_prevalence': (extract_birth_prevalence, (extract_estimation_years,)),
+        'incidence': (extract_incidence, (get_estimation_years,)),
+        'prevalence': (extract_prevalence, (get_estimation_years,)),
+        'birth_prevalence': (extract_birth_prevalence, (get_estimation_years,)),
         'disability_weight': (extract_disability_weight, ()),
-        'remission': (extract_remission, (extract_estimation_years,)),
-        'deaths': (extract_deaths, (extract_estimation_years,)),
+        'remission': (extract_remission, (get_estimation_years,)),
+        'deaths': (extract_deaths, (get_estimation_years,)),
         # Risk-like measures
-        'exposure': (extract_exposure, (extract_estimation_years, )),
-        'exposure_standard_deviation': (extract_exposure_standard_deviation,
-                                        (extract_exposure, extract_estimation_years)),
+        'exposure': (extract_exposure, (get_estimation_years, )),
+        'exposure_standard_deviation': (extract_exposure_standard_deviation, (extract_exposure, get_estimation_years)),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
+        'etiology_population_attributable_fraction': (extract_population_attributable_fraction, (get_estimation_years,)),
+        'relative_risk': (extract_relative_risk, (extract_exposure, get_estimation_years)),
         'population_attributable_fraction': (extract_population_attributable_fraction,
-                                             (extract_estimation_years, extract_relative_risk, extract_exposure,)),
-        'etiology_population_attributable_fraction': (extract_population_attributable_fraction, (extract_estimation_years,)),
+                                             (get_estimation_years, extract_relative_risk, extract_exposure, )),
         'mediation_factors': (extract_mediation_factors, ()),
         # Covariate measures
-        'estimate': (extract_estimate, (extract_estimation_years,)),
+        'estimate': (extract_estimate, (get_estimation_years,)),
         # Health system measures
-        'cost': (extract_cost, (extract_estimation_years,)),
-        'utilization': (extract_utilization, (extract_estimation_years,)),
+        'cost': (extract_cost, (get_estimation_years,)),
+        'utilization': (extract_utilization, (get_estimation_years,)),
         # Population measures
-        'structure': (extract_structure, (extract_estimation_years,)),
+        'structure': (extract_structure, (get_estimation_years,)),
         'theoretical_minimum_risk_life_expectancy': (extract_theoretical_minimum_risk_life_expectancy, ()),
-        # Global values
-        'estimation_years': (extract_estimation_years, ()),
     }
 
     validation.check_metadata(entity, measure)
@@ -169,9 +168,4 @@ def extract_structure(entity, location_id: int) -> pd.DataFrame:
 
 def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
-    return data
-
-
-def extract_estimation_years(entity, location_id: int) -> pd.Series:
-    data = gbd.get_estimation_years()
     return data

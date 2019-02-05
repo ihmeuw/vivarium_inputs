@@ -369,6 +369,26 @@ def check_population_metadata(entity: Population, measure: str) -> None:
 
 def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela],
                        location_id: int, estimation_years: pd.Series) -> None:
+    """ Check the standard set of validations on raw incidence data for entity.
+
+    Parameters
+    ----------
+    data
+        Incidence data pulled for entity in location_id.
+    entity
+        Cause or sequela to which the data pertains.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+
+    """
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -399,6 +419,26 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela],
 
 def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
                         location_id: int, estimation_years: pd.Series) -> None:
+    """ Check the standard set of validations on raw prevalence data for entity.
+
+    Parameters
+    ----------
+    data
+        Prevalence data pulled for entity in location_id.
+    entity
+        Cause or sequela to which the data pertains.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+
+    """
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -429,6 +469,28 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
 
 def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
                               location_id: int, estimation_years: pd.Series) -> None:
+    """ Check the standard set of validations on raw birth prevalence data for
+    entity, replacing the standard age id checks with a custom check of the
+    birth age group.
+
+    Parameters
+    ----------
+    data
+        Birth prevalence data pulled for entity in location_id.
+    entity
+        Cause or sequela to which the data pertains.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+
+    """
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -456,6 +518,28 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
 
 
 def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id: int) -> None:
+    """ Check the standard set of validations on raw disability weight data
+    for entity, replacing the age ids check with a custom check for the
+    all ages age group since disability weights are not age specific.
+
+    Parameters
+    ----------
+    data
+        Disability weight data pulled for entity in location_id.
+    entity
+        Cause or sequela to which the data pertains.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+
+    """
     check_data_exist(data, zeros_missing=False)
 
     expected_columns = ['location_id', 'age_group_id', 'sex_id', 'measure',
@@ -476,6 +560,26 @@ def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id:
 
 def validate_remission(data: pd.DataFrame, entity: Cause,
                        location_id: int, estimation_years: pd.Series) -> None:
+    """ Check the standard set of validations on raw remission data for entity.
+
+    Parameters
+    ----------
+    data
+        Remission data pulled for entity in location_id.
+    entity
+        Cause to which the data pertains.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+
+    """
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', 'model_version_id',
@@ -505,6 +609,28 @@ def validate_remission(data: pd.DataFrame, entity: Cause,
 
 def validate_deaths(data: pd.DataFrame, entity: Cause,
                     location_id: int, estimation_years: pd.Series) -> None:
+    """ Check the standard set of validations on raw deaths data for entity,
+    pulling population data for location_id to use as the upper boundary
+    for values in deaths.
+
+    Parameters
+    ----------
+    data
+        Deaths data pulled for entity in location_id.
+    entity
+        Cause to which the data pertains.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+
+    """
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', f'{entity.kind}_id', 'metric_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate
-from vivarium_inputs import utilities
+from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.validation import utilities as validation_utilities
 from vivarium_inputs.globals import DataTransformationError
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
@@ -28,8 +28,26 @@ VALID_POPULATION_RANGE = (0, 100_000_000)
 VALID_LIFE_EXP_RANGE = (0, 90)
 
 
-def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, NamedTuple], measure: str,
-                            location: str):
+class SimulationValidationContext:
+
+    def __init__(self, location, estimation_years: pd.DataFrame = None, **kwargs):
+        self.context_data = {'location': location}
+        if estimation_years is None:
+            self.context_data['years'] = utility_data.get_year_block()
+        else:
+            self.context_data['years'] = estimation_years
+
+        self.context_data.update(kwargs)
+
+    def __getitem__(self, key):
+        return self.context_data[key]
+
+    def __setitem__(self, key, value):
+        self.context_data[key] = value
+
+
+def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, NamedTuple], measure: str, location: str,
+                            **context_args):
     """Validate data conforms to the format that is expected by the simulation and conforms to normal expectations for a
     measure.
 
@@ -62,7 +80,6 @@ def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, N
         'remission': _validate_remission,
         'cause_specific_mortality': _validate_cause_specific_mortality,
         'excess_mortality': _validate_excess_mortality,
-        'case_fatality': _validate_case_fatality,
         # Risk-like measures
         'exposure': _validate_exposure,
         'exposure_standard_deviation': _validate_exposure_standard_deviation,
@@ -85,11 +102,12 @@ def validate_for_simulation(data: pd.DataFrame, entity: Union[ModelableEntity, N
     if measure not in validators:
         raise NotImplementedError()
 
-    validators[measure](data, entity, location)
+    context = SimulationValidationContext(location, **context_args)
+    validators[measure](data, entity, context)
 
 
-def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], location: str):
-    _validate_standard_columns(data, location)
+def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext):
+    _validate_standard_columns(data, context)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'],
@@ -102,8 +120,8 @@ def _validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locat
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location: str):
-    _validate_standard_columns(data, location)
+def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext):
+    _validate_standard_columns(data, context)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'],
@@ -116,10 +134,10 @@ def _validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], loca
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location: str):
-    _validate_location_column(data, location)
+def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext):
+    _validate_location_column(data, context)
     _validate_sex_column(data)
-    _validate_year_columns(data)
+    _validate_year_columns(data, context)
     _validate_draw_column(data)
     _validate_value_column(data)
 
@@ -133,8 +151,8 @@ def _validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela]
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela], location: str):
-    _validate_standard_columns(data, location)
+def _validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext):
+    _validate_standard_columns(data, context)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'],
@@ -147,8 +165,8 @@ def _validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_remission(data: pd.DataFrame, entity: Cause, location: str):
-    _validate_standard_columns(data, location)
+def _validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext):
+    _validate_standard_columns(data, context)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'],
@@ -161,8 +179,8 @@ def _validate_remission(data: pd.DataFrame, entity: Cause, location: str):
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, location: str):
-    _validate_standard_columns(data, location)
+def _validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext):
+    _validate_standard_columns(data, context)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'],
@@ -175,8 +193,8 @@ def _validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, locati
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_excess_mortality(data: pd.DataFrame, entity: Cause, location: str):
-    _validate_standard_columns(data, location)
+def _validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext):
+    _validate_standard_columns(data, context)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'],
@@ -189,23 +207,20 @@ def _validate_excess_mortality(data: pd.DataFrame, entity: Cause, location: str)
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_case_fatality(data, entity, location):
-    raise NotImplementedError()
-
-
 def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
-                       location: str):
+                       context: SimulationValidationContext):
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
     if is_continuous:
         if set(data.parameter) != {"continuous"}:
-            raise DataTransformationError("Continuous exposure data should contain 'continuous' in the parameter column.")
+            raise DataTransformationError("Continuous exposure data should contain "
+                                          "'continuous' in the parameter column.")
         valid_kwd = 'continuous'
     elif is_categorical:
         if set(data.parameter) != set(entity.categories.to_dict()):  # to_dict removes None
-            raise DataTransformationError("Categorical exposure data does not contain all categories in the parameter "
-                                      "column.")
+            raise DataTransformationError("Categorical exposure data does not contain all "
+                                          "categories in the parameter column.")
         valid_kwd = 'categorical'
     else:
         raise NotImplementedError()
@@ -218,7 +233,7 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
                                                       error=DataTransformationError)
 
     cats = data.groupby('parameter')
-    cats.apply(_validate_standard_columns, location)
+    cats.apply(_validate_standard_columns, context)
 
     if is_categorical:
         non_categorical_columns = list(set(data.columns).difference({'parameter', 'value'}))
@@ -230,8 +245,8 @@ def _validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap
 
 
 def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
-                                          location: str):
-    _validate_standard_columns(data, location)
+                                          context: SimulationValidationContext):
+    _validate_standard_columns(data, context)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'],
@@ -245,8 +260,8 @@ def _validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[Risk
 
 
 def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
-                                            location: str):
-    _validate_demographic_columns(data, location)
+                                            context: SimulationValidationContext):
+    _validate_demographic_columns(data, context)
     _validate_value_column(data)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_DIST_WEIGHTS_RANGE[0],
@@ -265,9 +280,9 @@ def _validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ri
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location: str):
+def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], context: SimulationValidationContext):
     risk_relationship = data.groupby(['affected_entity', 'affected_measure', 'parameter'])
-    risk_relationship.apply(_validate_standard_columns, location)
+    risk_relationship.apply(_validate_standard_columns, context)
 
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
@@ -302,9 +317,9 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=1.0)
 
 
-def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology], location: str):
+def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology], context: SimulationValidationContext):
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
-    risk_relationship.apply(_validate_standard_columns, location)
+    risk_relationship.apply(_validate_standard_columns, context)
 
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[0],
                                                       boundary_type='lower', value_columns=['value'],
@@ -317,27 +332,27 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
     _check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def _validate_mediation_factors(data, entity, location):
+def _validate_mediation_factors(data: pd.DataFrame, entity: RiskFactor, context: SimulationValidationContext):
     raise NotImplementedError()
 
 
-def _validate_estimate(data: pd.DataFrame, entity: Covariate, location: str):
+def _validate_estimate(data: pd.DataFrame, entity: Covariate, context: SimulationValidationContext):
     cols = ['location', 'year_start', 'year_end']
-    _validate_location_column(data, location)
+    _validate_location_column(data, context)
     if entity.by_sex:
         _validate_sex_column(data)
         cols += ['sex']
     if entity.by_age:
         _validate_age_columns(data)
         cols += ['age_group_start', 'age_group_end']
-    _validate_year_columns(data)
+    _validate_year_columns(data, context)
     _validate_value_column(data)
 
     data.groupby(cols).apply(_check_covariate_values)
 
 
-def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity], location: str):
-    _validate_standard_columns(data, location)
+def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity], context: SimulationValidationContext):
+    _validate_standard_columns(data, context)
     validation_utilities.check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
                                                       value_columns=['value'], inclusive=True,
                                                       error=DataTransformationError)
@@ -346,8 +361,8 @@ def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcar
                                                       error=DataTransformationError)
 
 
-def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location: str):
-    _validate_standard_columns(data, location)
+def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: SimulationValidationContext):
+    _validate_standard_columns(data, context)
     validation_utilities.check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
                                                       value_columns=['value'], inclusive=True,
                                                       error=DataTransformationError)
@@ -356,8 +371,8 @@ def _validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location
                                                       error=DataTransformationError)
 
 
-def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location: str):
-    _validate_demographic_columns(data, location)
+def _validate_structure(data: pd.DataFrame, entity: NamedTuple, context: SimulationValidationContext):
+    _validate_demographic_columns(data, context)
     _validate_value_column(data)
 
     validation_utilities.check_value_columns_boundary(data, VALID_POPULATION_RANGE[0], 'lower',
@@ -368,9 +383,10 @@ def _validate_structure(data: pd.DataFrame, entity: NamedTuple, location: str):
                                                       error=DataTransformationError)
 
 
-def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: NamedTuple, location: str):
+def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: NamedTuple, context: SimulationValidationContext):
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
-        raise DataTransformationError("Age data must be contained in columns named 'age_group_start' and 'age_group_end'.")
+        raise DataTransformationError("Age data must be contained in columns named "
+                                      "'age_group_start' and 'age_group_end'.")
 
     age_min, age_max = 0, 110
     if data.age_group_start.min() > age_min or data.age_group_start.max() < age_max:
@@ -387,12 +403,12 @@ def _validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entit
         raise DataTransformationError('Life expectancy data is not monotonically decreasing over age.')
 
 
-def _validate_age_bins(data: pd.DataFrame, entity: NamedTuple, location: str):
+def _validate_age_bins(data: pd.DataFrame, entity: NamedTuple, context: SimulationValidationContext):
     _validate_age_columns(data)
 
 
-def _validate_demographic_dimensions(data: pd.DataFrame, entity: NamedTuple, location: str):
-    _validate_demographic_columns(data, location)
+def _validate_demographic_dimensions(data: pd.DataFrame, entity: NamedTuple, context: SimulationValidationContext):
+    _validate_demographic_columns(data, context)
 
 
 #############
@@ -400,17 +416,17 @@ def _validate_demographic_dimensions(data: pd.DataFrame, entity: NamedTuple, loc
 #############
 
 
-def _validate_standard_columns(data: pd.DataFrame, location: str):
-    _validate_demographic_columns(data, location)
+def _validate_standard_columns(data: pd.DataFrame, context: SimulationValidationContext):
+    _validate_demographic_columns(data, context)
     _validate_draw_column(data)
     _validate_value_column(data)
 
 
-def _validate_demographic_columns(data: pd.DataFrame, location: str):
-    _validate_location_column(data, location)
+def _validate_demographic_columns(data: pd.DataFrame, context: SimulationValidationContext):
+    _validate_location_column(data, context)
     _validate_sex_column(data)
     _validate_age_columns(data)
-    _validate_year_columns(data)
+    _validate_year_columns(data, context)
 
 
 def _validate_draw_column(data: pd.DataFrame):
@@ -421,11 +437,11 @@ def _validate_draw_column(data: pd.DataFrame):
         raise DataTransformationError('Draw must contain [0, 999].')
 
 
-def _validate_location_column(data: pd.DataFrame, location: str):
+def _validate_location_column(data: pd.DataFrame, context: SimulationValidationContext):
     if 'location' not in data.columns:
         raise DataTransformationError("Location data must be contained in a column named 'location'.")
 
-    if len(data['location'].unique()) != 1 or data['location'].unique()[0] != location:
+    if len(data['location'].unique()) != 1 or data['location'].unique()[0] != context['location']:
         raise DataTransformationError('Location must contain a single value that matches specified location.')
 
 
@@ -439,7 +455,8 @@ def _validate_sex_column(data: pd.DataFrame):
 
 def _validate_age_columns(data: pd.DataFrame):
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
-        raise DataTransformationError("Age data must be contained in columns named 'age_group_start' and 'age_group_end'.")
+        raise DataTransformationError("Age data must be contained in columns named"
+                                      " 'age_group_start' and 'age_group_end'.")
 
     expected_ages = utilities.get_age_bins()[['age_group_start', 'age_group_end']].sort_values(['age_group_start',
                                                                                                 'age_group_end'])
@@ -452,11 +469,11 @@ def _validate_age_columns(data: pd.DataFrame):
         raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
 
 
-def _validate_year_columns(data: pd.DataFrame):
+def _validate_year_columns(data: pd.DataFrame, context: SimulationValidationContext):
     if 'year_start' not in data.columns or 'year_end' not in data.columns:
         raise DataTransformationError("Year data must be contained in columns named 'year_start', and 'year_end'.")
 
-    expected_years = utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
+    expected_years = context['years'].sort_values(['year_start', 'year_end'])
     year_block = (data[['year_start', 'year_end']]
                   .drop_duplicates()
                   .sort_values(['year_start', 'year_end'])
@@ -503,5 +520,6 @@ def _check_covariate_values(data: pd.DataFrame):
     # allow the case where lower = mean = upper = 0 b/c of things like age
     # specific fertility rate where all estimates are 0 for young age groups
     if np.all(data.value != 0) and not np.all(lower < mean < upper):
-        raise DataTransformationError('Covariate data contains demographic groups for which the estimates for lower, mean, '
-                                  'and upper values are not all 0 and it is not the case that lower < mean < upper. ')
+        raise DataTransformationError('Covariate data contains demographic groups for which the '
+                                      'estimates for lower, mean, and upper values are not all 0 '
+                                      'and it is not the case that lower < mean < upper. ')
