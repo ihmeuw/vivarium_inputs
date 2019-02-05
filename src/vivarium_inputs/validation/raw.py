@@ -921,9 +921,9 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
             c_id, morb, mort, _ = keys
             cause = [c for c in causes if c.gbd_id == c_id][0]
             if morb == 1:
-                start, end = cause.restrictions.yll_age_group_id_start, cause.restrictions.yll_age_group_id_end
-            else:  # morb = 0 , mort = 1
                 start, end = cause.restrictions.yld_age_group_id_start, cause.restrictions.yld_age_group_id_end
+            else:  # morb = 0 , mort = 1
+                start, end = cause.restrictions.yll_age_group_id_start, cause.restrictions.yll_age_group_id_end
             check_age_restrictions(g, start, end, error=False)
 
     else:  # coverage gap
