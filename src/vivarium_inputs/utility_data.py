@@ -11,5 +11,5 @@ def get_estimation_years(*_, **__) -> pd.Series:
 def get_year_block() -> pd.DataFrame:
     estimation_years = get_estimation_years()
     year_block = pd.DataFrame({'year_start': range(min(estimation_years), max(estimation_years) + 1)})
-    year_block['year_end'] = estimation_years['year_start'] + 1
+    year_block['year_end'] = year_block['year_start'] + 1
     return year_block
