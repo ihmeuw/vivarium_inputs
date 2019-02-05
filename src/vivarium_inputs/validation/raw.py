@@ -742,7 +742,8 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                                          location_id: int, exposure: pd.DataFrame, estimation_years: pd.Series) -> None:
     """Check the standard set of validations on raw exposure standard
-    deviation data for entity. Use the age groups from the corresponding
+    deviation data for entity. Check that the data exist for age groups where
+    we have exposure data. Use the age groups from the corresponding
     exposure data as the boundaries for age group checks. Skip age restriction
     checks as risk factor age restrictions don't correspond to this data.
 
@@ -764,7 +765,7 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
         any values in columns do not match the expected set of values.
 
     """
-    # FIXME: why are we checking data exist on the filtered data? we do that for no other entity/measure
+
     exposure_age_groups = set(exposure.age_group_id)
     valid_age_group_data = data[data.age_group_id.isin(exposure_age_groups)]
 
@@ -785,7 +786,9 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
 
     check_age_group_ids(data, age_start, age_end)
     check_sex_ids(data, True, True)
-    # FIXME: why did we get rid of the sex restriction check?
+
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
+
     check_value_columns_boundary(valid_age_group_data, 0, 'lower',
                                  value_columns=DRAW_COLUMNS, inclusive=False, error=DataAbnormalError)
 
@@ -800,7 +803,6 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
     restriction checks for risk factors.
 
     Additionally, verify that distribution weights sum to 1.
-
 
     Parameters
     ----------
@@ -856,8 +858,8 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
     """Check the standard set of validations on raw relative risk data for
     entity, replacing the age ids check with a custom check based on the age
     groups present in the exposure data for this entity. Check age and sex ids
-    on data grouped by cause, mortality, morbidity, and parameter.Only sex r
-    estrictions are checked because risk factor age restrictions don't
+    on data grouped by cause, mortality, morbidity, and parameter. Only sex
+    restrictions are checked because risk factor age restrictions don't
     correspond to this data and exposure age ranges may not apply to relative
     risk data for a cause applicable to a different age range.
 
