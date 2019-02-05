@@ -110,7 +110,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
             full_demog = utilities.get_demographic_dimensions(location_id)
-            draws = pd.DataFrame({draw_col: len(full_demog) * [0.0] for draw_col in DRAW_COLUMNS})
+            draws = pd.DataFrame(0.0, index=full_demog.index, columns=DRAW_COLUMNS)
             data = pd.concat([full_demog, draws], axis=1)
         else:
             data = extract.extract_data(entity, 'disability_weight', location_id)
