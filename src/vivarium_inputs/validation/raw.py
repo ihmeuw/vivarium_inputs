@@ -30,6 +30,16 @@ def check_metadata(entity: ModelableEntity, measure: str) -> None:
     """ Check metadata associated with the given entity and measure for any
     relevant warnings or errors.
 
+    Check that the 'exists' flag in metadata corresponding to `measure` is
+    True and that the corresponding 'in_range' flag is also True. Warn if
+    either is False.
+
+    If the `entity` has any violated restrictions pertaining to `measure`
+    listed in metadata, warn about them.
+
+    Almost all checks result in warnings rather than errors because most flags
+    are based on a survey done on data from a single location.
+
     Parameters
     ----------
     entity
@@ -149,6 +159,21 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
 
 
 def check_sequela_metadata(entity: Sequela, measure: str) -> None:
+    """Check all relevant metadata flags for sequela pertaining to measure.
+
+    Parameters
+    ----------
+    entity
+        Sequela for which to check metadata.
+    measure
+        Measure for which to check metadata.
+
+    Raises
+    ------
+    InvalidQueryError
+        If the 'exists' metadata flag on `entity` for `measure` is None.
+
+    """
     if measure in ['incidence', 'prevalence', 'birth_prevalence']:
         check_exists_in_range(entity, measure)
     else:  # measure == 'disability_weight
@@ -158,10 +183,40 @@ def check_sequela_metadata(entity: Sequela, measure: str) -> None:
 
 
 def check_cause_metadata(entity: Cause, measure: str) -> None:
-    if entity.restrictions.yll_only:
-        raise NotImplementedError(f"{entity.name} is YLL only cause and we currently do not have a model to support it.")
+    """Check all relevant metadata flags for cause pertaining to measure.
 
-    check_cause_age_restrictions(entity)
+    If the entity is restricted to YLL only or the age group set corresponding
+    to the YLL restrictions is greater than that corresponding to the YLD
+    restrictions, error as we don't currently know how to model such causes.
+
+    For all measures except remission, check the `consistent` and `aggregates`
+    flags for measure, which indicate whether the data was found to
+    exist/not exist consistently with any subcauses or sequela and whether
+    the estimates for the subcauses/sequela aggregate were found to correctly
+    aggregate to the `entity` estimates. Warn if either are False.
+
+    Parameters
+    ----------
+    entity
+        Cause for which to check metadata.
+    measure
+        Measure for which to check metadata.
+
+    Raises
+    ------
+    NotImplementedError
+        If the `entity` is YLL only or the YLL age range is broader than the
+        YLD age range.
+
+    InvalidQueryError
+        If the 'exists' metadata flag on `entity` for `measure` is None.
+
+    """
+    if entity.restrictions.yll_only:
+        raise NotImplementedError(f"{entity.name.capitalize()} is YLL only cause, and we currently do not have a"
+                                  f" model to support such a cause.")
+
+    check_cause_age_restrictions_sets(entity)
     check_exists_in_range(entity, measure)
 
     warn_violated_restrictions(entity, measure)
@@ -180,7 +235,29 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
                           f"be consistent with models for this cause.")
 
 
-def check_risk_factor_metadata(entity: Union[AlternativeRiskFactor, RiskFactor], measure: str) -> None:
+def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
+    """Check all relevant metadata flags for risk pertaining to measure.
+
+    For measure exposure, additionally check that the exposure_year_type flag
+    is not 'mix' or 'incomplete', which would indicate a non-standard set of
+    years in the data.
+
+    Parameters
+    ----------
+    entity
+        RiskFactor for which to check metadata.
+    measure
+        Measure for which to check metadata.
+
+    Raises
+    ------
+    NotImplementedError
+        If the `entity` has a 'custom' distribution.
+
+    InvalidQueryError
+        If the 'exists' metadata flag on `entity` for `measure` is None.
+
+    """
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
         return
@@ -205,10 +282,29 @@ def check_alternative_risk_factor_metadata(entity: AlternativeRiskFactor, measur
 
 
 def check_etiology_metadata(entity: Etiology, measure: str) -> None:
+    """Check all relevant metadata flags for etiology pertaining to measure.
+
+    Parameters
+    ----------
+    entity
+        Etiology for which to check metadata.
+    measure
+        Measure for which to check metadata.
+    """
     check_paf_types(entity)
 
 
 def check_covariate_metadata(entity: Covariate, measure: str) -> None:
+    """Check all relevant metadata flags for covariate pertaining to measure.
+
+    Parameters
+    ----------
+    entity
+        RiskFactor for which to check metadata.
+    measure
+        Measure for which to check metadata.
+
+    """
     if not entity.mean_value_exists:
         warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain'
                       f'mean values for all locations.')
@@ -228,11 +324,33 @@ def check_coverage_gap_metadata(entity: CoverageGap, measure: str) -> None:
 
 
 def check_health_technology_metadata(entity: HealthTechnology, measure: str) -> None:
+    """ Because HealthTechnology does not contain any metadata flags, this
+    check simply warns the user that cost data is constant over years.
+
+    Parameters
+    ----------
+    entity
+        HealthTechnology for which to check metadata.
+    measure
+        Measure for which to check metadata.
+    """
     if measure == 'cost':
         warnings.warn(f'Cost data for {entity.kind} {entity.name} does not vary by year.')
 
 
 def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str) -> None:
+    """ Because HealthCareEntity does not contain any metadata flags, this
+    check simply warns the user that cost data outside of years between
+    [1995, 2016] has been duplicated from the nearest year for which there is
+    data.
+
+    Parameters
+    ----------
+    entity
+        HealthEntity for which to check metadata.
+    measure
+        Measure for which to check metadata.
+    """
     if measure == 'cost':
         warnings.warn(f'2017 cost data for {entity.kind} {entity.name} is duplicated from 2016 data, and all data '
                       f'before 1995 is backfilled from 1995 data.')
@@ -864,7 +982,7 @@ def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool) -> None:
                                 'beyond all ages and age standardized.')
 
 
-def check_cause_age_restrictions(entity: Cause) -> None:
+def check_cause_age_restrictions_sets(entity: Cause) -> None:
     if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
     else:
