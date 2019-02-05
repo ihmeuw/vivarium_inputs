@@ -23,32 +23,6 @@ def get_age_bins():
     return age_bins
 
 
-def get_annual_year_bins():
-    estimation_years = gbd.get_estimation_years()
-    df = pd.DataFrame({'year_id': range(min(estimation_years), max(estimation_years) + 1)})
-
-    return scrub_year(df)
-
-
-def get_demographic_dimensions(location_id, draws=False):
-    ages = gbd.get_age_group_id()
-    estimation_years = gbd.get_estimation_years()
-    years = range(min(estimation_years), max(estimation_years) + 1)
-    sexes = [SEXES['Male'], SEXES['Female']]
-    location = [location_id]
-    values = [location, sexes, ages, years]
-    names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
-    if draws:
-        values.append(range(1000))
-        names.append('draw')
-
-    dimensions = (pd.MultiIndex
-                  .from_product(values, names=names)
-                  .to_frame(index=False))
-
-    return dimensions
-
-
 ##################################################
 # Functions to remove GBD conventions from data. #
 ##################################################

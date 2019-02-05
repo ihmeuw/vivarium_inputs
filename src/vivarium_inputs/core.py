@@ -7,9 +7,10 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract
+from vivarium_inputs.globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, Population, gbd
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
-from .globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, Population
+
 
 
 def get_data(entity, measure: str, location: str):
@@ -99,7 +100,7 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
-        data = utilities.get_demographic_dimensions(location_id, draws=True)
+        data = get_demographic_dimensions(Population(), location_id, draws=True)
         data['value'] = 0.0
         data = data.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
         if entity.sequelae:
@@ -344,8 +345,20 @@ def get_estimation_years(entity: Population, location_id: int) -> pd.DataFrame:
     return estimation_years
 
 
-def get_demographic_dimensions(entity: Population, location_id: int) -> pd.DataFrame:
-    demographic_dimensions = utilities.get_demographic_dimensions(location_id)
+def get_demographic_dimensions(entity: Population, location_id: int, draws: bool = False) -> pd.DataFrame:
+    ages = gbd.get_age_group_id()
+    estimation_years = extract.extract_data(entity, 'estimation_years', location_id)
+    years = range(min(estimation_years), max(estimation_years) + 1)
+    sexes = [SEXES['Male'], SEXES['Female']]
+    location = [location_id]
+    values = [location, sexes, ages, years]
+    names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
+    if draws:
+        values.append(range(1000))
+        names.append('draw')
+
+    demographic_dimensions = (pd.MultiIndex
+                              .from_product(values, names=names)
+                              .to_frame(index=False))
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
-
