@@ -1,5 +1,5 @@
 """Global constants, errors, and module imports for inputs processing."""
-from gbd_mapping import ModelableEntity
+from gbd_mapping import ModelableEntity, causes
 
 
 # The purpose of this import block is to mask the dependency on internal
@@ -112,6 +112,10 @@ SEXES = {'Male': 1,
 # Mapping of non-standard age group ids sometimes found in GBD data
 SPECIAL_AGES = {'all_ages': 22,
                 'age_standardized': 27}
+
+PROTECTIVE_CAUSE_RISK_PAIRS = {
+    'high_body_mass_index_in_adults': [causes.neoplasms, causes.breast_cancer]
+}
 
 
 class Population(ModelableEntity):

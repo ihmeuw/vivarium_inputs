@@ -8,7 +8,8 @@ from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES,
-                                     DataAbnormalError, InvalidQueryError, gbd, Population)
+                                     PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
+                                     gbd, Population)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
                                                   check_age_group_ids, check_sex_ids, check_age_restrictions,
@@ -845,7 +846,17 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     check_age_restrictions(data, age_start, age_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS:
+        protected_causes = [cause.gbd_id for cause in PROTECTIVE_CAUSE_RISK_PAIRS[entity.name]]
+        protective = data.loc[data.cause_id.isin(protected_causes)]
+        non_protective = data.loc[data.index.difference(protective.index)]
+        check_value_columns_boundary(protective, -1.0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
+                                     error=DataAbnormalError)
+        check_value_columns_boundary(non_protective, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
+                                     error=DataAbnormalError)
+    else:
+        check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
     for c_id in data.cause_id:

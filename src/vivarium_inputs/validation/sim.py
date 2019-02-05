@@ -6,7 +6,7 @@ import pandas as pd
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate
 from vivarium_inputs import utilities
 from vivarium_inputs.validation import utilities as validation_utilities
-from vivarium_inputs.globals import DataTransformationError
+from vivarium_inputs.globals import PROTECTIVE_CAUSE_RISK_PAIRS, DataTransformationError
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 
 
@@ -22,6 +22,7 @@ VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_EXPOSURE_DIST_WEIGHTS_RANGE = (0.0, 1.0)
 VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 5.0, 'categorical': 20.0})
 VALID_PAF_RANGE = (0.0, 1.0)
+VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 VALID_UTILIZATION_RANGE = (0, 50)
 VALID_POPULATION_RANGE = (0, 100_000_000)
@@ -306,9 +307,21 @@ def _validate_population_attributable_fraction(data: pd.DataFrame, entity: Union
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(_validate_standard_columns, location)
 
-    validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[0],
-                                                      boundary_type='lower', value_columns=['value'],
-                                                      error=DataTransformationError)
+    if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS:
+        protected_causes = [cause.name for cause in PROTECTIVE_CAUSE_RISK_PAIRS[entity.name]]
+        protective = data.loc[data.affected_entity.isin(protected_causes)]
+        non_protective = data.loc[data.index.difference(protective.index)]
+        validation_utilities.check_value_columns_boundary(protective, boundary_value=VALID_PROTECTIVE_PAF_MIN,
+                                                          boundary_type='lower', value_columns=['value'],
+                                                          error=DataTransformationError)
+        validation_utilities.check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[0],
+                                                          boundary_type='lower', value_columns=['value'],
+                                                          error=DataTransformationError)
+
+    else:
+        validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[0],
+                                                          boundary_type='lower', value_columns=['value'],
+                                                          error=DataTransformationError)
     validation_utilities.check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[1],
                                                       boundary_type='upper', value_columns=['value'],
                                                       error=DataTransformationError)
