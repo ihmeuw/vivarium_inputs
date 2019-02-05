@@ -6,10 +6,9 @@ from gbd_mapping import Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covar
 import pandas as pd
 import numpy as np
 
-from vivarium_inputs import utilities, extract
+from vivarium_inputs import utilities, extract, utility_data
+from vivarium_inputs.globals import InvalidQueryError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, Population, gbd
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
-
-from .globals import InvalidQueryError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES, Population
 
 
 def get_data(entity, measure: str, location: str):
@@ -40,6 +39,7 @@ def get_data(entity, measure: str, location: str):
         'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
         'age_bins': (get_age_bins, ('population',)),
         'demographic_dimensions': (get_demographic_dimensions, ('population',))
+
     }
 
     if measure not in measure_handlers:
@@ -96,7 +96,7 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
-        data = utilities.get_demographic_dimensions(location_id, draws=True)
+        data = get_demographic_dimensions(Population(), location_id, draws=True)
         data['value'] = 0.0
         data = data.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
         if entity.sequelae:
@@ -179,10 +179,12 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
 
 
 def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
+    exposure_age_groups = set(extract.extract_data(entity, 'exposure', location_id).age_group_id)
+
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    data = data[data.age_group_id.isin(get_exposure_age_groups(entity, location_id))]
+    data = data[data.age_group_id.isin(exposure_age_groups)]
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
@@ -195,7 +197,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     if entity.kind == 'risk_factor':
         data.drop('age_group_id', axis=1, inplace=True)
         df = []
-        for age_id in get_exposure_age_groups(entity, location_id):
+        for age_id in set(extract.extract_data(entity, 'exposure', location_id).age_group_id):
             copied = data.copy()
             copied['age_group_id'] = age_id
             df.append(copied)
@@ -334,12 +336,20 @@ def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
     return age_bins
 
 
-def get_demographic_dimensions(entity: Population, location_id: int) -> pd.DataFrame:
-    demographic_dimensions = utilities.get_demographic_dimensions(location_id)
+def get_demographic_dimensions(entity: Population, location_id: int, draws: bool = False) -> pd.DataFrame:
+    ages = gbd.get_age_group_id()
+    estimation_years = utility_data.get_estimation_years()
+    years = range(min(estimation_years), max(estimation_years) + 1)
+    sexes = [SEXES['Male'], SEXES['Female']]
+    location = [location_id]
+    values = [location, sexes, ages, years]
+    names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
+    if draws:
+        values.append(range(1000))
+        names.append('draw')
+
+    demographic_dimensions = (pd.MultiIndex
+                              .from_product(values, names=names)
+                              .to_frame(index=False))
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
-
-
-def get_exposure_age_groups(entity: RiskFactor, location_id: int):
-    exposure = extract.extract_data(entity, 'exposure', location_id)
-    return set(exposure.age_group_id)
