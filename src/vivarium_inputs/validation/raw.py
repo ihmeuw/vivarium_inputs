@@ -864,6 +864,30 @@ def validate_mediation_factors(data, entity, location_id) -> None:
 
 def validate_estimate(data: pd.DataFrame, entity: Covariate,
                       location_id: int, estimation_years: pd.Series) -> None:
+    """ Check the standard set of validations on raw estimate data
+    for entity, allowing for the possibility of all 0s in the data as valid.
+    Additionally, the standard age and sex restriction checks are replaced with
+    custom covariate versions since covariate restrictions only signal whether
+    an entity is age and/or sex specific, nothing about the actual age or sex
+    values expected in the data.
+
+    Parameters
+    ----------
+    data
+        Estimate data pulled for entity in location_id.
+    entity
+        Covariate to which the data pertain.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+    """
     value_columns = ['mean_value', 'upper_value', 'lower_value']
 
     check_data_exist(data, zeros_missing=False, value_columns=value_columns)
@@ -892,6 +916,29 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
 
 def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology],
                   location_id: int, estimation_years: pd.Series) -> None:
+    """ Check the standard set of validations on raw cost data for entity,
+    replacing the age ids check with a custom check for the
+    all ages age group since cost data are not age specific and skipping all
+    restrictions checks since neither HealthCareEntities nor HealthTechnologies
+    have restrictions.
+
+    Parameters
+    ----------
+    data
+        Cost data pulled for entity in location_id.
+    entity
+        HealthcareEntity or HealthTechnology to which the data pertain.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+    """
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure', entity.kind] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
@@ -914,6 +961,27 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTech
 
 def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity,
                          location_id: int, estimation_years: pd.Series) -> None:
+    """ Check the standard set of validations on raw utilization data for
+    entity, skipping all restrictions checks since HealthCareEntities do not
+    have restrictions.
+
+    Parameters
+    ----------
+    data
+        Utilization data pulled for entity in location_id.
+    entity
+        HealthcareEntity to which the data pertain.
+    location_id
+        Location to which the data should pertain.
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+    """
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['measure_id', 'metric_id', 'model_version_id',
@@ -936,6 +1004,27 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity,
 
 def validate_structure(data: pd.DataFrame, entity: Population,
                        location_id: int, estimation_years: pd.Series) -> None:
+    """ Check the standard set of validations on raw population data,
+    skipping all restrictions checks since Population entities do not
+   have restrictions.
+
+   Parameters
+   ----------
+   data
+       Population data pulled for location_id.
+   entity
+       Generic population entity.
+   location_id
+       Location to which the data should pertain.
+   estimation_years
+       Expected set of years, used to check the `year_id` column in `data`.
+
+   Raises
+   ------
+   DataAbnormalError
+       If data does not exist, expected columns are not found in data, or
+       any values in columns do not match the expected set of values.
+   """
     check_data_exist(data, zeros_missing=True, value_columns=['population'])
 
     expected_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id', 'population', 'run_id']
@@ -955,6 +1044,31 @@ def validate_structure(data: pd.DataFrame, entity: Population,
 
 def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: Population,
                                                       location_id: int) -> None:
+    """ Check the standard set of validations on raw life expectancy data,
+    skipping the standard age and sex checks since life expectancy is not sex
+    specific and is reported in custom age bins rather than the standard GBD
+    age bins. Instead, the ages in data are verified to span the range [0, 110].
+    All restrictions checks are also skipped since Population entities do not
+    have restrictions.
+
+    Parameters
+    ----------
+    data
+       Life expectancy data pulled.
+    entity
+       Generic population entity.
+    location_id
+       Life expectancy data is location independent so this is passed to ensure
+       uniform signatures but not used.
+
+    Raises
+    ------
+    DataAbnormalError
+       If data does not exist, expected columns are not found in data, or
+       any values in columns do not match the expected set of values, including
+       if the ages in the data don't span [0, 110].
+
+    """
     check_data_exist(data, zeros_missing=True, value_columns=['life_expectancy'])
 
     expected_columns = ['age', 'life_expectancy']
