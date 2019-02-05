@@ -129,10 +129,8 @@ def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'risk_factor':
         data = gbd.get_relative_risk(entity.gbd_id, location_id)
         data = filter_to_most_detailed_causes(data)
-    elif entity.kind == 'coverage_gap':
+    else:  #coverage_gap'
         data = gbd.get_auxiliary_data('relative_risk', entity.kind, entity.name, location_id)
-    else:  # etiology
-        data = None
     return data
 
 
