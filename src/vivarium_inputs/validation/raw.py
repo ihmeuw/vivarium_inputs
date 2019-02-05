@@ -1067,7 +1067,6 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
        If data does not exist, expected columns are not found in data, or
        any values in columns do not match the expected set of values, including
        if the ages in the data don't span [0, 110].
-
     """
     check_data_exist(data, zeros_missing=True, value_columns=['life_expectancy'])
 
