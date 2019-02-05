@@ -1165,7 +1165,7 @@ def check_paf_age_groups_cause_restrictions(paf: pd.DataFrame) -> None:
         start, end = cause.restrictions.yll_age_group_id_start, cause.restrictions.yll_age_group_id_end
     else:  # YLDs
         start, end = cause.restrictions.yld_age_group_id_start, cause.restrictions.yld_age_group_id_end
-    check_age_restrictions(paf, start, end)
+    check_age_restrictions(paf, start, end, error=False)
 
 
 def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposure:pd.DataFrame,
@@ -1185,3 +1185,4 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
         valid_age_groups = set(exposed.age_group_id)
 
     else: # categorical distribution
+        pass

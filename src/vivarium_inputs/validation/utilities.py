@@ -261,7 +261,7 @@ def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expecte
 
 
 def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int,
-                           value_columns: list = DRAW_COLUMNS):
+                           value_columns: list = DRAW_COLUMNS, error: bool = True):
     """Check that all expected age groups between age_group_id_start and
     age_group_id_end, inclusive, and only those age groups, appear in data with
     non-missing values in `value_columns`.
@@ -277,6 +277,9 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     value_columns
         List of columns to verify values are non-missing for expected age
         groups and missing for not expected age groups.
+    error
+        Boolean indicating whether or not to error if any of age restrictions
+        is violated. It warns if it is turned off.
 
     Raises
     ------
@@ -284,7 +287,7 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
         If any age group ids in the range
         [`age_group_id_start`, `age_group_id_end`] don't appear in the data or
         if any additional age group ids (with the exception of 235) appear in
-        the data.
+        the data, if `error` is turned on.
 
     """
     expected_gbd_age_ids = get_restriction_age_ids(age_group_id_start, age_group_id_end)
@@ -294,9 +297,13 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     extra_age_groups = set(data.age_group_id).difference(set(expected_gbd_age_ids))
 
     if missing_age_groups:
-        raise DataAbnormalError(f'Data was expected to contain all age groups between ids '
-                                f'{age_group_id_start} and {age_group_id_end}, '
-                                f'but was missing the following: {missing_age_groups}.')
+        missing_age_msg = f'Data was expected to contain all age groups between ids {age_group_id_start} ' \
+            f'and {age_group_id_end}, but was missing the following: {missing_age_groups}.'
+        if error:
+            raise DataAbnormalError(missing_age_msg)
+        else:
+            warnings.warn(missing_age_msg)
+
     if extra_age_groups:
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
@@ -308,7 +315,11 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     # make sure we're not missing data for all ages in restrictions
     if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)], zeros_missing=True,
                             value_columns=value_columns, error=False):
-        raise DataAbnormalError(f'Data is missing for all age groups within restriction range.')
+        missing_data_msg = f'Data is missing for all age groups within restriction range.'
+        if error:
+            raise DataAbnormalError(missing_data_msg)
+        else:
+            warnings.warn(missing_data_msg)
 
 
 def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float, pd.Series], boundary_type: str,
