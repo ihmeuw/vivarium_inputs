@@ -914,8 +914,17 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
         #  We cannot check age_restrictions with exposure_age_groups since RR may have a subset of age_group_ids.
         #  In this case we do not want to raise an error because RR data may include only specific age_group_ids for
-        #  age-specific-causes even if risk-exposure may exist for the other age_group_ids.
+        #  age-specific-causes even if risk-exposure may exist for the other age_group_ids. Instead we check age
+        #  restrictions with affected causes
         grouped.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
+        for keys, g in grouped:
+            c_id, morb, mort, _ = keys
+            cause = [c for c in causes if c.gbd_id == c_id][0]
+            if morb == 1:
+                start, end = cause.restrictions.yll_age_group_id_start, cause.restrictions.yll_age_group_id_end
+            else:  # morb = 0 , mort = 1
+                start, end = cause.restrictions.yld_age_group_id_start, cause.restrictions.yld_age_group_id_end
+            check_age_restrictions(g, start, end, error=False)
 
     else:  # coverage gap
         grouped.apply(check_age_group_ids, None, None)
@@ -1570,7 +1579,7 @@ def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expecte
 
 
 def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int,
-                           value_columns: list = DRAW_COLUMNS):
+                           value_columns: list = DRAW_COLUMNS, error=True):
     """Check that all expected age groups between age_group_id_start and
     age_group_id_end, inclusive, and only those age groups, appear in data with
     non-missing values in `value_columns`.
@@ -1586,11 +1595,14 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     value_columns
         List of columns to verify values are non-missing for expected age
         groups and missing for not expected age groups.
+    error
+        Boolean indicating whether or not to error if any age_restriction
+        is violated. If this flag is set to false, raise a warning.
 
     Raises
     ------
     DataAbnormalError
-        If any age group ids in the range
+        If error flag is set to true and if any age group ids in the range
         [`age_group_id_start`, `age_group_id_end`] don't appear in the data or
         if any additional age group ids (with the exception of 235) appear in
         the data.
@@ -1603,9 +1615,12 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     extra_age_groups = set(data.age_group_id).difference(set(expected_gbd_age_ids))
 
     if missing_age_groups:
-        raise DataAbnormalError(f'Data was expected to contain all age groups between ids '
-                                f'{age_group_id_start} and {age_group_id_end}, '
-                                f'but was missing the following: {missing_age_groups}.')
+        message = f'Data was expected to contain all age groups between ids {age_group_id_start} ' \
+            f'and {age_group_id_end} but was missing the following: {missing_age_groups}.'
+        if error:
+            raise DataAbnormalError(message)
+        warnings.warn(message)
+
     if extra_age_groups:
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
@@ -1617,7 +1632,10 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
     # make sure we're not missing data for all ages in restrictions
     if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)], zeros_missing=True,
                             value_columns=value_columns, error=False):
-        raise DataAbnormalError(f'Data is missing for all age groups within restriction range.')
+        message = 'Data is missing for all age groups within restriction range.'
+        if error:
+            raise DataAbnormalError(message)
+        warnings.warn(message)
 
 
 def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool,
@@ -1729,3 +1747,4 @@ def check_metric_id(data: pd.DataFrame, expected_metric: str):
     if set(data.metric_id) != {METRICS[expected_metric.capitalize()]}:
         raise DataAbnormalError(f'Data includes metrics beyond the expected {expected_metric.lower()} '
                                 f'(metric_id {METRICS[expected_metric.capitalize()]}')
+
