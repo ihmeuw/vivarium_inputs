@@ -654,7 +654,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
     population = population[(population.age_group_id.isin(data.age_group_id.unique()))
                             & (population.year_id.isin(data.year_id.unique()))
                             & (population.sex_id != SEXES['Combined'])].set_index(idx_cols).population
-    check_value_columns_boundary(data.set_index(idx_cols), pop, 'upper',
+    check_value_columns_boundary(data.set_index(idx_cols), population, 'upper',
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
