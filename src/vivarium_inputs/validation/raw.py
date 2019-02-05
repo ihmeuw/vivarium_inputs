@@ -848,10 +848,10 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
 
     for c_id in set(data.cause_id):
         cause = [c for c in causes if c.gbd_id == c_id][0]
-        if cause.restrictions.yld_only and np.any(data.measure_id == MEASURES['YLLs']):
+        if cause.restrictions.yld_only and np.any(data[(data.cause_id == c_id) & (data.measure_id == MEASURES['YLLs'])]):
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
                                     f'values despite the affected entity being restricted to yld only.')
-        if cause.restrictions.yll_only and np.any(data.measure_id == MEASURES['YLDs']):
+        if cause.restrictions.yll_only and np.any(data[(data.cause_id == c_id) & (data.measure_id == MEASURES['YLDs'])]):
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
 
@@ -891,10 +891,10 @@ def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entit
 
     for c_id in data.cause_id:
         cause = [c for c in causes if c.gbd_id == c_id][0]
-        if cause.restrictions.yld_only and np.any(data.measure_id == MEASURES['YLLs']):
-            raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
-                                    f'values despite the affected entity being restricted to yld only.')
-        if cause.restrictions.yll_only and np.any(data.measure_id == MEASURES['YLDs']):
+        if cause.restrictions.yld_only and np.any(data[(data.cause_id==c_id) & (data.measure_id == MEASURES['YLLs'])]):
+            DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
+                              f'values despite the affected entity being restricted to yld only.')
+        if cause.restrictions.yll_only and np.any(data[(data.cause_id==c_id) & (data.measure_id == MEASURES['YLDs'])]):
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
 
