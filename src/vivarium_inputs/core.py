@@ -332,7 +332,7 @@ def get_theoretical_minimum_risk_life_expectancy(entity: Population, location_id
 
 
 def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
-    age_bins = utilities.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
+    age_bins = utility_data.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
     return age_bins
 
 

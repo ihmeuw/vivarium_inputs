@@ -13,13 +13,7 @@ def get_location_id(location_name):
     return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[location_name]
 
 
-def get_age_bins():
-    age_bins = (
-        gbd.get_age_bins()[['age_group_id', 'age_group_name', 'age_group_years_start', 'age_group_years_end']]
-            .rename(columns={'age_group_years_start': 'age_group_start',
-                             'age_group_years_end': 'age_group_end'})
-    )
-    return age_bins
+
 
 
 ##################################################
