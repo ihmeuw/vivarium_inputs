@@ -133,7 +133,7 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
         'exposure_distribution_weights': validate_exposure_distribution_weights,
         'relative_risk': validate_relative_risk,
         'population_attributable_fraction': validate_population_attributable_fraction,
-        'etiology_population_attributable_fraction': validate_population_attributable_fraction,
+        'etiology_population_attributable_fraction': validate_etiology_population_attributable_fraction,
         'mediation_factors': validate_mediation_factors,
         # Covariate measures
         'estimate': validate_estimate,
@@ -695,7 +695,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
                                               location_id: int, estimation_years: pd.Series,
-                                              relative_risk: pd.DataFrame = None) -> None:
+                                              relative_risk: pd.DataFrame) -> None:
 
     check_data_exist(data, zeros_missing=True)
 
@@ -708,25 +708,12 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
-    if entity.kind == 'risk_factor':
-        restrictions_entity = entity
-    else:  # etiology
-        restrictions_entity = [c for c in causes if c.etiologies and entity in c.etiologies][0]
-
-    restrictions = restrictions_entity.restrictions
-    age_start = get_restriction_age_boundary(restrictions_entity, 'start') if entity.kind == 'etiology' else None
-    age_end = get_restriction_age_boundary(restrictions_entity, 'end') if entity.kind == 'etiology' else None
+    restrictions = entity.restrictions
     male_expected = not restrictions.female_only
     female_expected = not restrictions.male_only
 
-    check_age_group_ids(data, age_start, age_end)
+    check_age_group_ids(data, None, None)
     check_sex_ids(data, male_expected, female_expected)
-
-    # We cannot check risk_factor paf age restrictions using RR age groups
-    # and check_age_restrictions because we allow paf to have more age groups
-    # than RR and do not want to raise an error.
-    if entity.kind == 'etiology':
-        check_age_restrictions(data, age_start, age_end)
 
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
@@ -741,9 +728,49 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         if cause.restrictions.yll_only and (data.measure_id == 'YLDs').any():
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
-    if entity.kind == 'risk_factor':
-        data.groupby(['cause_id', 'measure_id'], as_index=False).apply(lambda df: check_paf_rr_age_groups(df, relative_risk))
 
+    data.groupby(['cause_id', 'measure_id'], as_index=False).apply(lambda df: check_paf_rr_age_groups(df, relative_risk))
+
+
+def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
+                                                       location_id: int, estimation_years: pd.Series) -> None:
+    check_data_exist(data, zeros_missing=True)
+
+    expected_columns = ['metric_id', 'measure_id', 'rei_id', 'cause_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
+    check_columns(expected_columns, data.columns)
+
+    check_measure_id(data, ['YLLs', 'YLDs'], single_only=False)
+    check_metric_id(data, 'percent')
+
+    check_years(data, 'annual', estimation_years)
+    check_location(data, location_id)
+
+    restrictions_entity = [c for c in causes if c.etiologies and entity in c.etiologies][0]
+
+    restrictions = restrictions_entity.restrictions
+    age_start = get_restriction_age_boundary(restrictions_entity, 'start')
+    age_end = get_restriction_age_boundary(restrictions_entity, 'end')
+    male_expected = not restrictions.female_only
+    female_expected = not restrictions.male_only
+
+    check_age_group_ids(data, age_start, age_end)
+    check_sex_ids(data, male_expected, female_expected)
+
+    check_age_restrictions(data, age_start, age_end)
+
+    check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
+
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+
+    for c_id in data.cause_id:
+        cause = [c for c in causes if c.gbd_id == c_id][0]
+        if cause.restrictions.yld_only and (data.measure_id == 'YLLs').any():
+            raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yll '
+                                    f'values despite the affected entity being restricted to yld only.')
+        if cause.restrictions.yll_only and (data.measure_id == 'YLDs').any():
+            raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
+                                    f'values despite the affected entity being restricted to yll only.')
 
 def validate_mediation_factors(data, entity, location_id) -> None:
     raise NotImplementedError()
