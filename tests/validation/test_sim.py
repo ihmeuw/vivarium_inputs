@@ -8,10 +8,15 @@ from vivarium_inputs.globals import DataTransformationError
 
 
 @pytest.fixture
-def mocked_get_estimation_years(mocker):
-    gbd_mock = mocker.patch("vivarium_inputs.validation.sim.utilities.gbd.get_estimation_years")
-    gbd_mock.return_value = range(1990, 2018)
-    return gbd_mock
+def mock_validation_context():
+    estimation_years = pd.DataFrame({'year_start': range(1990, 2017),
+                                     'year_end': range(1991, 2018)})
+    context = sim.SimulationValidationContext(
+        location='United States',
+        estimation_years=estimation_years
+    )
+
+    return context
 
 
 @pytest.fixture
@@ -44,25 +49,28 @@ def test__validate_draw_column_missing_column():
 
 
 @pytest.mark.parametrize("location", ("Kenya", "Papua New Guinea"))
-def test__validate_location_column_pass(location):
+def test__validate_location_column_pass(mock_validation_context, location):
+    mock_validation_context['location'] = location
     df = pd.DataFrame({'location': [location]})
-    sim._validate_location_column(df, location)
+    sim._validate_location_column(df, mock_validation_context)
 
 
 @ pytest.mark.parametrize('locations,expected_location', (
         (['Kenya', 'Kenya'], 'Egypt'),
         (['Algeria', 'Nigeria'], 'Algeria')
 ), ids=('mismatch', 'multiple'))
-def test__validate_location_column_fail(locations, expected_location):
+def test__validate_location_column_fail(mock_validation_context, locations, expected_location):
+    mock_validation_context['location'] = expected_location
     df = pd.DataFrame({'location': locations})
     with pytest.raises(DataTransformationError):
-        sim._validate_location_column(df, expected_location)
+        sim._validate_location_column(df, mock_validation_context)
 
 
-def test__validate_location_column_missing_column():
+def test__validate_location_column_missing_column(mock_validation_context):
+    mock_validation_context['location'] = 'Kenya'
     df = pd.DataFrame({'location_column': ['Kenya']})
     with pytest.raises(DataTransformationError, match='in a column named'):
-        sim._validate_location_column(df, 'Kenya')
+        sim._validate_location_column(df, mock_validation_context)
 
 
 def test__validate_sex_column_pass():
@@ -122,36 +130,34 @@ def test__validate_age_columns_missing_column(columns):
         sim._validate_age_columns(df)
 
 
-def test__validate_year_columns_pass(mocked_get_estimation_years):
-    expected_years = sim.utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
-    sim._validate_year_columns(expected_years)
+def test__validate_year_columns_pass(mock_validation_context):
+    expected_years = mock_validation_context['estimation_years'].sort_values(['year_start', 'year_end'])
+    sim._validate_year_columns(expected_years, mock_validation_context)
 
 
-def test__validate_year_columns_invalid_year(mocked_get_estimation_years):
-    df = sim.utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
+def test__validate_year_columns_invalid_year(mock_validation_context):
+    df = mock_validation_context['estimation_years'].sort_values(['year_start', 'year_end'])
     df.loc[2, 'year_end'] = -1
     with pytest.raises(DataTransformationError):
-        sim._validate_year_columns(df)
+        sim._validate_year_columns(df, mock_validation_context)
 
 
-def test__validate_year_columns_missing_group(mocked_get_estimation_years):
-    df = sim.utilities.get_annual_year_bins().sort_values(['year_start', 'year_end'])
+def test__validate_year_columns_missing_group(mock_validation_context):
+    df = mock_validation_context['estimation_years'].sort_values(['year_start', 'year_end'])
     df.drop(0, inplace=True)
     with pytest.raises(DataTransformationError):
-        sim._validate_year_columns(df)
+        sim._validate_year_columns(df, mock_validation_context)
 
 
-@pytest.mark.parametrize("columns", (
-    ('year_start'),
-    ('year_end'),
-    ('year_id_start', 'year_end')
-), ids=("missing_end", "missing_start", "typo"))
-def test__validate_year_columns_missing(columns):
+@pytest.mark.parametrize("columns",
+                         (('year_start',), ('year_end',), ('year_id_start', 'year_end')),
+                         ids=("missing_end", "missing_start", "typo"))
+def test__validate_year_columns_missing(mock_validation_context, columns):
     df = pd.DataFrame()
     for col in columns:
         df[col] = [1, 2, 3]
     with pytest.raises(DataTransformationError, match='in columns named'):
-        sim._validate_year_columns(df)
+        sim._validate_year_columns(df, mock_validation_context)
 
 
 @pytest.mark.parametrize("values", [(-1, 2, 3)], ids=['integers'])
@@ -215,7 +221,7 @@ def test__check_age_restrictions_fail(mocker, mocked_get_age_bins, values, ids, 
 ], ids=('None', 'male', 'female', 'nonzero_fill'))
 def test__check_sex_restrictions(values, restrictions, fill):
     df = pd.DataFrame({'sex': ['Male', 'Male', 'Female', 'Female'], 'value': values})
-    sim._check_sex_restrictions(df, *restrictions, fill)
+    sim._check_sex_restrictions(df, restrictions[0], restrictions[1], fill)
 
 
 @pytest.mark.parametrize('values, restrictions, fill', [
@@ -226,5 +232,4 @@ def test__check_sex_restrictions(values, restrictions, fill):
 def test__check_sex_restrictions_fail(values, restrictions, fill):
     df = pd.DataFrame({'sex': ['Male', 'Male', 'Female', 'Female'], 'value': values})
     with pytest.raises(DataTransformationError):
-        sim._check_sex_restrictions(df, *restrictions, fill)
-
+        sim._check_sex_restrictions(df, restrictions[0], restrictions[1], fill)

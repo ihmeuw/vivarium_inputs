@@ -25,6 +25,7 @@ def get_data(entity, measure: str, location: str):
         'case_fatality': (get_case_fatality, ('cause',)),
         # Risk-like measures
         'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
+        'exposure_age_groups': (get_exposure_age_groups, ('risk_factor', 'alternative_risk_factor',)),
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
         'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor', 'alternative_risk_factor')),
         'relative_risk': (get_relative_risk, ('risk_factor', 'coverage_gap')),
@@ -39,7 +40,9 @@ def get_data(entity, measure: str, location: str):
         'structure': (get_structure, ('population',)),
         'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
         'age_bins': (get_age_bins, ('population',)),
+        'estimation_years': (get_estimation_years, ('population',)),
         'demographic_dimensions': (get_demographic_dimensions, ('population',))
+
     }
 
     if measure not in measure_handlers:
@@ -171,6 +174,11 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
         data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
     return data
+
+
+def get_exposure_age_groups(entity: RiskFactor, location_id: int):
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    return set(exposure.age_group_id)
 
 
 def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
@@ -329,12 +337,15 @@ def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
     return age_bins
 
 
+def get_estimation_years(entity: Population, location_id: int) -> pd.DataFrame:
+    estimation_years = extract.extract_data(entity, 'estimation_years', location_id)
+    estimation_years = pd.DataFrame({'year_start': range(min(estimation_years), max(estimation_years) + 1)})
+    estimation_years['year_end'] = estimation_years['year_start'] + 1
+    return estimation_years
+
+
 def get_demographic_dimensions(entity: Population, location_id: int) -> pd.DataFrame:
     demographic_dimensions = utilities.get_demographic_dimensions(location_id)
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
 
-
-def get_exposure_age_groups(entity: RiskFactor, location_id: int):
-    exposure = extract.extract_data(entity, 'exposure', location_id)
-    return set(exposure.age_group_id)
