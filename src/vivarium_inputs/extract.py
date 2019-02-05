@@ -25,6 +25,7 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
         'population_attributable_fraction': (extract_population_attributable_fraction,
                                              (extract_estimation_years, extract_relative_risk,)),
+        'etiology_population_attributable_fraction': (extract_population_attributable_fraction, ()),
         'mediation_factors': (extract_mediation_factors, ()),
         # Covariate measures
         'estimate': (extract_estimate, (extract_estimation_years,)),
@@ -128,8 +129,10 @@ def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'risk_factor':
         data = gbd.get_relative_risk(entity.gbd_id, location_id)
         data = filter_to_most_detailed_causes(data)
-    else:  # coverage_gap
+    elif entity.kind == 'coverage_gap':
         data = gbd.get_auxiliary_data('relative_risk', entity.kind, entity.name, location_id)
+    else:  # etiology
+        data = None
     return data
 
 

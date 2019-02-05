@@ -259,9 +259,11 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
 
 
 def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
+    if entity.kind == 'risk_factor':
+        data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
 
-    if entity.kind == 'etiology':
+    else:  # etiology
+        data = extract.extract_data(entity, 'etiology_population_attributable_fraction', location_id)
         cause = [c for c in causes if c.etiologies and entity in c.etiologies][0]
         data = utilities.filter_data_by_restrictions(data, cause, 'inner')
 
