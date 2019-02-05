@@ -20,7 +20,7 @@ VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
 VALID_EXPOSURE_RANGE = (0.0, {'continuous': 10_000.0, 'categorical': 1.0})
 VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_EXPOSURE_DIST_WEIGHTS_RANGE = (0.0, 1.0)
-VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 5.0, 'categorical': 20.0})
+VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 10.0, 'categorical': 20.0})
 VALID_PAF_RANGE = (0.0, 1.0)
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 VALID_UTILIZATION_RANGE = (0, 50)
@@ -310,7 +310,7 @@ def _validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Covera
         if not (data.loc[data.parameter == tmrel_cat, 'value'] == 1.0).all():
             raise DataTransformationError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
-    if data.affected_measure == 'incidence_rate':
+    if (data.affected_measure == 'incidence_rate').all():
         _check_age_restrictions(data, entity, rest_type='inner', fill_value=1.0)
     else:
         _check_age_restrictions(data, entity, rest_type='yll', fill_value=1.0)
