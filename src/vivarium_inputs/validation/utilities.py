@@ -5,13 +5,13 @@ import warnings
 import pandas as pd
 import numpy as np
 
-from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES,
-                                     DataAbnormalError, DataNotExistError, VivariumInputsError,
+from vivarium_inputs.globals import (DRAW_COLUMNS, METRICS, MEASURES, SEXES,
+                                     DataAbnormalError, DataDoesNotExistError, VivariumInputsError,
                                      gbd)
 from gbd_mapping import RiskFactor, Cause
 
 
-def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
+def check_years(data: pd.DataFrame, year_type: str, estimation_years: pd.Series) -> None:
     """Check that years in passed data match expected range based on type.
 
     Parameters
@@ -19,15 +19,9 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
     data
         Dataframe containing 'year_id' column.
     year_type
-        String 'annual' or 'binned' indicating expected year range.
-    error
-        Boolean indicating whether to raise an error if expected years are not
-        found.
-
-    Returns
-    -------
-    bool
-        True if years in `data` match expected `year_type`, false otherwise.
+        'annual', 'binned', or 'either' indicating expected year range.
+    estimation_years
+        The set of years the data should be estimated for.
 
     Raises
     ------
@@ -36,19 +30,22 @@ def check_years(data: pd.DataFrame, year_type: str, error: bool = True):
         any extra years found and `year_type` is 'binned'.
 
     """
-    gbd_years = gbd.get_estimation_years()
-    years = {'annual': list(range(min(gbd_years), max(gbd_years)+1)), 'binned': gbd_years}
-    expected_years = years[year_type]
-    if set(data.year_id.unique()) < set(expected_years):
-        if error:
-            raise DataAbnormalError(f'Data has missing years: {set(expected_years).difference(set(data.year_id))}.')
-        return False
-    # if it's annual, we expect to have extra years from some sources (e.g., codcorrect/covariate)
-    if year_type == 'binned' and set(data.year_id.unique()) > set(expected_years):
-        if error:
-            raise DataAbnormalError(f'Data has extra years: {set(data.year_id).difference(set(expected_years))}.')
-        return False
-    return True
+    data_years = set(data.year_id.unique())
+    estimation_years = set(estimation_years)
+    annual_estimation_years = set(range(min(estimation_years), max(estimation_years) + 1))
+    if year_type == 'annual':
+        if data_years < annual_estimation_years:
+            raise DataAbnormalError(f'Data has missing years: {annual_estimation_years.difference(data_years)}.')
+    elif year_type == 'binned':
+        if data_years < estimation_years:
+            raise DataAbnormalError(f'Data has missing years: {estimation_years.difference(data_years)}.')
+        if data_years > estimation_years:
+            raise DataAbnormalError(f'Data has extra years: {data_years.difference(estimation_years)}.')
+    else:  # year_type == either
+        valid = (data_years == estimation_years) or (data_years >= annual_estimation_years)
+        if not valid:
+            raise DataAbnormalError(f'Data year range is neither annual or appropriately binned '
+                                    f'with the expected year range.')
 
 
 def check_location(data: pd.DataFrame, location_id: int):
@@ -76,10 +73,11 @@ def check_location(data: pd.DataFrame, location_id: int):
     data_location_id = data['location_id'].unique()[0]
 
     location_metadata = gbd.get_location_path_to_global()
-    path_to_parent = location_metadata.loc[location_metadata.location_id == location_id, 'path_to_top_parent'].values[0].split(',')
+    path_to_parent = location_metadata.loc[location_metadata.location_id == location_id,
+                                           'path_to_top_parent'].values[0].split(',')
     path_to_parent = [int(i) for i in path_to_parent]
 
-    if data_location_id not in path_to_parent:  
+    if data_location_id not in path_to_parent:
         raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}, which is '
                                 'not in its hierarchy.')
 
@@ -131,7 +129,7 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool,
 
     Raises
     -------
-    DataNotExistError
+    DataDoesNotExistError
         If error flag is set to true and data is empty or contains any NaN
         values in `value_columns`, or contains all zeros in `value_columns` and
         zeros_missing is True.
@@ -140,7 +138,7 @@ def check_data_exist(data: pd.DataFrame, zeros_missing: bool,
     if (data.empty or np.any(pd.isnull(data[value_columns]))
             or (zeros_missing and np.all(data[value_columns] == 0)) or np.any(np.isinf(data[value_columns]))):
         if error:
-            raise DataNotExistError(f'Data contains no non-missing{", non-zero" if zeros_missing else ""} values.')
+            raise DataDoesNotExistError(f'Data contains no non-missing{", non-zero" if zeros_missing else ""} values.')
         return False
     return True
 
@@ -245,7 +243,7 @@ def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expecte
         If data contains any sex ids that aren't valid GBD sex ids.
 
     """
-    valid_sex_ids = gbd.MALE + gbd.FEMALE + gbd.COMBINED  # these are single-item lists
+    valid_sex_ids = [SEXES['Male'], SEXES['Female'], SEXES['Combined']]
     gbd_sex_ids = set(np.array(valid_sex_ids)[[male_expected, female_expected, combined_expected]])
     data_sex_ids = set(data.sex_id)
 
@@ -388,7 +386,7 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
     DataAbnormalError
         If data violates passed sex restrictions.
     """
-    female, male, combined = gbd.FEMALE[0], gbd.MALE[0], gbd.COMBINED[0]
+    female, male, combined = SEXES['Female'], SEXES['Male'], SEXES['Combined']
 
     if male_only:
         if not check_data_exist(data[data.sex_id == male], zeros_missing=True,
@@ -398,8 +396,8 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
         if (set(data.sex_id) != {male} and
                 check_data_exist(data[data.sex_id != male], zeros_missing=True,
                                  value_columns=value_columns, error=False)):
-           warnings.warn('Data is restricted to male only, but contains '
-                         'non-male sex ids for which data values are not all 0.')
+            warnings.warn('Data is restricted to male only, but contains '
+                          'non-male sex ids for which data values are not all 0.')
 
     if female_only:
         if not check_data_exist(data[data.sex_id == female], zeros_missing=True,
@@ -407,7 +405,7 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
             raise DataAbnormalError('Data is restricted to female only, but is missing data values for females.')
 
         if (set(data.sex_id) != {female} and
-                check_data_exist(data[data.sex_id != female], zeros_missing=True, 
+                check_data_exist(data[data.sex_id != female], zeros_missing=True,
                                  value_columns=value_columns, error=False)):
             warnings.warn('Data is restricted to female only, but contains '
                           'non-female sex ids for which data values are not all 0.')
@@ -509,4 +507,3 @@ def get_restriction_age_boundary(entity: Union[RiskFactor, Cause], boundary: str
         end_op = min if reverse else max
         age = end_op(yld_age, yll_age) if boundary == 'start' else start_op(yld_age, yll_age)
     return age
-

@@ -6,7 +6,7 @@ from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 import numpy as np
 import pandas as pd
 
-from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS
+from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 from vivarium_inputs.validation.utilities import get_restriction_age_boundary, get_restriction_age_ids
 
 
@@ -34,7 +34,7 @@ def get_demographic_dimensions(location_id, draws=False):
     ages = gbd.get_age_group_id()
     estimation_years = gbd.get_estimation_years()
     years = range(min(estimation_years), max(estimation_years) + 1)
-    sexes = gbd.MALE + gbd.FEMALE
+    sexes = [SEXES['Male'], SEXES['Female']]
     location = [location_id]
     values = [location, sexes, ages, years]
     names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
@@ -117,23 +117,23 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
     if not sexes:
         # Data does not correspond to individuals, so no age column necessary.
         pass
-    elif sexes == {1, 2, 3}:
+    elif sexes == set(SEXES.values()):
         # We have variation across sex, don't need the column for both.
-        data = data[data.sex_id.isin([1, 2])]
-    elif sexes == {3}:
+        data = data[data.sex_id.isin([SEXES['Male'], SEXES['Female']])]
+    elif sexes == {SEXES['Combined']}:
         # Data is not sex specific, but does apply to both sexes, so copy.
         fill_data = data.copy()
-        data.loc[:, 'sex_id'] = 1
-        fill_data.loc[:, 'sex_id'] = 2
+        data.loc[:, 'sex_id'] = SEXES['Male']
+        fill_data.loc[:, 'sex_id'] = SEXES['Female']
         data = pd.concat([data, fill_data], ignore_index=True)
     elif len(sexes) == 1:
         # Data is sex specific, but only applies to one sex, so fill the other with default.
         fill_data = data.copy()
-        missing_sex = {1, 2}.difference(set(data.sex_id.unique())).pop()
+        missing_sex = {SEXES['Male'], SEXES['Female']}.difference(set(data.sex_id.unique())).pop()
         fill_data.loc[:, 'sex_id'] = missing_sex
         fill_data.loc[:, 'value'] = fill_value
         data = pd.concat([data, fill_data], ignore_index=True)
-    else:  # sexes == {1, 2}
+    else:  # sexes == {SEXES['Male'], SEXES['Female']}
         pass
     return data
 
@@ -175,7 +175,7 @@ def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str])
     if not data_ages:
         # Data does not correspond to individuals, so no age column necessary.
         pass
-    elif data_ages == {22}:
+    elif data_ages == {SPECIAL_AGES['all_ages']}:
         # Data applies to all ages, so copy.
         dfs = []
         for age in gbd_ages:
@@ -292,11 +292,11 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     """
     restrictions = entity.restrictions
     if restrictions.male_only and not restrictions.female_only:
-        sexes = gbd.MALE
+        sexes = [SEXES['Male']]
     elif not restrictions.male_only and restrictions.female_only:
-        sexes = gbd.FEMALE
+        sexes = [SEXES['Female']]
     else:  # not male only and not female only
-        sexes = gbd.FEMALE + gbd.MALE + gbd.COMBINED
+        sexes = [SEXES['Male'], SEXES['Female'], SEXES['Combined']]
 
     data = data[data.sex_id.isin(sexes)]
 
@@ -304,3 +304,11 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     ages = get_restriction_age_ids(start, end)
     data = data[data.age_group_id.isin(ages)]
     return data
+
+
+def filter_to_most_detailed_causes(data: pd.DataFrame)-> pd.DataFrame:
+    """For the DataFrame including the cause_ids, it filters rows with
+    cause_ids for the most detailed causes """
+    cause_ids = set(data.cause_id)
+    most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
+    return data[data.cause_id.isin(most_detailed_cause_ids)]

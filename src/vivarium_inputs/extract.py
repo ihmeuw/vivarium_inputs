@@ -1,36 +1,42 @@
+from typing import Union
+
+from gbd_artifacts.exceptions import NoBestVersionError
+from get_draws.api import EmptyDataFrameException, InputsException
 import pandas as pd
 
-from get_draws.api import EmptyDataFrameException, InputsException
-from gbd_artifacts.exceptions import NoBestVersionError
-
-from .globals import gbd, METRICS, MEASURES, DataAbnormalError, DataNotExistError
+from vivarium_inputs.globals import gbd, METRICS, MEASURES, DataAbnormalError, DataDoesNotExistError
+from vivarium_inputs.utilities import filter_to_most_detailed_causes
 import vivarium_inputs.validation.raw as validation
 
 
-def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
+def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.DataFrame]:
     extractors = {
         # Cause-like measures
-        'incidence': (extract_incidence, ()),
-        'prevalence': (extract_prevalence, ()),
-        'birth_prevalence': (extract_birth_prevalence, ()),
+        'incidence': (extract_incidence, (extract_estimation_years,)),
+        'prevalence': (extract_prevalence, (extract_estimation_years,)),
+        'birth_prevalence': (extract_birth_prevalence, (extract_estimation_years,)),
         'disability_weight': (extract_disability_weight, ()),
-        'remission': (extract_remission, ()),
-        'deaths': (extract_deaths, ()),
+        'remission': (extract_remission, (extract_estimation_years,)),
+        'deaths': (extract_deaths, (extract_estimation_years,)),
         # Risk-like measures
-        'exposure': (extract_exposure, ()),
-        'exposure_standard_deviation': (extract_exposure_standard_deviation, (extract_exposure)),
+        'exposure': (extract_exposure, (extract_estimation_years, )),
+        'exposure_standard_deviation': (extract_exposure_standard_deviation,
+                                        (extract_exposure, extract_estimation_years)),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
-        'relative_risk': (extract_relative_risk, ()),
-        'population_attributable_fraction': (extract_population_attributable_fraction, ()),
+        'relative_risk': (extract_relative_risk, (extract_exposure, extract_estimation_years)),
+        'population_attributable_fraction': (extract_population_attributable_fraction,
+                                             (extract_estimation_years,)),
         'mediation_factors': (extract_mediation_factors, ()),
         # Covariate measures
-        'estimate': (extract_estimate, ()),
+        'estimate': (extract_estimate, (extract_estimation_years,)),
         # Health system measures
-        'cost': (extract_cost, ()),
-        'utilization': (extract_utilization, ()),
+        'cost': (extract_cost, (extract_estimation_years,)),
+        'utilization': (extract_utilization, (extract_estimation_years,)),
         # Population measures
-        'structure': (extract_structure, ()),
+        'structure': (extract_structure, (extract_estimation_years,)),
         'theoretical_minimum_risk_life_expectancy': (extract_theoretical_minimum_risk_life_expectancy, ()),
+        # Global values
+        'estimation_years': (extract_estimation_years, ()),
     }
 
     validation.check_metadata(entity, measure)
@@ -48,7 +54,7 @@ def extract_data(entity, measure: str, location_id: int) -> pd.DataFrame:
         elif isinstance(e, InputsException) and measure != 'birth_prevalence':
             raise e
         else:
-            raise DataNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
+            raise DataDoesNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
 
     validation.validate_raw_data(data, entity, measure, location_id, *additional_data)
     return data
@@ -122,6 +128,7 @@ def extract_exposure_distribution_weights(entity, location_id: int) -> pd.DataFr
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     if entity.kind == 'risk_factor':
         data = gbd.get_relative_risk(entity.gbd_id, location_id)
+        data = filter_to_most_detailed_causes(data)
     else:  # coverage_gap
         data = gbd.get_auxiliary_data('relative_risk', entity.kind, entity.name, location_id)
     return data
@@ -161,4 +168,9 @@ def extract_structure(entity, location_id: int) -> pd.DataFrame:
 
 def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
+    return data
+
+
+def extract_estimation_years(entity, location_id: int) -> pd.Series:
+    data = gbd.get_estimation_years()
     return data
