@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract, utility_data
-from vivarium_inputs.globals import InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, Population, gbd
+from vivarium_inputs.globals import InvalidQueryError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, Population, gbd
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
@@ -109,7 +109,12 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                 data += prevalence * disability
         data = data.reset_index()
     else:  # entity.kind == 'sequela'
-        data = extract.extract_data(entity, 'disability_weight', location_id)
+        if not entity.healthstate.disability_weight_exists:
+            full_demog = utilities.get_demographic_dimensions(location_id)
+            draws = pd.DataFrame(0.0, index=full_demog.index, columns=DRAW_COLUMNS)
+            data = pd.concat([full_demog, draws], axis=1)
+        else:
+            data = extract.extract_data(entity, 'disability_weight', location_id)
         data = utilities.normalize(data)
         data = utilities.reshape(data)
 
