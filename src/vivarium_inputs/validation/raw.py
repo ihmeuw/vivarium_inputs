@@ -577,7 +577,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
                                               location_id: int, estimation_years: pd.Series,
-                                              relative_risk: Union[pd.DataFrame, None]) -> None:
+                                              relative_risk: pd.DataFrame = None) -> None:
 
     check_data_exist(data, zeros_missing=True)
 
