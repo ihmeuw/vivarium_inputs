@@ -24,7 +24,6 @@ def get_data(entity, measure: str, location: str):
         'case_fatality': (get_case_fatality, ('cause',)),
         # Risk-like measures
         'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
-        'exposure_age_groups': (get_exposure_age_groups, ('risk_factor', 'alternative_risk_factor',)),
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
         'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor', 'alternative_risk_factor')),
         'relative_risk': (get_relative_risk, ('risk_factor', 'coverage_gap')),
@@ -179,16 +178,13 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     return data
 
 
-def get_exposure_age_groups(entity: RiskFactor, location_id: int):
-    exposure = extract.extract_data(entity, 'exposure', location_id)
-    return set(exposure.age_group_id)
-
-
 def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
+    exposure_age_groups = set(extract.extract_data(entity, 'exposure', location_id).age_group_id)
+
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    data = data[data.age_group_id.isin(get_exposure_age_groups(entity, location_id))]
+    data = data[data.age_group_id.isin(exposure_age_groups)]
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
@@ -201,7 +197,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     if entity.kind == 'risk_factor':
         data.drop('age_group_id', axis=1, inplace=True)
         df = []
-        for age_id in get_exposure_age_groups(entity, location_id):
+        for age_id in set(extract.extract_data(entity, 'exposure', location_id).age_group_id):
             copied = data.copy()
             copied['age_group_id'] = age_id
             df.append(copied)
