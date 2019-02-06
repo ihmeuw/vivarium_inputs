@@ -372,7 +372,7 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     data
         Incidence data pulled for entity in location_id.
     entity
-        Cause or sequela to which the data pertains.
+        Cause or sequela to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -422,7 +422,7 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     data
         Prevalence data pulled for entity in location_id.
     entity
-        Cause or sequela to which the data pertains.
+        Cause or sequela to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -474,7 +474,7 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     data
         Birth prevalence data pulled for entity in location_id.
     entity
-        Cause or sequela to which the data pertains.
+        Cause or sequela to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -523,7 +523,7 @@ def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id:
     data
         Disability weight data pulled for entity in location_id.
     entity
-        Cause or sequela to which the data pertains.
+        Cause or sequela to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -563,7 +563,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause,
     data
         Remission data pulled for entity in location_id.
     entity
-        Cause to which the data pertains.
+        Cause to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -614,7 +614,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
     data
         Deaths data pulled for entity in location_id.
     entity
-        Cause to which the data pertains.
+        Cause to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -749,7 +749,7 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
     data
         Exposure standard deviation data for `entity` in location `location_id`.
     entity
-        Risk factor or alternative risk factor to which the data pertains.
+        Risk factor or alternative risk factor to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -978,7 +978,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
                       location_id: int, estimation_years: pd.Series) -> None:
     """ Check the standard set of validations on raw estimate data
     for entity, allowing for the possibility of all 0s in the data as valid.
-    Additionally, the standard age and sex restriction checks are replaced with
+    Additionally, the standard age and sex checks are replaced with
     custom covariate versions since covariate restrictions only signal whether
     an entity is age and/or sex specific, nothing about the actual age or sex
     values expected in the data.
@@ -1014,16 +1014,20 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
 
     if entity.by_age:
         check_age_group_ids(data, None, None)
-    else:
-        if not set(data.age_group_id).issubset({SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']}):
-            raise DataAbnormalError(f'Estimate data for {entity.kind} {entity.name} is not supposed to be by age, '
-                                    f'but contains age groups beyond all ages and age standardized.')
+        if not (data.age_group_id).intersection(set(gbd.get_age_group_id())):
+            # if we have any of the expected gbd age group ids, restriction is not violated
+            raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
 
-    check_sex_ids(data, male_expected=entity.by_sex, female_expected=entity.by_sex,
-                  combined_expected=(not entity.by_sex))
+    # if we have any age group ids besides all ages and age standardized, restriction is violated
+    if not entity.by_age and bool((set(data.age_group_id) - {SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']})):
+        raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
+                                'beyond all ages and age standardized.')
 
-    check_covariate_age_restriction(data, entity.by_age)
-    check_covariate_sex_restriction(data, entity.by_sex)
+    if entity.by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
+        raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
+    elif not entity.by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
+        raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
+                                'for combined male and female data.')
 
 
 def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology],
@@ -1200,6 +1204,27 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
 ############################
 
 def check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: str) -> None:
+    """Check the exists and in_range flags for the given measure in the metadata
+    of the entity.
+
+    Throw an error only in the case of the exists flag being
+    None, which indicates that the measure is not expected to exist for the
+    entity and thus should not be checked. Warn in all other cases because
+    these flags are based on a survey done on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to check metadata.
+    measure
+        Measure for which to check exists and in_range flags.
+
+    Raises
+    ------
+    InvalidQueryError
+        If the exists flag for the given measure in the entity's metadata is
+        None.
+    """
     exists = entity[f'{measure}_exists']
     if exists is None:
         raise InvalidQueryError(f'{measure.capitalize()} data is not expected to exist '
@@ -1210,7 +1235,20 @@ def check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: st
         warnings.warn(f'{measure.capitalize()} for {entity.kind} {entity.name} may be outside the normal range.')
 
 
-def warn_violated_restrictions(entity, measure) -> None:
+def warn_violated_restrictions(entity: Union[Cause, RiskFactor], measure: str) -> None:
+    """Parse out any violated restrictions relevant to the passed measure in
+    the metadata of the given entity and warn if any found.
+
+    Warn instead of erroring because these flags are based on a survey done
+    on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to check violated restrictions.
+    measure
+        Measure for which to look for restrictions violated.
+    """
     violated_restrictions = [r.replace(f'by_{measure}', '').replace(measure, '').replace('_', ' ').replace(' violated', '')
                              for r in entity.restrictions.violated if measure in r]
     if violated_restrictions:
@@ -1218,7 +1256,19 @@ def warn_violated_restrictions(entity, measure) -> None:
                       f'following restrictions: {", ".join(violated_restrictions)}.')
 
 
-def check_paf_types(entity) -> None:
+def check_paf_types(entity: Union[Etiology, RiskFactor]) -> None:
+    """Check metadata flags for population_attributable_fraction measure to
+    see if both types (yll and yld) exist and are in range. Warn if either or
+    both are missing or not in range.
+
+    Warn instead of erroring because these flags are based on a survey done
+    on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to check PAF flags.
+    """
     paf_types = np.array(['yll', 'yld'])
     missing_pafs = paf_types[[not entity.population_attributable_fraction_yll_exists,
                               not entity.population_attributable_fraction_yld_exists]]
@@ -1297,31 +1347,22 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool) ->
             pass
 
 
-def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
-    """ Because covariate sex restrictions are simply by_sex or not rather than
-        specific male_only, female_only, etc. as with other entities, a custom
-        validation function is required."""
-    if by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
-        raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
-    elif not by_sex and set(data.sex_id) != {SEXES['Combined']}:
-        raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
-                                'for combined male and female data.')
-
-
-def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool) -> None:
-    """ Because covariate age restrictions are simply by_age or not rather than
-    specific age ranges as with other entities, a custom validation function
-    is required. """
-    if by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
-        # if we have any of the expected gbd age group ids, restriction is not violated
-        raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
-    # if we have any age group ids besides all ages and age standardized, restriction is violated
-    if not by_age and bool((set(data.age_group_id) - {SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']})):
-        raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
-                                'beyond all ages and age standardized.')
-
-
 def check_cause_age_restrictions_sets(entity: Cause) -> None:
+    """Check that a cause does not have an age range based on its YLL
+    restrictions that is broader than that based on its YLD restrictions.
+
+    Parameters
+    ----------
+    entity
+        Cause for which to check restriction age ranges.
+
+    Raises
+    ------
+    NotImplementedError
+        If the YLL restriction age range is broader than the YLD restriction
+        age range.
+
+    """
     if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
     else:
@@ -1487,7 +1528,6 @@ def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, res
         - if data ages are a proper subset of the set of restriction age groups
         or the restriction age groups are a proper subset of the data ages,
         warn.
-
 
     Parameters
     ----------
