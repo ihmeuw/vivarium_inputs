@@ -1581,7 +1581,7 @@ def check_age_group_ids(data: pd.DataFrame, age_group_ids: List[int],
         or they don't make up a contiguous block.
 
     """
-    all_ages = set()
+    all_ages = set(age_group_ids)
     restriction_ages = set(get_restriction_age_ids(restriction_start, restriction_end, age_group_ids))
     data_ages = set(data.age_group_id)
 
