@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 import warnings
 
 import pandas as pd
@@ -7,14 +7,11 @@ import numpy as np
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap, causes)
 
-from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, MEASURES,
-                                     DataAbnormalError, InvalidQueryError, gbd, Population)
+from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
+                                     DataAbnormalError, InvalidQueryError, DataDoesNotExistError, gbd, Population)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
-from vivarium_inputs.validation.utilities import (check_years, check_location, check_columns, check_data_exist,
-                                                  check_age_group_ids, check_sex_ids, check_age_restrictions,
-                                                  check_value_columns_boundary, check_sex_restrictions,
-                                                  check_measure_id, check_metric_id, get_restriction_age_boundary,
-                                                  get_restriction_age_ids)
+from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
+from vivarium_inputs.validation.shared import check_value_columns_boundary
 
 
 MAX_INCIDENCE = 10
@@ -375,7 +372,7 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     data
         Incidence data pulled for entity in location_id.
     entity
-        Cause or sequela to which the data pertains.
+        Cause or sequela to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -425,7 +422,7 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     data
         Prevalence data pulled for entity in location_id.
     entity
-        Cause or sequela to which the data pertains.
+        Cause or sequela to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -477,7 +474,7 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     data
         Birth prevalence data pulled for entity in location_id.
     entity
-        Cause or sequela to which the data pertains.
+        Cause or sequela to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -526,7 +523,7 @@ def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id:
     data
         Disability weight data pulled for entity in location_id.
     entity
-        Cause or sequela to which the data pertains.
+        Cause or sequela to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -566,7 +563,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause,
     data
         Remission data pulled for entity in location_id.
     entity
-        Cause to which the data pertains.
+        Cause to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -607,7 +604,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause,
 
 
 def validate_deaths(data: pd.DataFrame, entity: Cause,
-                    location_id: int, estimation_years: pd.Series) -> None:
+                    location_id: int, estimation_years: pd.Series, population: pd.DataFrame) -> None:
     """ Check the standard set of validations on raw deaths data for entity,
     pulling population data for location_id to use as the upper boundary
     for values in deaths.
@@ -617,7 +614,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
     data
         Deaths data pulled for entity in location_id.
     entity
-        Cause to which the data pertains.
+        Cause to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -653,11 +650,11 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
-    pop = gbd.get_population(location_id)
     idx_cols = ['age_group_id', 'year_id', 'sex_id']
-    pop = pop[(pop.age_group_id.isin(data.age_group_id.unique())) & (pop.year_id.isin(data.year_id.unique())) & (
-               pop.sex_id != gbd.COMBINED[0])].set_index(idx_cols).population
-    check_value_columns_boundary(data.set_index(idx_cols), pop, 'upper',
+    population = population[(population.age_group_id.isin(data.age_group_id.unique()))
+                            & (population.year_id.isin(data.year_id.unique()))
+                            & (population.sex_id != SEXES['Combined'])].set_index(idx_cols).population
+    check_value_columns_boundary(data.set_index(idx_cols), population, 'upper',
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
@@ -752,7 +749,7 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
     data
         Exposure standard deviation data for `entity` in location `location_id`.
     entity
-        Risk factor or alternative risk factor to which the data pertains.
+        Risk factor or alternative risk factor to which the data pertain.
     location_id
         Location to which the data should pertain.
     estimation_years
@@ -917,8 +914,16 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
         #  We cannot check age_restrictions with exposure_age_groups since RR may have a subset of age_group_ids.
         #  In this case we do not want to raise an error because RR data may include only specific age_group_ids for
-        #  age-specific-causes even if risk-exposure may exist for the other age_group_ids.
+        #  age-specific-causes even if risk-exposure may exist for the other age_group_ids. Instead we check age
+        #  restrictions with affected causes.
         grouped.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
+        for (c_id, morb, mort, _), g in grouped:
+            cause = [c for c in causes if c.gbd_id == c_id][0]
+            if morb == 1:
+                start, end = cause.restrictions.yld_age_group_id_start, cause.restrictions.yld_age_group_id_end
+            else:  # morb = 0 , mort = 1
+                start, end = cause.restrictions.yll_age_group_id_start, cause.restrictions.yll_age_group_id_end
+            check_age_restrictions(g, start, end, error=False)
 
     else:  # coverage gap
         grouped.apply(check_age_group_ids, None, None)
@@ -980,7 +985,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
                       location_id: int, estimation_years: pd.Series) -> None:
     """ Check the standard set of validations on raw estimate data
     for entity, allowing for the possibility of all 0s in the data as valid.
-    Additionally, the standard age and sex restriction checks are replaced with
+    Additionally, the standard age and sex checks are replaced with
     custom covariate versions since covariate restrictions only signal whether
     an entity is age and/or sex specific, nothing about the actual age or sex
     values expected in the data.
@@ -1016,16 +1021,20 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
 
     if entity.by_age:
         check_age_group_ids(data, None, None)
-    else:
-        if not set(data.age_group_id).issubset({SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']}):
-            raise DataAbnormalError(f'Estimate data for {entity.kind} {entity.name} is not supposed to be by age, '
-                                    f'but contains age groups beyond all ages and age standardized.')
+        if not (data.age_group_id).intersection(set(gbd.get_age_group_id())):
+            # if we have any of the expected gbd age group ids, restriction is not violated
+            raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
 
-    check_sex_ids(data, male_expected=entity.by_sex, female_expected=entity.by_sex,
-                  combined_expected=(not entity.by_sex))
+    # if we have any age group ids besides all ages and age standardized, restriction is violated
+    if not entity.by_age and bool((set(data.age_group_id) - {SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']})):
+        raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
+                                'beyond all ages and age standardized.')
 
-    check_covariate_age_restriction(data, entity.by_age)
-    check_covariate_sex_restriction(data, entity.by_sex)
+    if entity.by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
+        raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
+    elif not entity.by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
+        raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
+                                'for combined male and female data.')
 
 
 def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology],
@@ -1202,6 +1211,27 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
 ############################
 
 def check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: str) -> None:
+    """Check the exists and in_range flags for the given measure in the metadata
+    of the entity.
+
+    Throw an error only in the case of the exists flag being
+    None, which indicates that the measure is not expected to exist for the
+    entity and thus should not be checked. Warn in all other cases because
+    these flags are based on a survey done on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to check metadata.
+    measure
+        Measure for which to check exists and in_range flags.
+
+    Raises
+    ------
+    InvalidQueryError
+        If the exists flag for the given measure in the entity's metadata is
+        None.
+    """
     exists = entity[f'{measure}_exists']
     if exists is None:
         raise InvalidQueryError(f'{measure.capitalize()} data is not expected to exist '
@@ -1212,7 +1242,20 @@ def check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: st
         warnings.warn(f'{measure.capitalize()} for {entity.kind} {entity.name} may be outside the normal range.')
 
 
-def warn_violated_restrictions(entity, measure) -> None:
+def warn_violated_restrictions(entity: Union[Cause, RiskFactor], measure: str) -> None:
+    """Parse out any violated restrictions relevant to the passed measure in
+    the metadata of the given entity and warn if any found.
+
+    Warn instead of erroring because these flags are based on a survey done
+    on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to check violated restrictions.
+    measure
+        Measure for which to look for restrictions violated.
+    """
     violated_restrictions = [r.replace(f'by_{measure}', '').replace(measure, '').replace('_', ' ').replace(' violated', '')
                              for r in entity.restrictions.violated if measure in r]
     if violated_restrictions:
@@ -1220,7 +1263,19 @@ def warn_violated_restrictions(entity, measure) -> None:
                       f'following restrictions: {", ".join(violated_restrictions)}.')
 
 
-def check_paf_types(entity) -> None:
+def check_paf_types(entity: Union[Etiology, RiskFactor]) -> None:
+    """Check metadata flags for population_attributable_fraction measure to
+    see if both types (yll and yld) exist and are in range. Warn if either or
+    both are missing or not in range.
+
+    Warn instead of erroring because these flags are based on a survey done
+    on data from a single location.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to check PAF flags.
+    """
     paf_types = np.array(['yll', 'yld'])
     missing_pafs = paf_types[[not entity.population_attributable_fraction_yll_exists,
                               not entity.population_attributable_fraction_yld_exists]]
@@ -1299,31 +1354,22 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool) ->
             pass
 
 
-def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
-    """ Because covariate sex restrictions are simply by_sex or not rather than
-        specific male_only, female_only, etc. as with other entities, a custom
-        validation function is required."""
-    if by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
-        raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
-    elif not by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
-        raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
-                                'for combined male and female data.')
-
-
-def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool) -> None:
-    """ Because covariate age restrictions are simply by_age or not rather than
-    specific age ranges as with other entities, a custom validation function
-    is required. """
-    if by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
-        # if we have any of the expected gbd age group ids, restriction is not violated
-        raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
-    # if we have any age group ids besides all ages and age standardized, restriction is violated
-    if not by_age and bool((set(data.age_group_id) - {SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']})):
-        raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
-                                'beyond all ages and age standardized.')
-
-
 def check_cause_age_restrictions_sets(entity: Cause) -> None:
+    """Check that a cause does not have an age range based on its YLL
+    restrictions that is broader than that based on its YLD restrictions.
+
+    Parameters
+    ----------
+    entity
+        Cause for which to check restriction age ranges.
+
+    Raises
+    ------
+    NotImplementedError
+        If the YLL restriction age range is broader than the YLD restriction
+        age range.
+
+    """
     if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
     else:
@@ -1334,4 +1380,409 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
         if set(yll_ages) > set(yld_ages):
             raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
                                       f' We currently do not support these causes.')
+
+
+def check_years(data: pd.DataFrame, year_type: str, estimation_years: pd.Series) -> None:
+    """Check that years in passed data match expected range based on type.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing 'year_id' column.
+    year_type
+        'annual', 'binned', or 'either' indicating expected year range.
+    estimation_years
+        The set of years the data should be estimated for.
+
+    Raises
+    ------
+    DataAbnormalError
+        If `error` is turned on and any expected years are not found in data or
+        any extra years found and `year_type` is 'binned'.
+
+    """
+    data_years = set(data.year_id.unique())
+    estimation_years = set(estimation_years)
+    annual_estimation_years = set(range(min(estimation_years), max(estimation_years) + 1))
+    if year_type == 'annual':
+        if data_years < annual_estimation_years:
+            raise DataAbnormalError(f'Data has missing years: {annual_estimation_years.difference(data_years)}.')
+    elif year_type == 'binned':
+        if data_years < estimation_years:
+            raise DataAbnormalError(f'Data has missing years: {estimation_years.difference(data_years)}.')
+        if data_years > estimation_years:
+            raise DataAbnormalError(f'Data has extra years: {data_years.difference(estimation_years)}.')
+    else:  # year_type == either
+        valid = (data_years == estimation_years) or (data_years >= annual_estimation_years)
+        if not valid:
+            raise DataAbnormalError(f'Data year range is neither annual or appropriately binned '
+                                    f'with the expected year range.')
+
+
+def check_location(data: pd.DataFrame, location_id: int):
+    """Check that data contains only a single unique location id and that that
+    location id matches the requested `location_id` or one of its parents up to
+    the global id.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing a 'location_id' column.
+    location_id
+        The requested location_id.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data contains multiple location ids or a location id other than the
+        global or requested location id.
+
+    """
+    if len(data['location_id'].unique()) > 1:
+        raise DataAbnormalError(f'Data contains multiple location ids.')
+
+    data_location_id = data['location_id'].unique()[0]
+
+    location_metadata = gbd.get_location_path_to_global()
+    path_to_parent = location_metadata.loc[location_metadata.location_id == location_id,
+                                           'path_to_top_parent'].values[0].split(',')
+    path_to_parent = [int(i) for i in path_to_parent]
+
+    if data_location_id not in path_to_parent:
+        raise DataAbnormalError(f'Data pulled for {location_id} actually has location id {data_location_id}, which is '
+                                'not in its hierarchy.')
+
+
+def check_columns(expected_cols: List, existing_cols: List):
+    """Verify that the passed lists of columns match.
+
+    Parameters
+    ----------
+    expected_cols
+        List of column names expected.
+    existing_cols
+        List of column names actually found in data.
+
+    Raises
+    ------
+    DataAbnormalError
+        If `expected_cols` does not match `existing_cols`.
+
+    """
+    if set(existing_cols) < set(expected_cols):
+        raise DataAbnormalError(f'Data is missing columns: {set(expected_cols).difference(set(existing_cols))}.')
+    elif set(existing_cols) > set(expected_cols):
+        raise DataAbnormalError(f'Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}.')
+
+
+def check_data_exist(data: pd.DataFrame, zeros_missing: bool,
+                     value_columns: list = DRAW_COLUMNS, error: bool = True) -> bool:
+    """Check that values in data exist and none are missing and, if
+    `zeros_missing` is turned on, not all zero.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing `value_columns`.
+    zeros_missing
+        Boolean indicating whether to treat all zeros in `value_columns` as
+        missing or not.
+    value_columns
+        List of columns in `data` to check for missing values.
+    error
+        Boolean indicating whether or not to error if data is missing.
+
+    Returns
+    -------
+    bool
+        True if non-missing, non-infinite, non-zero (if zeros_missing) values
+        exist in data, False otherwise.
+
+    Raises
+    -------
+    DataDoesNotExistError
+        If error flag is set to true and data is empty or contains any NaN
+        values in `value_columns`, or contains all zeros in `value_columns` and
+        zeros_missing is True.
+
+    """
+    if (data.empty or np.any(pd.isnull(data[value_columns]))
+            or (zeros_missing and np.all(data[value_columns] == 0)) or np.any(np.isinf(data[value_columns]))):
+        if error:
+            raise DataDoesNotExistError(f'Data contains no non-missing{", non-zero" if zeros_missing else ""} values.')
+        return False
+    return True
+
+
+def _check_continuity(data_ages: set, all_ages: set):
+    """Make sure data_ages is contiguous block in all_ages."""
+    data_ages = list(data_ages)
+    all_ages = list(all_ages)
+    all_ages.sort()
+    data_ages.sort()
+    if all_ages[all_ages.index(data_ages[0]):all_ages.index(data_ages[-1])+1] != data_ages:
+        raise DataAbnormalError(f'Data contains a non-contiguous age groups: {data_ages}.')
+
+
+def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, restriction_end: float = None):
+    """Check the set of age_group_ids included in data pulled from GBD for
+    the following conditions:
+
+        - if data ages contain invalid age group ids, error.
+        - if data ages are equal to the set of all GBD age groups or the set of
+        age groups within restriction bounds (if restrictions apply), pass.
+        - if data ages are not a contiguous block of GBD age groups, error.
+        - if data ages are a proper subset of the set of restriction age groups
+        or the restriction age groups are a proper subset of the data ages,
+        warn.
+
+    Parameters
+    ----------
+    data
+        Dataframe pulled containing age_group_id column.
+    restriction_start
+        Age group id representing the start of the restriction range
+        if applicable.
+    restriction_end
+        Age group id representing the end of the restriction range
+        if applicable.
+
+    Raises
+    ------
+    DataAbnormalError
+        If age group ids contained in data aren't all valid GBD age group ids
+        or they don't make up a contiguous block.
+
+    """
+    all_ages = set(gbd.get_age_group_id())
+    restriction_ages = set(get_restriction_age_ids(restriction_start, restriction_end))
+    data_ages = set(data.age_group_id)
+
+    invalid_ages = data_ages.difference(all_ages)
+    if invalid_ages:
+        raise DataAbnormalError(f'Data contains invalid age group ids: {invalid_ages}.')
+
+    _check_continuity(data_ages, all_ages)
+
+    if data_ages < restriction_ages:
+        warnings.warn('Data does not contain all age groups in restriction range.')
+    elif restriction_ages and restriction_ages < data_ages:
+        warnings.warn('Data contains additional age groups beyond those specified by restriction range.')
+    else:  # data_ages == restriction_ages
+        pass
+
+
+def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expected: bool = True,
+                  combined_expected: bool = False):
+    """Check whether the data contains valid GBD sex ids and whether the set of
+    sex ids in the data matches the expected set.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing a sex_id column.
+    male_expected
+        Boolean indicating whether the male sex id is expected in this data.
+        For some data pulling tools, this may correspond to whether the entity
+        the data describes has a male_only sex restriction.
+    female_expected
+        Boolean indicating whether the female sex id is expected in this data.
+        For some data pulling tools, this may correspond to whether the entity
+        the data describes has a female_only sex restriction.
+    combined_expected
+        Boolean indicating whether data is expected to include the
+        combined sex id.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data contains any sex ids that aren't valid GBD sex ids.
+
+    """
+    valid_sex_ids = [SEXES['Male'], SEXES['Female'], SEXES['Combined']]
+    gbd_sex_ids = set(np.array(valid_sex_ids)[[male_expected, female_expected, combined_expected]])
+    data_sex_ids = set(data.sex_id)
+
+    invalid_sex_ids = data_sex_ids.difference(set(valid_sex_ids))
+    if invalid_sex_ids:
+        raise DataAbnormalError(f'Data contains invalid sex ids: {invalid_sex_ids}.')
+
+    extra_sex_ids = data_sex_ids.difference(gbd_sex_ids)
+    if extra_sex_ids:
+        warnings.warn(f'Data contains the following extra sex ids {extra_sex_ids}.')
+
+    missing_sex_ids = set(gbd_sex_ids).difference(data_sex_ids)
+    if missing_sex_ids:
+        warnings.warn(f'Data is missing the following expected sex ids: {missing_sex_ids}.')
+
+
+def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int,
+                           value_columns: list = DRAW_COLUMNS, error=True):
+    """Check that all expected age groups between age_group_id_start and
+    age_group_id_end, inclusive, and only those age groups, appear in data with
+    non-missing values in `value_columns`.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing an age_group_id column.
+    age_group_id_start
+        Lower boundary of age group ids expected in data, inclusive.
+    age_group_id_end
+        Upper boundary of age group ids expected in data, exclusive.
+    value_columns
+        List of columns to verify values are non-missing for expected age
+        groups and missing for not expected age groups.
+    error
+        Boolean indicating whether or not to error if any age_restriction
+        is violated. If this flag is set to false, raise a warning.
+
+    Raises
+    ------
+    DataAbnormalError
+        If error flag is set to true and if any age group ids in the range
+        [`age_group_id_start`, `age_group_id_end`] don't appear in the data or
+        if any additional age group ids (with the exception of 235) appear in
+        the data.
+
+    """
+    expected_gbd_age_ids = get_restriction_age_ids(age_group_id_start, age_group_id_end)
+
+    # age groups we expected in data but that are not
+    missing_age_groups = set(expected_gbd_age_ids).difference(set(data.age_group_id))
+    extra_age_groups = set(data.age_group_id).difference(set(expected_gbd_age_ids))
+
+    if missing_age_groups:
+        message = f'Data was expected to contain all age groups between ids {age_group_id_start} ' \
+            f'and {age_group_id_end} but was missing the following: {missing_age_groups}.'
+        if error:
+            raise DataAbnormalError(message)
+        warnings.warn(message)
+
+    if extra_age_groups:
+        # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
+        should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
+        if check_data_exist(should_be_zero, zeros_missing=True, value_columns=value_columns, error=False):
+            warnings.warn(f'Data was only expected to contain values for age groups between ids '
+                          f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
+                          f'but also included values for age groups {extra_age_groups}.')
+
+    # make sure we're not missing data for all ages in restrictions
+    if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)], zeros_missing=True,
+                            value_columns=value_columns, error=False):
+        message = 'Data is missing for all age groups within restriction range.'
+        if error:
+            raise DataAbnormalError(message)
+        warnings.warn(message)
+
+
+def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool,
+                           value_columns: list = DRAW_COLUMNS):
+    """Check that all expected sex ids based on restrictions, and only those
+    sex ids, appear in data with non-missing values in `value_columns`.
+
+    Parameters
+    ----------
+    data
+        Dataframe contained sex_id column.
+    male_only
+        Boolean indicating whether data is restricted to male only estimates.
+    female_only
+        Boolean indicating whether data is restricted to female only estimates.
+    value_columns
+        List of columns to verify values are non-missing for expected sex
+        ids and missing for not expected sex ids.
+
+    Raises
+    -------
+    DataAbnormalError
+        If data violates passed sex restrictions.
+    """
+    female, male, combined = SEXES['Female'], SEXES['Male'], SEXES['Combined']
+
+    if male_only:
+        if not check_data_exist(data[data.sex_id == male], zeros_missing=True,
+                                value_columns=value_columns, error=False):
+            raise DataAbnormalError('Data is restricted to male only, but is missing data values for males.')
+
+        if (set(data.sex_id) != {male} and
+                check_data_exist(data[data.sex_id != male], zeros_missing=True,
+                                 value_columns=value_columns, error=False)):
+            warnings.warn('Data is restricted to male only, but contains '
+                          'non-male sex ids for which data values are not all 0.')
+
+    if female_only:
+        if not check_data_exist(data[data.sex_id == female], zeros_missing=True,
+                                value_columns=value_columns, error=False):
+            raise DataAbnormalError('Data is restricted to female only, but is missing data values for females.')
+
+        if (set(data.sex_id) != {female} and
+                check_data_exist(data[data.sex_id != female], zeros_missing=True,
+                                 value_columns=value_columns, error=False)):
+            warnings.warn('Data is restricted to female only, but contains '
+                          'non-female sex ids for which data values are not all 0.')
+
+    if not male_only and not female_only:
+        if {male, female}.issubset(set(data.sex_id)):
+            if (not check_data_exist(data[data.sex_id == male], zeros_missing=True,
+                                     value_columns=value_columns, error=False) or
+               not check_data_exist(data[data.sex_id == female], zeros_missing=True,
+                                    value_columns=value_columns, error=False)):
+                raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
+                                        'values for both males and females.')
+        else:  # check combined sex id
+            if not check_data_exist(data[data.sex_id == combined], zeros_missing=True,
+                                    value_columns=value_columns, error=False):
+                raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
+                                        'values for both males and females.')
+
+
+def check_measure_id(data: pd.DataFrame, allowable_measures: List[str], single_only: bool = True):
+    """Check that data contains a measure id that is one of the allowed
+    measure ids.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing 'measure_id' column.
+    allowable_measures
+        List of strings dictating the possible values for measure id when
+        mapped via MEASURES.
+    single_only
+        Boolean indicating whether a single measure id is expected in the data
+        or whether multiple are allowable.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data contains either multiple measure ids and `single_only` is True
+        or a non-permissible measure id.
+    """
+    if single_only and len(set(data.measure_id)) > 1:
+        raise DataAbnormalError(f'Data has multiple measure ids: {set(data.measure_id)}.')
+    if not set(data.measure_id).issubset(set([MEASURES[m] for m in allowable_measures])):
+        raise DataAbnormalError(f'Data includes a measure id not in the expected measure ids for this measure.')
+
+
+def check_metric_id(data: pd.DataFrame, expected_metric: str):
+    """Check that data contains only a single metric id and that it matches the
+    expected metric.
+
+    Parameters
+    ----------
+    data
+        Dataframe containing 'metric_id' column.
+    expected_metric
+        String dictating the expected metric, the id of which can be found via
+        METRICS.
+
+    Raises
+    ------
+    DataAbnormalError
+        If data contains any metric id other than the expected.
+
+    """
+    if set(data.metric_id) != {METRICS[expected_metric.capitalize()]}:
+        raise DataAbnormalError(f'Data includes metrics beyond the expected {expected_metric.lower()} '
+                                f'(metric_id {METRICS[expected_metric.capitalize()]}')
 
