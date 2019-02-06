@@ -24,7 +24,7 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
         'exposure_standard_deviation': (extract_exposure_standard_deviation,
                                         (extract_exposure, get_estimation_years)),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
-        'relative_risk': (extract_relative_risk, (extract_exposure, get_estimation_years)),
+        'relative_risk': (extract_relative_risk, (extract_exposure, get_estimation_years, get_age_group_ids)),
         'population_attributable_fraction': (extract_population_attributable_fraction,
                                              (get_estimation_years, get_age_group_ids)),
         'mediation_factors': (extract_mediation_factors, ()),
