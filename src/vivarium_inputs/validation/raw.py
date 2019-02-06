@@ -378,7 +378,7 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], locati
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
     age_group_ids
-        Expected set of age group ids.
+        List of possible age group ids.
 
     Raises
     ------
@@ -733,7 +733,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
                 check_value_columns_boundary(data, entity.tmred.min, 'lower',
                                              value_columns=DRAW_COLUMNS, inclusive=True, error=None)
     else:  # CoverageGap, AlternativeRiskFactor
-        cats.apply(check_age_group_ids, None, None)
+        cats.apply(check_age_group_ids, age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
     if entity.distribution in ('dichotomous', 'ordered_polytomous', 'unordered_polytomous'):  # categorical
@@ -928,7 +928,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         male_expected = not restrictions.female_only
         female_expected = not restrictions.male_only
 
-        grouped.apply(check_age_group_ids, age_start, age_end)
+        grouped.apply(check_age_group_ids, age_group_ids, age_start, age_end)
         grouped.apply(check_sex_ids, male_expected, female_expected)
 
         #  We cannot check age_restrictions with exposure_age_groups since RR may have a subset of age_group_ids.
@@ -945,7 +945,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
             check_age_restrictions(g, age_group_ids, start, end, error=False)
 
     else:  # coverage gap
-        grouped.apply(check_age_group_ids, None, None)
+        grouped.apply(check_age_group_ids, age_group_ids, None, None)
         grouped.apply(check_sex_ids, True, True)
 
     check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
