@@ -1457,46 +1457,50 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
     measure = measure_map[measure_id]
     age_restrictions = {'YLLs': (cause.restrictions.yll_age_group_id_start, cause.restrictions.yll_age_group_id_end),
                         'YLDs': (cause.restrictions.yld_age_group_id_start, cause.restrictions.yld_age_group_id_end)}
+    valid_rr = rr[(rr.cause_id == cause_id) & rr_measures[measure]]
 
-    
+    # It means we have YLL Paf but mortality = morbidity = 1
+    if measure == 'YLLs' and valid_rr.empty:
+        pass
 
-    if entity.distribution in ['ensemble', 'lognormal', 'normal']:
-        tmrel = (entity.tmred.max + entity.tmred.min) / 2
+    else:
+        if entity.distribution in ['ensemble', 'lognormal', 'normal']:
+            tmrel = (entity.tmred.max + entity.tmred.min) / 2
 
-        #  Non-trivial rr for continuous risk factors is where exposure is bigger(smaller) than tmrel.
-        e_othercols = [c for c in exposure.columns if c not in DRAW_COLUMNS]
-        df = exposure.set_index(e_othercols)
-        op = operator.lt if entity.tmred.inverted else operator.gt
-        exposed_age_groups = set(df[op(df, tmrel)].reset_index().age_group_id)
+            #  Non-trivial rr for continuous risk factors is where exposure is bigger(smaller) than tmrel.
+            e_othercols = [c for c in exposure.columns if c not in DRAW_COLUMNS]
+            df = exposure.set_index(e_othercols)
+            op = operator.lt if entity.tmred.inverted else operator.gt
+            exposed_age_groups = set(df[op(df, tmrel)].reset_index().age_group_id)
 
-        valid_rr = rr[(rr.cause_id == cause_id) & rr_measures[measure] & (rr.age_group_id.isin(exposed_age_groups))]
-        rr_age_groups = set(valid_rr.age_group_id)
+            valid_rr = valid_rr[valid_rr.age_group_id.isin(exposed_age_groups)]
+            rr_age_groups = set(valid_rr.age_group_id)
 
-    else:  # categorical distribution
-        #  Non-trivial rr for categorical risk factors is where relative risk is not equal to 1.
-        rr_othercols = [c for c in rr.columns if c not in DRAW_COLUMNS]
-        df = rr.set_index(rr_othercols)
-        rr_age_groups = set(df[df != 1].reset_index().age_group_id)
+        else:  # categorical distribution
+            #  Non-trivial rr for categorical risk factors is where relative risk is not equal to 1.
+            rr_othercols = [c for c in rr.columns if c not in DRAW_COLUMNS]
+            df = rr.set_index(rr_othercols)
+            rr_age_groups = set(df[df != 1].reset_index().age_group_id)
 
-    #  We apply the narrowest restrictions among exposed_age_groups, rr_age_gruops and cause age restrictions.
-    #  We may have paf outside of exposure/rr but inside of cause age restrictions, then warn it.
-    #  If paf does not exist for the narrowest range of exposure/rr/cause, raise an error.
-    cause_age_start, cause_age_end = age_restrictions[measure]
-  
-    age_start = max(min(rr_age_groups), cause_age_start)
-    age_end = min(max(rr_age_groups), cause_age_end)
+        #  We apply the narrowest restrictions among exposed_age_groups, rr_age_gruops and cause age restrictions.
+        #  We may have paf outside of exposure/rr but inside of cause age restrictions, then warn it.
+        #  If paf does not exist for the narrowest range of exposure/rr/cause, raise an error.
+        cause_age_start, cause_age_end = age_restrictions[measure]
 
-    valid_but_no_rr = set(get_restriction_age_ids(cause_age_start, cause_age_end)) - rr_age_groups
+        age_start = max(min(rr_age_groups), cause_age_start)
+        age_end = min(max(rr_age_groups), cause_age_end)
 
-    missing_pafs = set(get_restriction_age_ids(age_start, age_end)) - set(paf.age_group_id)
-    extra_paf = set(paf.age_group_id) - set(valid_but_no_rr)
+        valid_but_no_rr = set(get_restriction_age_ids(cause_age_start, cause_age_end)) - rr_age_groups
 
-    if missing_pafs:
-        raise DataAbnormalError(f"Paf for {cause_map[cause_id].name} and {entity.name} have missing data for "
-                                f"the age groups: {missing_pafs}.")
-    if extra_paf:
-        warnings.warn(f"Paf for {cause_map[cause_id].name} and {entity.name} have data for "
-                      f"the age groups: {extra_paf}, which do not have either relative risk or exposure data.")
+        missing_pafs = set(get_restriction_age_ids(age_start, age_end)) - set(paf.age_group_id)
+        extra_paf = set(paf.age_group_id) - set(valid_but_no_rr)
+
+        if missing_pafs:
+            raise DataAbnormalError(f"Paf for {cause_map[cause_id].name} and {entity.name} have missing data for "
+                                    f"the age groups: {missing_pafs}.")
+        if extra_paf:
+            warnings.warn(f"Paf for {cause_map[cause_id].name} and {entity.name} have data for "
+                          f"the age groups: {extra_paf}, which do not have either relative risk or exposure data.")
 
 
 def check_years(data: pd.DataFrame, year_type: str, estimation_years: pd.Series) -> None:
