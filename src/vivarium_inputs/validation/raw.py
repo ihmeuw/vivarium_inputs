@@ -22,6 +22,9 @@ MAX_INCIDENCE = 10
 MAX_REMISSION = 365/3
 MAX_CATEG_REL_RISK = 20
 MAX_CONT_REL_RISK = 5
+MAX_PAF = 1
+MIN_PAF = 0
+MIN_PROTECTIVE_PAF = -1
 MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
 MAX_POP = 100_000_000
@@ -850,14 +853,14 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         protected_causes = [cause.gbd_id for cause in PROTECTIVE_CAUSE_RISK_PAIRS[entity.name]]
         protective = data.loc[data.cause_id.isin(protected_causes)]
         non_protective = data.loc[data.index.difference(protective.index)]
-        check_value_columns_boundary(protective, -1.0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
+        check_value_columns_boundary(protective, MIN_PROTECTIVE_PAF, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
                                      error=DataAbnormalError)
-        check_value_columns_boundary(non_protective, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
+        check_value_columns_boundary(non_protective, MIN_PAF, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
                                      error=DataAbnormalError)
     else:
-        check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+        check_value_columns_boundary(data, MIN_PAF, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
-    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    check_value_columns_boundary(data, MAX_PAF, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
     for c_id in data.cause_id:
         cause = [c for c in causes if c.gbd_id == c_id][0]
