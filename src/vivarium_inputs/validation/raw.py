@@ -1459,7 +1459,7 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
                         'YLDs': (cause.restrictions.yld_age_group_id_start, cause.restrictions.yld_age_group_id_end)}
     valid_rr = rr[(rr.cause_id == cause_id) & rr_measures[measure]]
 
-    # It means we have YLL Paf but mortality = morbidity = 1
+    # It means we have YLL Paf but mortality = morbidity = 1 and we do not support this case.
     if measure == 'YLLs' and valid_rr.empty:
         pass
 
@@ -1478,6 +1478,8 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
 
         else:  # categorical distribution
             #  Non-trivial rr for categorical risk factors is where relative risk is not equal to 1.
+            #  Since non-trivial rr is determined by rr values itself and rr age_group_id set is guaranteed to be
+            #  a subset of exposure age_group_id set, we do not check exposure here.
             rr_othercols = [c for c in rr.columns if c not in DRAW_COLUMNS]
             df = rr.set_index(rr_othercols)
             rr_age_groups = set(df[df != 1].reset_index().age_group_id)
