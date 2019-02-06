@@ -1450,12 +1450,15 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
     measure_map = {MEASURES['YLLs']: 'YLLs', MEASURES['YLDs']: 'YLDs'}
     cause_map = {c.gbd_id: c for c in causes}
     rr_measures = {'YLLs': (rr.morbidity == 0) & (rr.mortality == 1), 'YLDs': (rr.morbidity == 1)}
-    age_restrictions = {'YLLs': (entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end),
-                        'YLDs': (entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end)}
 
     cause_id = paf.cause_id.unique()[0]
     measure_id = paf.measure_id.unique()[0]
+    cause = cause_map[cause_id]
     measure = measure_map[measure_id]
+    age_restrictions = {'YLLs': (cause.restrictions.yll_age_group_id_start, cause.restrictions.yll_age_group_id_end),
+                        'YLDs': (cause.restrictions.yld_age_group_id_start, cause.restrictions.yld_age_group_id_end)}
+
+    
 
     if entity.distribution in ['ensemble', 'lognormal', 'normal']:
         tmrel = (entity.tmred.max + entity.tmred.min) / 2
@@ -1466,8 +1469,8 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
         op = operator.lt if entity.tmred.inverted else operator.gt
         exposed_age_groups = set(df[op(df, tmrel)].reset_index().age_group_id)
 
-        rr = rr[(rr.cause_id == cause_id) & rr_measures[measure] & (rr.age_group.id.isin(exposed_age_groups))]
-        rr_age_groups = set(rr.age_group_id)
+        valid_rr = rr[(rr.cause_id == cause_id) & rr_measures[measure] & (rr.age_group_id.isin(exposed_age_groups))]
+        rr_age_groups = set(valid_rr.age_group_id)
 
     else:  # categorical distribution
         #  Non-trivial rr for categorical risk factors is where relative risk is not equal to 1.
@@ -1479,12 +1482,13 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
     #  We may have paf outside of exposure/rr but inside of cause age restrictions, then warn it.
     #  If paf does not exist for the narrowest range of exposure/rr/cause, raise an error.
     cause_age_start, cause_age_end = age_restrictions[measure]
+  
     age_start = max(min(rr_age_groups), cause_age_start)
     age_end = min(max(rr_age_groups), cause_age_end)
 
-    valid_but_no_rr = set(range(cause_age_start, cause_age_end + 1)) - rr_age_groups
+    valid_but_no_rr = set(get_restriction_age_ids(cause_age_start, cause_age_end)) - rr_age_groups
 
-    missing_pafs = set(range(age_start, age_end + 1)) - set(paf.age_group_id)
+    missing_pafs = set(get_restriction_age_ids(age_start, age_end)) - set(paf.age_group_id)
     extra_paf = set(paf.age_group_id) - set(valid_but_no_rr)
 
     if missing_pafs:
@@ -1898,5 +1902,6 @@ def check_metric_id(data: pd.DataFrame, expected_metric: str):
     if set(data.metric_id) != {METRICS[expected_metric.capitalize()]}:
         raise DataAbnormalError(f'Data includes metrics beyond the expected {expected_metric.lower()} '
                                 f'(metric_id {METRICS[expected_metric.capitalize()]}')
+
 
 
