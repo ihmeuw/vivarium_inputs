@@ -3,10 +3,10 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate
+from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 
 from vivarium_inputs import utilities, utility_data
-from vivarium_inputs.globals import DataTransformationError, Population
+from vivarium_inputs.globals import DataTransformationError, Population, PROTECTIVE_CAUSE_RISK_PAIRS
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
@@ -23,6 +23,7 @@ VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_EXPOSURE_DIST_WEIGHTS_RANGE = (0.0, 1.0)
 VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 10.0, 'categorical': 20.0})
 VALID_PAF_RANGE = (0.0, 1.0)
+VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 VALID_UTILIZATION_RANGE = (0, 50)
 VALID_POPULATION_RANGE = (0, 100_000_000)
@@ -340,18 +341,37 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=1.0)
 
 
-def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology], context: SimulationValidationContext):
+def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
+                                              context: SimulationValidationContext):
+
+    protective_causes = PROTECTIVE_CAUSE_RISK_PAIRS[entity.name] if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS else []
+    protective = data[data.affected_entity.isin(protective_causes)]
+    non_protective = data.loc[data.index.difference(protective.index)]
+
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(validate_standard_columns, context)
 
-    check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[0],
+    if protective and not protective.empty:
+        check_value_columns_boundary(protective, boundary_value=VALID_PROTECTIVE_PAF_MIN, boundary_type='lower',
+                                     value_columns=['value'], error=DataTransformationError)
+        check_value_columns_boundary(protective, boundary_value=VALID_PAF_RANGE[0], boundary_type='upper',
+                                     value_columns=['value'])
+        check_value_columns_boundary(protective, boundary_value=VALID_PAF_RANGE[1], boundary_type='upper',
+                                     value_columns=['value'], error=DataTransformationError)
+
+    check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[0],
                                  boundary_type='lower', value_columns=['value'],
                                  error=DataTransformationError)
-    check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[1],
+    check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[1],
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    check_age_restrictions(data, entity, rest_type='inner', fill_value=0.0)
+    for (entity, measure), g in risk_relationship:
+        cause = [c for c in causes if c.name == entity][0]
+        if measure == 'incidence_rate':
+            check_age_restrictions(g, cause, rest_type='yll', fill_value=0.0)
+        else:  # excess mortality
+            check_age_restrictions(g, cause, rest_type='yld', fill_value=0.0)
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 

@@ -9,7 +9,8 @@ from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
                          Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
-                                     DataAbnormalError, InvalidQueryError, DataDoesNotExistError, gbd, Population)
+                                     PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
+                                     DataDoesNotExistError, gbd, Population)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
 from vivarium_inputs.validation.shared import check_value_columns_boundary
@@ -19,6 +20,9 @@ MAX_INCIDENCE = 10
 MAX_REMISSION = 365/3
 MAX_CATEG_REL_RISK = 20
 MAX_CONT_REL_RISK = 5
+MAX_PAF = 1
+MIN_PAF = 0
+MIN_PROTECTIVE_PAF = -1
 MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
 MAX_POP = 100_000_000
@@ -982,6 +986,14 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFa
         of cause age restrictions or data do not exist for the age groups for
         which both exposure and relative risk exist.
     """
+    if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS:
+        protective_causes = [c.gbd_id for c in causes if c.name in PROTECTIVE_CAUSE_RISK_PAIRS[entity.name]]
+    else:
+        protective_causes = []
+
+    protective = data[data.cause_id.isin(protective_causes)]
+    non_protective = data.loc[data.index.difference(protective.index)]
+
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['metric_id', 'measure_id', 'rei_id', 'cause_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
@@ -1003,8 +1015,17 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFa
 
     grouped.apply(check_sex_restrictions, restrictions.male_only, restrictions.female_only)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
-    check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    if not protective.empty:
+        check_value_columns_boundary(data, MIN_PROTECTIVE_PAF, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
+                                     error=DataAbnormalError)
+        check_value_columns_boundary(data, MIN_PAF, 'upper', value_columns=DRAW_COLUMNS, inclusive=True)
+        check_value_columns_boundary(data, MAX_PAF, 'upper', value_columns=DRAW_COLUMNS, inclusive=True,
+                                     error=DataAbnormalError)
+
+    check_value_columns_boundary(non_protective, MIN_PAF, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
+                                 error=DataAbnormalError)
+    check_value_columns_boundary(non_protective, MAX_PAF, 'upper', value_columns=DRAW_COLUMNS, inclusive=True,
+                                 error=DataAbnormalError)
 
     for c_id in set(data.cause_id):
         cause = [c for c in causes if c.gbd_id == c_id][0]
@@ -1072,7 +1093,9 @@ def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entit
 
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
-    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
+    #  Loosen the lower boundary since we know that there exist negative paf for a certain etiology.
+    #  However, keep the upper boundary until we hit the actual case.
+    check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
     for c_id in data.cause_id:
