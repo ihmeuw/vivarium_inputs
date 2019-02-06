@@ -39,6 +39,8 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
 
     Raises
     -------
+    ValueError
+        If the passed `boundary_type` is neither 'upper' nor 'lower'.
     error
         If any values in `value_columns` are above/below `boundary_value`,
         depending on `boundary_type`, raise the passed error if there is one.
@@ -50,9 +52,11 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
     if boundary_type == "lower":
         op = operator.ge if inclusive else operator.gt
         data_values = data[value_columns].min(axis=1)
-    else:
+    elif boundary_type == "upper":
         op = operator.le if inclusive else operator.lt
         data_values = data[value_columns].max(axis=1)
+    else:
+        raise ValueError(f'Boundary type must be either "lower" or "upper". You specified {boundary_type}.')
 
     if isinstance(boundary_value, pd.Series):
         data_values = data_values.sort_index()
