@@ -1012,9 +1012,12 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
     check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
-    if entity.by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
-        # if we have any of the expected gbd age group ids, restriction is not violated
-        raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
+    if entity.by_age:
+        check_age_group_ids(data, None, None)
+        if not (data.age_group_id).intersection(set(gbd.get_age_group_id())):
+            # if we have any of the expected gbd age group ids, restriction is not violated
+            raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
+
     # if we have any age group ids besides all ages and age standardized, restriction is violated
     if not entity.by_age and bool((set(data.age_group_id) - {SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']})):
         raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
