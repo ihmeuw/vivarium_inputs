@@ -167,8 +167,8 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
-        exposed = data[~data.isin([tmrel_cat])]
-        unexposed = data[data.isin([tmrel_cat])]
+        exposed = data[~data.parameter.isin([tmrel_cat])]
+        unexposed = data.loc[data.index.difference(exposed.index)]
 
         #  FIXME: We fill 1 as exposure of tmrel category, which is not correct.
         data = pd.concat([utilities.normalize(exposed, fill_value=0), utilities.normalize(unexposed, fill_value=1)],
@@ -272,7 +272,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
 
     else:  # etiology
         data = extract.extract_data(entity, 'etiology_population_attributable_fraction', location_id)
-        cause = [c for c in causes if c.etiologies and entity in c.etiologies][0]
+        cause = [c for c in causes if entity in c.etiologies][0]
         data = utilities.filter_data_by_restrictions(data, cause, 'inner')
 
     data = utilities.convert_affected_entity(data, 'cause_id')
