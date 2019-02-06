@@ -978,7 +978,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
                       location_id: int, estimation_years: pd.Series) -> None:
     """ Check the standard set of validations on raw estimate data
     for entity, allowing for the possibility of all 0s in the data as valid.
-    Additionally, the standard age and sex restriction checks are replaced with
+    Additionally, the standard age and sex checks are replaced with
     custom covariate versions since covariate restrictions only signal whether
     an entity is age and/or sex specific, nothing about the actual age or sex
     values expected in the data.
@@ -1012,18 +1012,19 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
     check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
-    if entity.by_age:
-        check_age_group_ids(data, None, None)
-    else:
-        if not set(data.age_group_id).issubset({SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']}):
-            raise DataAbnormalError(f'Estimate data for {entity.kind} {entity.name} is not supposed to be by age, '
-                                    f'but contains age groups beyond all ages and age standardized.')
+    if entity.by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
+        # if we have any of the expected gbd age group ids, restriction is not violated
+        raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
+    # if we have any age group ids besides all ages and age standardized, restriction is violated
+    if not entity.by_age and bool((set(data.age_group_id) - {SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']})):
+        raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
+                                'beyond all ages and age standardized.')
 
-    check_sex_ids(data, male_expected=entity.by_sex, female_expected=entity.by_sex,
-                  combined_expected=(not entity.by_sex))
-
-    check_covariate_age_restriction(data, entity.by_age)
-    check_covariate_sex_restriction(data, entity.by_sex)
+    if entity.by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
+        raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
+    elif not entity.by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
+        raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
+                                'for combined male and female data.')
 
 
 def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTechnology],
@@ -1341,64 +1342,6 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool) ->
                                     f'is restricted to {"yll_only" if yll_only else "yld_only"}.')
         else:
             pass
-
-
-def check_covariate_sex_restriction(data: pd.DataFrame, by_sex: bool):
-    """Check that the given data is sex separated if by_sex is True and not
-    otherwise.
-
-    Because covariate sex restrictions are simply by_sex or not rather than
-    specific male_only, female_only, etc. as with other entities, a custom
-    validation function is required.
-
-    Parameters
-    ----------
-    data
-        Dataframe containing 'sex_id' column on which to check by_sex.
-    by_sex
-        Boolean indicating whether the data should be sex specific or not.
-
-    Raises
-    ------
-    DataAbnormalError
-        If data is supposed to separated by sex and is not or if it is not
-        supposed to be separated but is.
-    """
-    if by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
-        raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
-    elif not by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
-        raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
-                                'for combined male and female data.')
-
-
-def check_covariate_age_restriction(data: pd.DataFrame, by_age: bool) -> None:
-    """Check that the given data is age separated if by_age is True and not
-    otherwise.
-
-    Because covariate sex restrictions are simply by_age or not rather than
-    specific age ranges as with other entities, a custom validation
-    function is required.
-
-    Parameters
-    ----------
-    data
-        Dataframe containing 'age_group_id' column on which to check by_age.
-    by_age
-        Boolean indicating whether the data should be age specific or not.
-
-    Raises
-    ------
-    DataAbnormalError
-        If data is supposed to separated by age and is not or if it is not
-        supposed to be separated but is.
-    """
-    if by_age and not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
-        # if we have any of the expected gbd age group ids, restriction is not violated
-        raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
-    # if we have any age group ids besides all ages and age standardized, restriction is violated
-    if not by_age and bool((set(data.age_group_id) - {SPECIAL_AGES['all_ages'], SPECIAL_AGES['age_standardized']})):
-        raise DataAbnormalError('Data is not supposed to be separated by ages, but contains age groups '
-                                'beyond all ages and age standardized.')
 
 
 def check_cause_age_restrictions_sets(entity: Cause) -> None:
