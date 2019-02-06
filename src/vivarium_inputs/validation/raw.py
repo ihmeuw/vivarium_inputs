@@ -621,7 +621,8 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
         Location to which the data should pertain.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
-
+    population
+        Population data , used to check upper bound of `data`
     Raises
     ------
     DataAbnormalError
@@ -755,6 +756,8 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
         Risk factor or alternative risk factor to which the data pertain.
     location_id
         Location to which the data should pertain.
+    exposure
+        Exposure data for `entity` in location `location_id`.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
 
@@ -813,8 +816,6 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
         Risk factor or alternative risk factor to which the data pertain.
     location_id
         Location to which the data should pertain.
-    estimation_years
-        Expected set of years, used to check the `year_id` column in `data`.
 
     Raises
     ------
@@ -875,6 +876,8 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         Risk factor or alternative risk factor to which the data pertain.
     location_id
         Location to which the data should pertain.
+    exposure
+        Exposure data for `entity` in location `location_id`.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
 
@@ -939,8 +942,8 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFactor,
-                                              location_id: int, estimation_years: pd.Series,
-                                              relative_risk: pd.DataFrame, exposure: pd.DataFrame) -> None:
+                                              location_id: int, relative_risk: pd.DataFrame, exposure: pd.DataFrame,
+                                              estimation_years: pd.Series,) -> None:
     """Check the standard set of validations on raw population attributable
     fraction data for entity, replacing the age restrictions check with
     a custom method at the end. Check age and sex ids, age and sex
@@ -963,12 +966,12 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFa
         Risk factor to which the data pertain.
     location_id
         Location to which the data should pertain.
-    estimation_years
-        Expected set of years, used to check the `year_id` column in `data`.
     relative_risk
         Relative risk data for 'entity' in location 'location_id'.
     exposure
         Exposure data for 'entity' in location 'location_id'
+    estimation_years
+        Expected set of years, used to check the `year_id` column in `data`.
 
     Raises
     ------
@@ -1987,6 +1990,3 @@ def check_metric_id(data: pd.DataFrame, expected_metric: str):
     if set(data.metric_id) != {METRICS[expected_metric.capitalize()]}:
         raise DataAbnormalError(f'Data includes metrics beyond the expected {expected_metric.lower()} '
                                 f'(metric_id {METRICS[expected_metric.capitalize()]}')
-
-
-
