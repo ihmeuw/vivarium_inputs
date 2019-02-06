@@ -1493,13 +1493,13 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
         valid_but_no_rr = set(get_restriction_age_ids(cause_age_start, cause_age_end)) - rr_age_groups
 
         missing_pafs = set(get_restriction_age_ids(age_start, age_end)) - set(paf.age_group_id)
-        extra_paf = set(paf.age_group_id) - set(valid_but_no_rr)
+        extra_paf = set(paf.age_group_id).intersection(valid_but_no_rr)
 
         if missing_pafs:
             raise DataAbnormalError(f"Paf for {cause_map[cause_id].name} and {entity.name} have missing data for "
                                     f"the age groups: {missing_pafs}.")
         if extra_paf:
-            warnings.warn(f"Paf for {cause_map[cause_id].name} and {entity.name} have data for "
+            warnings.warn(f"{measure} paf for {cause_map[cause_id].name} and {entity.name} have data for "
                           f"the age groups: {extra_paf}, which do not have either relative risk or exposure data.")
 
 
