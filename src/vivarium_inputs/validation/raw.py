@@ -1043,7 +1043,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int,
 
     if entity.by_age:
         check_age_group_ids(data, age_group_ids, None, None)
-        if not set(data.age_group_id).intersection(set(gbd.get_age_group_id())):
+        if not set(data.age_group_id).intersection(set(age_group_ids)):
             # if we have any of the expected gbd age group ids, restriction is not violated
             raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
 
@@ -1054,7 +1054,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int,
 
     if entity.by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
         raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
-    elif not entity.by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
+    elif not entity.by_sex and set(data.sex_id) != {SEXES['Combined']}:
         raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
                                 'for combined male and female data.')
 
