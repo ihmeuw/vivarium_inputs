@@ -39,9 +39,9 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
 
     Raises
     -------
-    DataAbnormalError
+    error
         If any values in `value_columns` are above/below `boundary_value`,
-        depending on `boundary_type`, if `error` is turned on.
+        depending on `boundary_type`, raise the passed error if there is one.
     """
     msg = (f'Data contains values {"below" if boundary_type == "lower" else "above"} '
            f'{"or equal to " if not inclusive else ""}the expected boundary '
