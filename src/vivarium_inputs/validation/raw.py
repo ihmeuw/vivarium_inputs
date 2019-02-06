@@ -917,8 +917,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         #  age-specific-causes even if risk-exposure may exist for the other age_group_ids. Instead we check age
         #  restrictions with affected causes.
         grouped.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
-        for keys, g in grouped:
-            c_id, morb, mort, _ = keys
+        for (c_id, morb, mort, _), g in grouped:
             cause = [c for c in causes if c.gbd_id == c_id][0]
             if morb == 1:
                 start, end = cause.restrictions.yld_age_group_id_start, cause.restrictions.yld_age_group_id_end
