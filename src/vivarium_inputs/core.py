@@ -283,13 +283,15 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     if entity.kind == 'risk_factor':
         data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
         relative_risk = extract.extract_data(entity, 'relative_risk', location_id)
-        data = data.groupby('cause_id', as_index=False).apply(filter_by_relative_risk, relative_risk)
+        data = data.groupby('cause_id', as_index=False).apply(filter_by_relative_risk, relative_risk).reset_index(drop=True)
 
     else:  # etiology
         data = extract.extract_data(entity, 'etiology_population_attributable_fraction', location_id)
         cause = [c for c in causes if entity in c.etiologies][0]
         data = utilities.filter_data_by_restrictions(data, cause, 'inner', utility_data.get_age_group_ids())
-        data.where(data[DRAW_COLUMNS] < 0, 0, inplace=True)
+        other_cols = [c for c in data.columns if c not in DRAW_COLUMNS]
+        data = data.set_index(other_cols)
+        data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()
 
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'

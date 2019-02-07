@@ -1028,7 +1028,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFa
     female_expected = not restrictions.male_only
 
     grouped = data.groupby(['cause_id', 'measure_id'], as_index=False)
-    grouped.apply(check_age_group_ids, None, None)
+    grouped.apply(check_age_group_ids, age_group_ids, None, None)
     grouped.apply(check_sex_ids, male_expected, female_expected)
 
     grouped.apply(check_sex_restrictions, restrictions.male_only, restrictions.female_only)
@@ -1058,7 +1058,8 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFa
 
 
 def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entity: Etiology,
-                                                       location_id: int, estimation_years: pd.Series) -> None:
+                                                       location_id: int, estimation_years: pd.Series,
+                                                       age_group_ids: List[int]) -> None:
     """Check the standard set of validations on raw etiology population
     attributable fraction data for entity. Check age group and sex ids
     and restrictions.
@@ -1076,6 +1077,8 @@ def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entit
         Location to which the data should pertain.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------

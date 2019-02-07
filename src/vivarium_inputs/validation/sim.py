@@ -356,7 +356,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(validate_standard_columns, context)
 
-    if protective and not protective.empty:
+    if not protective.empty:
         check_value_columns_boundary(protective, boundary_value=VALID_PROTECTIVE_PAF_MIN, boundary_type='lower',
                                      value_columns=['value'], error=DataTransformationError)
         check_value_columns_boundary(protective, boundary_value=VALID_PAF_RANGE[0], boundary_type='upper',
@@ -371,14 +371,13 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    for (entity, measure), g in risk_relationship:
-        cause = [c for c in causes if c.name == entity][0]
+    for (c_name, measure), g in risk_relationship:
+        cause = [c for c in causes if c.name == c_name][0]
         if measure == 'incidence_rate':
             check_age_restrictions(g, cause, rest_type='yll', fill_value=0.0, context=context)
         else:  # excess mortality
             check_age_restrictions(g, cause, rest_type='yld', fill_value=0.0, context=context)
-
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+        check_sex_restrictions(g, cause.restrictions.male_only, cause.restrictions.female_only, fill_value=0.0)
 
 
 def validate_mediation_factors(data: pd.DataFrame, entity: RiskFactor, context: SimulationValidationContext):
@@ -400,7 +399,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
     data.groupby(cols).apply(check_covariate_values)
 
 
-def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity],
+def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity],
                    context: SimulationValidationContext):
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
