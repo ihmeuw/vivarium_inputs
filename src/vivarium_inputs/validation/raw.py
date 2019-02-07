@@ -989,7 +989,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFa
     relative_risk
         Relative risk data for 'entity' in location 'location_id'.
     exposure
-        Exposure data for 'entity' in location 'location_id'
+        Exposure data for 'entity' in location 'location_id'.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
     age_group_ids
@@ -1054,7 +1054,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFa
             raise DataAbnormalError(f'Paf data for {entity.kind} {entity.name} affecting {cause.name} contains yld '
                                     f'values despite the affected entity being restricted to yll only.')
 
-    grouped.apply(check_paf_rr_exposure_age_groups, relative_risk, exposure, entity)
+    grouped.apply(check_paf_rr_exposure_age_groups, relative_risk, exposure, entity, age_group_ids)
 
 
 def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entity: Etiology,
@@ -1537,7 +1537,7 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
 
 
 def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposure:pd.DataFrame,
-                                     entity: RiskFactor)-> None:
+                                     entity: RiskFactor, age_group_ids: List[int])-> None:
     """Check whether population attributable fraction data have consistent
     age group ids to the exposure, relative risk and cause restrictions.
     Since this function applies after the data is grouped by cause and measure,
@@ -1560,7 +1560,9 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
     exposure
         Exposure data for a 'entity'.
     entity
-        Risk factor for which to check `paf`
+        Risk factor for which to check `paf`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     -------
@@ -1609,7 +1611,7 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
         #  We may have paf outside of exposure/rr but inside of cause age restrictions, then warn it.
         #  If paf does not exist for the narrowest range of exposure/rr/cause, raise an error.
         cause_age_start, cause_age_end = age_restrictions[measure]
-        cause_restriction_ages = set(get_restriction_age_ids(cause_age_start, cause_age_end))
+        cause_restriction_ages = set(get_restriction_age_ids(cause_age_start, cause_age_end, age_group_ids))
 
         age_start = max(min(rr_age_groups), cause_age_start)
         age_end = min(max(rr_age_groups), cause_age_end)
@@ -1619,7 +1621,7 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, rr: pd.DataFrame, exposu
         #  since paf may not exist for the full age group ids in cause_restriction_ages, we only raise an error
         #  if there are extra data than cause_restriction_ages.
         not_valid_paf = set(paf.age_group_id) > cause_restriction_ages
-        missing_pafs = set(get_restriction_age_ids(age_start, age_end)) - set(paf.age_group_id)
+        missing_pafs = set(get_restriction_age_ids(age_start, age_end, age_group_ids)) - set(paf.age_group_id)
         extra_paf = set(paf.age_group_id).intersection(valid_but_no_rr)
 
         if not_valid_paf:

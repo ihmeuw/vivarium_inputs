@@ -1,6 +1,7 @@
 from collections import namedtuple
 from typing import Union
 from itertools import product
+import warnings
 
 from gbd_mapping import Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 import pandas as pd
@@ -289,9 +290,11 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
         data = extract.extract_data(entity, 'etiology_population_attributable_fraction', location_id)
         cause = [c for c in causes if entity in c.etiologies][0]
         data = utilities.filter_data_by_restrictions(data, cause, 'inner', utility_data.get_age_group_ids())
-        other_cols = [c for c in data.columns if c not in DRAW_COLUMNS]
-        data = data.set_index(other_cols)
-        data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()
+        if np.any(data[DRAW_COLUMNS] < 0):
+            warnings.warn(f"{entity.name.capitalize()} has negative values for paf. These will be replaced with 0.")
+            other_cols = [c for c in data.columns if c not in DRAW_COLUMNS]
+            data.set_index(other_cols, inplace=True)
+            data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()
 
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
