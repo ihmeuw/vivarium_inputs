@@ -902,7 +902,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
     for c_id in data.cause_id.unique():
         cause = [c for c in causes if c.gbd_id == c_id][0]
-        check_mort_morb_flags(data, cause.restrictions.yld_only, cause.restrictions.yll_only)
+        check_mort_morb_flags(data[data.cause_id == c_id], cause.restrictions.yld_only, cause.restrictions.yll_only)
 
     grouped = data.groupby(['cause_id', 'morbidity', 'mortality', 'parameter'])
     if entity.kind == 'risk_factor':
