@@ -219,6 +219,7 @@ argument to fill the location dimension.
         if not params:
             assert not sig.parameters
         else:
+            assert len(sig.parameters) == len(params)
             for name, annotation in params.items():
                 assert name in sig.parameters
                 assert sig.parameters[name].annotation == annotation
