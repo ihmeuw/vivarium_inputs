@@ -1,4 +1,3 @@
-from collections import namedtuple
 from typing import Union
 from itertools import product
 
@@ -134,7 +133,7 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
     deaths = _get_deaths(entity, location_id)
-    pop = get_structure(namedtuple('Population', 'kind')('population'), location_id)
+    pop = get_structure(Population(), location_id)
     data = deaths.merge(pop, on=DEMOGRAPHIC_COLUMNS)
     data['value'] = data['value_x'] / data['value_y']
     return data.drop(['value_x', 'value_y'], 'columns')

@@ -21,7 +21,7 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
         # Risk-like measures
         'exposure': (extract_exposure, {}),
         'exposure_standard_deviation': (extract_exposure_standard_deviation, {'exposure': extract_exposure}),
-        'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
+        'exposure_distribution_weights': (extract_exposure_distribution_weights, {}),
         'relative_risk': (extract_relative_risk, {'exposure': extract_exposure}),
         'population_attributable_fraction': (extract_population_attributable_fraction, {}),
         'mediation_factors': (extract_mediation_factors, {}),
@@ -40,7 +40,7 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
     try:
         main_extractor, additional_extractors = extractors[measure]
         data = main_extractor(entity, location_id)
-        additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors}
+        additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors.items()}
     except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError, InputsException) as e:
         if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in str(e):
             raise e
