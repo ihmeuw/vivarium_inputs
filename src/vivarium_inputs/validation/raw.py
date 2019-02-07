@@ -913,17 +913,10 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         male_expected = not restrictions.female_only
         female_expected = not restrictions.male_only
 
-        grouped.apply(check_age_group_ids, context, age_start, age_end)
-        for (c_id, _), g in grouped:
-            cause = [c for c in causes if c.gbd_id == c_id][0]
-            check_sex_ids(g, context, male_expected, female_expected, cause=cause)
-            check_sex_restrictions_paf_rr(g, context, restrictions, cause.restrictions)
-
         #  We cannot check age_restrictions with exposure_age_groups since RR may have a subset of age_group_ids.
         #  In this case we do not want to raise an error because RR data may include only specific age_group_ids for
         #  age-specific-causes even if risk-exposure may exist for the other age_group_ids. Instead we check age
         #  restrictions with affected causes.
-        grouped.apply(check_sex_restrictions, context, entity.restrictions.male_only, entity.restrictions.female_only)
         for (c_id, morb, mort, _), g in grouped:
             cause = [c for c in causes if c.gbd_id == c_id][0]
             if morb == 1:
@@ -931,6 +924,8 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
             else:  # morb = 0 , mort = 1
                 start, end = cause.restrictions.yll_age_group_id_start, cause.restrictions.yll_age_group_id_end
             check_age_restrictions(g, context, start, end, error=False)
+            check_sex_ids(g, context, male_expected, female_expected, cause=cause)
+            check_sex_restrictions_paf_rr(g, context, restrictions, cause.restrictions)
 
     else:  # coverage gap
         grouped.apply(check_age_group_ids, context, None, None)

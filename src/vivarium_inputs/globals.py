@@ -115,7 +115,7 @@ SPECIAL_AGES = {'all_ages': 22,
 
 # Cause-risk pair where risk may have a protective effect on a certain cause with negative paf
 PROTECTIVE_CAUSE_RISK_PAIRS = {
-    'high_body_mass_index_in_adults': [causes.neoplasms, causes.breast_cancer]
+    'high_body_mass_index_in_adults': [causes.neoplasms, causes.breast_cancer, causes.esophageal_cancer]
 }
 
 
