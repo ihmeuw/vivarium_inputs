@@ -25,7 +25,7 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
         'relative_risk': (extract_relative_risk, {'exposure': extract_exposure}),
         'population_attributable_fraction': (extract_population_attributable_fraction,
                                              {'exposure': extract_exposure, 'relative_risk': extract_relative_risk}),
-        'etiology_population_attributable_fraction': (extract_population_attributable_fraction, ()),
+        'etiology_population_attributable_fraction': (extract_population_attributable_fraction, {}),
         'mediation_factors': (extract_mediation_factors, {}),
         # Covariate measures
         'estimate': (extract_estimate, {}),
