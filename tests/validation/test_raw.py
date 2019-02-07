@@ -5,16 +5,19 @@ import pytest
 from vivarium_inputs.validation import raw
 from vivarium_inputs.globals import DataAbnormalError, DataDoesNotExistError, SEXES
 
+LOCATION_ID = 100
+ESTIMATION_YEARS = tuple(list(range(1990, 2015, 5)) + [2017])
+AGE_GROUP_IDS = tuple(range(1, 6))
+PARENT_LOCATIONS = (1, 5, 10)
 
 @pytest.fixture
 def mock_validation_context():
-    estimation_years = list(range(1990, 2015, 5)) + [2017]
-    age_group_ids = list(range(1, 6))
     context = raw.RawValidationContext(
-        location_id=100,
-        estimation_years=estimation_years,
-        age_group_ids=age_group_ids,
+        location_id=LOCATION_ID,
+        estimation_years=list(ESTIMATION_YEARS),
+        age_group_ids=list(AGE_GROUP_IDS),
         sexes=SEXES,
+        parent_locations=list(PARENT_LOCATIONS),
     )
     return context
 
@@ -79,8 +82,9 @@ def test_check_location_pass(mock_validation_context, location_id):
     raw.check_location(df, mock_validation_context)
 
 
-def test_check_location_global_pass(mock_validation_context):
-    df = pd.DataFrame({'location_id': [1] * 5})
+@pytest.mark.parametrize('location_id', PARENT_LOCATIONS)
+def test_check_location_parent_pass(mock_validation_context, location_id):
+    df = pd.DataFrame({'location_id': [location_id]})
     raw.check_location(df, mock_validation_context)
 
 
