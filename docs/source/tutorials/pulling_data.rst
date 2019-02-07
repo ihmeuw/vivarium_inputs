@@ -210,19 +210,16 @@ argument to fill the location dimension.
 
     funcs = {get_measure: {'entity': ModelableEntity, 'measure': str, 'location': str},
              get_population_structure: {'location': str},
-             get_theoretical_minimum_risk_life_expectancy: None,
-             get_age_bins: None,
+             get_theoretical_minimum_risk_life_expectancy: {},
+             get_age_bins: {},
              get_demographic_dimensions: {'location': str}
     }
     for func, params in funcs.items():
         sig = inspect.signature(func)
-        if not params:
-            assert not sig.parameters
-        else:
-            assert len(sig.parameters) == len(params)
-            for name, annotation in params.items():
-                assert name in sig.parameters
-                assert sig.parameters[name].annotation == annotation
+        assert len(sig.parameters) == len(params)
+        for name, annotation in params.items():
+            assert name in sig.parameters
+            assert sig.parameters[name].annotation == annotation
         assert sig.return_annotation == pd.DataFrame
 
 
