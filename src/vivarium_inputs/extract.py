@@ -6,36 +6,33 @@ import pandas as pd
 
 from vivarium_inputs.globals import gbd, METRICS, MEASURES, DataAbnormalError, DataDoesNotExistError
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
-from vivarium_inputs.utility_data import get_estimation_years, get_age_group_ids
 import vivarium_inputs.validation.raw as validation
 
 
 def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.DataFrame]:
     extractors = {
         # Cause-like measures
-        'incidence': (extract_incidence, (get_estimation_years, get_age_group_ids)),
-        'prevalence': (extract_prevalence, (get_estimation_years, get_age_group_ids)),
-        'birth_prevalence': (extract_birth_prevalence, (get_estimation_years, get_age_group_ids)),
-        'disability_weight': (extract_disability_weight, ()),
-        'remission': (extract_remission, (get_estimation_years, get_age_group_ids)),
-        'deaths': (extract_deaths, (extract_structure, get_estimation_years, get_age_group_ids)),
+        'incidence': (extract_incidence, {}),
+        'prevalence': (extract_prevalence, {}),
+        'birth_prevalence': (extract_birth_prevalence, {}),
+        'disability_weight': (extract_disability_weight, {}),
+        'remission': (extract_remission, {}),
+        'deaths': (extract_deaths, {'population': extract_structure}),
         # Risk-like measures
-        'exposure': (extract_exposure, (get_estimation_years, get_age_group_ids)),
-        'exposure_standard_deviation': (extract_exposure_standard_deviation,
-                                        (extract_exposure, get_estimation_years, get_age_group_ids)),
+        'exposure': (extract_exposure, {}),
+        'exposure_standard_deviation': (extract_exposure_standard_deviation, {'exposure': extract_exposure}),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
-        'relative_risk': (extract_relative_risk, (extract_exposure, get_estimation_years, get_age_group_ids)),
-        'population_attributable_fraction': (extract_population_attributable_fraction,
-                                             (get_estimation_years, get_age_group_ids)),
-        'mediation_factors': (extract_mediation_factors, ()),
+        'relative_risk': (extract_relative_risk, {'exposure': extract_exposure}),
+        'population_attributable_fraction': (extract_population_attributable_fraction, {}),
+        'mediation_factors': (extract_mediation_factors, {}),
         # Covariate measures
-        'estimate': (extract_estimate, (get_estimation_years, get_age_group_ids)),
+        'estimate': (extract_estimate, {}),
         # Health system measures
-        'cost': (extract_cost, (get_estimation_years,)),
-        'utilization': (extract_utilization, (get_estimation_years,)),
+        'cost': (extract_cost, {}),
+        'utilization': (extract_utilization, {}),
         # Population measures
-        'structure': (extract_structure, (get_estimation_years, get_age_group_ids)),
-        'theoretical_minimum_risk_life_expectancy': (extract_theoretical_minimum_risk_life_expectancy, ()),
+        'structure': (extract_structure, {}),
+        'theoretical_minimum_risk_life_expectancy': (extract_theoretical_minimum_risk_life_expectancy, {}),
     }
 
     validation.check_metadata(entity, measure)
@@ -43,7 +40,7 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
     try:
         main_extractor, additional_extractors = extractors[measure]
         data = main_extractor(entity, location_id)
-        additional_data = [additional_extractor(entity, location_id) for additional_extractor in additional_extractors]
+        additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors}
     except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError, InputsException) as e:
         if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in str(e):
             raise e
@@ -55,7 +52,7 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
         else:
             raise DataDoesNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
 
-    validation.validate_raw_data(data, entity, measure, location_id, *additional_data)
+    validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
     return data
 
 
