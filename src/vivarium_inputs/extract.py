@@ -21,7 +21,7 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
         # Risk-like measures
         'exposure': (extract_exposure, {}),
         'exposure_standard_deviation': (extract_exposure_standard_deviation, {'exposure': extract_exposure}),
-        'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
+        'exposure_distribution_weights': (extract_exposure_distribution_weights, {}),
         'relative_risk': (extract_relative_risk, {'exposure': extract_exposure}),
         'population_attributable_fraction': (extract_population_attributable_fraction,
                                              {'exposure': extract_exposure, 'relative_risk': extract_relative_risk}),
