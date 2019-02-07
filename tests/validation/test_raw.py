@@ -3,23 +3,23 @@ import pandas as pd
 import pytest
 
 from vivarium_inputs.validation import raw
-from vivarium_inputs.globals import DataAbnormalError, DataDoesNotExistError
+from vivarium_inputs.globals import DataAbnormalError, DataDoesNotExistError, SEXES
 
-
-@pytest.fixture
-def gbd_mock(mocker):
-    gbd_mock = mocker.patch('vivarium_inputs.validation.raw.gbd')
-    gbd_mock.get_age_group_id.return_value = list(range(1, 6))
-    return gbd_mock
-
+LOCATION_ID = 100
+ESTIMATION_YEARS = tuple(list(range(1990, 2015, 5)) + [2017])
+AGE_GROUP_IDS = tuple(range(1, 6))
+PARENT_LOCATIONS = (1, 5, 10)
 
 @pytest.fixture
-def estimation_years():
-    return list(range(1990, 2015, 5)) + [2017]
-
-@pytest.fixture
-def age_group_ids():
-    return list(range(1, 6))
+def mock_validation_context():
+    context = raw.RawValidationContext(
+        location_id=LOCATION_ID,
+        estimation_years=list(ESTIMATION_YEARS),
+        age_group_ids=list(AGE_GROUP_IDS),
+        sexes=SEXES,
+        parent_locations=list(PARENT_LOCATIONS),
+    )
+    return context
 
 
 @pytest.fixture
@@ -60,39 +60,41 @@ def test_check_mort_morb_flags_pass(mort, morb, yld_only, yll_only):
                                              (range(1990, 2018), 'annual'),
                                              (list(range(1990, 2015, 5)) + [2017], 'binned')],
                          ids=['annual with extra', 'annual', 'binned'])
-def test_check_years_pass(years, bin_type, estimation_years):
+def test_check_years_pass(mock_validation_context, years, bin_type):
     df = pd.DataFrame({'year_id': years})
-    raw.check_years(df, bin_type, estimation_years)
+    raw.check_years(df, mock_validation_context, bin_type)
 
 
 @pytest.mark.parametrize('years, bin_type, match', [([1990, 1992], 'annual', 'missing'),
                                                     ([1990, 1995], 'binned', 'missing'),
                                                     (list(range(1990, 2015, 5)) + [2017, 2020], 'binned', 'extra')],
                          ids=['annual with gap', 'binned with gap', 'binned with extra'])
-def test_check_years_fail(years, bin_type, match, estimation_years):
+def test_check_years_fail(mock_validation_context, years, bin_type, match):
     df = pd.DataFrame({'year_id': years})
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_years(df, bin_type, estimation_years)
+        raw.check_years(df, mock_validation_context, bin_type)
 
 
 @pytest.mark.parametrize('location_id', list(range(2, 10)))
-def test_check_location_pass(location_id):
+def test_check_location_pass(mock_validation_context, location_id):
+    mock_validation_context['location_id'] = location_id
     df = pd.DataFrame({'location_id': [location_id] * 5})
-    raw.check_location(df, location_id)
+    raw.check_location(df, mock_validation_context)
 
 
-def test_check_location_global_pass():
-    df = pd.DataFrame({'location_id': [1] * 5})
-    raw.check_location(df, 100)
+@pytest.mark.parametrize('location_id', PARENT_LOCATIONS)
+def test_check_location_parent_pass(mock_validation_context, location_id):
+    df = pd.DataFrame({'location_id': [location_id]})
+    raw.check_location(df, mock_validation_context)
 
 
 @pytest.mark.parametrize('location_ids, match', [([1, 2], 'multiple'),
                                                  ([2, 2], 'actually has location id')],
                          ids=['multiple locations', 'wrong location'])
-def test_check_location_fail(location_ids, match):
+def test_check_location_fail(mock_validation_context, location_ids, match):
     df = pd.DataFrame({'location_id': location_ids})
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_location(df, -1)
+        raw.check_location(df, mock_validation_context)
 
 
 @pytest.mark.parametrize('columns', [['a', 'b'], ['c', 'd', 'e'], ['a'], []])
@@ -159,10 +161,10 @@ def test_check_data_exist_pass(data):
                                                              ([1, 3, 4, 5], None, None, 'non-contiguous'),
                                                              ([1, 2, 3, 100], 1, 3, 'invalid'),
                                                              ([1, 2, 3, 5], 1, 3, 'non-contiguous')])
-def test_check_age_group_ids_fail(age_group_ids, test_age_ids, start, end, match):
+def test_check_age_group_ids_fail(mock_validation_context, test_age_ids, start, end, match):
     df = pd.DataFrame({'age_group_id': test_age_ids})
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_age_group_ids(df, age_group_ids, start, end)
+        raw.check_age_group_ids(df, mock_validation_context, start, end)
 
 
 @pytest.mark.parametrize('test_age_ids, start, end, match',
@@ -170,19 +172,19 @@ def test_check_age_group_ids_fail(age_group_ids, test_age_ids, start, end, match
                           ([2, 3, 4], 2, 3, 'additional age groups'),
                           ([1, 2, 3, 4, 5], 1, 3, 'additional age groups'),
                           ([1, 2, 3], 1, 5, 'contain all age groups in restriction range')])
-def test_check_age_group_ids_warn(age_group_ids, test_age_ids, start, end, match):
+def test_check_age_group_ids_warn(mock_validation_context, test_age_ids, start, end, match):
     df = pd.DataFrame({'age_group_id': test_age_ids})
     with pytest.warns(Warning, match=match):
-        raw.check_age_group_ids(df, age_group_ids, start, end)
+        raw.check_age_group_ids(df, mock_validation_context, start, end)
 
 
 @pytest.mark.parametrize('test_age_ids, start, end',
                          [([2, 3, 4], 2, 4),
                           ([2, 3, 4], None, None),
                           ([1, 2, 3, 4, 5], 1, 5)])
-def test_check_age_group_ids_pass(age_group_ids, test_age_ids, start, end, recwarn):
+def test_check_age_group_ids_pass(mock_validation_context, test_age_ids, start, end, recwarn):
     df = pd.DataFrame({'age_group_id': test_age_ids})
-    raw.check_age_group_ids(df, age_group_ids, start, end)
+    raw.check_age_group_ids(df, mock_validation_context, start, end)
 
     assert len(recwarn) == 0, 'An unexpected warning was raised.'
 
@@ -190,19 +192,19 @@ def test_check_age_group_ids_pass(age_group_ids, test_age_ids, start, end, recwa
 @pytest.mark.parametrize('sex_ids, male, female, both', [([1, 2, 12], True, False, False),
                                                          ([1, 2, 3, 3, 0], True, True, True),
                                                          ([5], False, False, False)])
-def test_check_sex_ids_fail(sex_ids, male, female, both, gbd_mock):
+def test_check_sex_ids_fail(mock_validation_context, sex_ids, male, female, both):
     df = pd.DataFrame({'sex_id': sex_ids})
     with pytest.raises(DataAbnormalError):
-        raw.check_sex_ids(df, male, female, both)
+        raw.check_sex_ids(df, mock_validation_context, male, female, both)
 
 
 @pytest.mark.parametrize('sex_ids, male, female, both, match', [([1, 2, 1], True, True, True, ['missing']),
                                                                 ([1, 2, 3, 2], True, True, False, ['extra']),
                                                                 ([1], False, True, False, ['extra', 'missing'])])
-def test_check_sex_ids_warn(sex_ids, male, female, both, match, gbd_mock):
+def test_check_sex_ids_warn(mock_validation_context, sex_ids, male, female, both, match):
     df = pd.DataFrame({'sex_id': sex_ids})
     with pytest.warns(None) as record:
-        raw.check_sex_ids(df, male, female, both)
+        raw.check_sex_ids(df, mock_validation_context, male, female, both)
 
     assert len(record) == len(match), 'The expected number of warnings were not raised.'
     for i, m in enumerate(match):
@@ -213,21 +215,23 @@ def test_check_sex_ids_warn(sex_ids, male, female, both, match, gbd_mock):
                                                          ([1, 2, 2, 2], True, True, False),
                                                          ([1, 2, 3, 3, 2, 1], True, True, True),
                                                          ([], False, False, False)])
-def test_check_sex_ids_pass(sex_ids, male, female, both, gbd_mock, recwarn):
+def test_check_sex_ids_pass(mock_validation_context, sex_ids, male, female, both, recwarn):
     df = pd.DataFrame({'sex_id': sex_ids})
-    raw.check_sex_ids(df, male, female, both)
+    raw.check_sex_ids(df, mock_validation_context, male, female, both)
 
     assert len(recwarn) == 0, 'An unexpected warning was raised.'
 
 
-test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 4, ['a', 'b'], 'missing'),
-             (pd.DataFrame({'age_group_id': [1, 2], 'a': [0, 0], 'b': [0, 0]}), 1, 2, ['a', 'b'], 'missing for all age groups')]
+test_data = [
+    (pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 4, ['a', 'b'], 'missing'),
+    (pd.DataFrame({'age_group_id': [1, 2], 'a': [0, 0], 'b': [0, 0]}), 1, 2, ['a', 'b'], 'missing for all age groups')
+]
 
 
 @pytest.mark.parametrize('data, start, end, val_cols, match', test_data)
-def test_check_age_restrictions_fail(age_group_ids, data, start, end, val_cols, match):
+def test_check_age_restrictions_fail(mock_validation_context, data, start, end, val_cols, match):
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_age_restrictions(data, age_group_ids, start, end, value_columns=val_cols)
+        raw.check_age_restrictions(data, mock_validation_context, start, end, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5], 'a': 1, 'b': 0}), 1, 4, ['a', 'b']),
@@ -235,9 +239,9 @@ test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5], 'a': 1, 'b': 0}), 1
 
 
 @pytest.mark.parametrize('data, start, end, val_cols', test_data)
-def test_check_age_restrictions_warn(age_group_ids, data, start, end, val_cols):
+def test_check_age_restrictions_warn(mock_validation_context, data, start, end, val_cols):
     with pytest.warns(Warning, match='also included'):
-        raw.check_age_restrictions(data, age_group_ids, start, end, value_columns=val_cols)
+        raw.check_age_restrictions(data, mock_validation_context, start, end, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 3, ['a', 'b']),
@@ -246,8 +250,8 @@ test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 3, [
 
 
 @pytest.mark.parametrize('data, start, end, val_cols', test_data)
-def test_check_age_restrictions_pass(age_group_ids, data, start, end, val_cols):
-    raw.check_age_restrictions(data, age_group_ids, start, end, value_columns=val_cols)
+def test_check_age_restrictions_pass(mock_validation_context, data, start, end, val_cols):
+    raw.check_age_restrictions(data, mock_validation_context, start, end, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 0, 'b': 0, 'c': 1}), True, False,
@@ -261,9 +265,9 @@ test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 0, 'b': 0, 'c': 1}), True, Fa
 
 
 @pytest.mark.parametrize('data, male, female, val_cols, match', test_data)
-def test_check_sex_restrictions_fail(data, male, female, val_cols, match, gbd_mock):
+def test_check_sex_restrictions_fail(mock_validation_context, data, male, female, val_cols, match):
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_sex_restrictions(data, male, female, value_columns=val_cols)
+        raw.check_sex_restrictions(data, mock_validation_context, male, female, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'sex_id': [1, 2], 'a': 1, 'b': 0}), True, False,
@@ -273,9 +277,9 @@ test_data = [(pd.DataFrame({'sex_id': [1, 2], 'a': 1, 'b': 0}), True, False,
 
 
 @pytest.mark.parametrize('data, male, female, val_cols, match', test_data)
-def test_check_sex_restrictions_warn(data, male, female, val_cols, match, gbd_mock):
+def test_check_sex_restrictions_warn(mock_validation_context, data, male, female, val_cols, match):
     with pytest.warns(Warning, match=match):
-        raw.check_sex_restrictions(data, male, female, value_columns=val_cols)
+        raw.check_sex_restrictions(data, mock_validation_context, male, female, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 1, 'b': 0, 'c': 0}), True, False, ['a', 'b']),
@@ -286,8 +290,8 @@ test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 1, 'b': 0, 'c': 0}), True, Fa
 
 
 @pytest.mark.parametrize('data, male, female, val_cols', test_data)
-def test_check_sex_restrictions_pass(data, male, female, val_cols, gbd_mock):
-    raw.check_sex_restrictions(data, male, female, value_columns=val_cols)
+def test_check_sex_restrictions_pass(mock_validation_context, data, male, female, val_cols):
+    raw.check_sex_restrictions(data, mock_validation_context, male, female, value_columns=val_cols)
 
 
 @pytest.mark.parametrize('m_ids, expected, match', [([1, 1, 1, 12], ['A'], 'multiple'),

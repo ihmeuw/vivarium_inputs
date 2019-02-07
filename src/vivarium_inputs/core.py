@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract, utility_data
-from vivarium_inputs.globals import InvalidQueryError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, Population, gbd
+from vivarium_inputs.globals import InvalidQueryError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, Population
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
@@ -51,7 +51,7 @@ def get_data(entity, measure: str, location: str):
     if entity.kind not in entity_types:
         raise InvalidQueryError(f'{measure.capitalize()} not available for {entity.kind}.')
 
-    location_id = utilities.get_location_id(location)
+    location_id = utility_data.get_location_id(location)
     data = handler(entity, location_id)
     return data
 

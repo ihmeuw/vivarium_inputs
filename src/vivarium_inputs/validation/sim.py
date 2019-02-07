@@ -32,20 +32,14 @@ VALID_LIFE_EXP_RANGE = (0, 90)
 
 class SimulationValidationContext:
 
-    def __init__(self, location, years: pd.DataFrame = None, age_bins: pd.DataFrame = None, **kwargs):
+    def __init__(self, location, **additional_data):
         self.context_data = {'location': location}
+        self.context_data.update(additional_data)
 
-        if years is None:
+        if 'years' not in self.context_data:
             self.context_data['years'] = utility_data.get_year_block()
-        else:
-            self.context_data['years'] = years
-
-        if age_bins is None:
+        if 'age_bins' not in self.context_data:
             self.context_data['age_bins'] = utility_data.get_age_bins()
-        else:
-            self.context_data['age_bins'] = age_bins
-
-        self.context_data.update(kwargs)
 
     def __getitem__(self, key):
         return self.context_data[key]
@@ -149,7 +143,6 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-
 def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext):
     validate_standard_columns(data, context)
 
@@ -178,7 +171,6 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
                                  error=DataTransformationError)
 
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
-
 
 
 def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext):
@@ -400,7 +392,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
 
 
 def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity],
-                   context: SimulationValidationContext):
+                  context: SimulationValidationContext):
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
                                  value_columns=['value'], inclusive=True,
