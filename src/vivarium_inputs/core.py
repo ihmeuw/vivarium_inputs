@@ -284,6 +284,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
         data = extract.extract_data(entity, 'etiology_population_attributable_fraction', location_id)
         cause = [c for c in causes if entity in c.etiologies][0]
         data = utilities.filter_data_by_restrictions(data, cause, 'inner')
+        data.where(data[DRAW_COLUMNS] < 0, 0, inplace=True)
 
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
