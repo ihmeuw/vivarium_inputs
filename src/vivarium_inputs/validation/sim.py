@@ -547,7 +547,7 @@ def check_covariate_values(data: pd.DataFrame):
 
     # allow the case where lower = mean = upper = 0 b/c of things like age
     # specific fertility rate where all estimates are 0 for young age groups
-    if np.all(data.value != 0) and not np.all(lower < mean < upper):
+    if not np.all(lower == mean == upper == 0 or lower < mean < upper):
         raise DataTransformationError('Covariate data contains demographic groups for which the '
                                       'estimates for lower, mean, and upper values are not all 0 '
                                       'and it is not the case that lower < mean < upper. ')
