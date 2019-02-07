@@ -381,7 +381,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
     data.groupby(cols).apply(check_covariate_values)
 
 
-def _validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity],
+def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity],
                    context: SimulationValidationContext):
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
