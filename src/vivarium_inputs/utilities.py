@@ -7,11 +7,7 @@ import numpy as np
 import pandas as pd
 
 from vivarium_inputs import utility_data
-from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
-
-
-def get_location_id(location_name):
-    return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[location_name]
+from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 
 
 ##################################################

@@ -31,6 +31,10 @@ def get_age_bins(*_, **__) -> pd.DataFrame:
     return age_bins
 
 
+def get_location_id(location_name):
+    return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[location_name]
+
+
 def get_location_id_parents(location_id: int) -> List[int]:
     location_metadata = gbd.get_location_path_to_global().set_index('location_id')
     parent_ids = [int(loc) for loc in location_metadata.at[location_id, 'path_to_top_parent'].split(',')]
