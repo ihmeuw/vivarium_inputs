@@ -366,9 +366,9 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     for (c_name, measure), g in risk_relationship:
         cause = [c for c in causes if c.name == c_name][0]
         if measure == 'incidence_rate':
-            check_age_restrictions(g, cause, rest_type='yll', fill_value=0.0, context=context)
-        else:  # excess mortality
             check_age_restrictions(g, cause, rest_type='yld', fill_value=0.0, context=context)
+        else:  # excess mortality
+            check_age_restrictions(g, cause, rest_type='yll', fill_value=0.0, context=context)
         check_sex_restrictions(g, cause.restrictions.male_only, cause.restrictions.female_only, fill_value=0.0)
 
 
