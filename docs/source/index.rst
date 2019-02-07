@@ -10,3 +10,4 @@ Vivarium Inputs
    :caption: Contents:
 
    api_reference
+   tutorials/index
