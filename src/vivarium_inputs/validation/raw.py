@@ -9,7 +9,7 @@ from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
-                                     DataAbnormalError, InvalidQueryError, DataDoesNotExistError, gbd, Population)
+                                     DataAbnormalError, InvalidQueryError, DataDoesNotExistError, Population)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
 from vivarium_inputs.validation.shared import check_value_columns_boundary
@@ -35,6 +35,8 @@ class RawValidationContext:
             self.context_data['age_group_ids'] = utility_data.get_age_group_ids()
         if 'sexes' not in self.context_data:
             self.context_data['sexes'] = SEXES
+        if 'parent_locations' not in self.context_data:
+            self.context_data['parent_locations'] = utility_data.get_location_id_parents(location_id)
 
     def __getitem__(self, key):
         return self.context_data[key]
@@ -1306,6 +1308,7 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
             raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
                                       f' We currently do not support these causes.')
 
+
 ############################
 # RAW VALIDATION UTILITIES #
 ############################
@@ -1426,12 +1429,7 @@ def check_location(data: pd.DataFrame, context: RawValidationContext) -> None:
 
     data_location_id = data['location_id'].unique()[0]
 
-    location_metadata = gbd.get_location_path_to_global()
-    path_to_parent = location_metadata.loc[location_metadata.location_id == context['location_id'],
-                                           'path_to_top_parent'].values[0].split(',')
-    path_to_parent = [int(i) for i in path_to_parent]
-
-    if data_location_id not in path_to_parent:
+    if data_location_id not in context['parent_locations'] + [context['location_id']]:
         raise DataAbnormalError(f'Data pulled for {context["location_id"]} actually has location '
                                 f'id {data_location_id}, which is not in its hierarchy.')
 
