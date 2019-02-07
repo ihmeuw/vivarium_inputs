@@ -18,11 +18,11 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
         'birth_prevalence': (extract_birth_prevalence, (get_estimation_years, get_age_group_ids)),
         'disability_weight': (extract_disability_weight, ()),
         'remission': (extract_remission, (get_estimation_years, get_age_group_ids)),
-        'deaths': (extract_deaths, (get_estimation_years, get_age_group_ids, extract_structure)),
+        'deaths': (extract_deaths, (extract_structure, get_estimation_years, get_age_group_ids)),
         # Risk-like measures
         'exposure': (extract_exposure, (get_estimation_years, get_age_group_ids)),
         'exposure_standard_deviation': (extract_exposure_standard_deviation,
-                                        (extract_exposure, get_estimation_years)),
+                                        (extract_exposure, get_estimation_years, get_age_group_ids)),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
         'relative_risk': (extract_relative_risk, (extract_exposure, get_estimation_years, get_age_group_ids)),
         'population_attributable_fraction': (extract_population_attributable_fraction,

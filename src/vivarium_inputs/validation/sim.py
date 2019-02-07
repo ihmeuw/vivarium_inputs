@@ -528,7 +528,7 @@ def validate_value_column(data: pd.DataFrame):
 
 
 def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_type: str,
-                            fill_value: float, context: SimulationValidationContext):
+                           fill_value: float, context: SimulationValidationContext):
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
     age_start = float(age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start'])

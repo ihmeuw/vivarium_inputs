@@ -343,7 +343,7 @@ def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
 
 
 def get_demographic_dimensions(entity: Population, location_id: int, draws: bool = False) -> pd.DataFrame:
-    ages = utility_data.get_age_bins().age_group_id
+    ages = utility_data.get_age_group_ids()
     estimation_years = utility_data.get_estimation_years()
     years = range(min(estimation_years), max(estimation_years) + 1)
     sexes = [SEXES['Male'], SEXES['Female']]

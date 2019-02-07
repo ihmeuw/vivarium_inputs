@@ -608,8 +608,8 @@ def validate_remission(data: pd.DataFrame, entity: Cause, location_id: int,
     check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
-def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int,
-                    estimation_years: pd.Series, age_group_ids: List[int], population: pd.DataFrame) -> None:
+def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int, population: pd.DataFrame,
+                    estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """ Check the standard set of validations on raw deaths data for entity,
     pulling population data for location_id to use as the upper boundary
     for values in deaths.
@@ -622,12 +622,12 @@ def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int,
         Cause to which the data pertain.
     location_id
         Location to which the data should pertain.
+    population
+        Population numbers by age, sex, and year.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
     age_group_ids
         List of possible age group ids.
-    population
-        Population numbers by age, sex, and year.
 
     Raises
     ------
