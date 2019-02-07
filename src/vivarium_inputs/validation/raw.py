@@ -1000,9 +1000,9 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
 
     grouped = data.groupby(['cause_id', 'measure_id'], as_index=False)
     grouped.apply(check_age_group_ids, context, None, None)
-    grouped.apply(check_sex_ids, male_expected, female_expected)
+    grouped.apply(check_sex_ids, context, male_expected, female_expected)
 
-    grouped.apply(check_sex_restrictions, restrictions.male_only, restrictions.female_only)
+    grouped.apply(check_sex_restrictions, context, restrictions.male_only, restrictions.female_only)
 
     if not protective.empty:
         check_value_columns_boundary(data, MIN_PROTECTIVE_PAF, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,

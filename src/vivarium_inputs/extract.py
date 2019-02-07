@@ -42,7 +42,7 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
     try:
         main_extractor, additional_extractors = extractors[measure]
         data = main_extractor(entity, location_id)
-        additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors}
+        additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors.items()}
     except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError, InputsException) as e:
         if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in str(e):
             raise e

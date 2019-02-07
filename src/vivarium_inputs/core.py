@@ -272,7 +272,7 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
     return data
 
 
-def filter_by_relative_risk(df: pd.DataFrame, relative_risk: pd.DataFrame):
+def filter_by_relative_risk(df: pd.DataFrame, relative_risk: pd.DataFrame) -> pd.DataFrame:
     c_id = df.cause_id.unique()[0]
     rr = relative_risk[relative_risk.cause_id == c_id]
     if set(rr.mortality) == {1} and set(rr.morbidity) == {1}:
@@ -281,10 +281,20 @@ def filter_by_relative_risk(df: pd.DataFrame, relative_risk: pd.DataFrame):
 
 
 def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], location_id: int) -> pd.DataFrame:
+    causes_map = {c.gbd_id: c for c in causes}
     if entity.kind == 'risk_factor':
         data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
         relative_risk = extract.extract_data(entity, 'relative_risk', location_id)
         data = data.groupby('cause_id', as_index=False).apply(filter_by_relative_risk, relative_risk).reset_index(drop=True)
+
+        temp = []
+        # We filter paf age groups by cause level restrictions.
+        for (c_id, measure), df in data.groupby(['cause_id', 'measure_id']):
+            cause = causes_map[c_id]
+            measure = 'yll' if measure == MEASURES['YLLs'] else 'yld'
+            df = utilities.filter_data_by_restrictions(df, cause, measure, utility_data.get_age_group_ids())
+            temp.append(df)
+        data = pd.concat(temp, ignore_index=True)
 
     else:  # etiology
         data = extract.extract_data(entity, 'etiology_population_attributable_fraction', location_id)
