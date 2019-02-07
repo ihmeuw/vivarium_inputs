@@ -975,10 +975,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         which both exposure and relative risk exist.
     """
 
-    if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS:
-        protective_causes = [c.gbd_id for c in causes if c.name in PROTECTIVE_CAUSE_RISK_PAIRS[entity.name]]
-    else:
-        protective_causes = []
+    protective_causes = PROTECTIVE_CAUSE_RISK_PAIRS[entity.name] if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS else []
 
     protective = data[data.cause_id.isin(protective_causes)]
     non_protective = data.loc[data.index.difference(protective.index)]
