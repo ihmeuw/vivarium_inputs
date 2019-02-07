@@ -63,7 +63,8 @@ def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFra
         cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
         restrictions_entity = cause
 
-    data = utilities.filter_data_by_restrictions(data, restrictions_entity, 'yld')
+    data = utilities.filter_data_by_restrictions(data, restrictions_entity,
+                                                 'yld', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
@@ -80,7 +81,8 @@ def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFr
         cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
         restrictions_entity = cause
 
-    data = utilities.filter_data_by_restrictions(data, restrictions_entity, 'yld')
+    data = utilities.filter_data_by_restrictions(data, restrictions_entity,
+                                                 'yld', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
     return data
@@ -123,7 +125,8 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
 def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'remission', location_id)
 
-    data = utilities.filter_data_by_restrictions(data, entity, 'yld')
+    data = utilities.filter_data_by_restrictions(data, entity,
+                                                 'yld', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
     return data
@@ -151,7 +154,8 @@ def get_case_fatality(entity: Cause, location_id: int):
 
 def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'deaths', location_id)
-    data = utilities.filter_data_by_restrictions(data, entity, 'yll')
+    data = utilities.filter_data_by_restrictions(data, entity,
+                                                 'yll', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
     return data
@@ -163,7 +167,8 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     data = data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
 
     if entity.kind == 'risk_factor':
-        data = utilities.filter_data_by_restrictions(data, entity, 'outer')
+        data = utilities.filter_data_by_restrictions(data, entity,
+                                                     'outer', utility_data.get_age_group_ids())
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
@@ -283,7 +288,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     else:  # etiology
         data = extract.extract_data(entity, 'etiology_population_attributable_fraction', location_id)
         cause = [c for c in causes if entity in c.etiologies][0]
-        data = utilities.filter_data_by_restrictions(data, cause, 'inner')
+        data = utilities.filter_data_by_restrictions(data, cause, 'inner', utility_data.get_age_group_ids())
         data.where(data[DRAW_COLUMNS] < 0, 0, inplace=True)
 
     data = utilities.convert_affected_entity(data, 'cause_id')
@@ -342,12 +347,12 @@ def get_theoretical_minimum_risk_life_expectancy(entity: Population, location_id
 
 
 def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
-    age_bins = utilities.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
+    age_bins = utility_data.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
     return age_bins
 
 
 def get_demographic_dimensions(entity: Population, location_id: int, draws: bool = False) -> pd.DataFrame:
-    ages = gbd.get_age_group_id()
+    ages = utility_data.get_age_group_ids()
     estimation_years = utility_data.get_estimation_years()
     years = range(min(estimation_years), max(estimation_years) + 1)
     sexes = [SEXES['Male'], SEXES['Female']]

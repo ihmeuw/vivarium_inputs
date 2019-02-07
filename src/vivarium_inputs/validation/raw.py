@@ -369,8 +369,8 @@ def check_population_metadata(entity: Population, measure: str) -> None:
 #################################################
 
 
-def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela],
-                       location_id: int, estimation_years: pd.Series) -> None:
+def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int,
+                       estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """ Check the standard set of validations on raw incidence data for entity.
 
     Parameters
@@ -383,6 +383,8 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         Location to which the data should pertain.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------
@@ -408,19 +410,19 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
         restrictions = cause.restrictions
 
-    check_age_group_ids(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_age_group_ids(data, age_group_ids, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
 
-    check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_age_restrictions(data, age_group_ids, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', inclusive=True, error=DataAbnormalError)
     check_value_columns_boundary(data, MAX_INCIDENCE, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
-def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
-                        location_id: int, estimation_years: pd.Series) -> None:
+def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], location_id: int,
+                        estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """ Check the standard set of validations on raw prevalence data for entity.
 
     Parameters
@@ -433,6 +435,8 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         Location to which the data should pertain.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------
@@ -458,11 +462,12 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
         restrictions = cause.restrictions
 
-    check_age_group_ids(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_age_group_ids(data, age_group_ids,
+                        restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     # como should return all sexes regardless of restrictions
     check_sex_ids(data, male_expected=True, female_expected=True)
 
-    check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_age_restrictions(data, age_group_ids, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
@@ -532,8 +537,6 @@ def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id:
         Cause or sequela to which the data pertain.
     location_id
         Location to which the data should pertain.
-    estimation_years
-        Expected set of years, used to check the `year_id` column in `data`.
 
     Raises
     ------
@@ -560,8 +563,8 @@ def validate_disability_weight(data: pd.DataFrame, entity: Sequela, location_id:
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_remission(data: pd.DataFrame, entity: Cause,
-                       location_id: int, estimation_years: pd.Series) -> None:
+def validate_remission(data: pd.DataFrame, entity: Cause, location_id: int,
+                       estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """ Check the standard set of validations on raw remission data for entity.
 
     Parameters
@@ -574,6 +577,8 @@ def validate_remission(data: pd.DataFrame, entity: Cause,
         Location to which the data should pertain.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------
@@ -596,21 +601,21 @@ def validate_remission(data: pd.DataFrame, entity: Cause,
 
     restrictions = entity.restrictions
 
-    check_age_group_ids(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_age_group_ids(data, age_group_ids, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
 
     male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
     check_sex_ids(data, male_expected, female_expected)
 
-    check_age_restrictions(data, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
+    check_age_restrictions(data, age_group_ids, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
     check_value_columns_boundary(data, MAX_REMISSION, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
-def validate_deaths(data: pd.DataFrame, entity: Cause,
-                    location_id: int, estimation_years: pd.Series, population: pd.DataFrame) -> None:
+def validate_deaths(data: pd.DataFrame, entity: Cause, location_id: int, population: pd.DataFrame,
+                    estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """ Check the standard set of validations on raw deaths data for entity,
     pulling population data for location_id to use as the upper boundary
     for values in deaths.
@@ -623,10 +628,13 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
         Cause to which the data pertain.
     location_id
         Location to which the data should pertain.
+    population
+        Population numbers by age, sex, and year.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
-    population
-        Population data , used to check upper bound of `data`
+    age_group_ids
+        List of possible age group ids.
+
     Raises
     ------
     DataAbnormalError
@@ -647,13 +655,14 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
 
     restrictions = entity.restrictions
 
-    check_age_group_ids(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
+    check_age_group_ids(data, age_group_ids,
+                        restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
 
     male_expected = restrictions.male_only or (not restrictions.male_only and not restrictions.female_only)
     female_expected = restrictions.female_only or (not restrictions.male_only and not restrictions.female_only)
     check_sex_ids(data, male_expected, female_expected)
 
-    check_age_restrictions(data, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
+    check_age_restrictions(data, age_group_ids, restrictions.yll_age_group_id_start, restrictions.yll_age_group_id_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
@@ -666,7 +675,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause,
 
 
 def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
-                      location_id: int, estimation_years: pd.Series) -> None:
+                      location_id: int, estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """Check the standard set of validations on raw exposure data for entity.
     Check age group and sex ids and restrictions for each category individually
     for risk factors, all together for coverage gaps and alternative risk
@@ -685,6 +694,8 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         Location to which the data should pertain.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------
@@ -714,7 +725,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         male_expected = not restrictions.female_only
         female_expected = not restrictions.male_only
 
-        cats.apply(check_age_group_ids, None, None)
+        cats.apply(check_age_group_ids, age_group_ids, None, None)
         cats.apply(check_sex_ids, male_expected, female_expected)
 
         cats.apply(check_sex_restrictions, entity.restrictions.male_only, entity.restrictions.female_only)
@@ -729,7 +740,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
                 check_value_columns_boundary(data, tmrel, 'lower',
                                              value_columns=DRAW_COLUMNS, inclusive=True, error=None)
     else:  # CoverageGap, AlternativeRiskFactor
-        cats.apply(check_age_group_ids, None, None)
+        cats.apply(check_age_group_ids, age_group_ids, None, None)
         cats.apply(check_sex_ids, True, True)
 
     if entity.distribution in ('dichotomous', 'ordered_polytomous', 'unordered_polytomous'):  # categorical
@@ -745,7 +756,8 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
-                                         location_id: int, exposure: pd.DataFrame, estimation_years: pd.Series) -> None:
+                                         location_id: int, exposure: pd.DataFrame, estimation_years: pd.Series,
+                                         age_group_ids: List[int]) -> None:
     """Check the standard set of validations on raw exposure standard
     deviation data for entity. Check that the data exist for age groups where
     we have exposure data. Use the age groups from the corresponding
@@ -764,6 +776,8 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
         Exposure data for `entity` in location `location_id`.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------
@@ -791,7 +805,7 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
     age_start = min(exposure_age_groups)
     age_end = max(exposure_age_groups)
 
-    check_age_group_ids(data, age_start, age_end)
+    check_age_group_ids(data, age_group_ids, age_start, age_end)
     check_sex_ids(data, True, True)
 
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only)
@@ -859,7 +873,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
 
 
 def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap], location_id: int,
-                           exposure: pd.DataFrame, estimation_years: pd.Series)-> None:
+                           exposure: pd.DataFrame, estimation_years: pd.Series, age_group_ids: List[int])-> None:
     """Check the standard set of validations on raw relative risk data for
     entity, replacing the age ids check with a custom check based on the age
     groups present in the exposure data for this entity. Check age and sex ids
@@ -884,6 +898,8 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         Exposure data for `entity` in location `location_id`.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------
@@ -919,7 +935,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         male_expected = not restrictions.female_only
         female_expected = not restrictions.male_only
 
-        grouped.apply(check_age_group_ids, age_start, age_end)
+        grouped.apply(check_age_group_ids, age_group_ids, age_start, age_end)
         grouped.apply(check_sex_ids, male_expected, female_expected)
 
         #  We cannot check age_restrictions with exposure_age_groups since RR may have a subset of age_group_ids.
@@ -933,10 +949,10 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
                 start, end = cause.restrictions.yld_age_group_id_start, cause.restrictions.yld_age_group_id_end
             else:  # morb = 0 , mort = 1
                 start, end = cause.restrictions.yll_age_group_id_start, cause.restrictions.yll_age_group_id_end
-            check_age_restrictions(g, start, end, error=False)
+            check_age_restrictions(g, age_group_ids, start, end, error=False)
 
     else:  # coverage gap
-        grouped.apply(check_age_group_ids, None, None)
+        grouped.apply(check_age_group_ids, age_group_ids, None, None)
         grouped.apply(check_sex_ids, True, True)
 
     check_value_columns_boundary(data, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
@@ -947,7 +963,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFactor,
                                               location_id: int, relative_risk: pd.DataFrame, exposure: pd.DataFrame,
-                                              estimation_years: pd.Series,) -> None:
+                                              estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """Check the standard set of validations on raw population attributable
     fraction data for entity, replacing the age restrictions check with
     a custom method at the end. Check age and sex ids, age and sex
@@ -976,6 +992,8 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: RiskFa
         Exposure data for 'entity' in location 'location_id'
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------
@@ -1086,11 +1104,10 @@ def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entit
     male_expected = not restrictions.female_only
     female_expected = not restrictions.male_only
 
-    check_age_group_ids(data, age_start, age_end)
+    check_age_group_ids(data, age_group_ids, age_start, age_end)
     check_sex_ids(data, male_expected, female_expected)
 
-    check_age_restrictions(data, age_start, age_end)
-
+    check_age_restrictions(data, age_group_ids, age_start, age_end)
     check_sex_restrictions(data, restrictions.male_only, restrictions.female_only)
 
     #  Loosen the lower boundary since we know that there exist negative paf for a certain etiology.
@@ -1112,8 +1129,8 @@ def validate_mediation_factors(data, entity, location_id) -> None:
     raise NotImplementedError()
 
 
-def validate_estimate(data: pd.DataFrame, entity: Covariate,
-                      location_id: int, estimation_years: pd.Series) -> None:
+def validate_estimate(data: pd.DataFrame, entity: Covariate, location_id: int,
+                      estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """ Check the standard set of validations on raw estimate data
     for entity, allowing for the possibility of all 0s in the data as valid.
     Additionally, the standard age and sex checks are replaced with
@@ -1131,6 +1148,8 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
         Location to which the data should pertain.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------
@@ -1151,8 +1170,8 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
     check_location(data, location_id)
 
     if entity.by_age:
-        check_age_group_ids(data, None, None)
-        if not (data.age_group_id).intersection(set(gbd.get_age_group_id())):
+        check_age_group_ids(data, age_group_ids, None, None)
+        if not set(data.age_group_id).intersection(set(age_group_ids)):
             # if we have any of the expected gbd age group ids, restriction is not violated
             raise DataAbnormalError('Data is supposed to be age-separated, but does not contain any GBD age group ids.')
 
@@ -1163,7 +1182,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate,
 
     if entity.by_sex and not {SEXES['Male'], SEXES['Female']}.issubset(set(data.sex_id)):
         raise DataAbnormalError('Data is supposed to be by sex, but does not contain both male and female data.')
-    elif not entity.by_sex and set(data.sex_id) != {gbd.COMBINED[0]}:
+    elif not entity.by_sex and set(data.sex_id) != {SEXES['Combined']}:
         raise DataAbnormalError('Data is not supposed to be separated by sex, but contains sex ids beyond that '
                                 'for combined male and female data.')
 
@@ -1213,8 +1232,8 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTech
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity,
-                         location_id: int, estimation_years: pd.Series) -> None:
+def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, location_id: int,
+                         estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """ Check the standard set of validations on raw utilization data for
     entity, skipping all restrictions checks since HealthCareEntities do not
     have restrictions.
@@ -1229,6 +1248,8 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity,
         Location to which the data should pertain.
     estimation_years
         Expected set of years, used to check the `year_id` column in `data`.
+    age_group_ids
+        List of possible age group ids.
 
     Raises
     ------
@@ -1248,7 +1269,7 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity,
     check_years(data, 'binned', estimation_years)
     check_location(data, location_id)
 
-    check_age_group_ids(data, None, None)
+    check_age_group_ids(data, age_group_ids, None, None)
     check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=False)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
@@ -1256,8 +1277,8 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity,
                                  inclusive=True, error=None)
 
 
-def validate_structure(data: pd.DataFrame, entity: Population,
-                       location_id: int, estimation_years: pd.Series) -> None:
+def validate_structure(data: pd.DataFrame, entity: Population, location_id: int,
+                       estimation_years: pd.Series, age_group_ids: List[int]) -> None:
     """ Check the standard set of validations on raw population data,
     skipping all restrictions checks since Population entities do not
    have restrictions.
@@ -1287,7 +1308,7 @@ def validate_structure(data: pd.DataFrame, entity: Population,
     check_years(data, 'annual', estimation_years)
     check_location(data, location_id)
 
-    check_age_group_ids(data, None, None)
+    check_age_group_ids(data, age_group_ids, None, None)
     check_sex_ids(data, male_expected=True, female_expected=True, combined_expected=True)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=['population'],
@@ -1503,11 +1524,11 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
     if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
     else:
-        yll_ages = get_restriction_age_ids(entity.restrictions.yll_age_group_id_start,
-                                           entity.restrictions.yll_age_group_id_end)
-        yld_ages = get_restriction_age_ids(entity.restrictions.yld_age_group_id_start,
-                                           entity.restrictions.yld_age_group_id_end)
-        if set(yll_ages) > set(yld_ages):
+
+        yll_start, yll_end = entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end
+        yld_start, yld_end = entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end
+
+        if yll_start < yld_start or yld_end < yll_end:
             raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
                                       f' We currently do not support these causes.')
 
@@ -1752,7 +1773,8 @@ def _check_continuity(data_ages: set, all_ages: set):
         raise DataAbnormalError(f'Data contains a non-contiguous age groups: {data_ages}.')
 
 
-def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, restriction_end: float = None):
+def check_age_group_ids(data: pd.DataFrame, age_group_ids: List[int],
+                        restriction_start: Union[int, None], restriction_end: Union[int, None]):
     """Check the set of age_group_ids included in data pulled from GBD for
     the following conditions:
 
@@ -1768,6 +1790,8 @@ def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, res
     ----------
     data
         Dataframe pulled containing age_group_id column.
+    age_group_ids
+        List of possible age group ids.
     restriction_start
         Age group id representing the start of the restriction range
         if applicable.
@@ -1782,8 +1806,8 @@ def check_age_group_ids(data: pd.DataFrame, restriction_start: float = None, res
         or they don't make up a contiguous block.
 
     """
-    all_ages = set(gbd.get_age_group_id())
-    restriction_ages = set(get_restriction_age_ids(restriction_start, restriction_end))
+    all_ages = set(age_group_ids)
+    restriction_ages = set(get_restriction_age_ids(restriction_start, restriction_end, age_group_ids))
     data_ages = set(data.age_group_id)
 
     invalid_ages = data_ages.difference(all_ages)
@@ -1844,8 +1868,8 @@ def check_sex_ids(data: pd.DataFrame, male_expected: bool = True, female_expecte
         warnings.warn(f'Data is missing the following expected sex ids: {missing_sex_ids}.')
 
 
-def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_group_id_end: int,
-                           value_columns: list = DRAW_COLUMNS, error=True):
+def check_age_restrictions(data: pd.DataFrame, age_group_ids: List[int], age_group_id_start: int,
+                           age_group_id_end: int, value_columns: list = DRAW_COLUMNS, error=True):
     """Check that all expected age groups between age_group_id_start and
     age_group_id_end, inclusive, and only those age groups, appear in data with
     non-missing values in `value_columns`.
@@ -1858,6 +1882,8 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
         Lower boundary of age group ids expected in data, inclusive.
     age_group_id_end
         Upper boundary of age group ids expected in data, exclusive.
+    age_group_ids
+        List of possible age group ids.
     value_columns
         List of columns to verify values are non-missing for expected age
         groups and missing for not expected age groups.
@@ -1874,7 +1900,7 @@ def check_age_restrictions(data: pd.DataFrame, age_group_id_start: int, age_grou
         the data.
 
     """
-    expected_gbd_age_ids = get_restriction_age_ids(age_group_id_start, age_group_id_end)
+    expected_gbd_age_ids = get_restriction_age_ids(age_group_id_start, age_group_id_end, age_group_ids)
 
     # age groups we expected in data but that are not
     missing_age_groups = set(expected_gbd_age_ids).difference(set(data.age_group_id))

@@ -9,25 +9,19 @@ from vivarium_inputs.globals import DataTransformationError
 
 @pytest.fixture
 def mock_validation_context():
-    estimation_years = pd.DataFrame({'year_start': range(1990, 2017),
-                                     'year_end': range(1991, 2018)})
+    years = pd.DataFrame({'year_start': range(1990, 2017),
+                          'year_end': range(1991, 2018)})
+    age_bins = pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5],
+                             'age_group_name': ['youngest', 'young', 'middle', 'older', 'oldest'],
+                             'age_group_start': [0, 1, 15, 45, 60],
+                             'age_group_end': [1, 15, 45, 60, 100]})
     context = sim.SimulationValidationContext(
         location='United States',
-        estimation_years=estimation_years
+        years=years,
+        age_bins=age_bins
     )
 
     return context
-
-
-@pytest.fixture
-def mocked_get_age_bins(mocker):
-    gbd_mock = mocker.patch("vivarium_inputs.validation.sim.utilities.gbd.get_age_bins")
-    df = pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5],
-                       'age_group_name': ['youngest', 'young', 'middle', 'older', 'oldest'],
-                       'age_group_years_start': [0, 1, 15, 45, 60],
-                       'age_group_years_end': [1, 15, 45, 60, 100]})
-    gbd_mock.return_value = df
-    return gbd_mock
 
 
 def test__validate_draw_column_pass():
@@ -95,55 +89,49 @@ def test_validate_sex_column_missing_column():
         sim.validate_sex_column(df)
 
 
-def test_validate_age_columns_pass(mocked_get_age_bins):
-    expected_ages = sim.utilities.get_age_bins()[['age_group_start',
-                                              'age_group_end']].sort_values(['age_group_start', 'age_group_end'])
-    sim.validate_age_columns(expected_ages)
+def test_validate_age_columns_pass(mock_validation_context):
+    ages = mock_validation_context['age_bins'].filter(['age_group_start', 'age_group_end'])
+    sim.validate_age_columns(ages, mock_validation_context)
 
 
-def test_validate_age_columns_invalid_age(mocked_get_age_bins):
-    df = sim.utilities.get_age_bins()[['age_group_start',
-                                              'age_group_end']].sort_values(['age_group_start', 'age_group_end'])
-    df.loc[2, 'age_group_start'] = -1
+def test_validate_age_columns_invalid_age(mock_validation_context):
+    ages = mock_validation_context['age_bins'].filter(['age_group_start', 'age_group_end'])
+    ages.loc[2, 'age_group_start'] = -1
     with pytest.raises(DataTransformationError):
-        sim.validate_age_columns(df)
+        sim.validate_age_columns(ages, mock_validation_context)
 
 
-def test_validate_age_columns_missing_group(mocked_get_age_bins):
-    df = sim.utilities.get_age_bins()[['age_group_start',
-                                              'age_group_end']].sort_values(['age_group_start', 'age_group_end'])
-    df.drop(2, inplace=True)
+def test_validate_age_columns_missing_group(mock_validation_context):
+    ages = mock_validation_context['age_bins'].filter(['age_group_start', 'age_group_end'])
+    ages.drop(2, inplace=True)
     with pytest.raises(DataTransformationError):
-        sim.validate_age_columns(df)
+        sim.validate_age_columns(ages, mock_validation_context)
 
 
-@pytest.mark.parametrize("columns", (
-        ('age_group_start'),
-        ('age_group_end'),
-        ('age_group_id_start', 'age_group_end')
-), ids=('missing_end', 'missing_start', 'typo'))
-def test_validate_age_columns_missing_column(columns):
+@pytest.mark.parametrize("columns", (('age_group_start',), ('age_group_end',), ('age_group_id_start', 'age_group_end')),
+                         ids=('missing_end', 'missing_start', 'typo'))
+def test_validate_age_columns_missing_column(columns, mock_validation_context):
     df = pd.DataFrame()
     for col in columns:
         df[col] = [1, 2]
     with pytest.raises(DataTransformationError, match='in columns named'):
-        sim.validate_age_columns(df)
+        sim.validate_age_columns(df, mock_validation_context)
 
 
 def test_validate_year_columns_pass(mock_validation_context):
-    expected_years = mock_validation_context['estimation_years'].sort_values(['year_start', 'year_end'])
+    expected_years = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
     sim.validate_year_columns(expected_years, mock_validation_context)
 
 
 def test_validate_year_columns_invalid_year(mock_validation_context):
-    df = mock_validation_context['estimation_years'].sort_values(['year_start', 'year_end'])
+    df = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
     df.loc[2, 'year_end'] = -1
     with pytest.raises(DataTransformationError):
         sim.validate_year_columns(df, mock_validation_context)
 
 
 def test__validate_year_columns_missing_group(mock_validation_context):
-    df = mock_validation_context['estimation_years'].sort_values(['year_start', 'year_end'])
+    df = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
     df.drop(0, inplace=True)
     with pytest.raises(DataTransformationError):
         sim.validate_year_columns(df, mock_validation_context)
@@ -181,36 +169,36 @@ def test_validate_value_column_missing():
         sim.validate_value_column(df)
 
 
-@pytest.mark.parametrize('values, ids, type, fill', [
+@pytest.mark.parametrize('values, ids, restriction_type, fill', [
         ((1, 1, 1, 1, 1), (1, 5), 'outer', 0.0),
         ((0, 0, 1, 1, 1), (3, 5), 'outer', 0.0),
         ((0, 1, 1, 1, 0), (2, 4), 'outer', 0.0),
         ((1, 1, 1, 0, 0), (1, 3), 'outer', 0.0),
         ((2, 2, 2, 1, 1), (1, 3), 'outer', 1.0),
 ], ids=('no_restr', 'left_restr', 'outer_restr', 'right_restr', 'nonzero_fill'))
-def test_check_age_restrictions(mocker, mocked_get_age_bins, values, ids, type, fill):
+def test_check_age_restrictions(mocker, mock_validation_context, values, ids, restriction_type, fill):
     entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
     entity.return_value = ids
-    age_bins = mocked_get_age_bins()
-    df = pd.DataFrame({'age_group_start': age_bins.age_group_years_start, 'age_group_end': age_bins.age_group_years_end})
+    age_bins = mock_validation_context['age_bins']
+    df = age_bins.filter(['age_group_start', 'age_group_end'])
     df['value'] = values
-    sim.check_age_restrictions(df, entity, type, fill)
+    sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)
 
 
-@pytest.mark.parametrize('values, ids, type, fill', [
+@pytest.mark.parametrize('values, ids, restriction_type, fill', [
         ((1, 1, 1, 1, 1), (1, 4), 'outer', 0.0),
         ((0, 1, 1, 1, 1), (1, 3), 'outer', 0.0),
         ((1, 1, 1, 1, 0), (1, 3), 'outer', 0.0),
         ((2, 2, 2, 2, 1), (2, 5), 'outer', 1.0),
 ], ids=('both_sides', 'left_side', 'right_side', 'nonzero_fill'))
-def test_check_age_restrictions_fail(mocker, mocked_get_age_bins, values, ids, type, fill):
+def test_check_age_restrictions_fail(mocker, mock_validation_context, values, ids, restriction_type, fill):
     entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
     entity.return_value = ids
-    age_bins = mocked_get_age_bins()
-    df = pd.DataFrame({'age_group_start': age_bins.age_group_years_start, 'age_group_end': age_bins.age_group_years_end})
+    age_bins = mock_validation_context['age_bins']
+    df = age_bins.filter(['age_group_start', 'age_group_end'])
     df['value'] = values
     with pytest.raises(DataTransformationError):
-        sim.check_age_restrictions(df, entity, type, fill)
+        sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)
 
 
 @pytest.mark.parametrize('values, restrictions, fill', [
