@@ -33,8 +33,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
             "mapping": alternative_risk_factors,
             "getter": get_risk_data,
             "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "exposure",
-                         "exposure_standard_deviation", "relative_risk", "population_attributable_fraction",
-                         "exposure_distribution_weights"],
+                         "exposure_standard_deviation", "exposure_distribution_weights"],
         },
         "sequela": {
             "mapping": sequelae,
