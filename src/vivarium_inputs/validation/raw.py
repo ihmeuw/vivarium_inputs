@@ -5,7 +5,7 @@ import warnings
 import pandas as pd
 import numpy as np
 
-from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor,
+from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Restrictions,
                          Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs import utility_data
@@ -914,7 +914,10 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         female_expected = not restrictions.male_only
 
         grouped.apply(check_age_group_ids, context, age_start, age_end)
-        grouped.apply(check_sex_ids, context, male_expected, female_expected)
+        for (c_id, _), g in grouped:
+            cause = [c for c in causes if c.gbd_id == c_id][0]
+            check_sex_ids(g, context, male_expected, female_expected, cause=cause)
+            check_sex_restrictions_paf_rr(g, context, restrictions, cause.restrictions)
 
         #  We cannot check age_restrictions with exposure_age_groups since RR may have a subset of age_group_ids.
         #  In this case we do not want to raise an error because RR data may include only specific age_group_ids for
@@ -995,11 +998,12 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     male_expected = not restrictions.female_only
     female_expected = not restrictions.male_only
 
-    grouped = data.groupby(['cause_id', 'measure_id'], as_index=False)
+    grouped = data.groupby(['cause_id', 'measure_id'])
     grouped.apply(check_age_group_ids, context, None, None)
-    grouped.apply(check_sex_ids, context, male_expected, female_expected)
-
-    grouped.apply(check_sex_restrictions, context, restrictions.male_only, restrictions.female_only)
+    for (c_id, _), g in grouped:
+        cause = [c for c in causes if c.gbd_id == c_id][0]
+        check_sex_ids(g, context, male_expected, female_expected, cause=cause)
+        check_sex_restrictions_paf_rr(g, context, restrictions, cause.restrictions)
 
     if not protective.empty:
         check_value_columns_boundary(data, MIN_PROTECTIVE_PAF, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
@@ -1772,7 +1776,8 @@ def check_age_group_ids(data: pd.DataFrame, context: RawValidationContext,
 
 
 def check_sex_ids(data: pd.DataFrame, context: RawValidationContext,
-                  male_expected: bool = True, female_expected: bool = True, combined_expected: bool = False) -> None:
+                  male_expected: bool = True, female_expected: bool = True, combined_expected: bool = False,
+                  cause: Cause = None) -> None:
     """Check whether the data contains valid GBD sex ids and whether the set of
     sex ids in the data matches the expected set.
 
@@ -1793,6 +1798,9 @@ def check_sex_ids(data: pd.DataFrame, context: RawValidationContext,
     combined_expected
         Boolean indicating whether data is expected to include the
         combined sex id.
+    cause
+        Relevant cause of which restrictions can apply to the sex ids in
+        the `data`.
 
     Raises
     ------
@@ -1800,6 +1808,9 @@ def check_sex_ids(data: pd.DataFrame, context: RawValidationContext,
         If data contains any sex ids that aren't valid GBD sex ids.
 
     """
+    if cause:
+        male_expected = male_expected and not cause.restrictions.female_only
+        female_expected = female_expected and not cause.restrictions.male_only
     sexes = context['sexes']
     valid_sex_ids = [sexes['Male'], sexes['Female'], sexes['Combined']]
     gbd_sex_ids = set(np.array(valid_sex_ids)[[male_expected, female_expected, combined_expected]])
@@ -1944,6 +1955,32 @@ def check_sex_restrictions(data: pd.DataFrame, context: RawValidationContext, ma
                                     value_columns=value_columns, error=False):
                 raise DataAbnormalError('Data has no sex restrictions, but does not contain non-zero '
                                         'values for both males and females.')
+
+
+def check_sex_restrictions_paf_rr(data: pd.DataFrame, context: RawValidationContext, restrictions: Restrictions,
+                                  cause_restrictions: Restrictions) -> None:
+    """Check that data contains a sex id according to both relevant cause and
+    risk factor restrictions. We apply both restrictions and expect to have
+    a subset of sex_id in `data`.
+
+    Parameters
+    ----------
+    data
+        DataFrame contained sex_id columns. Only expect to have relative risk
+        or population attributable fraction data.
+    context
+        Wrapper for additional data used in the validation process.
+    restrictions
+        Restrictions from relevant risk factors for `data`.
+    cause_restrictions
+        Restrictions from relevant causes for `data`.
+    """
+    female_only = restrictions.female_only or cause_restrictions.female_only
+    male_only = restrictions.male_only or cause_restrictions.male_only
+
+    #  we only apply value check when at least one of risk and cause restrictions exist.
+    if male_only or female_only:
+        check_sex_restrictions(data, context, male_only, female_only)
 
 
 def check_measure_id(data: pd.DataFrame, allowable_measures: List[str], single_only: bool = True) -> None:
