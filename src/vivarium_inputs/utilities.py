@@ -6,20 +6,12 @@ from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 import numpy as np
 import pandas as pd
 
+from vivarium_inputs import utility_data
 from vivarium_inputs.globals import gbd, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 
 
 def get_location_id(location_name):
     return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[location_name]
-
-
-def get_age_bins():
-    age_bins = (
-        gbd.get_age_bins()[['age_group_id', 'age_group_name', 'age_group_years_start', 'age_group_years_end']]
-            .rename(columns={'age_group_years_start': 'age_group_start',
-                             'age_group_years_end': 'age_group_end'})
-    )
-    return age_bins
 
 
 ##################################################
@@ -52,7 +44,8 @@ def scrub_sex(data):
 
 def scrub_age(data):
     if 'age_group_id' in data.columns:
-        age_bins = get_age_bins()[['age_group_id', 'age_group_start', 'age_group_end']]
+        age_bins = (utility_data.get_age_bins()
+                    .filter(['age_group_id', 'age_group_start', 'age_group_end']))
         data = data.merge(age_bins, on='age_group_id').drop('age_group_id', 'columns')
     return data
 
@@ -78,7 +71,7 @@ def scrub_affected_entity(data):
 ###############################################################
 
 
-def normalize(data: pd.DataFrame, fill_value: Real=None, cols_to_fill: List[str]=DRAW_COLUMNS) -> pd.DataFrame:
+def normalize(data: pd.DataFrame, fill_value: Real = None, cols_to_fill: List[str] = DRAW_COLUMNS) -> pd.DataFrame:
     data = normalize_sex(data, fill_value)
     data = normalize_year(data)
     data = normalize_age(data, fill_value, cols_to_fill)
@@ -112,7 +105,7 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
 
 
 def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
-    binned_years = gbd.get_estimation_years()
+    binned_years = utility_data.get_estimation_years()
     years = {'annual': list(range(min(binned_years), max(binned_years) + 1)), 'binned': binned_years}
 
     if 'year_id' not in data:
@@ -143,7 +136,7 @@ def interpolate_year(data):
 
 def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str]) -> pd.DataFrame:
     data_ages = set(data.age_group_id.unique()) if 'age_group_id' in data.columns else set()
-    gbd_ages = set(gbd.get_age_group_id())
+    gbd_ages = set(utility_data.get_age_group_ids())
 
     if not data_ages:
         # Data does not correspond to individuals, so no age column necessary.
@@ -241,7 +234,8 @@ def get_age_group_ids_by_restriction(entity: Union[RiskFactor, Cause], which_age
     return start, end
 
 
-def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Cause], which_age: str) -> pd.DataFrame:
+def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Cause],
+                                which_age: str, age_group_ids: List[int]) -> pd.DataFrame:
     """
     For the given data and restrictions, it applies age/sex restrictions and
     filter out the data outside of the range. Age restrictions can be applied
@@ -257,6 +251,8 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
         Cause or RiskFactor
     which_age
         one of 4 choices: 'yll', 'yld', 'inner', 'outer'.
+    age_group_ids
+        List of possible age group ids.
 
     Returns
     -------
@@ -274,7 +270,7 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     data = data[data.sex_id.isin(sexes)]
 
     start, end = get_age_group_ids_by_restriction(entity, which_age)
-    ages = get_restriction_age_ids(start, end)
+    ages = get_restriction_age_ids(start, end, age_group_ids)
     data = data[data.age_group_id.isin(ages)]
     return data
 
@@ -287,18 +283,18 @@ def filter_to_most_detailed_causes(data: pd.DataFrame)-> pd.DataFrame:
     return data[data.cause_id.isin(most_detailed_cause_ids)]
 
 
-def get_restriction_age_ids(start_id: Union[float, None], end_id: Union[float, None]) -> list:
+def get_restriction_age_ids(start_id: Union[int, None], end_id: Union[int, None],
+                            age_group_ids: List[int]) -> List[int]:
     """Get the start/end age group id and return the list of GBD age_group_ids
     in-between.
     """
-    if start_id is None:
-        return []
-
-    gbd_age_ids = gbd.get_age_group_id()
-    start_index = gbd_age_ids.index(start_id)
-    end_index = gbd_age_ids.index(end_id)
-
-    return gbd_age_ids[start_index:end_index+1]
+    if start_id is None or end_id is None:
+        data = []
+    else:
+        start_index = age_group_ids.index(start_id)
+        end_index = age_group_ids.index(end_id)
+        data = age_group_ids[start_index:end_index+1]
+    return data
 
 
 def get_restriction_age_boundary(entity: Union[RiskFactor, Cause], boundary: str, reverse=False):

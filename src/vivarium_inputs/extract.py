@@ -6,35 +6,35 @@ import pandas as pd
 
 from vivarium_inputs.globals import gbd, METRICS, MEASURES, DataAbnormalError, DataDoesNotExistError
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
-from vivarium_inputs.utility_data import get_estimation_years
+from vivarium_inputs.utility_data import get_estimation_years, get_age_group_ids
 import vivarium_inputs.validation.raw as validation
 
 
 def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.DataFrame]:
     extractors = {
         # Cause-like measures
-        'incidence': (extract_incidence, (get_estimation_years,)),
-        'prevalence': (extract_prevalence, (get_estimation_years,)),
-        'birth_prevalence': (extract_birth_prevalence, (get_estimation_years,)),
+        'incidence': (extract_incidence, (get_estimation_years, get_age_group_ids)),
+        'prevalence': (extract_prevalence, (get_estimation_years, get_age_group_ids)),
+        'birth_prevalence': (extract_birth_prevalence, (get_estimation_years, get_age_group_ids)),
         'disability_weight': (extract_disability_weight, ()),
-        'remission': (extract_remission, (get_estimation_years,)),
-        'deaths': (extract_deaths, (get_estimation_years, extract_structure)),
+        'remission': (extract_remission, (get_estimation_years, get_age_group_ids)),
+        'deaths': (extract_deaths, (extract_structure, get_estimation_years, get_age_group_ids)),
         # Risk-like measures
-        'exposure': (extract_exposure, (get_estimation_years, )),
+        'exposure': (extract_exposure, (get_estimation_years, get_age_group_ids)),
         'exposure_standard_deviation': (extract_exposure_standard_deviation,
-                                        (extract_exposure, get_estimation_years)),
+                                        (extract_exposure, get_estimation_years, get_age_group_ids)),
         'exposure_distribution_weights': (extract_exposure_distribution_weights, ()),
-        'relative_risk': (extract_relative_risk, (extract_exposure, get_estimation_years)),
+        'relative_risk': (extract_relative_risk, (extract_exposure, get_estimation_years, get_age_group_ids)),
         'population_attributable_fraction': (extract_population_attributable_fraction,
-                                             (get_estimation_years,)),
+                                             (get_estimation_years, get_age_group_ids)),
         'mediation_factors': (extract_mediation_factors, ()),
         # Covariate measures
-        'estimate': (extract_estimate, (get_estimation_years,)),
+        'estimate': (extract_estimate, (get_estimation_years, get_age_group_ids)),
         # Health system measures
         'cost': (extract_cost, (get_estimation_years,)),
         'utilization': (extract_utilization, (get_estimation_years,)),
         # Population measures
-        'structure': (extract_structure, (get_estimation_years,)),
+        'structure': (extract_structure, (get_estimation_years, get_age_group_ids)),
         'theoretical_minimum_risk_life_expectancy': (extract_theoretical_minimum_risk_life_expectancy, ()),
     }
 

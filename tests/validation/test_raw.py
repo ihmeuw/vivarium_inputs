@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from vivarium_inputs.validation import raw
-from vivarium_inputs.globals import DataAbnormalError, DataDoesNotExistError, DataTransformationError
+from vivarium_inputs.globals import DataAbnormalError, DataDoesNotExistError
 
 
 @pytest.fixture
@@ -16,6 +16,10 @@ def gbd_mock(mocker):
 @pytest.fixture
 def estimation_years():
     return list(range(1990, 2015, 5)) + [2017]
+
+@pytest.fixture
+def age_group_ids():
+    return list(range(1, 6))
 
 
 @pytest.fixture
@@ -151,32 +155,34 @@ def test_check_data_exist_pass(data):
     assert raw.check_data_exist(data, zeros_missing=True, value_columns=data.columns, error=False)
 
 
-@pytest.mark.parametrize('age_ids, start, end, match', [([1, 2, 3, 100], None, None, 'invalid'),
-                                                        ([1, 3, 4, 5], None, None, 'non-contiguous'),
-                                                        ([1, 2, 3, 100], 1, 3, 'invalid'),
-                                                        ([1, 2, 3, 5], 1, 3, 'non-contiguous')])
-def test_check_age_group_ids_fail(age_ids, start, end, match, gbd_mock):
-    df = pd.DataFrame({'age_group_id': age_ids})
+@pytest.mark.parametrize('test_age_ids, start, end, match', [([1, 2, 3, 100], None, None, 'invalid'),
+                                                             ([1, 3, 4, 5], None, None, 'non-contiguous'),
+                                                             ([1, 2, 3, 100], 1, 3, 'invalid'),
+                                                             ([1, 2, 3, 5], 1, 3, 'non-contiguous')])
+def test_check_age_group_ids_fail(age_group_ids, test_age_ids, start, end, match):
+    df = pd.DataFrame({'age_group_id': test_age_ids})
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_age_group_ids(df, start, end)
+        raw.check_age_group_ids(df, age_group_ids, start, end)
 
 
-@pytest.mark.parametrize('age_ids, start, end, match', [([2, 3], 2, 4, 'contain all age groups in restriction range'),
-                                                        ([2, 3, 4], 2, 3, 'additional age groups'),
-                                                        ([1, 2, 3, 4, 5], 1, 3, 'additional age groups'),
-                                                        ([1, 2, 3], 1, 5, 'contain all age groups in restriction range')])
-def test_check_age_group_ids_warn(age_ids, start, end, match, gbd_mock):
-    df = pd.DataFrame({'age_group_id': age_ids})
+@pytest.mark.parametrize('test_age_ids, start, end, match',
+                         [([2, 3], 2, 4, 'contain all age groups in restriction range'),
+                          ([2, 3, 4], 2, 3, 'additional age groups'),
+                          ([1, 2, 3, 4, 5], 1, 3, 'additional age groups'),
+                          ([1, 2, 3], 1, 5, 'contain all age groups in restriction range')])
+def test_check_age_group_ids_warn(age_group_ids, test_age_ids, start, end, match):
+    df = pd.DataFrame({'age_group_id': test_age_ids})
     with pytest.warns(Warning, match=match):
-        raw.check_age_group_ids(df, start, end)
+        raw.check_age_group_ids(df, age_group_ids, start, end)
 
 
-@pytest.mark.parametrize('age_ids, start, end', [([2, 3, 4], 2, 4),
-                                                 ([2, 3, 4], None, None),
-                                                 ([1, 2, 3, 4, 5], 1, 5)])
-def test_check_age_group_ids_pass(age_ids, start, end, gbd_mock, recwarn):
-    df = pd.DataFrame({'age_group_id': age_ids})
-    raw.check_age_group_ids(df, start, end)
+@pytest.mark.parametrize('test_age_ids, start, end',
+                         [([2, 3, 4], 2, 4),
+                          ([2, 3, 4], None, None),
+                          ([1, 2, 3, 4, 5], 1, 5)])
+def test_check_age_group_ids_pass(age_group_ids, test_age_ids, start, end, recwarn):
+    df = pd.DataFrame({'age_group_id': test_age_ids})
+    raw.check_age_group_ids(df, age_group_ids, start, end)
 
     assert len(recwarn) == 0, 'An unexpected warning was raised.'
 
@@ -219,9 +225,9 @@ test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 4, [
 
 
 @pytest.mark.parametrize('data, start, end, val_cols, match', test_data)
-def test_check_age_restrictions_fail(data, start, end, val_cols, match, gbd_mock):
+def test_check_age_restrictions_fail(age_group_ids, data, start, end, val_cols, match):
     with pytest.raises(DataAbnormalError, match=match):
-        raw.check_age_restrictions(data, start, end, value_columns=val_cols)
+        raw.check_age_restrictions(data, age_group_ids, start, end, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5], 'a': 1, 'b': 0}), 1, 4, ['a', 'b']),
@@ -229,9 +235,9 @@ test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5], 'a': 1, 'b': 0}), 1
 
 
 @pytest.mark.parametrize('data, start, end, val_cols', test_data)
-def test_check_age_restrictions_warn(data, start, end, val_cols, gbd_mock):
+def test_check_age_restrictions_warn(age_group_ids, data, start, end, val_cols):
     with pytest.warns(Warning, match='also included'):
-        raw.check_age_restrictions(data, start, end, value_columns=val_cols)
+        raw.check_age_restrictions(data, age_group_ids, start, end, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 3, ['a', 'b']),
@@ -240,11 +246,8 @@ test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 3, [
 
 
 @pytest.mark.parametrize('data, start, end, val_cols', test_data)
-def test_check_age_restrictions_pass(data, start, end, val_cols, gbd_mock):
-    raw.check_age_restrictions(data, start, end, value_columns=val_cols)
-
-
-
+def test_check_age_restrictions_pass(age_group_ids, data, start, end, val_cols):
+    raw.check_age_restrictions(data, age_group_ids, start, end, value_columns=val_cols)
 
 
 test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 0, 'b': 0, 'c': 1}), True, False,
