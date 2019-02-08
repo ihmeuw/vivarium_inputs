@@ -949,8 +949,8 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
                                              error=DataAbnormalError)
                 check_value_columns_boundary(g, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True)
             else:
-                check_value_columns_boundary(g, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
-                                             error=DataAbnormalError)
+                #  FIXME: we need to revisit this. There are risk-cause pair when paf > 0 but RR < 1
+                check_value_columns_boundary(g, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
 
             max_val = MAX_CONT_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CATEG_REL_RISK
             check_value_columns_boundary(g, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True,
