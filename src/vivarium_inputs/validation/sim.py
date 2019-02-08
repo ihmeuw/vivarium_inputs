@@ -130,6 +130,26 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
 
 
 def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped incidence
+    data.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped incidence data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yld age or sex restrictions are violated, or data falls outside the
+        expected boundary values.
+
+    """
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[0],
@@ -144,6 +164,26 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
 
 def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
                         context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped prevalence
+    data.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped prevalence data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yld age or sex restrictions are violated, or data falls outside the
+        expected boundary values.
+
+    """
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[0],
@@ -158,6 +198,27 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
 
 def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
                               context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped birth
+    prevalence data, skipping the check on age columns since birth prevalence
+    is not age-specific.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped birth prevalence data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if sex restrictions are violated, or data falls outside the expected
+        boundary values.
+
+    """
     validate_location_column(data, context)
     validate_sex_column(data)
     validate_year_columns(data, context)
@@ -176,6 +237,26 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
 
 def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela],
                                context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped disability
+    weight data.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped disability weight data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yld age or sex restrictions are violated, or data falls outside the
+        expected boundary values.
+
+    """
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
                                  boundary_type='lower', value_columns=['value'],
@@ -189,6 +270,26 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
 
 
 def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped remission
+    data.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped remission data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yld age or sex restrictions are violated, or data falls outside the
+        expected boundary values.
+
+    """
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[0],
@@ -203,6 +304,26 @@ def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationVal
 
 
 def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped cause
+    specific mortality data.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped cause specific mortality data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yll age or sex restrictions are violated, or data falls outside the
+        expected boundary values.
+
+    """
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[0],
@@ -217,6 +338,26 @@ def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context
 
 
 def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped excess
+    mortality data.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped excess mortality data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yll age or sex restrictions are violated, or data falls outside the
+        expected boundary values.
+
+    """
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
@@ -232,6 +373,37 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
 
 def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
                       context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped exposure
+    data, with the upper boundary of values determined by the distribution type.
+    The broadest age range determined by yll and yld age restrictions is used
+    in the restriction check.
+
+    Additionally, check that the parameter column contains either only
+    'continuous' for an entity with a continuous distribution or the full set
+    of categories for an entity with a categorical distribution. For entities
+    with categorical distributions, further check that exposure values sum to
+    one across categories for all demographic groups.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped exposure data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if the broadest age or sex restrictions are violated, data falls
+        outside the expected boundary values, the parameter column does not
+        contain the expected values based on the entity's distribution type, or
+        exposure values do not sum to 1 for entities with a categorical
+        distribution.
+
+    """
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
@@ -269,6 +441,27 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                                          context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped exposure
+    standard deviation data, using the broadest age range determined by yll and
+    yld age restrictions in the restriction check.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped exposure standard deviation data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if the broadest age or sex restrictions are violated, or data falls
+        outside the expected boundary values.
+
+    """
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[0],
@@ -284,6 +477,32 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
 
 def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                                            context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped exposure
+    distribution weights data, skipping the check on draw columns since weights
+    data is not by draw and using the broadest age range determined by yll
+    and yld age restrictions in the restriction check.
+
+    Additionally, ensure that weights sum to 1 in all demographic groups
+    expected to have valid weights (i.e., all age groups included in
+    corresponding exposure data) and to 0 in all other demographic groups.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped exposure distribution weights data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if the broadest age or sex restrictions are violated, data falls
+        outside the expected boundary values, or weights don't sum to 1 or 0.
+
+    """
     validate_demographic_columns(data, context)
     validate_value_column(data)
 
@@ -305,6 +524,35 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
 
 def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap],
                            context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped relative risk
+    data, with the upper boundary of values determined by the distribution type.
+    Because some RRs may be protective, allow the lower boundary to be 0 for
+    those special cases. Otherwise, check a lower boundary of 1. Use the
+    affected_measure to determine which set of age restrictions to check:
+    using yll for excess mortality and the narrowest range for incidence rate.
+
+    Additionally, for entities with categorical distributions, check that the
+    theoretical minimum risk exposure level (TMREL) category contains exposure
+    values of only 1.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped relative risk data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if the age or sex restrictions are violated, data falls
+        outside the expected boundary values, or TMREL values are not all 1 for
+        entities with categorical distributions.
+
+    """
     risk_relationship = data.groupby(['affected_entity', 'affected_measure', 'parameter'])
     risk_relationship.apply(validate_standard_columns, context)
 
@@ -343,6 +591,27 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
                                               context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped population
+    attributable fraction data,
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped relative risk data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if the age or sex restrictions are violated, data falls
+        outside the expected boundary values, or TMREL values are not all 1 for
+        entities with categorical distributions.
+
+    """
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(validate_standard_columns, context)
 
@@ -551,7 +820,7 @@ def check_covariate_values(data: pd.DataFrame) -> None:
 
     # allow the case where lower = mean = upper = 0 b/c of things like age
     # specific fertility rate where all estimates are 0 for young age groups
-    if not np.all(lower == mean == upper == 0 or lower < mean < upper):
+    if np.all(data.value != 0) and not np.all(lower < mean < upper):
         raise DataTransformationError('Covariate data contains demographic groups for which the '
                                       'estimates for lower, mean, and upper values are not all 0 '
                                       'and it is not the case that lower < mean < upper. ')
