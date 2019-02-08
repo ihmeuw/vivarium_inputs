@@ -274,6 +274,7 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
 def filter_by_relative_risk(df: pd.DataFrame, relative_risk: pd.DataFrame) -> pd.DataFrame:
     c_id = df.cause_id.unique()[0]
     rr = relative_risk[relative_risk.cause_id == c_id]
+    #  We presume all attributable mortality moves through incidence.
     if set(rr.mortality) == {1} and set(rr.morbidity) == {1}:
         df = df[df.measure_id == MEASURES['YLDs']]
     return df

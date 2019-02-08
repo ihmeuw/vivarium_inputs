@@ -341,12 +341,13 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
                                               context: SimulationValidationContext):
-    protective_causes = PROTECTIVE_CAUSE_RISK_PAIRS[entity.name] if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS else []
-    protective = data[data.affected_entity.isin(protective_causes)]
-    non_protective = data.loc[data.index.difference(protective.index)]
 
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(validate_standard_columns, context)
+
+    protective_causes = PROTECTIVE_CAUSE_RISK_PAIRS[entity.name] if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS else []
+    protective = data[data.affected_entity.isin(protective_causes)]
+    non_protective = data.loc[data.index.difference(protective.index)]
 
     if not protective.empty:
         check_value_columns_boundary(protective, boundary_value=VALID_PROTECTIVE_PAF_MIN, boundary_type='lower',
@@ -355,13 +356,13 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
                                      value_columns=['value'])
         check_value_columns_boundary(protective, boundary_value=VALID_PAF_RANGE[1], boundary_type='upper',
                                      value_columns=['value'], error=DataTransformationError)
-
-    check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
-                                 error=DataTransformationError)
-    check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
-                                 error=DataTransformationError)
+    if not non_protective.empty:
+        check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[0],
+                                     boundary_type='lower', value_columns=['value'],
+                                     error=DataTransformationError)
+        check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[1],
+                                     boundary_type='upper', value_columns=['value'],
+                                     error=DataTransformationError)
 
     for (c_name, measure), g in risk_relationship:
         cause = [c for c in causes if c.name == c_name][0]
