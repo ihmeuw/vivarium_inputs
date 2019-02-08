@@ -7,7 +7,8 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract, utility_data
-from vivarium_inputs.globals import InvalidQueryError, DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, Population
+from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES,
+                                     Population, DataDoesNotExistError)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
@@ -103,7 +104,11 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
         data = data.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
         if entity.sequelae:
             for sequela in entity.sequelae:
-                prevalence = get_prevalence(sequela, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+                try:
+                    prevalence = get_prevalence(sequela, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+                except DataDoesNotExistError:
+                    # sequela prevalence does not exist so no point continuing with this sequela
+                    continue
                 disability = get_disability_weight(sequela, location_id)
                 disability['location_id'] = location_id
                 disability = disability.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
@@ -111,13 +116,12 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
         data = data.reset_index()
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
-            full_demog = utilities.get_demographic_dimensions(location_id)
-            draws = pd.DataFrame(0.0, index=full_demog.index, columns=DRAW_COLUMNS)
-            data = pd.concat([full_demog, draws], axis=1)
+            data = get_demographic_dimensions(Population(), location_id, draws=True)
+            data['value'] = 0.0
         else:
             data = extract.extract_data(entity, 'disability_weight', location_id)
-        data = utilities.normalize(data)
-        data = utilities.reshape(data)
+            data = utilities.normalize(data)
+            data = utilities.reshape(data)
 
     return data
 
