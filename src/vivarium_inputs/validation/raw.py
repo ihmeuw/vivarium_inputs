@@ -1027,7 +1027,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         female_expected = female_expected and not cause.restrictions.male_only
 
         check_age_group_ids(g, context, None, None)
-        check_sex_ids(g, context, male_expected, female_expected, cause=cause)
+        check_sex_ids(g, context, male_expected, female_expected)
         #  check only if there is a sex restriction (male only or female only).
         if not male_expected or not female_expected:
             check_sex_restrictions(g, context, male_expected, female_expected)
