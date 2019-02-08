@@ -68,13 +68,13 @@ def scrub_affected_entity(data):
 
 
 def normalize(data: pd.DataFrame, fill_value: Real = None, cols_to_fill: List[str] = DRAW_COLUMNS) -> pd.DataFrame:
-    data = normalize_sex(data, fill_value)
+    data = normalize_sex(data, fill_value, cols_to_fill)
     data = normalize_year(data)
     data = normalize_age(data, fill_value, cols_to_fill)
     return data
 
 
-def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
+def normalize_sex(data: pd.DataFrame, fill_value, cols_to_fill) -> pd.DataFrame:
     sexes = set(data.sex_id.unique()) if 'sex_id' in data.columns else set()
     if not sexes:
         # Data does not correspond to individuals, so no age column necessary.
@@ -93,7 +93,7 @@ def normalize_sex(data: pd.DataFrame, fill_value) -> pd.DataFrame:
         fill_data = data.copy()
         missing_sex = {SEXES['Male'], SEXES['Female']}.difference(set(data.sex_id.unique())).pop()
         fill_data.loc[:, 'sex_id'] = missing_sex
-        fill_data.loc[:, 'value'] = fill_value
+        fill_data.loc[:, cols_to_fill] = fill_value
         data = pd.concat([data, fill_data], ignore_index=True)
     else:  # sexes == {SEXES['Male'], SEXES['Female']}
         pass
