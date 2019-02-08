@@ -321,16 +321,16 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
     non_protective = data.loc[data.index.difference(protective.index)]
 
     if not protective.empty:
-        check_value_columns_boundary(data, boundary_value=0, boundary_type='lower',
+        check_value_columns_boundary(protective, boundary_value=0, boundary_type='lower',
                                      value_columns=['value'], inclusive=False,
                                      error=DataTransformationError)
-        check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
+        check_value_columns_boundary(protective, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
                                      boundary_type='upper', value_columns=['value'])
     if not non_protective.empty:
-        check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
+        check_value_columns_boundary(non_protective, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
                                      boundary_type='lower', value_columns=['value'])
 
-    check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd], boundary_type='upper',
+    check_value_columns_boundary(non_protective, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd], boundary_type='upper',
                                  value_columns=['value'], error=DataTransformationError)
 
     if is_categorical:

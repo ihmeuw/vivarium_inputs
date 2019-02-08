@@ -18,7 +18,7 @@ from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_a
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
 
-MAX_INCIDENCE = 50
+MAX_INCIDENCE = 10
 MAX_REMISSION = 365/3
 MAX_CATEG_REL_RISK = 20
 MAX_CONT_REL_RISK = 10
