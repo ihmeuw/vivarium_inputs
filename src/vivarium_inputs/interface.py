@@ -33,7 +33,7 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
             population_attributable_fraction
 
         For entity kind 'alternative_risk_factor':
-            exposure, exposure_standard_deviation
+            exposure, exposure_standard_deviation, exposure_distribution_weights
 
         For entity kind 'covariate':
             estimate

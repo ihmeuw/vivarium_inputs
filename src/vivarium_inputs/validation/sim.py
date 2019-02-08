@@ -3,9 +3,14 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
+<<<<<<< HEAD
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate
+=======
+from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
+
+>>>>>>> feature/gbd_2017_update
 from vivarium_inputs import utilities, utility_data
-from vivarium_inputs.globals import DataTransformationError, Population
+from vivarium_inputs.globals import DataTransformationError, Population, PROTECTIVE_CAUSE_RISK_PAIRS
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
@@ -15,13 +20,15 @@ VALID_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_BIRTH_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
-VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 0.4)  # used mortality viz, picked worst country 15q45, mul by ~1.25
+# FIXME: bumping csmr max to 1.5 because of age group scaling 2/8/19 - K.W.
+VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 1.5)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
 VALID_EXPOSURE_RANGE = (0.0, {'continuous': 10_000.0, 'categorical': 1.0})
 VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_EXPOSURE_DIST_WEIGHTS_RANGE = (0.0, 1.0)
 VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 10.0, 'categorical': 20.0})
 VALID_PAF_RANGE = (0.0, 1.0)
+VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 VALID_UTILIZATION_RANGE = (0, 50)
 VALID_POPULATION_RANGE = (0, 100_000_000)
@@ -566,16 +573,22 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
     else:
         raise NotImplementedError()
 
-    #  We want to have hard lower limit 0 for RR and soft low limit 1 for RR
-    #  because some risks are protective against some causes.
-    check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'])
-    check_value_columns_boundary(data, boundary_value=0, boundary_type='lower',
-                                 value_columns=['value'], inclusive=False,
-                                 error=DataTransformationError)
-    check_value_columns_boundary(data, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd],
-                                 boundary_type='upper', value_columns=['value'],
-                                 error=DataTransformationError)
+    protective_causes = PROTECTIVE_CAUSE_RISK_PAIRS[entity.name] if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS else []
+    protective = data[data.affected_entity.isin([c.name for c in protective_causes])]
+    non_protective = data.loc[data.index.difference(protective.index)]
+
+    if not protective.empty:
+        check_value_columns_boundary(protective, boundary_value=0, boundary_type='lower',
+                                     value_columns=['value'], inclusive=False,
+                                     error=DataTransformationError)
+        check_value_columns_boundary(protective, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
+                                     boundary_type='upper', value_columns=['value'])
+    if not non_protective.empty:
+        check_value_columns_boundary(non_protective, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
+                                     boundary_type='lower', value_columns=['value'])
+
+    check_value_columns_boundary(non_protective, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd], boundary_type='upper',
+                                 value_columns=['value'], error=DataTransformationError)
 
     if is_categorical:
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]  # chop 'cat' and sort
@@ -615,15 +628,32 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(validate_standard_columns, context)
 
-    check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
-                                 error=DataTransformationError)
-    check_value_columns_boundary(data, boundary_value=VALID_PAF_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
-                                 error=DataTransformationError)
+    protective_causes = PROTECTIVE_CAUSE_RISK_PAIRS[entity.name] if entity.name in PROTECTIVE_CAUSE_RISK_PAIRS else []
+    protective = data[data.affected_entity.isin([c.name for c in protective_causes])]
+    non_protective = data.loc[data.index.difference(protective.index)]
 
-    check_age_restrictions(data, entity, rest_type='inner', fill_value=0.0, context=context)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+    if not protective.empty:
+        check_value_columns_boundary(protective, boundary_value=VALID_PROTECTIVE_PAF_MIN, boundary_type='lower',
+                                     value_columns=['value'], error=DataTransformationError)
+        check_value_columns_boundary(protective, boundary_value=VALID_PAF_RANGE[0], boundary_type='upper',
+                                     value_columns=['value'])
+        check_value_columns_boundary(protective, boundary_value=VALID_PAF_RANGE[1], boundary_type='upper',
+                                     value_columns=['value'], error=DataTransformationError)
+    if not non_protective.empty:
+        check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[0],
+                                     boundary_type='lower', value_columns=['value'],
+                                     error=DataTransformationError)
+        check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[1],
+                                     boundary_type='upper', value_columns=['value'],
+                                     error=DataTransformationError)
+
+    for (c_name, measure), g in risk_relationship:
+        cause = [c for c in causes if c.name == c_name][0]
+        if measure == 'incidence_rate':
+            check_age_restrictions(g, cause, rest_type='yld', fill_value=0.0, context=context)
+        else:  # excess mortality
+            check_age_restrictions(g, cause, rest_type='yll', fill_value=0.0, context=context)
+        check_sex_restrictions(g, cause.restrictions.male_only, cause.restrictions.female_only, fill_value=0.0)
 
 
 def validate_mediation_factors(data: pd.DataFrame, entity: RiskFactor, context: SimulationValidationContext) -> None:
