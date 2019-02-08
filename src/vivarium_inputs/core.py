@@ -248,6 +248,12 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
     data = extract.extract_data(entity, 'relative_risk', location_id)
 
     if entity.kind == 'risk_factor':
+        # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
+        #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
+        #  2/8/19 K.W.
+        yll_only_causes = set([c.gbd_id for c in causes if c.restrictions.yll_only])
+        data = data[~data.cause_id.isin(yll_only_causes)]
+
         data = utilities.convert_affected_entity(data, 'cause_id')
         morbidity = data.morbidity == 1
         mortality = data.mortality == 1
@@ -289,6 +295,14 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     if entity.kind == 'risk_factor':
         data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
         relative_risk = extract.extract_data(entity, 'relative_risk', location_id)
+
+        # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
+        #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
+        #  2/8/19 K.W.
+        yll_only_causes = set([c.gbd_id for c in causes if c.restrictions.yll_only])
+        data = data[~data.cause_id.isin(yll_only_causes)]
+        relative_risk = relative_risk[~relative_risk.cause_id.isin(yll_only_causes)]
+
         data = data.groupby('cause_id', as_index=False).apply(filter_by_relative_risk, relative_risk).reset_index(drop=True)
 
         temp = []
