@@ -1543,7 +1543,7 @@ def _get_valid_rr_and_age_groups(context: RawValidationContext, entity: RiskFact
                                  measure_id: int) -> Tuple[Set, pd.DataFrame]:
     """According to the distribution type of RiskFactor, it finds the non-
     trivial relative risk and returns its age groups ids and relative risk
-    only contatining the given `cause` and `measure id`.
+    only containing the given `cause` and `measure id`.
 
     Parameters
     ----------
