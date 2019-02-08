@@ -16,7 +16,8 @@ VALID_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_BIRTH_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
-VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 0.4)  # used mortality viz, picked worst country 15q45, mul by ~1.25
+# FIXME: bumping csmr max to 1.5 because of age group scaling 2/8/19 - K.W.
+VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 1.5)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
 VALID_EXPOSURE_RANGE = (0.0, {'continuous': 10_000.0, 'categorical': 1.0})
 VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
