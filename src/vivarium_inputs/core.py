@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 from vivarium_inputs import utilities, extract, utility_data
-from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES,
+from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
                                      Population, DataDoesNotExistError)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
