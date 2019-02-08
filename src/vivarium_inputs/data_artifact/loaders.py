@@ -6,11 +6,7 @@ from vivarium_public_health.dataset_manager import EntityKey
 from vivarium_inputs.globals import InvalidQueryError
 from vivarium_inputs.interface import (get_measure, get_population_structure, get_age_bins,
                                        get_theoretical_minimum_risk_life_expectancy, get_demographic_dimensions)
-from vivarium_inputs.mapping_extension import alternative_risk_factors
-
-
-CAUSE_BY_ID = {c.gbd_id: c for c in causes if c is not None}
-RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
+from vivarium_inputs.mapping_extension import alternative_risk_factors, healthcare_entities, health_technologies
 
 
 def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool = False):
@@ -40,21 +36,21 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
             "getter": get_sequela_data,
             "measures": ["healthstate", "prevalence", "incidence", "disability_weight"],
         },
-        # "healthcare_entity": {
-        #     "mapping": healthcare_entities,
-        #     "getter": get_healthcare_entity_data,
-        #     "measures": ["cost", "annual_visits"]
-        # },
-        # "health_technology": {
-        #     "mapping": health_technologies,
-        #     "getter": get_health_technology_data,
-        #     "measures": ["cost", "effects", "coverage"]
-        # },
+        "healthcare_entity": {
+            "mapping": healthcare_entities,
+            "getter": get_healthcare_entity_data,
+            "measures": ["cost", "utilization"],
+         },
+        "health_technology": {
+             "mapping": health_technologies,
+             "getter": get_health_technology_data,
+             "measures": ["cost", "effects", "coverage"],
+         },
         "coverage_gap": {
             "mapping": coverage_gaps,
             "getter": get_coverage_gap_data,
             "measures": ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels",
-                         "relative_risk", "exposure"]
+                         "relative_risk", "exposure"],
         },
         "etiology": {
             "mapping": etiologies,
@@ -69,13 +65,8 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "covariate": {
             "mapping": covariates,
             "getter": get_covariate_data,
-            "measures": ["estimate"]
+            "measures": ["estimate"],
         },
-        # "subregions": {
-        #     "mapping": {'': None},
-        #     "getter": get_subregion_data,
-        #     "measures": ["sub_region_ids"],
-        # },
     }
     mapping, getter, measures = entity_data[entity_key.type].values()
 
@@ -123,34 +114,16 @@ def get_sequela_data(sequela, measure, location, _):
     return data
 
 
-# def get_healthcare_entity_data(healthcare_entity, measure, location, _):
-#     if measure == "cost":
-#         data = core.get_draws(healthcare_entity, "cost", location)
-#         data = normalize(data)
-#         data = data.loc[data.sex == 'Male', ["location", "draw", "value"] + YEAR_COLS]
-#     elif measure == "annual_visits":
-#         data = core.get_draws(healthcare_entity, "annual_visits", location)
-#         data = normalize(data)
-#         data = data[["sex", "value", "draw"] + AGE_COLS + YEAR_COLS]
-#     else:
-#         raise NotImplementedError(f"Unknown measure {measure} for healthcare_entity {healthcare_entity.name}")
-#     return data
+def get_healthcare_entity_data(healthcare_entity, measure, location, _):
+    data = get_measure(healthcare_entity, measure, location)
+    return data
 
 
-# def get_health_technology_data(healthcare_technology, measure, location, _):
-#     if measure == "cost":
-#         data = core.get_draws(healthcare_technology, "cost", location)
-#         data = normalize(data)[["location", "draw", "value", "health_technology"] + YEAR_COLS]
-#     elif measure == "effects":
-#         data = core.get_draws(healthcare_technology, "effects", location)
-#         data = normalize(data)[["location", "measure", "medication", "dosage", "draw", "value"]]
-#     elif measure == "coverage":
-#         data = core.get_draws(healthcare_technology, "coverage", location)
-#         data = normalize(data)[AGE_COLS + YEAR_COLS
-#                                + ["sex", "location", "measure", "medication", "dosage", "draw", "value"]]
-#     else:
-#         raise NotImplementedError(f"Unknown measure {measure} for healthcare_entity {healthcare_technology.name}")
-#     return data
+def get_health_technology_data(healthcare_technology, measure, location, _):
+    if measure in ["effects", "coverage"]:
+        raise NotImplementedError()
+    data = get_measure(healthcare_technology, measure, location)
+    return data
 
 
 def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
@@ -181,28 +154,6 @@ def get_population_data(_, measure, location, __):
 def get_covariate_data(covariate, measure, location, _):
     data = get_measure(covariate, measure, location)
     return data
-
-
-# def get_subregion_data(_, measure, location, __):
-#     if measure == "sub_region_ids":
-#         data = pd.DataFrame(core.get_subregions([location]))
-#         data = data.melt(var_name="location", value_name="subregion_id")
-#     else:
-#         raise NotImplementedError(f"Unknown measure {measure} for subregion data.")
-#     return data
-
-
-# def get_dimension_data(_, measure, location, __):
-#     if measure == "full_space":
-#         age_bins = core.get_age_bins()
-#         estimation_years = core.get_estimation_years()
-#         data = [range(min(estimation_years), max(estimation_years) + 1),
-#                 ["Male", "Female"], age_bins.age_group_id, [location]]
-#         data = pd.MultiIndex.from_product(data, names=["year", "sex", "age_group_id", "location"])
-#         data = data.to_frame().reset_index(drop=True)
-#     else:
-#         raise NotImplementedError(f"Unknown measure {measure} for dimensions")
-#     return data
 
 
 ######################
