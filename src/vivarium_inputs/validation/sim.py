@@ -340,7 +340,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         if not (data.loc[data.parameter == tmrel_cat, 'value'] == 1.0).all():
             raise DataTransformationError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
-    if entity.kind != 'coverage_gap':
+    if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         if (data.affected_measure == 'incidence_rate').all():
             check_age_restrictions(data, entity, rest_type='inner', fill_value=1.0, context=context)
         else:
