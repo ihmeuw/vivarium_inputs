@@ -224,7 +224,7 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
                                  error=DataTransformationError)
 
     if entity.name in BOUNDARY_SPECIAL_CASES['excess_mortality'].get(context['location'], {}):
-        max_val = BOUNDARY_SPECIAL_CASES['excess_mortality'][entity.name]
+        max_val = BOUNDARY_SPECIAL_CASES['excess_mortality'][context['location']][entity.name]
     else:
         max_val = VALID_EXCESS_MORT_RANGE[1]
     check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=['value'],
