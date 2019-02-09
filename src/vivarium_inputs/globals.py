@@ -118,6 +118,16 @@ PROTECTIVE_CAUSE_RISK_PAIRS = {
     'high_body_mass_index_in_adults': [causes.neoplasms, causes.breast_cancer, causes.esophageal_cancer]
 }
 
+# Keep track of special cases for the sim validator boundary checks where the
+# standard boundary in sim validators won't cut it
+BOUNDARY_SPECIAL_CASES = {
+    'excess_mortality': {
+        'Ecuador': {
+            'measles': 250_000_000
+        }
+    }
+}
+
 
 class Population(ModelableEntity):
     """Entity wrapper for querying population measures."""
