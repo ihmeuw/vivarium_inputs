@@ -953,8 +953,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
                 check_value_columns_boundary(g, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
 
             max_val = MAX_CONT_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CATEG_REL_RISK
-            check_value_columns_boundary(g, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True,
-                                         error=DataAbnormalError)
+            check_value_columns_boundary(g, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True)
 
     else:  # coverage gap
         grouped.apply(check_age_group_ids, context, None, None)
