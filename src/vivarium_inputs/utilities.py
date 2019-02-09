@@ -6,7 +6,7 @@ from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 import numpy as np
 import pandas as pd
 
-from vivarium_inputs import utility_data, extract
+from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 
 
