@@ -206,15 +206,12 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
 
     exposure = extract.extract_data(entity, 'exposure', location_id)
     valid_ages = utilities.get_exposure_and_restriction_ages(exposure, entity)
-    years = utility_data.get_estimation_years()
-    years = range(min(years), max(years) + 1)
 
     data.drop('age_group_id', axis=1, inplace=True)
     df = []
-    for age_id, year_id in product(valid_ages, years):
+    for age_id in valid_ages:
         copied = data.copy()
         copied['age_group_id'] = age_id
-        copied['year_id'] = year_id
         df.append(copied)
     data = pd.concat(df)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
