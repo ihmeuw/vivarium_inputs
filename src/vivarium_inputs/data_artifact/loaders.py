@@ -165,7 +165,7 @@ def get_cause_metadata(entity, field):
     if field == "restrictions":
         data = entity.restrictions.to_dict()
     else:  # field in ["sequela", "etiologies"]:
-        if entity[field] != ():
+        if entity[field]:
             data = [sub_entity.name for sub_entity in entity[field]]
         else:
             data = None
@@ -174,7 +174,7 @@ def get_cause_metadata(entity, field):
 
 def get_risk_metadata(risk, measure, modeled_causes):
     if measure in ["restrictions", "categories", "tmred"]:
-        if risk[measure] != ():
+        if risk[measure] is not None:
             data = risk[measure].to_dict()
         else:
             data = None
