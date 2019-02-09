@@ -204,14 +204,13 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
 def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
 
-    if entity.kind == 'risk_factor':
-        data.drop('age_group_id', axis=1, inplace=True)
-        df = []
-        for age_id in set(extract.extract_data(entity, 'exposure', location_id).age_group_id):
-            copied = data.copy()
-            copied['age_group_id'] = age_id
-            df.append(copied)
-        data = pd.concat(df)
+    data.drop('age_group_id', axis=1, inplace=True)
+    df = []
+    for age_id in set(extract.extract_data(entity, 'exposure', location_id).age_group_id):
+        copied = data.copy()
+        copied['age_group_id'] = age_id
+        df.append(copied)
+    data = pd.concat(df)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
     id_cols = ['location_id', 'sex_id', 'age_group_id', 'measure']
