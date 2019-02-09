@@ -207,6 +207,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     exposure = extract.extract_data(entity, 'exposure', location_id)
     valid_ages = utilities.get_exposure_and_restriction_ages(exposure, entity)
     years = utility_data.get_estimation_years()
+    years = range(min(years), max(years) + 1)
 
     data.drop('age_group_id', axis=1, inplace=True)
     df = []
