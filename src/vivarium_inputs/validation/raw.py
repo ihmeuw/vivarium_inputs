@@ -679,10 +679,12 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
                       context: RawValidationContext) -> None:
     """Check the standard set of validations on raw exposure data for entity.
     Check age group and sex ids and restrictions for each category individually
-    for risk factors, all together for coverage gaps and alternative risk
-    factors. Check draw column value boundaries based on distribution type and
-    verify that exposure sums to 1 over demographic groups for categorical
-    entities.
+    for risk factors and alternative risk factors and all together for coverage
+    gaps. For risk factors and alternative risk factors, check age restrictions
+    but only warn if the data is missing or has extra age groups since
+    the restrictions are really about a risk-cause pair. Check draw column
+    value boundaries based on distribution type and verify that exposure sums
+    to 1 over demographic groups for categorical entities.
 
     Parameters
     ----------
@@ -717,14 +719,17 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
     cats = data.groupby('parameter')
 
-    if entity.kind == 'risk_factor':
+    if entity.kind == 'risk_factor' or entity.kind == 'alternative_risk_factor':
         restrictions = entity.restrictions
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = not restrictions.female_only
         female_expected = not restrictions.male_only
 
         cats.apply(check_age_group_ids, context, None, None)
         cats.apply(check_sex_ids, context, male_expected, female_expected)
 
+        cats.apply(check_age_restrictions, context, age_start, age_end, error=False)
         cats.apply(check_sex_restrictions, context, entity.restrictions.male_only, entity.restrictions.female_only)
 
         # we only have metadata about tmred for risk factors

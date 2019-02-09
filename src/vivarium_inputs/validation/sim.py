@@ -262,7 +262,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         if not np.allclose(data.groupby(non_categorical_columns)['value'].sum(), 1.0):
             raise DataTransformationError("Categorical exposures do not sum to one across categories.")
 
-    if entity.kind == 'risk_factor':
+    if entity.kind != 'coverage_gap':
         check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
@@ -278,9 +278,8 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    if entity.kind == 'risk_factor':
-        check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
-        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+    check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
@@ -300,9 +299,8 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
     if not weights_sum.apply(lambda s: np.isclose(s, 1.0) or np.isclose(s, 0.0)).all():
         raise DataTransformationError("Exposure weights do not sum to one across demographics.")
 
-    if entity.kind == 'risk_factor':
-        check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
-        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+    check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
+    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap],
@@ -342,7 +340,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         if not (data.loc[data.parameter == tmrel_cat, 'value'] == 1.0).all():
             raise DataTransformationError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
-    if entity.kind == 'risk_factor':
+    if entity.kind != 'coverage_gap':
         if (data.affected_measure == 'incidence_rate').all():
             check_age_restrictions(data, entity, rest_type='inner', fill_value=1.0, context=context)
         else:
