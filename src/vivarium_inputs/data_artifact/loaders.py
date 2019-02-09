@@ -34,7 +34,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "sequela": {
             "mapping": sequelae,
             "getter": get_sequela_data,
-            "measures": ["healthstate", "prevalence", "incidence", "disability_weight"],
+            "measures": ["healthstate", "prevalence", "incidence", "disability_weight", "birth_prevalence"],
         },
         "healthcare_entity": {
             "mapping": healthcare_entities,
@@ -165,7 +165,7 @@ def get_cause_metadata(entity, field):
     if field == "restrictions":
         data = entity.restrictions.to_dict()
     else:  # field in ["sequela", "etiologies"]:
-        if entity[field] is not None:
+        if entity[field] != ():
             data = [sub_entity.name for sub_entity in entity[field]]
         else:
             data = None
@@ -174,7 +174,7 @@ def get_cause_metadata(entity, field):
 
 def get_risk_metadata(risk, measure, modeled_causes):
     if measure in ["restrictions", "categories", "tmred"]:
-        if risk[measure] is not None:
+        if risk[measure] != ():
             data = risk[measure].to_dict()
         else:
             data = None
