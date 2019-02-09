@@ -6,7 +6,7 @@ from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 import numpy as np
 import pandas as pd
 
-from vivarium_inputs import utility_data
+from vivarium_inputs import utility_data, extract
 from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 
 
@@ -326,3 +326,30 @@ def get_restriction_age_boundary(entity: Union[RiskFactor, Cause], boundary: str
         end_op = min if reverse else max
         age = end_op(yld_age, yll_age) if boundary == 'start' else start_op(yld_age, yll_age)
     return age
+
+
+def get_exposure_and_restriction_ages( entity: RiskFactor, location_id: int) -> set:
+    """Get the intersection of age groups found in exposure data and entity
+    restriction age range. Used to filter other risk data where
+    using just exposure age groups isn't sufficient because exposure at the
+    point of extraction is pre-filtering by age restrictions.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to find the intersecting exposure and restriction ages.
+    location_id
+        Location for which to pull exposure data.
+
+    Returns
+    -------
+    Set of age groups found in both the entity's exposure data and in the
+    entity's age restrictions.
+    """
+    exposure_age_groups = set(extract.extract_data(entity, 'exposure', location_id).age_group_id)
+    start, end = get_age_group_ids_by_restriction(entity, 'outer')
+    restriction_age_groups = get_restriction_age_ids(start, end, utility_data.get_age_group_ids())
+    valid_age_groups = exposure_age_groups.intersection(restriction_age_groups)
+
+    return valid_age_groups
+

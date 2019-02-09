@@ -192,7 +192,8 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    data = utilities.filter_data_by_restrictions(data, entity, 'outer', utility_data.get_age_group_ids())
+    valid_age_groups = utilities.get_exposure_and_restriction_ages(entity, location_id)
+    data = data[data.age_group_id.isin(valid_age_groups)]
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
@@ -202,14 +203,15 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
 def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
 
-    start, end = utilities.get_age_group_ids_by_restriction(entity, 'outer')
-    valid_ages = utilities.get_restriction_age_ids(start, end, utility_data.get_age_group_ids())
+    valid_ages = utilities.get_exposure_and_restriction_ages(entity, location_id)
+    years = utility_data.get_estimation_years()
 
     data.drop('age_group_id', axis=1, inplace=True)
     df = []
-    for age_id in set(valid_ages):
+    for age_id, year_id in product(valid_ages, years):
         copied = data.copy()
         copied['age_group_id'] = age_id
+        copied['year_id'] = year_id
         df.append(copied)
     data = pd.concat(df)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
