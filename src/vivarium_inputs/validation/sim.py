@@ -3,12 +3,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-<<<<<<< HEAD
-from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate
-=======
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
-
->>>>>>> feature/gbd_2017_update
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import DataTransformationError, Population, PROTECTIVE_CAUSE_RISK_PAIRS
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
@@ -605,12 +600,16 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
                                               context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped population
-    attributable fraction data,
+    attributable fraction data. For protective cause-risk pairs: check a hard
+    lower boundary of -1, a soft upper bound of 0 and a hard upper bound of 1.
+    For non-protective cause-risk pairs: check a hard lower bound of 0 and a
+    hard upper bound of 1. Check age and sex restrictions based on the affected
+    entity and measure.
 
     Parameters
     ----------
     data
-        Simulation-prepped relative risk data to validate.
+        Simulation-prepped population attributable fraction data to validate.
     entity
         Entity to which the data pertain.
     context
@@ -620,9 +619,8 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     ------
     DataTransformationError
         If any standard columns are incorrectly named or contain invalid values,
-        if the age or sex restrictions are violated, data falls
-        outside the expected boundary values, or TMREL values are not all 1 for
-        entities with categorical distributions.
+        if the age or sex restrictions are violated, or data falls
+        outside the expected boundary values.
 
     """
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
@@ -661,6 +659,29 @@ def validate_mediation_factors(data: pd.DataFrame, entity: RiskFactor, context: 
 
 
 def validate_estimate(data: pd.DataFrame, entity: Covariate, context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped covariate
+    estimate data, adjusting as needed for covariates that are not by age or
+    by sex to skip those column checks. Check that the lower, mean, and upper
+    values for each demographic group are either all 0 or lower < mean < upper.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped covariate estimate data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yld age or sex restrictions are violated, or data does not satisfy
+        lower = mean = upper = 0 or lower < mean < upper for each demographic
+        group.
+
+    """
     cols = ['location', 'year_start', 'year_end']
     validate_location_column(data, context)
     if entity.by_sex:
@@ -677,6 +698,25 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
 
 def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity],
                   context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped cost data.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped cost data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yld age or sex restrictions are violated, or data falls outside the
+        expected boundary values.
+
+    """
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
                                  value_columns=['value'], inclusive=True,
@@ -687,6 +727,26 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcare
 
 
 def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped utilization
+    data.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped cost utilization to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yld age or sex restrictions are violated, or data falls outside the
+        expected boundary values.
+
+    """
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
                                  value_columns=['value'], inclusive=True,
@@ -697,6 +757,27 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: 
 
 
 def validate_structure(data: pd.DataFrame, entity: Population, context: SimulationValidationContext) -> None:
+    """Check the standard set of validations on simulation-prepped population
+    structure data, skipping the check on the draw column since structure data
+    isn't by draw.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped population structure data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if yld age or sex restrictions are violated, or data falls outside the
+        expected boundary values.
+
+    """
     validate_demographic_columns(data, context)
     validate_value_column(data)
 
@@ -710,6 +791,19 @@ def validate_structure(data: pd.DataFrame, entity: Population, context: Simulati
 
 def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: Population,
                                                       context: SimulationValidationContext) -> None:
+    """ Because the structure of life expectancy data is somewhat different,
+    containing
+
+    Parameters
+    ----------
+    data
+    entity
+    context
+
+    Returns
+    -------
+
+    """
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
         raise DataTransformationError("Age data must be contained in columns named "
                                       "'age_group_start' and 'age_group_end'.")
