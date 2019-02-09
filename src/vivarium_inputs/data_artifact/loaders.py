@@ -14,8 +14,8 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "cause": {
             "mapping": causes,
             "getter": get_cause_data,
-            "measures": ["prevalence", "incidence", "cause_specific_mortality", "disability_weight",
-                         "excess_mortality", "remission", "sequelae", "etiologies", "restrictions"]
+            "measures": ["prevalence", "incidence", "cause_specific_mortality", "disability_weight", "birth_prevalence",
+                         "excess_mortality", "remission", "sequelae", "etiologies", "restrictions",],
         },
         "risk_factor": {
             "mapping": risk_factors,
