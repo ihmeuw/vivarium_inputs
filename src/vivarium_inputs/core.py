@@ -189,12 +189,10 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
 
 
 def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
-    exposure_age_groups = set(extract.extract_data(entity, 'exposure', location_id).age_group_id)
-
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    data = data[data.age_group_id.isin(exposure_age_groups)]
+    data = utilities.filter_data_by_restrictions(data, entity, 'outer', utility_data.get_age_group_ids())
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
