@@ -50,10 +50,10 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
            f'value{"s" if isinstance(boundary_value, pd.Series) else f" ({boundary_value})"}.')
 
     if boundary_type == "lower":
-        op = operator.ge if inclusive else operator.gt
+        op = operator.gt
         data_values = data[value_columns].min(axis=1)
     elif boundary_type == "upper":
-        op = operator.le if inclusive else operator.lt
+        op = operator.lt
         data_values = data[value_columns].max(axis=1)
     else:
         raise ValueError(f'Boundary type must be either "lower" or "upper". You specified {boundary_type}.')
@@ -62,7 +62,11 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
         data_values = data_values.sort_index()
         boundary_value = boundary_value.sort_index()
 
-    if not np.all(op(data_values, boundary_value)):
+    within_boundary = op(data_values, boundary_value)
+    if inclusive:
+        within_boundary |= np.isclose(data_values, boundary_value)
+
+    if not np.all(within_boundary):
         if error is not None:
             raise error(msg)
         else:
