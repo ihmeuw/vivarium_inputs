@@ -189,12 +189,12 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
 
 
 def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
-    exposure_age_groups = set(extract.extract_data(entity, 'exposure', location_id).age_group_id)
-
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    data = data[data.age_group_id.isin(exposure_age_groups)]
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    valid_age_groups = utilities.get_exposure_and_restriction_ages(exposure, entity)
+    data = data[data.age_group_id.isin(valid_age_groups)]
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
@@ -204,18 +204,21 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
 def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
 
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    valid_ages = utilities.get_exposure_and_restriction_ages(exposure, entity)
+
     data.drop('age_group_id', axis=1, inplace=True)
     df = []
-    for age_id in set(extract.extract_data(entity, 'exposure', location_id).age_group_id):
+    for age_id in valid_ages:
         copied = data.copy()
         copied['age_group_id'] = age_id
         df.append(copied)
     data = pd.concat(df)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
-    id_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure']
 
     data = utilities.normalize(data, fill_value=0, cols_to_fill=distribution_cols)
+    id_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure', 'year_id']
     data = pd.melt(data, id_vars=id_cols, value_vars=distribution_cols, var_name='parameter')
     return data
 
