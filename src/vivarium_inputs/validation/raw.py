@@ -1954,7 +1954,6 @@ def check_age_restrictions(data: pd.DataFrame, context: RawValidationContext,
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
         if check_data_exist(should_be_zero, zeros_missing=True, value_columns=value_columns, error=False):
             warnings.warn(f'Data was only expected to contain values for age groups between ids '
-                          f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
                           f'but also included values for age groups {extra_age_groups}.')
 
     # make sure we're not missing data for all ages in restrictions
