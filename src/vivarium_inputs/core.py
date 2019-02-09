@@ -170,7 +170,7 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     data = data.drop('modelable_entity_id', 'columns')
     data = data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
 
-    if entity.kind != 'coverage_gap':
+    if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,
                                                      'outer', utility_data.get_age_group_ids())
 

@@ -719,7 +719,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
     cats = data.groupby('parameter')
 
-    if entity.kind != 'coverage_gap':
+    if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         restrictions = entity.restrictions
         age_start = get_restriction_age_boundary(entity, 'start')
         age_end = get_restriction_age_boundary(entity, 'end')
@@ -741,7 +741,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
             else:
                 check_value_columns_boundary(data, tmrel, 'lower',
                                              value_columns=DRAW_COLUMNS, inclusive=True, error=None)
-    else:  # CoverageGap, AlternativeRiskFactor
+    else:  # CoverageGap
         cats.apply(check_age_group_ids, context, None, None)
         cats.apply(check_sex_ids, context, True, True)
 

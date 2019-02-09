@@ -262,7 +262,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         if not np.allclose(data.groupby(non_categorical_columns)['value'].sum(), 1.0):
             raise DataTransformationError("Categorical exposures do not sum to one across categories.")
 
-    if entity.kind != 'coverage_gap':
+    if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
