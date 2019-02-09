@@ -6,7 +6,8 @@ import pandas as pd
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 
 from vivarium_inputs import utilities, utility_data
-from vivarium_inputs.globals import DataTransformationError, Population, PROTECTIVE_CAUSE_RISK_PAIRS
+from vivarium_inputs.globals import (DataTransformationError, Population,
+                                     PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES)
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
@@ -221,8 +222,12 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
     check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
                                  boundary_type='lower', value_columns=['value'],
                                  error=DataTransformationError)
-    check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+
+    if entity.name in BOUNDARY_SPECIAL_CASES['excess_mortality'].get(context['location'], {}):
+        max_val = BOUNDARY_SPECIAL_CASES['excess_mortality'][context['location']][entity.name]
+    else:
+        max_val = VALID_EXCESS_MORT_RANGE[1]
+    check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0, context=context)
