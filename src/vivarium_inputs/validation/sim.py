@@ -18,7 +18,7 @@ VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
 # FIXME: bumping csmr max to 1.5 because of age group scaling 2/8/19 - K.W.
 VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 1.5)  # used mortality viz, picked worst country 15q45, mul by ~1.25
-VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
+VALID_EXCESS_MORT_RANGE = (0.0, {'measles': 250_000_000, 'standard': 120.0})  # James' head
 VALID_EXPOSURE_RANGE = (0.0, {'continuous': 10_000.0, 'categorical': 1.0})
 VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_EXPOSURE_DIST_WEIGHTS_RANGE = (0.0, 1.0)
@@ -221,8 +221,11 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
     check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
                                  boundary_type='lower', value_columns=['value'],
                                  error=DataTransformationError)
-    check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+    if entity.name in VALID_EXCESS_MORT_RANGE[1]:
+        max_val = VALID_EXCESS_MORT_RANGE[1][entity.name]
+    else:
+        max_val = VALID_EXCESS_MORT_RANGE[1]['standard']
+    check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0, context=context)
