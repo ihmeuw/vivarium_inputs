@@ -192,7 +192,8 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    valid_age_groups = utilities.get_exposure_and_restriction_ages(entity, location_id)
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    valid_age_groups = utilities.get_exposure_and_restriction_ages(exposure, entity)
     data = data[data.age_group_id.isin(valid_age_groups)]
 
     data = utilities.normalize(data, fill_value=0)
@@ -203,7 +204,8 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
 def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
 
-    valid_ages = utilities.get_exposure_and_restriction_ages(entity, location_id)
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    valid_ages = utilities.get_exposure_and_restriction_ages(exposure, entity)
     years = utility_data.get_estimation_years()
 
     data.drop('age_group_id', axis=1, inplace=True)

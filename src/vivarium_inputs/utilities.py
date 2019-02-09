@@ -328,7 +328,7 @@ def get_restriction_age_boundary(entity: Union[RiskFactor, Cause], boundary: str
     return age
 
 
-def get_exposure_and_restriction_ages( entity: RiskFactor, location_id: int) -> set:
+def get_exposure_and_restriction_ages(exposure: pd.DataFrame, entity: RiskFactor) -> set:
     """Get the intersection of age groups found in exposure data and entity
     restriction age range. Used to filter other risk data where
     using just exposure age groups isn't sufficient because exposure at the
@@ -336,17 +336,17 @@ def get_exposure_and_restriction_ages( entity: RiskFactor, location_id: int) -> 
 
     Parameters
     ----------
+    exposure
+        Exposure data for `entity`.
     entity
         Entity for which to find the intersecting exposure and restriction ages.
-    location_id
-        Location for which to pull exposure data.
 
     Returns
     -------
     Set of age groups found in both the entity's exposure data and in the
     entity's age restrictions.
     """
-    exposure_age_groups = set(extract.extract_data(entity, 'exposure', location_id).age_group_id)
+    exposure_age_groups = set(exposure.age_group_id)
     start, end = get_age_group_ids_by_restriction(entity, 'outer')
     restriction_age_groups = get_restriction_age_ids(start, end, utility_data.get_age_group_ids())
     valid_age_groups = exposure_age_groups.intersection(restriction_age_groups)
