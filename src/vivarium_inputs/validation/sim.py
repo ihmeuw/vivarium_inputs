@@ -141,8 +141,11 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
     check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[1],
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
-    check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0, context=context)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+
+    restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
+    check_age_restrictions(data, restrictions_entity, rest_type='yld', fill_value=0.0, context=context)
+    check_sex_restrictions(data, restrictions_entity.restrictions.male_only, 
+                           restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext):
@@ -154,8 +157,11 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], conte
     check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[1],
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
-    check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0, context=context)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+
+    restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
+    check_age_restrictions(data, restrictions_entity, rest_type='yld', fill_value=0.0, context=context)
+    check_sex_restrictions(data, restrictions_entity.restrictions.male_only, 
+                           restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext):
@@ -172,7 +178,9 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+    restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
+    check_sex_restrictions(data, restrictions_entity.restrictions.male_only, 
+                           restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext):
@@ -184,8 +192,10 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0, context=context)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+    restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
+    check_age_restrictions(data, restrictions_entity, rest_type='yld', fill_value=0.0, context=context)
+    check_sex_restrictions(data, restrictions_entity.restrictions.male_only, 
+                           restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext):
