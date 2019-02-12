@@ -281,7 +281,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         check_age_restrictions(data, entity, rest_type='outer', fill_value={'exposed': 0.0, 'unexposed': 1.0},
                                context=context)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only,
-                               fill_value={'exposed': 0.0, 'unexposed': 1.0})
+                               fill_value={'exposed': 0.0, 'unexposed': 1.0}, entity=entity)
 
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
