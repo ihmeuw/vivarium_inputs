@@ -168,13 +168,18 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
-    data = data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,
                                                      'outer', utility_data.get_age_group_ids())
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
+        # normalize so all categories sum to 1
+        cols = list(set(data.columns).difference(DRAW_COLUMNS + ['parameter']))
+
+        sums = data.groupby(cols)[DRAW_COLUMNS].sum()
+        tmp = data.groupby('parameter').apply(lambda df: df.set_index(cols).divide(sums))
+
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
         exposed = data[data.parameter != tmrel_cat]
         unexposed = data[data.parameter == tmrel_cat]
