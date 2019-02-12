@@ -168,7 +168,6 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
-    data = data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,
@@ -182,6 +181,13 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
         #  FIXME: We fill 1 as exposure of tmrel category, which is not correct.
         data = pd.concat([utilities.normalize(exposed, fill_value=0), utilities.normalize(unexposed, fill_value=1)],
                          ignore_index=True)
+
+        # normalize so all categories sum to 1
+        cols = list(set(data.columns).difference(DRAW_COLUMNS + ['parameter']))
+        sums = data.groupby(cols)[DRAW_COLUMNS].sum()
+        data = (data.groupby('parameter')
+                .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))
+                .reset_index())
     else:
         data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
