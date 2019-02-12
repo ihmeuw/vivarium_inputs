@@ -278,10 +278,11 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
             raise DataTransformationError("Categorical exposures do not sum to one across categories.")
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
-        check_age_restrictions(data, entity, rest_type='outer', fill_value={'exposed': 0.0, 'unexposed': 1.0},
+        fill_value = {'exposed': 0.0, 'unexposed': 1.0} if is_categorical else 0.0
+        check_age_restrictions(data, entity, rest_type='outer', fill_value=fill_value,
                                context=context)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only,
-                               fill_value={'exposed': 0.0, 'unexposed': 1.0}, entity=entity)
+                               fill_value=fill_value, entity=entity)
 
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
