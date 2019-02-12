@@ -174,13 +174,6 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
                                                      'outer', utility_data.get_age_group_ids())
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
-        # normalize so all categories sum to 1
-        cols = list(set(data.columns).difference(DRAW_COLUMNS + ['parameter']))
-        sums = data.groupby(cols)[DRAW_COLUMNS].sum()
-        data = data.groupby('parameter')\
-            .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))\
-            .reset_index()
-
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
         exposed = data[data.parameter != tmrel_cat]
         unexposed = data[data.parameter == tmrel_cat]
@@ -188,6 +181,13 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
         #  FIXME: We fill 1 as exposure of tmrel category, which is not correct.
         data = pd.concat([utilities.normalize(exposed, fill_value=0), utilities.normalize(unexposed, fill_value=1)],
                          ignore_index=True)
+
+        # normalize so all categories sum to 1
+        cols = list(set(data.columns).difference(DRAW_COLUMNS + ['parameter']))
+        sums = data.groupby(cols)[DRAW_COLUMNS].sum()
+        data = data.groupby('parameter')\
+            .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))\
+            .reset_index()
     else:
         data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
