@@ -129,7 +129,7 @@ BOUNDARY_SPECIAL_CASES = {
 }
 
 MULTIPLE_MORT_MORB_PAIRS = {
-    'zinc_deficiency': [causes.diarrheal_diseases]
+    'zinc_deficiency': [causes.diarrheal_diseases, causes.lower_respiratory_infections]
 }
 
 

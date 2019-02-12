@@ -263,7 +263,7 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         data = data[~data.cause_id.isin(yll_only_causes)]
 
         if entity.name in MULTIPLE_MORT_MORB_PAIRS: # drop the rows for mort = morb = 1 for causes in MULTIPLE_MORT_MORB_PAIRS
-            filter_causes = [c.gbd_id for c in causes if c in MULTIPLE_MORT_MORB_PAIRS[entity.name]]
+            filter_causes = [c.gbd_id for c in MULTIPLE_MORT_MORB_PAIRS[entity.name]]
             data = data[~((data.cause_id.isin(filter_causes)) & (data.morbidity == 1) & (data.mortality == 1))]
 
         data = utilities.convert_affected_entity(data, 'cause_id')
