@@ -591,7 +591,7 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
         outside = data[data.sex == 'Male']
         sex = 'female'
     if outside is not None:
-        if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
+        if entity is not None and (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
                 entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']):
             _check_cat_risk_fill_values(outside, entity, fill_value, 'sex')
 
