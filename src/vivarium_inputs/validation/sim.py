@@ -605,7 +605,6 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
 
 def _check_cat_risk_fill_values(outside_data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                                 fill_value: Dict[str, float], restriction: str):
-
     tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
     outside_unexposed = outside_data[outside_data.parameter == tmrel_cat]
     outside_exposed = outside_data[outside_data.parameter != tmrel_cat]
