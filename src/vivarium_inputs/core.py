@@ -176,9 +176,10 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
         # normalize so all categories sum to 1
         cols = list(set(data.columns).difference(DRAW_COLUMNS + ['parameter']))
-
         sums = data.groupby(cols)[DRAW_COLUMNS].sum()
-        tmp = data.groupby('parameter').apply(lambda df: df.set_index(cols).divide(sums))
+        data = data.groupby('parameter')\
+            .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))\
+            .reset_index()
 
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
         exposed = data[data.parameter != tmrel_cat]
