@@ -185,9 +185,9 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
         # normalize so all categories sum to 1
         cols = list(set(data.columns).difference(DRAW_COLUMNS + ['parameter']))
         sums = data.groupby(cols)[DRAW_COLUMNS].sum()
-        data = data.groupby('parameter')\
-            .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))\
-            .reset_index()
+        data = (data.groupby('parameter')
+                .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))
+                .reset_index())
     else:
         data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
