@@ -128,6 +128,10 @@ BOUNDARY_SPECIAL_CASES = {
     }
 }
 
+MULTIPLE_MORT_MORB_PAIRS = {
+    'zinc_deficiency': [causes.diarrheal_diseases]
+}
+
 
 class Population(ModelableEntity):
     """Entity wrapper for querying population measures."""
