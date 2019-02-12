@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Dict
 
 import numpy as np
 import pandas as pd
@@ -278,8 +278,10 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
             raise DataTransformationError("Categorical exposures do not sum to one across categories.")
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
-        check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
-        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+        check_age_restrictions(data, entity, rest_type='outer', fill_value={'exposed': 0.0, 'unexposed': 1.0},
+                               context=context)
+        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only,
+                               fill_value={'exposed': 0.0, 'unexposed': 1.0})
 
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
@@ -563,24 +565,52 @@ def validate_value_column(data: pd.DataFrame):
 
 
 def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_type: str,
-                           fill_value: float, context: SimulationValidationContext):
+                           fill_value: Union[float, Dict[str, float]], context: SimulationValidationContext):
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
     age_start = float(age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start'])
     age_end = float(age_bins.loc[age_bins.age_group_id == end_id, 'age_group_end'])
 
     outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
-    if not outside.empty and (outside.value != fill_value).any():
+
+    if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
+            entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']):
+        _check_cat_risk_fill_values(outside, entity, fill_value, 'age')
+
+    elif not outside.empty and (outside.value != fill_value).any():
         raise DataTransformationError(f"Age restrictions are violated by a value other than fill={fill_value}.")
 
 
-def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool, fill_value: float):
-    if male_only and (data.loc[data.sex == 'Female', 'value'] != fill_value).any():
-        raise DataTransformationError(f"Restriction to male sex only is violated "
-                                      f"by a value other than fill={fill_value}.")
-    elif female_only and (data.loc[data.sex == 'Male', 'value'] != fill_value).any():
-        raise DataTransformationError(f"Restriction to female sex only is violated "
-                                      f"by a value other than fill={fill_value}.")
+def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool,
+                           fill_value: Union[float, Dict[str, float]], entity=None):
+    outside = None
+    if male_only:
+        outside = data[data.sex == 'Female']
+        sex = 'male'
+    elif female_only:
+        outside = data[data.sex == 'Male']
+        sex = 'female'
+    if outside is not None:
+        if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
+                entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']):
+            _check_cat_risk_fill_values(outside, entity, fill_value, 'sex')
+
+        elif (outside.value != fill_value).any():
+            raise DataTransformationError(f"Restriction to {sex} sex only is violated "
+                                          f"by a value other than fill={fill_value}.")
+
+
+def _check_cat_risk_fill_values(outside_data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
+                                fill_value: Dict[str, float], restriction: str):
+    tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+    outside_unexposed = outside_data[outside_data.parameter == tmrel_cat]
+    outside_exposed = outside_data[outside_data.parameter != tmrel_cat]
+    if not outside_unexposed.empty and (outside_unexposed.value != fill_value['unexposed']).any():
+        raise DataTransformationError(f'{restriction.capitalize()} restrictions for TMREL cat are violated by a '
+                                      f'value other than fill={fill_value["unexposed"]}')
+    if not outside_exposed.empty and (outside_exposed.value != fill_value['exposed']).any():
+        raise DataTransformationError(f'{restriction.capitalize()} restrictions for non-TMREL categories are violated by a '
+                                      f'value other than fill={fill_value["exposed"]}')
 
 
 def check_covariate_values(data: pd.DataFrame):
@@ -594,3 +624,4 @@ def check_covariate_values(data: pd.DataFrame):
         raise DataTransformationError('Covariate data contains demographic groups for which the '
                                       'estimates for lower, mean, and upper values are not all 0 '
                                       'and it is not the case that lower < mean < upper. ')
+
