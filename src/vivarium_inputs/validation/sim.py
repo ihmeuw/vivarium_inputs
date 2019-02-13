@@ -393,10 +393,11 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
     """Check the standard set of validations on simulation-prepped exposure
     data, with the upper boundary of values determined by the distribution type.
     The broadest age range determined by yll and yld age restrictions is used
-    in the restriction check. Because exposure is filled with two values outside
-    the restriction boundaries (one for the TMREL category and one for all other
-    categories), check that only these two values are found outside restrictions
-    and that they are matched to the right categories.
+    in the restriction check. For categorical risks, because exposure is filled
+    with two values outside the restriction boundaries (one for the TMREL
+    category and one for all other categories), check that only these two
+    values are found outside restrictions and that they are matched to the
+    right categories.
 
     Additionally, check that the parameter column contains either only
     'continuous' for an entity with a continuous distribution or the full set
