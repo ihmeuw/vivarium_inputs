@@ -278,10 +278,11 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
             raise DataTransformationError("Categorical exposures do not sum to one across categories.")
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
-        check_age_restrictions(data, entity, rest_type='outer', fill_value={'exposed': 0.0, 'unexposed': 1.0},
+        fill_value = {'exposed': 0.0, 'unexposed': 1.0} if is_categorical else 0.0
+        check_age_restrictions(data, entity, rest_type='outer', fill_value=fill_value,
                                context=context)
         check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only,
-                               fill_value={'exposed': 0.0, 'unexposed': 1.0}, entity=entity)
+                               fill_value=fill_value, entity=entity)
 
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
@@ -574,7 +575,8 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
     outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
 
     if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
-            entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']):
+            entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] and
+            isinstance(fill_value, dict)):
         _check_cat_risk_fill_values(outside, entity, fill_value, 'age')
 
     elif not outside.empty and (outside.value != fill_value).any():
@@ -592,7 +594,8 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
         sex = 'female'
     if outside is not None:
         if entity is not None and (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
-                entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']):
+                                   entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
+                                   and isinstance(fill_value, dict)):
             _check_cat_risk_fill_values(outside, entity, fill_value, 'sex')
 
         elif (outside.value != fill_value).any():
@@ -607,10 +610,10 @@ def _check_cat_risk_fill_values(outside_data: pd.DataFrame, entity: Union[RiskFa
     outside_exposed = outside_data[outside_data.parameter != tmrel_cat]
     if not outside_unexposed.empty and (outside_unexposed.value != fill_value['unexposed']).any():
         raise DataTransformationError(f'{restriction.capitalize()} restrictions for TMREL cat are violated by a '
-                                      f'value other than fill={fill_value["unexposed"]}')
+                                      f'value other than fill={fill_value["unexposed"]}.')
     if not outside_exposed.empty and (outside_exposed.value != fill_value['exposed']).any():
-        raise DataTransformationError(f'{restriction.capitalize()} restrictions for non-TMREL categories are violated by a '
-                                      f'value other than fill={fill_value["exposed"]}')
+        raise DataTransformationError(f'{restriction.capitalize()} restrictions for non-TMREL categories are violated '
+                                      f'by a value other than fill={fill_value["exposed"]}.')
 
 
 def check_covariate_values(data: pd.DataFrame):
