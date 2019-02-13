@@ -1,5 +1,5 @@
 """Global constants, errors, and module imports for inputs processing."""
-from gbd_mapping import ModelableEntity, causes
+from gbd_mapping import ModelableEntity, causes, risk_factors
 
 
 # The purpose of this import block is to mask the dependency on internal
@@ -127,6 +127,9 @@ BOUNDARY_SPECIAL_CASES = {
         }
     }
 }
+
+PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
+                         "zinc deficiency relative risk data breaks central comp interpolation."}
 
 
 class Population(ModelableEntity):

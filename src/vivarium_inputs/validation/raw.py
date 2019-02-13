@@ -5,13 +5,12 @@ import warnings
 import pandas as pd
 import numpy as np
 
-from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Restrictions,
-                         Etiology, Covariate, CoverageGap, causes)
+from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
-                                     DataDoesNotExistError, Population)
+                                     DataDoesNotExistError, Population, PROBLEMATIC_RISKS)
 
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
@@ -285,6 +284,10 @@ def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
         If the 'exists' metadata flag on `entity` for `measure` is None.
 
     """
+    if entity.name in PROBLEMATIC_RISKS:
+        raise NotImplementedError(f"We don't currently support pulling data for risk factor {entity.name} because of "
+                                  f"significant issues with the data: {PROBLEMATIC_RISKS[entity.name]}.")
+
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
         return
