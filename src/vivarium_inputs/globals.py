@@ -128,7 +128,8 @@ BOUNDARY_SPECIAL_CASES = {
     }
 }
 
-PROBLEMATIC_RISKS = (risk_factors.zinc_deficiency, ) # zinc RR breaks central comp interpolation in normalize_year
+PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
+                         "zinc deficiency relative risk data breaks central comp interpolation."}
 
 
 class Population(ModelableEntity):

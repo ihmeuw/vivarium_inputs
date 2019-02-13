@@ -284,9 +284,9 @@ def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
         If the 'exists' metadata flag on `entity` for `measure` is None.
 
     """
-    if entity in PROBLEMATIC_RISKS:
+    if entity.name in PROBLEMATIC_RISKS:
         raise NotImplementedError(f"We don't currently support pulling data for risk factor {entity.name} because of "
-                                  f"significant issues with the data.")
+                                  f"significant issues with the data: {PROBLEMATIC_RISKS[entity.name]}.")
 
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
