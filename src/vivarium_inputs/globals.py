@@ -1,5 +1,5 @@
 """Global constants, errors, and module imports for inputs processing."""
-from gbd_mapping import ModelableEntity, causes
+from gbd_mapping import ModelableEntity, causes, risk_factors
 
 
 # The purpose of this import block is to mask the dependency on internal
@@ -131,6 +131,8 @@ BOUNDARY_SPECIAL_CASES = {
 MULTIPLE_MORT_MORB_PAIRS = {
     'zinc_deficiency': [causes.diarrheal_diseases, causes.lower_respiratory_infections]
 }
+
+PROBLEMATIC_RISKS = (risk_factors.zinc_deficiency, ) # zinc RR breaks central comp interpolation in normalize_year
 
 
 class Population(ModelableEntity):
