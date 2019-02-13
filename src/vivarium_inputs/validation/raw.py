@@ -5,13 +5,12 @@ import warnings
 import pandas as pd
 import numpy as np
 
-from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Restrictions,
-                         Etiology, Covariate, CoverageGap, causes)
+from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
-                                     DataDoesNotExistError, Population, MULTIPLE_MORT_MORB_PAIRS, PROBLEMATIC_RISKS)
+                                     DataDoesNotExistError, Population, PROBLEMATIC_RISKS)
 
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
@@ -921,8 +920,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
     for c_id in data.cause_id.unique():
         cause = [c for c in causes if c.gbd_id == c_id][0]
-        check_mort_morb_flags(data[data.cause_id == c_id], cause.restrictions.yld_only,
-                              cause.restrictions.yll_only, entity.name)
+        check_mort_morb_flags(data[data.cause_id == c_id], cause.restrictions.yld_only, cause.restrictions.yll_only)
 
     grouped = data.groupby(['cause_id', 'morbidity', 'mortality', 'parameter'])
     if entity.kind == 'risk_factor':
@@ -1466,7 +1464,7 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
 ############################
 
 
-def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool, risk_name: str) -> None:
+def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool) -> None:
     """ Verify that no unexpected values or combinations of mortality and
     morbidity flags are found in `data`, given the restrictions of the
     affected entity.
@@ -1482,8 +1480,6 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool, ri
     yll_only
         Boolean indicating whether the affected cause is restricted
         to yll_only.
-    risk_name
-        Name of risk the data is for. Used to check for exceptions.
 
     Raises
     -------
@@ -1507,13 +1503,8 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool, ri
 
     elif (morbidity & mortality).any():
         if no_morbidity.any() or no_mortality.any():
-            msg = base_error_msg + 'row with both mortality and morbidity flags set to 1 as well as rows with only one ' \
-                                   'of the mortality or morbidity flags set to 1.'
-            if risk_name in MULTIPLE_MORT_MORB_PAIRS and \
-                    data.cause_id.unique() in [c.gbd_id for c in MULTIPLE_MORT_MORB_PAIRS[risk_name]]:
-                warnings.warn(msg)
-            else:
-                raise DataAbnormalError(msg)
+            raise DataAbnormalError(base_error_msg + 'row with both mortality and morbidity flags set to 1 as well as '
+                                                     'rows with only one of the mortality or morbidity flags set to 1.')
     else:
         if morbidity.any() and no_mortality.all() and not yld_only:
             raise DataAbnormalError(base_error_msg + 'only rows with the morbidity flag set to 1 but the affected '

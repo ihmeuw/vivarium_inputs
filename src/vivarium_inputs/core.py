@@ -8,7 +8,7 @@ import numpy as np
 
 from vivarium_inputs import utilities, extract, utility_data
 from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
-                                     Population, DataDoesNotExistError, MULTIPLE_MORT_MORB_PAIRS)
+                                     Population, DataDoesNotExistError)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
@@ -261,10 +261,6 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         #  2/8/19 K.W.
         yll_only_causes = set([c.gbd_id for c in causes if c.restrictions.yll_only])
         data = data[~data.cause_id.isin(yll_only_causes)]
-
-        if entity.name in MULTIPLE_MORT_MORB_PAIRS: # drop the rows for mort = morb = 1 for causes in MULTIPLE_MORT_MORB_PAIRS
-            filter_causes = [c.gbd_id for c in MULTIPLE_MORT_MORB_PAIRS[entity.name]]
-            data = data[~((data.cause_id.isin(filter_causes)) & (data.morbidity == 1) & (data.mortality == 1))]
 
         data = utilities.convert_affected_entity(data, 'cause_id')
         morbidity = data.morbidity == 1
