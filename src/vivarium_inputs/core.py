@@ -168,9 +168,8 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
-    data = data.groupby('parameter').apply(lambda df: utilities.normalize(df, fill_value=0))
 
-    if entity.kind == 'risk_factor':
+    if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,
                                                      'outer', utility_data.get_age_group_ids())
 
@@ -182,6 +181,13 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
         #  FIXME: We fill 1 as exposure of tmrel category, which is not correct.
         data = pd.concat([utilities.normalize(exposed, fill_value=0), utilities.normalize(unexposed, fill_value=1)],
                          ignore_index=True)
+
+        # normalize so all categories sum to 1
+        cols = list(set(data.columns).difference(DRAW_COLUMNS + ['parameter']))
+        sums = data.groupby(cols)[DRAW_COLUMNS].sum()
+        data = (data.groupby('parameter')
+                .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))
+                .reset_index())
     else:
         data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
@@ -189,12 +195,12 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
 
 
 def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
-    exposure_age_groups = set(extract.extract_data(entity, 'exposure', location_id).age_group_id)
-
     data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    data = data[data.age_group_id.isin(exposure_age_groups)]
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    valid_age_groups = utilities.get_exposure_and_restriction_ages(exposure, entity)
+    data = data[data.age_group_id.isin(valid_age_groups)]
 
     data = utilities.normalize(data, fill_value=0)
     data = utilities.reshape(data)
@@ -204,19 +210,21 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
 def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
 
-    if entity.kind == 'risk_factor':
-        data.drop('age_group_id', axis=1, inplace=True)
-        df = []
-        for age_id in set(extract.extract_data(entity, 'exposure', location_id).age_group_id):
-            copied = data.copy()
-            copied['age_group_id'] = age_id
-            df.append(copied)
-        data = pd.concat(df)
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    valid_ages = utilities.get_exposure_and_restriction_ages(exposure, entity)
 
+    data.drop('age_group_id', axis=1, inplace=True)
+    df = []
+    for age_id in valid_ages:
+        copied = data.copy()
+        copied['age_group_id'] = age_id
+        df.append(copied)
+    data = pd.concat(df)
     distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
-    id_cols = ['rei_id', 'location_id', 'sex_id', 'year_id', 'age_group_id', 'measure']
+
     data = utilities.normalize(data, fill_value=0, cols_to_fill=distribution_cols)
+    id_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure', 'year_id']
     data = pd.melt(data, id_vars=id_cols, value_vars=distribution_cols, var_name='parameter')
     return data
 
@@ -248,6 +256,12 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
     data = extract.extract_data(entity, 'relative_risk', location_id)
 
     if entity.kind == 'risk_factor':
+        # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
+        #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
+        #  2/8/19 K.W.
+        yll_only_causes = set([c.gbd_id for c in causes if c.restrictions.yll_only])
+        data = data[~data.cause_id.isin(yll_only_causes)]
+
         data = utilities.convert_affected_entity(data, 'cause_id')
         morbidity = data.morbidity == 1
         mortality = data.mortality == 1
@@ -289,6 +303,14 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     if entity.kind == 'risk_factor':
         data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
         relative_risk = extract.extract_data(entity, 'relative_risk', location_id)
+
+        # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
+        #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
+        #  2/8/19 K.W.
+        yll_only_causes = set([c.gbd_id for c in causes if c.restrictions.yll_only])
+        data = data[~data.cause_id.isin(yll_only_causes)]
+        relative_risk = relative_risk[~relative_risk.cause_id.isin(yll_only_causes)]
+
         data = data.groupby('cause_id', as_index=False).apply(filter_by_relative_risk, relative_risk).reset_index(drop=True)
 
         temp = []

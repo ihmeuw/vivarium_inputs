@@ -5,13 +5,12 @@ import warnings
 import pandas as pd
 import numpy as np
 
-from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Restrictions,
-                         Etiology, Covariate, CoverageGap, causes)
+from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
-                                     DataDoesNotExistError, Population)
+                                     DataDoesNotExistError, Population, PROBLEMATIC_RISKS)
 
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
@@ -285,6 +284,10 @@ def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
         If the 'exists' metadata flag on `entity` for `measure` is None.
 
     """
+    if entity.name in PROBLEMATIC_RISKS:
+        raise NotImplementedError(f"We don't currently support pulling data for risk factor {entity.name} because of "
+                                  f"significant issues with the data: {PROBLEMATIC_RISKS[entity.name]}.")
+
     if measure in ('exposure_distribution_weights', 'mediation_factors'):
         # we don't have any applicable metadata to check
         return
@@ -679,10 +682,12 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
                       context: RawValidationContext) -> None:
     """Check the standard set of validations on raw exposure data for entity.
     Check age group and sex ids and restrictions for each category individually
-    for risk factors, all together for coverage gaps and alternative risk
-    factors. Check draw column value boundaries based on distribution type and
-    verify that exposure sums to 1 over demographic groups for categorical
-    entities.
+    for risk factors and alternative risk factors and all together for coverage
+    gaps. For risk factors and alternative risk factors, check age restrictions
+    but only warn if the data is missing or has extra age groups since
+    the restrictions are really about a risk-cause pair. Check draw column
+    value boundaries based on distribution type and verify that exposure sums
+    to 1 over demographic groups for categorical entities.
 
     Parameters
     ----------
@@ -717,18 +722,21 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
     cats = data.groupby('parameter')
 
-    if entity.kind == 'risk_factor':
+    if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         restrictions = entity.restrictions
+        age_start = get_restriction_age_boundary(entity, 'start')
+        age_end = get_restriction_age_boundary(entity, 'end')
         male_expected = not restrictions.female_only
         female_expected = not restrictions.male_only
 
         cats.apply(check_age_group_ids, context, None, None)
         cats.apply(check_sex_ids, context, male_expected, female_expected)
 
+        cats.apply(check_age_restrictions, context, age_start, age_end, error=False)
         cats.apply(check_sex_restrictions, context, entity.restrictions.male_only, entity.restrictions.female_only)
 
         # we only have metadata about tmred for risk factors
-        if entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
+        if entity.kind == 'risk_factor' and entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
             tmrel = (entity.tmred.max + entity.tmred.min)/2
             if entity.tmred.inverted:
                 check_value_columns_boundary(data, tmrel, 'upper',
@@ -736,7 +744,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
             else:
                 check_value_columns_boundary(data, tmrel, 'lower',
                                              value_columns=DRAW_COLUMNS, inclusive=True, error=None)
-    else:  # CoverageGap, AlternativeRiskFactor
+    else:  # CoverageGap
         cats.apply(check_age_group_ids, context, None, None)
         cats.apply(check_sex_ids, context, True, True)
 
@@ -953,8 +961,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
                 check_value_columns_boundary(g, 1, 'lower', value_columns=DRAW_COLUMNS, inclusive=True)
 
             max_val = MAX_CONT_REL_RISK if entity.distribution in ('ensemble', 'lognormal', 'normal') else MAX_CATEG_REL_RISK
-            check_value_columns_boundary(g, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True,
-                                         error=DataAbnormalError)
+            check_value_columns_boundary(g, max_val, 'upper', value_columns=DRAW_COLUMNS, inclusive=True)
 
     else:  # coverage gap
         grouped.apply(check_age_group_ids, context, None, None)
@@ -1950,8 +1957,8 @@ def check_age_restrictions(data: pd.DataFrame, context: RawValidationContext,
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
         if check_data_exist(should_be_zero, zeros_missing=True, value_columns=value_columns, error=False):
             warnings.warn(f'Data was only expected to contain values for age groups between ids '
-                          f'{age_group_id_start} and {age_group_id_end} (with the possible addition of 235), '
-                          f'but also included values for age groups {extra_age_groups}.')
+                          f'{age_group_id_start} and {age_group_id_end} but also included values for '
+                          f'age groups {extra_age_groups}.')
 
     # make sure we're not missing data for all ages in restrictions
     if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)], zeros_missing=True,

@@ -1,11 +1,12 @@
-from typing import Union
+from typing import Union, Dict
 
 import numpy as np
 import pandas as pd
 
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 from vivarium_inputs import utilities, utility_data
-from vivarium_inputs.globals import DataTransformationError, Population, PROTECTIVE_CAUSE_RISK_PAIRS
+from vivarium_inputs.globals import (DataTransformationError, Population,
+                                     PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES)
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
@@ -15,13 +16,13 @@ VALID_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_BIRTH_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
-# FIXME: bumping csmr max to 1.5 because of age group scaling 2/8/19 - K.W.
-VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 1.5)  # used mortality viz, picked worst country 15q45, mul by ~1.25
+# FIXME: bumping csmr max to 3 because of age group scaling 2/8/19 - K.W.
+VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 3)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
 VALID_EXPOSURE_RANGE = (0.0, {'continuous': 10_000.0, 'categorical': 1.0})
 VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_EXPOSURE_DIST_WEIGHTS_RANGE = (0.0, 1.0)
-VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 10.0, 'categorical': 20.0})
+VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 10.0, 'categorical': 350.0})
 VALID_PAF_RANGE = (0.0, 1.0)
 VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
@@ -160,8 +161,11 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
     check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[1],
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
-    check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0, context=context)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+
+    restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
+    check_age_restrictions(data, restrictions_entity, rest_type='yld', fill_value=0.0, context=context)
+    check_sex_restrictions(data, restrictions_entity.restrictions.male_only, 
+                           restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
@@ -194,8 +198,11 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[1],
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
-    check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0, context=context)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+
+    restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
+    check_age_restrictions(data, restrictions_entity, rest_type='yld', fill_value=0.0, context=context)
+    check_sex_restrictions(data, restrictions_entity.restrictions.male_only, 
+                           restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
@@ -234,7 +241,9 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+    restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
+    check_sex_restrictions(data, restrictions_entity.restrictions.male_only, 
+                           restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela],
@@ -267,8 +276,10 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0, context=context)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+    restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
+    check_age_restrictions(data, restrictions_entity, rest_type='yld', fill_value=0.0, context=context)
+    check_sex_restrictions(data, restrictions_entity.restrictions.male_only, 
+                           restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
 def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
@@ -365,8 +376,12 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
     check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
                                  boundary_type='lower', value_columns=['value'],
                                  error=DataTransformationError)
-    check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+
+    if entity.name in BOUNDARY_SPECIAL_CASES['excess_mortality'].get(context['location'], {}):
+        max_val = BOUNDARY_SPECIAL_CASES['excess_mortality'][context['location']][entity.name]
+    else:
+        max_val = VALID_EXCESS_MORT_RANGE[1]
+    check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0, context=context)
@@ -437,8 +452,12 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         if not np.allclose(data.groupby(non_categorical_columns)['value'].sum(), 1.0):
             raise DataTransformationError("Categorical exposures do not sum to one across categories.")
 
-    check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+    if entity.kind in ['risk_factor', 'alternative_risk_factor']:
+        fill_value = {'exposed': 0.0, 'unexposed': 1.0} if is_categorical else 0.0
+        check_age_restrictions(data, entity, rest_type='outer', fill_value=fill_value,
+                               context=context)
+        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only,
+                               fill_value=fill_value, entity=entity)
 
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
@@ -590,11 +609,12 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         if not (data.loc[data.parameter == tmrel_cat, 'value'] == 1.0).all():
             raise DataTransformationError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
-    if (data.affected_measure == 'incidence_rate').all():
-        check_age_restrictions(data, entity, rest_type='inner', fill_value=1.0, context=context)
-    else:
-        check_age_restrictions(data, entity, rest_type='yll', fill_value=1.0, context=context)
-    check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=1.0)
+    if entity.kind in ['risk_factor', 'alternative_risk_factor']:
+        if (data.affected_measure == 'incidence_rate').all():
+            check_age_restrictions(data, entity, rest_type='inner', fill_value=1.0, context=context)
+        else:
+            check_age_restrictions(data, entity, rest_type='yll', fill_value=1.0, context=context)
+        check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=1.0)
 
 
 def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[RiskFactor, Etiology],
@@ -917,24 +937,54 @@ def validate_value_column(data: pd.DataFrame) -> None:
 
 
 def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_type: str,
-                           fill_value: float, context: SimulationValidationContext) -> None:
+                           fill_value: Union[float, Dict[str, float]], context: SimulationValidationContext):
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
     age_start = float(age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start'])
     age_end = float(age_bins.loc[age_bins.age_group_id == end_id, 'age_group_end'])
 
     outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
-    if not outside.empty and (outside.value != fill_value).any():
+
+    if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
+            entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] and
+            isinstance(fill_value, dict)):
+        _check_cat_risk_fill_values(outside, entity, fill_value, 'age')
+
+    elif not outside.empty and (outside.value != fill_value).any():
         raise DataTransformationError(f"Age restrictions are violated by a value other than fill={fill_value}.")
 
 
-def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool, fill_value: float) -> None:
-    if male_only and (data.loc[data.sex == 'Female', 'value'] != fill_value).any():
-        raise DataTransformationError(f"Restriction to male sex only is violated "
-                                      f"by a value other than fill={fill_value}.")
-    elif female_only and (data.loc[data.sex == 'Male', 'value'] != fill_value).any():
-        raise DataTransformationError(f"Restriction to female sex only is violated "
-                                      f"by a value other than fill={fill_value}.")
+def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool,
+                           fill_value: Union[float, Dict[str, float]], entity=None):
+    outside = None
+    if male_only:
+        outside = data[data.sex == 'Female']
+        sex = 'male'
+    elif female_only:
+        outside = data[data.sex == 'Male']
+        sex = 'female'
+    if outside is not None:
+        if entity is not None and (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
+                                   entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
+                                   and isinstance(fill_value, dict)):
+            _check_cat_risk_fill_values(outside, entity, fill_value, 'sex')
+
+        elif (outside.value != fill_value).any():
+            raise DataTransformationError(f"Restriction to {sex} sex only is violated "
+                                          f"by a value other than fill={fill_value}.")
+
+
+def _check_cat_risk_fill_values(outside_data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
+                                fill_value: Dict[str, float], restriction: str):
+    tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+    outside_unexposed = outside_data[outside_data.parameter == tmrel_cat]
+    outside_exposed = outside_data[outside_data.parameter != tmrel_cat]
+    if not outside_unexposed.empty and (outside_unexposed.value != fill_value['unexposed']).any():
+        raise DataTransformationError(f'{restriction.capitalize()} restrictions for TMREL cat are violated by a '
+                                      f'value other than fill={fill_value["unexposed"]}.')
+    if not outside_exposed.empty and (outside_exposed.value != fill_value['exposed']).any():
+        raise DataTransformationError(f'{restriction.capitalize()} restrictions for non-TMREL categories are violated '
+                                      f'by a value other than fill={fill_value["exposed"]}.')
 
 
 def check_covariate_values(data: pd.DataFrame) -> None:
@@ -948,3 +998,4 @@ def check_covariate_values(data: pd.DataFrame) -> None:
         raise DataTransformationError('Covariate data contains demographic groups for which the '
                                       'estimates for lower, mean, and upper values are not all 0 '
                                       'and it is not the case that lower < mean < upper. ')
+

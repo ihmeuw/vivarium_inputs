@@ -1,5 +1,5 @@
 """Global constants, errors, and module imports for inputs processing."""
-from gbd_mapping import ModelableEntity, causes
+from gbd_mapping import ModelableEntity, causes, risk_factors
 
 
 # The purpose of this import block is to mask the dependency on internal
@@ -117,6 +117,19 @@ SPECIAL_AGES = {'all_ages': 22,
 PROTECTIVE_CAUSE_RISK_PAIRS = {
     'high_body_mass_index_in_adults': [causes.neoplasms, causes.breast_cancer, causes.esophageal_cancer]
 }
+
+# Keep track of special cases for the sim validator boundary checks where the
+# standard boundary in sim validators won't cut it
+BOUNDARY_SPECIAL_CASES = {
+    'excess_mortality': {
+        'Ecuador': {
+            'measles': 250_000_000
+        }
+    }
+}
+
+PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
+                         "zinc deficiency relative risk data breaks central comp interpolation."}
 
 
 class Population(ModelableEntity):
