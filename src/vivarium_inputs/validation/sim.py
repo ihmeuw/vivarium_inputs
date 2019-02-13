@@ -393,7 +393,10 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
     """Check the standard set of validations on simulation-prepped exposure
     data, with the upper boundary of values determined by the distribution type.
     The broadest age range determined by yll and yld age restrictions is used
-    in the restriction check.
+    in the restriction check. Because exposure is filled with two values outside
+    the restriction boundaries (one for the TMREL category and one for all other
+    categories), check that only these two values are found outside restrictions
+    and that they are matched to the right categories.
 
     Additionally, check that the parameter column contains either only
     'continuous' for an entity with a continuous distribution or the full set
@@ -812,16 +815,28 @@ def validate_structure(data: pd.DataFrame, entity: Population, context: Simulati
 def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity: Population,
                                                       context: SimulationValidationContext) -> None:
     """ Because the structure of life expectancy data is somewhat different,
-    containing
+    containing a custom age column that doesn't match the standard GBD age
+    groups, this validator doesn't use the standard column checks. Instead, it
+    verifies that the data has the correct age columns and that ages range from
+    0 to 110 years. It checks that all life expectancy values are within the
+    expected range and ensures that life expectancy is monotonically decreasing
+    by age.
 
     Parameters
     ----------
     data
+        Simulation-prepped theoretical minimum risk life expectancy data.
     entity
+        Entity to which the data pertain.
     context
+        Wrapper for additional data used in the validation process.
 
-    Returns
-    -------
+    Raises
+    ------
+    DataTransformationError
+        If age columns are incorrectly named or contain invalid values or if
+        any life expectancy values are outside the expected range or not
+        monotonically decreasing over age.
 
     """
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
@@ -845,11 +860,48 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
 
 
 def validate_age_bins(data: pd.DataFrame, entity: Population, context: SimulationValidationContext) -> None:
+    """With only age columns in this data, the validator is an abbreviated
+    version employing only the standard column check on ages.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped age bin data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any age columns are incorrectly named or contain invalid values.
+
+    """
     validate_age_columns(data, context=context)
 
 
 def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
                                     context: SimulationValidationContext) -> None:
+    """With only demographic columns in this data, the validator is an
+    abbreviated version employing only the standard demographic column checks.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped demographic dimensions data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any demographjic columns are incorrectly named or contain invalid
+        values.
+
+    """
     validate_demographic_columns(data, context)
 
 
