@@ -120,9 +120,9 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
             data['value'] = 0.0
         else:
             data = extract.extract_data(entity, 'disability_weight', location_id)
+            data = utilities.normalize(data)
             cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
             data = utilities.filter_data_by_restrictions(data, cause,  'yld', utility_data.get_age_group_ids())
-            data = utilities.normalize(data)
             data = utilities.reshape(data)
 
     return data
