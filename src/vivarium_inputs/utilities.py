@@ -272,6 +272,26 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     return data
 
 
+def clear_disability_weight_outside_restrictions(data: pd.DataFrame, cause: Cause, fill_value: float,
+                                                 age_group_ids: List[int]) -> pd.DataFrame:
+    """Because sequela disability weight is not age/sex specific, we need to
+    have a custom function to set the values outside the corresponding cause
+    restrictions to 0 after it has been expanded over age/sex."""
+    restrictions = cause.restrictions
+    if restrictions.male_only and not restrictions.female_only:
+        sexes = [SEXES['Male']]
+    elif not restrictions.male_only and restrictions.female_only:
+        sexes = [SEXES['Female']]
+    else:  # not male only and not female only
+        sexes = [SEXES['Male'], SEXES['Female'], SEXES['Combined']]
+
+    start, end = get_age_group_ids_by_restriction(cause, "yld")
+    ages = get_restriction_age_ids(start, end, age_group_ids)
+
+    data.loc[(~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS] = fill_value
+    return data
+
+
 def filter_to_most_detailed_causes(data: pd.DataFrame)-> pd.DataFrame:
     """For the DataFrame including the cause_ids, it filters rows with
     cause_ids for the most detailed causes """
