@@ -6,12 +6,27 @@ from gbd_mapping import ModelableEntity, causes, risk_factors
 # IHME data and allow CI and automated testing to work.
 try:
     from vivarium_gbd_access import gbd
+    from gbd_artifacts.exceptions import NoBestVersionError
+    from get_draws.api import EmptyDataFrameException, InputsException
+
 except ModuleNotFoundError:
     class GbdDummy:
         """Mock class to wrap internal dependency."""
         def __getattr__(self, item):
             raise ModuleNotFoundError("Required package vivarium_gbd_access not found.")
     gbd = GbdDummy()
+
+    class NoBestVersionError(Exception):
+        """Mock class for gbd exception"""
+        pass
+
+    class EmptyDataFrameException(Exception):
+        """Mock class for gbd exception"""
+        pass
+
+    class InputsException(Exception):
+        """Mock class for gbd exception"""
+        pass
 
 
 class VivariumInputsError(Exception):
