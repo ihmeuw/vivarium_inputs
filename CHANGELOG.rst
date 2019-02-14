@@ -1,3 +1,7 @@
+**2.0.0 - 02/14/19**
+
+ - Rewrite vivarium inputs for GBD 2017.
+
 **1.0.18 - 01/04/19**
 
  - Add support for multi-location artifacts.
