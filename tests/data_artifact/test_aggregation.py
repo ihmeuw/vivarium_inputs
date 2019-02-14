@@ -9,7 +9,7 @@ from vivarium_inputs.data_artifact import aggregation, ArtifactAggregationWarnin
 from vivarium_public_health.dataset_manager import Artifact
 
 
-METADATA = ['metadata.keyspace','metadata.locations', 'metadata.versions']
+METADATA = ['metadata.keyspace', 'metadata.locations', 'metadata.versions']
 
 
 @pytest.fixture()
