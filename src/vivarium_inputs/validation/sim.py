@@ -898,7 +898,7 @@ def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
     Raises
     ------
     DataTransformationError
-        If any demographjic columns are incorrectly named or contain invalid
+        If any demographic columns are incorrectly named or contain invalid
         values.
 
     """
@@ -911,12 +911,47 @@ def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
 
 
 def validate_standard_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
+    """Validate that location, sex, age, year, draw, and value columns in the
+    passed dataframe all have the expected names and values.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any location, sex, age, year, draw, or value columns are incorrectly
+        named or contain invalid values.
+
+    """
     validate_demographic_columns(data, context)
     validate_draw_column(data)
     validate_value_column(data)
 
 
 def validate_demographic_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
+    """Validate that demographic (location, sex, age, and year) columns in the
+    passed dataframe all have the expected names and values. The given context
+    provides the full range of expected values for location, age, and year.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+    context
+        Wrapper for additional data used in the validation process.
+
+    Raises
+    ------
+    DataTransformationError
+        If any demographic columns are incorrectly named or contain invalid
+        values.
+
+    """
     validate_location_column(data, context)
     validate_sex_column(data)
     validate_age_columns(data, context=context)
@@ -924,6 +959,20 @@ def validate_demographic_columns(data: pd.DataFrame, context: SimulationValidati
 
 
 def validate_draw_column(data: pd.DataFrame) -> None:
+    """Validate that draw column in the data has the expected name and values.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+
+    Raises
+    ------
+    DataTransformationError
+        If data does not contain a column named 'draw' or that column does not
+        contain all values in the range [0, 999].
+
+    """
     if 'draw' not in data.columns:
         raise DataTransformationError("Draw data must be contained in a column named 'draw'.")
 
@@ -932,6 +981,23 @@ def validate_draw_column(data: pd.DataFrame) -> None:
 
 
 def validate_location_column(data: pd.DataFrame, context: SimulationValidationContext) -> None:
+    """Validate that location column in the data has the expected name
+    and value.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+    context
+        Wrapper for additional data used in the validation process
+
+    Raises
+    ------
+    DataTransformationError
+        If data does not contain a column named 'location' or that column does
+        not only the single location given in `context`.
+
+    """
     if 'location' not in data.columns:
         raise DataTransformationError("Location data must be contained in a column named 'location'.")
 
@@ -940,6 +1006,20 @@ def validate_location_column(data: pd.DataFrame, context: SimulationValidationCo
 
 
 def validate_sex_column(data: pd.DataFrame) -> None:
+    """Validate that sex column in the data has the expected name and values.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+
+    Raises
+    ------
+    DataTransformationError
+        If data does not contain a column named 'sex' or that column does not
+        contain only the values 'Male' and 'Female'.
+
+    """
     if 'sex' not in data.columns:
         raise DataTransformationError("Sex data must be contained in a column named 'sex'.")
 
@@ -948,6 +1028,23 @@ def validate_sex_column(data: pd.DataFrame) -> None:
 
 
 def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
+    """Validate that age columns in the data have the expected names and values.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+    context
+        Wrapper for additional data used in validation.
+
+    Raises
+    ------
+    DataTransformationError
+        If data does not contain columns named 'age_grouo_start' and
+        'age_group_end' or if those columns do not contain the full range of
+        expected age bins supplied in `context`.
+
+    """
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
         raise DataTransformationError("Age data must be contained in columns named"
                                       " 'age_group_start' and 'age_group_end'.")
@@ -965,6 +1062,24 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
 
 
 def validate_year_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
+    """Validate that year columns in the data have the expected names and
+    values.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+    context
+        Wrapper for additional data used in validation.
+
+    Raises
+    ------
+    DataTransformationError
+        If data does not contain columns named 'year_start' and
+        'year_end' or if those columns do not contain the full range of
+        expected year bins supplied in `context`.
+
+    """
     if 'year_start' not in data.columns or 'year_end' not in data.columns:
         raise DataTransformationError("Year data must be contained in columns named 'year_start', and 'year_end'.")
 
@@ -979,6 +1094,23 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
 
 
 def validate_value_column(data: pd.DataFrame) -> None:
+    """Validate that value column in the data has the expected name and no
+    missing values.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+    context
+        Wrapper for additional data used in validation.
+
+    Raises
+    ------
+    DataTransformationError
+        If data does not contain a column named `value` or that column contains
+        any NaN or Inf values.
+
+    """
     if 'value' not in data.columns:
         raise DataTransformationError("Value data must be contained in a column named 'value'.")
 
@@ -990,6 +1122,32 @@ def validate_value_column(data: pd.DataFrame) -> None:
 
 def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_type: str,
                            fill_value: Union[float, Dict[str, float]], context: SimulationValidationContext):
+    """Given an entity and which restrictions to use, ensure that all data for
+    age groups outside of the range of restrictions for that entity has values
+    only of fill_value.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+    entity
+        Entity for which to validate restrictions.
+    rest_type
+        Which restrictions from entity to use. One of: yll, yld, inner, outer.
+    fill_value
+        The only allowable value in data outside of age restrictions. For
+        categorical risks, this should be dictionary containing values for
+        'exposed' and 'unexposed' categories.
+    context
+        Wrapper containing additional data used in the simulation.
+
+    Raises
+    ------
+    DataTransformationError
+        If any values other than fill_value are found in data outside the
+        restrictions of entity.
+
+    """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
     age_start = float(age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start'])
@@ -1008,6 +1166,38 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
 
 def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: bool,
                            fill_value: Union[float, Dict[str, float]], entity=None):
+    """Given an entity and which restrictions to use, ensure that all data for
+    sexes outside of the restrictions for that entity has values only of
+    fill_value.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped data to validate.
+    female_only
+        Boolean indicating whether the data should be restricted to females
+        only. If true, all male data should have values only of fill_value.
+    male_only
+        Boolean indicating whether the data should be restricted to females
+        only. If true, all female data should have values only of fill_value.
+    fill_value
+        The only allowable value in data outside of age restrictions. For
+        categorical risks, this should be dictionary containing values for
+        'exposed' and 'unexposed' categories.
+    context
+        Wrapper containing additional data used in the simulation.
+    entity
+        Optional. Used to check if the entity is a categorical risk, in which
+        case only used for exposure data validation where the fill_values vary
+        by category.
+
+    Raises
+    ------
+    DataTransformationError
+        If any values other than fill_value are found in data outside the
+        restrictions of entity.
+
+    """
     outside = None
     if male_only:
         outside = data[data.sex == 'Female']
@@ -1028,6 +1218,29 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
 
 def _check_cat_risk_fill_values(outside_data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                                 fill_value: Dict[str, float], restriction: str):
+    """Helper method for checking restrictions for categorical risks where two
+    fill values are allowed: one for exposed categories and one for the
+    unexposed category.
+
+    Parameters
+    ----------
+    outside_data
+        Simulation-prepped data outside the restrictions.
+    entity
+        Entity to which the data pertain.
+    fill_value
+        Dictionary containing the fill values for the exposed and unexposed
+        categories.
+    restriction
+        Whether the restriction being checked is 'sex' or 'age'.
+
+    Raises
+    ------
+    DataTransformationError
+        If the outside_data contains values other than fill_value for the
+        correct categories.
+
+    """
     tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
     outside_unexposed = outside_data[outside_data.parameter == tmrel_cat]
     outside_exposed = outside_data[outside_data.parameter != tmrel_cat]
@@ -1040,6 +1253,22 @@ def _check_cat_risk_fill_values(outside_data: pd.DataFrame, entity: Union[RiskFa
 
 
 def check_covariate_values(data: pd.DataFrame) -> None:
+    """Validator for covariate estimate data to check that for each demographic
+    group either lower, mean, and upper values are all 0 or lower < mean < upper.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped covariate estimate data for a single demographic
+        group.
+
+    Raises
+    ------
+    DataTransformationError
+        If lower, mean, and upper values are not all 0 and it is not the case
+         that lower < mean < upper.
+
+    """
     lower = data[data.parameter == 'lower_value'].value.values
     mean = data[data.parameter == 'mean_value'].value.values
     upper = data[data.parameter == 'upper_value'].value.values
