@@ -1,352 +1,375 @@
-"""Module containing functions that standardize the format of GBD outputs."""
-from typing import Mapping, Iterable
-from itertools import chain
+"""Errors and utility functions for input processing."""
+from numbers import Real
+from typing import Union, List
 
-import pandas as pd
+from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 import numpy as np
-from gbd_mapping import (causes, risk_factors, etiologies, coverage_gaps,
-                         Cause, Risk, Sequela, CoverageGap, Etiology, ModelableEntity)
-from gbd_mapping.id import scalar, UNKNOWN
+import pandas as pd
 
-from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology
-
-try:
-    from vivarium_gbd_access import gbd
-except ModuleNotFoundError:
-    class GbdDummy:
-        def __getattr__(self, item):
-            raise ModuleNotFoundError("Required package vivarium_gbd_access not found.")
-    gbd = GbdDummy()
-
-try:
-    from vivarium_gbd_access import forecasting
-except ModuleNotFoundError:
-    class ForecastingDummy:
-        def __getattr__(self, item):
-            raise ModuleNotFoundError("Required module vivarium_gbd_access.forecasting not found.")
-    forecasting = ForecastingDummy()
-
-GBD_ROUND_ID_MAP = {3: 'GBD_2015', 4: 'GBD_2016'}
+from vivarium_inputs import utility_data
+from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 
 
-class DataError(Exception):
-    """Base exception for errors in data loading."""
-    pass
+##################################################
+# Functions to remove GBD conventions from data. #
+##################################################
 
 
-class InvalidQueryError(DataError):
-    """Exception raised when the user makes an invalid request for data (e.g. exposures for a sequela)."""
-    pass
-
-
-class UnhandledDataError(DataError):
-    """Exception raised when we receive data from the databases that we don't know how to handle."""
-    pass
-
-
-class DataMissingError(DataError):
-    """Exception raised when data has unhandled missing entries."""
-    pass
-
-
-class DuplicateDataError(DataError):
-    """Exception raised when data has duplication in the index."""
-    pass
-
-
-def select_draw_data(data, draw, column_name, src_column=None):
-    if column_name:
-        if src_column is not None:
-            if isinstance(src_column, str):
-                column_map = {src_column.format(draw=draw): column_name}
-            else:
-                column_map = {src.format(draw=draw): dest for src, dest in zip(src_column, column_name)}
-        else:
-            column_map = {'draw_{draw}'.format(draw=draw): column_name}
-
-        # if 'measure' is in columns, then keep it, else do
-        # not keep it (need measure for the relative risk estimations)
-        if 'parameter' in data.columns:
-            keep_columns = ['year_id', 'age_group_start', 'age_group_end',
-                            'sex_id', 'parameter'] + list(column_map.keys())
-        else:
-            keep_columns = ['year_id', 'age_group_start', 'age_group_end', 'sex_id'] + list(column_map.keys())
-
-        data = data[keep_columns]
-        data = data.rename(columns=column_map)
-
-        return normalize_for_simulation(data)
+def scrub_gbd_conventions(data, location):
+    data = scrub_location(data, location)
+    data = scrub_sex(data)
+    data = scrub_age(data)
+    data = scrub_year(data)
+    data = scrub_affected_entity(data)
     return data
 
 
-def normalize_for_simulation(df):
-    """
-    Parameters
-    ----------
-    df : DataFrame
-        dataframe to change
-
-    Returns
-    -------
-    Returns a df with column year_id changed to year, and year_start and year_end
-    created as bin ends around year_id with year_start set to year_id;
-    sex_id changed to sex, and sex values changed from 1 and 2 to Male and Female
-
-    Notes
-    -----
-    Used by -- load_data_from_cache
-
-    Assumptions -- None
-
-    Questions -- None
-
-    Unit test in place? -- Yes
-    """
-    if "sex_id" in df:
-        if set(df["sex_id"]) == {3}:
-            df_m = df.copy()
-            df_f = df.copy()
-            df_m['sex'] = 'Male'
-            df_f['sex'] = 'Female'
-            df = pd.concat([df_m, df_f], ignore_index=True)
-        else:
-            df["sex"] = df.sex_id.map({1: "Male", 2: "Female", 3: "Both"}).astype(
-                pd.api.types.CategoricalDtype(categories=["Male", "Female", "Both"], ordered=False))
-
-        df = df.drop("sex_id", axis=1)
-
-    if "year_id" in df:
-        # FIXME: use central comp interpolation tools
-        if 2006 in df.year_id.unique() and 2007 not in df.year_id.unique():
-            df = df.loc[(df.year_id != 2006)]
-
-        df = df.rename(columns={"year_id": "year_start"})
-        idx = df.index
-
-        mapping = df[['year_start']].drop_duplicates().sort_values(by="year_start")
-        mapping['year_end'] = mapping['year_start'].shift(-1).fillna(mapping.year_start.max()+1).astype(int)
-
-        df = df.set_index("year_start", drop=False)
-        mapping = mapping.set_index("year_start", drop=False)
-
-        df[["year_start", "year_end"]] = mapping[["year_start", "year_end"]]
-
-        df = df.set_index(idx)
-
-    return df
+def scrub_location(data, location):
+    if 'location_id' in data.columns:
+        data = data.drop('location_id', 'columns')
+    data['location'] = location
+    return data
 
 
-def get_age_group_bins_from_age_group_id(df):
-    """Creates "age_group_start" and "age_group_end" columns from the "age_group_id" column
-
-    Parameters
-    ----------
-    df: df for which you want an age column that has an age_group_id column
-
-    Returns
-    -------
-    df with "age_group_start" and "age_group_end" columns
-    """
-    if df.empty:
-        df['age_group_start'] = 0
-        df['age_group_end'] = 0
-        return df
-
-    df = df.copy()
-    idx = df.index
-    mapping = gbd.get_age_bins()
-    mapping = mapping.set_index('age_group_id')
-
-    df = df.set_index('age_group_id')
-    df[['age_group_start', 'age_group_end']] = mapping[['age_group_years_start', 'age_group_years_end']]
-
-    df = df.set_index(idx)
-
-    return df
+def scrub_sex(data):
+    if 'sex_id' in data.columns:
+        data['sex'] = data['sex_id'].map({1: 'Male', 2: 'Female'})
+        data = data.drop('sex_id', 'columns')
+    return data
 
 
-def get_id_for_measure(entity: ModelableEntity, measure: str) -> int:
-    """Selects the appropriate gbd id type for each entity and measure pair.
+def scrub_age(data):
+    if 'age_group_id' in data.columns:
+        age_bins = (utility_data.get_age_bins()
+                    .filter(['age_group_id', 'age_group_start', 'age_group_end']))
+        data = data.merge(age_bins, on='age_group_id').drop('age_group_id', 'columns')
+    return data
 
-    Parameters
-    ----------
-    entity :
-        A data containers from the `gbd_mapping` package.
-    measure :
-        A GBD measures requested for the provided entity.
 
-    Returns
-    -------
-    The appropriate GBD id for use with central comp tools for the
-    provided entity and measure.
+def scrub_year(data):
+    if 'year_id' in data.columns:
+        data = data.rename(columns={'year_id': 'year_start'})
+        data['year_end'] = data['year_start'] + 1
+    return data
 
-    Raises
-    ------
-    InvalidQueryError
-        If the entities passed are inconsistent with the requested measures.
-    """
-    measure_types = {
-        'death': (Cause, 'gbd_id'),
-        'prevalence': ((Cause, Sequela), 'gbd_id'),
-        'incidence': ((Cause, Sequela), 'gbd_id'),
-        'exposure': ((Risk, CoverageGap), 'gbd_id'),
-        'exposure_standard_deviation': ((Risk, CoverageGap), 'gbd_id'),
-        'relative_risk': ((Risk, CoverageGap), 'gbd_id'),
-        'population_attributable_fraction': ((Risk, Etiology, CoverageGap), 'gbd_id'),
-        'cause_specific_mortality': ((Cause,), 'gbd_id'),
-        'excess_mortality': ((Cause,), 'gbd_id'),
-        'annual_visits': (HealthcareEntity, 'utilization'),
-        'disability_weight': (Sequela, 'gbd_id'),
-        'remission': (Cause, 'dismod_id'),
-        'cost': ((HealthcareEntity, HealthTechnology), 'cost'),
-    }
 
-    valid_types, id_attr = measure_types.get(measure, (None, None))
+def scrub_affected_entity(data):
+    CAUSE_BY_ID = {c.gbd_id: c for c in causes}
+    # RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
+    if 'cause_id' in data.columns:
+        data['affected_entity'] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
+        data.drop('cause_id', axis=1, inplace=True)
+    return data
 
-    if not valid_types or not id_attr:
-        raise InvalidQueryError(f"You've requested an invalid measure: {measure}")
-    elif not isinstance(entity, valid_types) or entity[id_attr] is UNKNOWN:
-        raise InvalidQueryError(f"Entity {entity.name} has no data for measure '{measure}'")
+
+###############################################################
+# Functions to normalize GBD data over a standard demography. #
+###############################################################
+
+
+def normalize(data: pd.DataFrame, fill_value: Real = None, cols_to_fill: List[str] = DRAW_COLUMNS) -> pd.DataFrame:
+    data = normalize_sex(data, fill_value, cols_to_fill)
+    data = normalize_year(data)
+    data = normalize_age(data, fill_value, cols_to_fill)
+    return data
+
+
+def normalize_sex(data: pd.DataFrame, fill_value, cols_to_fill) -> pd.DataFrame:
+    sexes = set(data.sex_id.unique()) if 'sex_id' in data.columns else set()
+    if not sexes:
+        # Data does not correspond to individuals, so no age column necessary.
+        pass
+    elif sexes == set(SEXES.values()):
+        # We have variation across sex, don't need the column for both.
+        data = data[data.sex_id.isin([SEXES['Male'], SEXES['Female']])]
+    elif sexes == {SEXES['Combined']}:
+        # Data is not sex specific, but does apply to both sexes, so copy.
+        fill_data = data.copy()
+        data.loc[:, 'sex_id'] = SEXES['Male']
+        fill_data.loc[:, 'sex_id'] = SEXES['Female']
+        data = pd.concat([data, fill_data], ignore_index=True)
+    elif len(sexes) == 1:
+        # Data is sex specific, but only applies to one sex, so fill the other with default.
+        fill_data = data.copy()
+        missing_sex = {SEXES['Male'], SEXES['Female']}.difference(set(data.sex_id.unique())).pop()
+        fill_data.loc[:, 'sex_id'] = missing_sex
+        fill_data.loc[:, cols_to_fill] = fill_value
+        data = pd.concat([data, fill_data], ignore_index=True)
+    else:  # sexes == {SEXES['Male'], SEXES['Female']}
+        pass
+    return data
+
+
+def normalize_year(data: pd.DataFrame) -> pd.DataFrame:
+    binned_years = utility_data.get_estimation_years()
+    years = {'annual': list(range(min(binned_years), max(binned_years) + 1)), 'binned': binned_years}
+
+    if 'year_id' not in data:
+        # Data doesn't vary by year, so copy for each year.
+        df = []
+        for year in years['annual']:
+            fill_data = data.copy()
+            fill_data['year_id'] = year
+            df.append(fill_data)
+        data = pd.concat(df, ignore_index=True)
+    elif set(data.year_id) == set(years['binned']):
+        data = interpolate_year(data)
+    else:  # set(data.year_id.unique()) == years['annual']
+        pass
+
+    # Dump extra data.
+    data = data[data.year_id.isin(years['annual'])]
+    return data
+
+
+def interpolate_year(data):
+    # Hide the central comp dependency unless required.
+    from core_maths.interpolate import pchip_interpolate
+    id_cols = list(set(data.columns).difference(DRAW_COLUMNS))
+    fillin_data = pchip_interpolate(data, id_cols, DRAW_COLUMNS)
+    return pd.concat([data, fillin_data], sort=True)
+
+
+def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str]) -> pd.DataFrame:
+    data_ages = set(data.age_group_id.unique()) if 'age_group_id' in data.columns else set()
+    gbd_ages = set(utility_data.get_age_group_ids())
+
+    if not data_ages:
+        # Data does not correspond to individuals, so no age column necessary.
+        pass
+    elif data_ages == {SPECIAL_AGES['all_ages']}:
+        # Data applies to all ages, so copy.
+        dfs = []
+        for age in gbd_ages:
+            missing = data.copy()
+            missing.loc[:, 'age_group_id'] = age
+            dfs.append(missing)
+        data = pd.concat(dfs, ignore_index=True)
+    elif data_ages < gbd_ages:
+        # Data applies to subset, so fill other ages with fill value.
+        key_columns = list(data.columns.difference(cols_to_fill))
+        key_columns.remove('age_group_id')
+        expected_index = pd.MultiIndex.from_product([data[c].unique() for c in key_columns] + [gbd_ages],
+                                                    names=key_columns + ['age_group_id'])
+
+        data = (data.set_index(key_columns + ['age_group_id'])
+                .reindex(expected_index, fill_value=fill_value)
+                .reset_index())
+    else:  # data_ages == gbd_ages
+        pass
+    return data
+
+
+def reshape(data: pd.DataFrame, to_keep=DEMOGRAPHIC_COLUMNS) -> pd.DataFrame:
+    data = pd.melt(data.rename(columns={draw: i for i, draw in enumerate(DRAW_COLUMNS)}),
+                   id_vars=to_keep, value_vars=range(len(DRAW_COLUMNS)), var_name='draw')
+    data.draw = data.draw.astype(int)
+    return data
+
+
+def sort_data(data: pd.DataFrame) -> pd.DataFrame:
+    key_cols = []
+    if 'draw' in data.columns:
+        key_cols.append('draw')
+    key_cols.extend([c for c in ['location', 'sex', 'age_group_start',
+                                 'age_group_end', 'year_start', 'year_end'] if c in data.columns])
+    other_cols = data.columns.difference(key_cols + ['value'])
+    key_cols.extend(other_cols)
+    data = data.sort_values(key_cols).reset_index(drop=True)
+
+    sorted_cols = key_cols
+    if 'value' in data.columns:
+        sorted_cols += ['value']
+    data = data[sorted_cols]
+    return data
+
+
+def convert_affected_entity(data: pd.DataFrame, column: str) -> pd.DataFrame:
+    ids = data[column].unique()
+    data = data.rename(columns={column: 'affected_entity'})
+    if column == 'cause_id':
+        name_map = {c.gbd_id: c.name for c in causes if c.gbd_id in ids}
+    else:  # column == 'rei_id'
+        name_map = {r.gbd_id: r.name for r in risk_factors if r.gbd_id in ids}
+    data['affected_entity'] = data['affected_entity'].map(name_map)
+    return data
+
+
+def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_entity: str) -> pd.DataFrame:
+    rr = rr_data[rr_data.affected_entity == affected_entity]
+    affected_measure = rr.affected_measure.unique()[0]
+    rr.drop(['affected_entity', 'affected_measure'], axis=1, inplace=True)
+
+    key_cols = ['sex_id', 'age_group_id', 'year_id', 'parameter', 'draw']
+    e = e.set_index(key_cols).sort_index(level=key_cols)
+    rr = rr.set_index(key_cols).sort_index(level=key_cols)
+
+    weighted_rr = e * rr
+    groupby_cols = [c for c in key_cols if c != 'parameter']
+    mean_rr = weighted_rr.reset_index().groupby(groupby_cols)['value'].sum()
+    paf = ((mean_rr - 1) / mean_rr).reset_index()
+    paf = paf.replace(-np.inf, 0)  # Rows with zero exposure.
+
+    paf['affected_entity'] = affected_entity
+    paf['affected_measure'] = affected_measure
+    return paf
+
+
+def get_age_group_ids_by_restriction(entity: Union[RiskFactor, Cause], which_age: str) -> (float,float):
+    if which_age == 'yll':
+        start, end = entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end
+    elif which_age == 'yld':
+        start, end = entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end
+    elif which_age == 'inner':
+        start = get_restriction_age_boundary(entity, 'start', reverse=True)
+        end = get_restriction_age_boundary(entity, 'end', reverse=True)
+    elif which_age == 'outer':
+        start = get_restriction_age_boundary(entity, 'start')
+        end = get_restriction_age_boundary(entity, 'end')
     else:
-        measure_id = entity[id_attr]
-
-    return measure_id
-
-
-def get_additional_id_columns(data, entity):
-    id_column_map = {
-        'cause': 'cause_id',
-        'sequela': 'sequela_id',
-        'covariate': 'covariate_id',
-        'risk_factor': 'rei_id',
-        'etiology': 'rei_id',
-        'coverage_gap': 'coverage_gap',
-        'healthcare_entity': 'healthcare_entity',
-        'health_technology': 'health_technology',
-    }
-    out = {id_column_map[entity.kind]}
-    if entity.kind == 'coverage_gap' and 'relative_risk' in data['measure'].unique():
-        out.add('rei_id')
-    # TODO: Why?
-    out |= set(data.columns) & set(id_column_map.values())
-    return out
+        raise NotImplementedError('The second argument of this function should be one of [yll, yld, inner, outer].')
+    return start, end
 
 
-def validate_data(data: pd.DataFrame, key_columns: Iterable[str]=None):
-    """Validates that no data is missing and that the provided key columns make a valid (unique) index.
+def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Cause],
+                                which_age: str, age_group_ids: List[int]) -> pd.DataFrame:
+    """
+    For the given data and restrictions, it applies age/sex restrictions and
+    filter out the data outside of the range. Age restrictions can be applied
+    in 4 different ways:
+        - yld, yll, narrowest(inner) range of yll and yld,
+        broadest(outer) range of yll and yld.
 
     Parameters
     ----------
-    data:
-        The data table to be validated.
-    key_columns:
-        An iterable of the column names used to uniquely identify a row in the data table.
+    data
+        DataFrame containing 'age_group_id' and 'sex_id' columns.
+    entity
+        Cause or RiskFactor
+    which_age
+        one of 4 choices: 'yll', 'yld', 'inner', 'outer'.
+    age_group_ids
+        List of possible age group ids.
 
-    Raises
-    ------
-    DataMissingError
-        If the data contains any null (NaN or NaT) values.
-    DuplicatedDataError
-        If the provided key columns are insufficient to uniquely identify a record in the data table.
+    Returns
+    -------
+        DataFrame which is filtered out any data outside of age/sex
+        restriction ranges.
     """
+    restrictions = entity.restrictions
+    if restrictions.male_only and not restrictions.female_only:
+        sexes = [SEXES['Male']]
+    elif not restrictions.male_only and restrictions.female_only:
+        sexes = [SEXES['Female']]
+    else:  # not male only and not female only
+        sexes = [SEXES['Male'], SEXES['Female'], SEXES['Combined']]
 
-    #  check draw_cols only since we may have nan in coverage_gap data from aux_data
-    draw_cols = [f'draw_{i}' for i in range(1000)]
-    if np.any(data[draw_cols].isnull()):
-        raise DataMissingError()
+    data = data[data.sex_id.isin(sexes)]
 
-    if key_columns and np.any(data.duplicated(key_columns)):
-        raise DuplicateDataError()
-
-
-def get_age_group_ids(restrictions, measure='yld'):
-    assert measure in ['yld', 'yll']
-
-    age_restriction_map = {scalar(0.0): [2, None],
-                           scalar(0.01): [3, 2],
-                           scalar(0.10): [4, 3],
-                           scalar(1.0): [5, 4],
-                           scalar(5.0): [6, 5],
-                           scalar(10.0): [7, 6],
-                           scalar(15.0): [8, 7],
-                           scalar(20.0): [9, 8],
-                           scalar(30.0): [11, 10],
-                           scalar(40.0): [13, 12],
-                           scalar(45.0): [14, 13],
-                           scalar(50.0): [15, 14],
-                           scalar(55.0): [16, 15],
-                           scalar(65.0): [18, 17],
-                           scalar(95.0): [235, 32], }
-
-    age_start, age_end = restrictions[f'{measure}_age_start'], restrictions[f'{measure}_age_end']
-    min_age_group = age_restriction_map[age_start][0]
-    max_age_group = age_restriction_map[age_end][1]
-    return list(range(min_age_group, max_age_group + 1))
-
-
-def get_measure_id(measure):
-    name_measure_map = {'death': 1,
-                        'DALY': 2,
-                        'YLD': 3,
-                        'YLL': 4,
-                        'prevalence': 5,
-                        'incidence': 6,
-                        'remission': 7,
-                        'excess_mortality': 9,
-                        'proportion': 18,
-                        'continuous': 19, }
-    return name_measure_map[measure]
-
-
-def standardize_all_age_groups(data: pd.DataFrame):
-    if set(data.age_group_id) != {22}:
-        return data
-    whole_age_groups = gbd.get_age_group_id()
-    missing_age_groups = set(whole_age_groups).difference(set(data.age_group_id))
-    df = []
-    for i in missing_age_groups:
-        missing = data.copy()
-        missing['age_group_id'] = i
-        df.append(missing)
-
-    return pd.concat(df, ignore_index=True)
-
-
-def standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
-    # age_groups that we expect to exist for each risk
-    whole_age_groups = gbd.get_age_group_id()
-    sex_id = data.sex_id.unique()
-    year_id = data.year_id.unique()
-    location_id = data.location_id.unique()
-
-    index_cols = ['year_id', 'location_id', 'sex_id', 'age_group_id']
-    draw_cols = [c for c in data.columns if 'draw_' in c]
-
-    other_cols = {c: data[c].unique() for c in data.dropna(axis=1).columns if c not in index_cols and c not in draw_cols}
-    index_cols += [*other_cols.keys()]
-    data = data.set_index(index_cols)
-
-    # expected indexes to be in the data
-    expected = pd.MultiIndex.from_product([year_id, location_id, sex_id, whole_age_groups] + [*other_cols.values()],
-                                          names=(['year_id', 'location_id', 'sex_id', 'age_group_id'] + [
-                                              *other_cols.keys()]))
-
-    new_data = data.copy()
-    missing = expected.difference(data.index)
-
-    # assign dtype=float to prevent the artifact error with mixed dtypes
-    to_add = pd.DataFrame({column: fill_value for column in draw_cols}, index=missing, dtype=float)
-
-    new_data = new_data.append(to_add).sort_index()
-
-    return new_data.reset_index()
-
-
-def filter_to_most_detailed(data):
-    for column, entity_list in [('cause_id', causes),
-                                ('rei_id', chain(etiologies, risk_factors)),
-                                ('coverage_gap_id', coverage_gaps)]:
-        most_detailed = {e.gbd_id for e in entity_list if e is not None}
-        if column in data:
-            data = data[data[column].isin(most_detailed)]
+    start, end = get_age_group_ids_by_restriction(entity, which_age)
+    ages = get_restriction_age_ids(start, end, age_group_ids)
+    data = data[data.age_group_id.isin(ages)]
     return data
+
+
+def clear_disability_weight_outside_restrictions(data: pd.DataFrame, cause: Cause, fill_value: float,
+                                                 age_group_ids: List[int]) -> pd.DataFrame:
+    """Because sequela disability weight is not age/sex specific, we need to
+    have a custom function to set the values outside the corresponding cause
+    restrictions to 0 after it has been expanded over age/sex."""
+    restrictions = cause.restrictions
+    if restrictions.male_only and not restrictions.female_only:
+        sexes = [SEXES['Male']]
+    elif not restrictions.male_only and restrictions.female_only:
+        sexes = [SEXES['Female']]
+    else:  # not male only and not female only
+        sexes = [SEXES['Male'], SEXES['Female'], SEXES['Combined']]
+
+    start, end = get_age_group_ids_by_restriction(cause, "yld")
+    ages = get_restriction_age_ids(start, end, age_group_ids)
+
+    data.loc[(~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS] = fill_value
+    return data
+
+
+def filter_to_most_detailed_causes(data: pd.DataFrame)-> pd.DataFrame:
+    """For the DataFrame including the cause_ids, it filters rows with
+    cause_ids for the most detailed causes """
+    cause_ids = set(data.cause_id)
+    most_detailed_cause_ids = [c.gbd_id for c in causes if c.gbd_id in cause_ids and c.most_detailed]
+    return data[data.cause_id.isin(most_detailed_cause_ids)]
+
+
+def get_restriction_age_ids(start_id: Union[int, None], end_id: Union[int, None],
+                            age_group_ids: List[int]) -> List[int]:
+    """Get the start/end age group id and return the list of GBD age_group_ids
+    in-between.
+    """
+    if start_id is None or end_id is None:
+        data = []
+    else:
+        start_index = age_group_ids.index(start_id)
+        end_index = age_group_ids.index(end_id)
+        data = age_group_ids[start_index:end_index+1]
+    return data
+
+
+def get_restriction_age_boundary(entity: Union[RiskFactor, Cause], boundary: str, reverse=False):
+    """Find the minimum/maximum age restriction (if both 'yll' and 'yld'
+    restrictions exist) for a RiskFactor.
+
+    Parameters
+    ----------
+    entity
+        RiskFactor or Cause for which to find the minimum/maximum age restriction.
+    boundary
+        String 'start' or 'end' indicating whether to return the minimum(maximum)
+        start age restriction or maximum(minimum) end age restriction.
+    reverse
+        if reverse is True, return the maximum of start age restriction
+        and minimum of end age restriction.
+
+    Returns
+    -------
+        The age group id corresponding to the minimum or maximum start or end
+        age restriction, depending on `boundary`, if both 'yll' and 'yld'
+        restrictions exist. Otherwise, returns whichever restriction exists.
+    """
+    yld_age = entity.restrictions[f'yld_age_group_id_{boundary}']
+    yll_age = entity.restrictions[f'yld_age_group_id_{boundary}']
+    if yld_age is None:
+        age = yll_age
+    elif yll_age is None:
+        age = yld_age
+    else:
+        start_op = max if reverse else min
+        end_op = min if reverse else max
+        age = end_op(yld_age, yll_age) if boundary == 'start' else start_op(yld_age, yll_age)
+    return age
+
+
+def get_exposure_and_restriction_ages(exposure: pd.DataFrame, entity: RiskFactor) -> set:
+    """Get the intersection of age groups found in exposure data and entity
+    restriction age range. Used to filter other risk data where
+    using just exposure age groups isn't sufficient because exposure at the
+    point of extraction is pre-filtering by age restrictions.
+
+    Parameters
+    ----------
+    exposure
+        Exposure data for `entity`.
+    entity
+        Entity for which to find the intersecting exposure and restriction ages.
+
+    Returns
+    -------
+    Set of age groups found in both the entity's exposure data and in the
+    entity's age restrictions.
+    """
+    exposure_age_groups = set(exposure.age_group_id)
+    start, end = get_age_group_ids_by_restriction(entity, 'outer')
+    restriction_age_groups = get_restriction_age_ids(start, end, utility_data.get_age_group_ids())
+    valid_age_groups = exposure_age_groups.intersection(restriction_age_groups)
+
+    return valid_age_groups
+

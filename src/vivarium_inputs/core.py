@@ -1,511 +1,414 @@
-"""This module performs the core data transformations on GBD data and provides a basic API for data access."""
 from typing import Union
+from itertools import product
+import warnings
 
+from gbd_mapping import Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 import pandas as pd
-from gbd_mapping.base_template import ModelableEntity
-from gbd_mapping.risk import Risk
-from gbd_mapping.coverage_gap import CoverageGap, coverage_gaps
-from gbd_mapping.cause import Cause
-from gbd_mapping.sequela import Sequela
+import numpy as np
 
-from vivarium_inputs.utilities import (InvalidQueryError, UnhandledDataError, DataMissingError,
-                                       get_additional_id_columns, validate_data, get_measure_id, get_id_for_measure,
-                                       standardize_all_age_groups, get_age_group_ids, filter_to_most_detailed,
-                                       standardize_data, gbd)
+from vivarium_inputs import utilities, extract, utility_data
+from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
+                                     Population, DataDoesNotExistError)
+from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
-def get_draws(entity: ModelableEntity, measure: str, location: str) -> pd.DataFrame:
-    """Gets draw level gbd data for a measure and entity.
-
-    Parameters
-    ----------
-    entity:
-        A data container from the `gbd_mapping` package.
-    measure:
-        A GBD measure requested for the provided entity.
-    location:
-        A location to pull data for.
-
-    Returns
-    -------
-    A table of draw level data for for the entity, measure, and location
-    combination indexed by demographic data (age_group_id, sex_id, year_id) where appropriate.
-    """
+def get_data(entity, measure: str, location: str):
     measure_handlers = {
-        'death': (get_death, set()),
-        'remission': (get_remission, set()),
-        'prevalence': (get_prevalence, set()),
-        'incidence': (get_incidence, set()),
-        'relative_risk': (get_relative_risk, {'cause_id', 'parameter', 'affected_measure'}),
-        'population_attributable_fraction': (get_population_attributable_fraction, {'rei_id', 'affected_measure'}),
-        'cause_specific_mortality': (get_cause_specific_mortality, set()),
-        'excess_mortality': (get_excess_mortality, set()),
-        'exposure': (get_exposure, {'parameter', }),
-        'exposure_standard_deviation': (get_exposure_standard_deviation, {'rei_id', }),
-        'annual_visits': (get_annual_visits, {'modelable_entity_id', }),
-        'disability_weight': (get_disability_weight, set()),
-        'cost': (get_cost, set()),
-        'effects': (get_effects, {'medication', 'dosage'}),
-        'coverage': (get_coverage, {'medication', 'dosage'}),
+        # Cause-like measures
+        'incidence': (get_incidence, ('cause', 'sequela')),
+        'prevalence': (get_prevalence, ('cause', 'sequela')),
+        'birth_prevalence': (get_birth_prevalence, ('cause', 'sequela')),
+        'disability_weight': (get_disability_weight, ('cause', 'sequela')),
+        'remission': (get_remission, ('cause',)),
+        'cause_specific_mortality': (get_cause_specific_mortality, ('cause',)),
+        'excess_mortality': (get_excess_mortality, ('cause',)),
+        'case_fatality': (get_case_fatality, ('cause',)),
+        # Risk-like measures
+        'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
+        'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
+        'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor', 'alternative_risk_factor')),
+        'relative_risk': (get_relative_risk, ('risk_factor', 'coverage_gap')),
+        'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'etiology')),
+        'mediation_factors': (get_mediation_factors, ('risk_factor',)),
+        # Covariate measures
+        'estimate': (get_estimate, ('covariate',)),
+        # Health system measures
+        'cost': (get_cost, ('healthcare_entity', 'health_technology')),
+        'utilization': (get_utilization, ('healthcare_entity',)),
+        # Population measures
+        'structure': (get_structure, ('population',)),
+        'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
+        'age_bins': (get_age_bins, ('population',)),
+        'demographic_dimensions': (get_demographic_dimensions, ('population',))
+
     }
-    location_id = get_location_id(location)
 
-    try:
-        handler, id_columns = measure_handlers[measure]
-    except KeyError:
-        raise InvalidQueryError(f'No functions are available to pull data for measure {measure}')
+    if measure not in measure_handlers:
+        raise InvalidQueryError(f'No functions available to pull data for measure {measure}.')
+
+    handler, entity_types = measure_handlers[measure]
+
+    if entity.kind not in entity_types:
+        raise InvalidQueryError(f'{measure.capitalize()} not available for {entity.kind}.')
+
+    location_id = utility_data.get_location_id(location)
     data = handler(entity, location_id)
-    if 'measure' not in data:
-        data['measure'] = measure
-
-    id_columns |= get_additional_id_columns(data, entity)
-    key_columns = ['measure'] + list(id_columns)
-    for column in ['year_id', 'sex_id', 'age_group_id', 'location_id']:
-        if column in data:
-            key_columns.append(column)
-
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-
-    data = data[key_columns + draw_columns].reset_index(drop=True)
-    validate_data(data, key_columns)
-    if "location_id" in data:
-        data["location"] = location
-        data = data.drop("location_id", "columns")
-
-    return data
-
-#####################
-# get_draws helpers #
-#####################
-#
-# These functions filter out erroneous measures and deal with special cases.
-#
-
-####################
-# Cause-like stuff #
-####################
-
-
-def get_death(entity, location_id):
-    entity_id = get_id_for_measure(entity, 'death')
-    death_data = gbd.get_codcorrect_draws(cause_id=entity_id, location_id=location_id)
-
-    return death_data[death_data['measure_id'] == get_measure_id('death')]
-
-
-def get_remission(entity, location_id):
-    entity_id = get_id_for_measure(entity, 'remission')
-    remission_data = gbd.get_modelable_entity_draws(me_id=entity_id, location_id=location_id)
-    remission_data['cause_id'] = entity.gbd_id
-    correct_measure = remission_data['measure_id'] == get_measure_id('remission')
-    return remission_data[correct_measure]
-
-
-def get_prevalence(entity, location_id):
-    entity_id = get_id_for_measure(entity, 'prevalence')
-    measure_data = gbd.get_como_draws(entity_id=entity_id, location_id=location_id, entity_type=entity.kind)
-
-    correct_measure = measure_data['measure_id'] == get_measure_id('prevalence')
-    correct_years = measure_data['year_id'].isin(gbd.get_estimation_years(gbd.GBD_ROUND_ID))
-    return measure_data[correct_measure & correct_years]
-
-
-def get_incidence(entity, location_id):
-    entity_id = get_id_for_measure(entity, 'incidence')
-    data = gbd.get_como_draws(entity_id=entity_id, location_id=location_id, entity_type=entity.kind)
-
-    correct_measure = data['measure_id'] == get_measure_id('incidence')
-    correct_years = data['year_id'].isin(gbd.get_estimation_years(gbd.GBD_ROUND_ID))
-
-    # get_draws returns "total incidence." We want hazard incidence.
-    # scale by the number of people not sick to convert.
-    incidence = data[correct_measure & correct_years]
-    prevalence = get_prevalence(entity, location_id)
-
-    key_columns = [f'{entity.kind}_id', 'age_group_id', 'location_id', 'sex_id', 'year_id']
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-
-    incidence = incidence.set_index(key_columns)
-    prevalence = prevalence.set_index(key_columns)
-
-    incidence[draw_columns] = incidence[draw_columns] / (1 - prevalence[draw_columns])
-
-    return incidence.reset_index()
-
-
-def get_cause_specific_mortality(entity, location_id):
-    deaths = get_draws(entity, "death", get_location_name(location_id))
-    deaths["location_id"] = location_id
-
-    population = get_population(get_location_name(location_id))
-    population = population[population['year_id'] >= deaths.year_id.min()]
-    population["location_id"] = location_id
-
-    merge_columns = ['age_group_id', 'location_id', 'year_id', 'sex_id']
-    key_columns = merge_columns + ['cause_id']
-    draw_columns = [f'draw_{i}' for i in range(0, 1000)]
-
-    df = deaths.merge(population, on=merge_columns).set_index(key_columns)
-    csmr = df[draw_columns].divide(df['population'], axis=0).reset_index()
-
-    csmr = csmr[key_columns + draw_columns]
-    return standardize_data(csmr, 0)
-
-
-def get_excess_mortality(entity, location_id):
-    prevalence = get_draws(entity, 'prevalence', get_location_name(location_id)).drop('measure', 'columns')
-    csmr = get_draws(entity, 'cause_specific_mortality', get_location_name(location_id)).drop('measure', 'columns')
-
-    key_columns = ['year_id', 'sex_id', 'age_group_id', 'cause_id', 'location']
-    prevalences = prevalence.set_index(key_columns)
-    csmrs = csmr.set_index(key_columns)
-
-    # In some cases CSMR is not zero for age groups where prevalence is, which leads to
-    # crazy outputs. So enforce that constraint.
-    # TODO: But is this the right place to do that?
-    draw_columns = [f'draw_{i}' for i in range(1000)]
-    csmrs[draw_columns] = csmrs[draw_columns].where(prevalences[draw_columns] != 0, 0)
-
-    em = csmrs.divide(prevalences, axis='index').reset_index()
-
-    em["location_id"] = location_id
-
-    return standardize_data(em.dropna(), 0)
-
-
-def _get_sequela_disability_weights(entity: Sequela):
-    disability_weights = gbd.get_auxiliary_data('disability_weight', 'sequela', 'all')
-    if entity.healthstate.gbd_id in disability_weights['healthstate_id'].values:
-        data = disability_weights.loc[disability_weights.healthstate_id == entity.healthstate.gbd_id, :]
-    else:
-        id_columns = {'location_id': 1, 'age_group_id': 22, 'sex_id': 3, 'measure': 'disability_weight',
-                      'healthstate_id': entity.healthstate.gbd_id, 'healthstate': entity.healthstate.name}
-        draw_columns = {f'draw_{i}': 0.0 for i in range(1000)}
-        id_columns.update(draw_columns)
-        data = pd.DataFrame(data=id_columns, index=[0])
-    data.loc[:, 'sequela_id'] = entity.gbd_id
-
     return data
 
 
-def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None):
-    if entity.kind == 'sequela':
-        data = _get_sequela_disability_weights(entity)
+def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'incidence', location_id)
+    if entity.kind == 'cause':
+        restrictions_entity = entity
+    else:  # sequela
+        cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
+        restrictions_entity = cause
 
-    elif entity.kind == "cause":
-        id_columns = ['age_group_id', 'year_id', 'sex_id', 'location_id']
-        sequelae = entity.sequelae
+    data = utilities.filter_data_by_restrictions(data, restrictions_entity,
+                                                 'yld', utility_data.get_age_group_ids())
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    # Convert from "True incidence" to the incidence rate among susceptibles
+    data /= 1 - prevalence
+    return data.fillna(0).reset_index()
 
-        sequela_level_data = []
-        for seq in sequelae:
-            seq_prevalence = get_prevalence(seq, location_id).reset_index(drop=True)
-            seq_disability = _get_sequela_disability_weights(seq)
 
-            draw_columns = [col for col in seq_disability if col.startswith('draw_')]
+def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'prevalence', location_id)
+    if entity.kind == 'cause':
+        restrictions_entity = entity
+    else:  # sequela
+        cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
+        restrictions_entity = cause
 
-            # duplicate disability weight to make multiplication easier.
-            seq_disability = pd.concat([seq_disability[draw_columns]] * seq_prevalence.shape[0], ignore_index=True)
+    data = utilities.filter_data_by_restrictions(data, restrictions_entity,
+                                                 'yld', utility_data.get_age_group_ids())
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data)
+    return data
 
-            seq_prevalence.loc[:, draw_columns] = seq_prevalence[draw_columns] * seq_disability
-            seq_prevalence = seq_prevalence.set_index(id_columns)
-            sequela_level_data.append(seq_prevalence)
 
-        data = sum(sequela_level_data)
-        data = data.drop('sequela_id', 'columns')
+def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'birth_prevalence', location_id)
+    data = data.drop('age_group_id', 'columns')
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data, to_keep=('year_id', 'sex_id', 'location_id'))
+    return data
+
+
+def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    if entity.kind == 'cause':
+        data = get_demographic_dimensions(Population(), location_id, draws=True)
+        data['value'] = 0.0
+        data = data.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+        if entity.sequelae:
+            for sequela in entity.sequelae:
+                try:
+                    prevalence = get_prevalence(sequela, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+                except DataDoesNotExistError:
+                    # sequela prevalence does not exist so no point continuing with this sequela
+                    continue
+                disability = get_disability_weight(sequela, location_id)
+                disability['location_id'] = location_id
+                disability = disability.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+                data += prevalence * disability
         data = data.reset_index()
-        data.loc[:, 'cause_id'] = entity.gbd_id
-
-    else:
-        raise InvalidQueryError("Only sequela and causes have disability weights associated with them.")
+    else:  # entity.kind == 'sequela'
+        if not entity.healthstate.disability_weight_exists:
+            data = get_demographic_dimensions(Population(), location_id, draws=True)
+            data['value'] = 0.0
+        else:
+            data = extract.extract_data(entity, 'disability_weight', location_id)
+            data = utilities.normalize(data)
+            cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
+            data = utilities.clear_disability_weight_outside_restrictions(data, cause, 0.0,
+                                                                          utility_data.get_age_group_ids())
+            data = utilities.reshape(data)
 
     return data
 
 
-###################
-# Risk-like stuff #
-###################
+def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'remission', location_id)
 
-def get_relative_risk(entity: Union[Risk, CoverageGap], location_id: int):
-    special_cases = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
-    entity_id = get_id_for_measure(entity, 'relative_risk')
+    data = utilities.filter_data_by_restrictions(data, entity,
+                                                 'yld', utility_data.get_age_group_ids())
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data)
+    return data
+
+
+def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
+    deaths = _get_deaths(entity, location_id)
+    pop = get_structure(Population(), location_id)
+    data = deaths.merge(pop, on=DEMOGRAPHIC_COLUMNS)
+    data['value'] = data['value_x'] / data['value_y']
+    return data.drop(['value_x', 'value_y'], 'columns')
+
+
+def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
+    csmr = get_cause_specific_mortality(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    data = (csmr / prevalence).fillna(0)
+    data = data.replace([np.inf, -np.inf], 0)
+    return data.reset_index()
+
+
+def get_case_fatality(entity: Cause, location_id: int):
+    raise NotImplementedError()
+
+
+def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'deaths', location_id)
+    data = utilities.filter_data_by_restrictions(data, entity,
+                                                 'yll', utility_data.get_age_group_ids())
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data)
+    return data
+
+
+def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'exposure', location_id)
+    data = data.drop('modelable_entity_id', 'columns')
+
+    if entity.kind in ['risk_factor', 'alternative_risk_factor']:
+        data = utilities.filter_data_by_restrictions(data, entity,
+                                                     'outer', utility_data.get_age_group_ids())
+
+    if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
+        tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+        exposed = data[data.parameter != tmrel_cat]
+        unexposed = data[data.parameter == tmrel_cat]
+
+        #  FIXME: We fill 1 as exposure of tmrel category, which is not correct.
+        data = pd.concat([utilities.normalize(exposed, fill_value=0), utilities.normalize(unexposed, fill_value=1)],
+                         ignore_index=True)
+
+        # normalize so all categories sum to 1
+        cols = list(set(data.columns).difference(DRAW_COLUMNS + ['parameter']))
+        sums = data.groupby(cols)[DRAW_COLUMNS].sum()
+        data = (data.groupby('parameter')
+                .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))
+                .reset_index())
+    else:
+        data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
+    return data
+
+
+def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'exposure_standard_deviation', location_id)
+    data = data.drop('modelable_entity_id', 'columns')
+
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    valid_age_groups = utilities.get_exposure_and_restriction_ages(exposure, entity)
+    data = data[data.age_group_id.isin(valid_age_groups)]
+
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data)
+    return data
+
+
+def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'exposure_distribution_weights', location_id)
+
+    exposure = extract.extract_data(entity, 'exposure', location_id)
+    valid_ages = utilities.get_exposure_and_restriction_ages(exposure, entity)
+
+    data.drop('age_group_id', axis=1, inplace=True)
+    df = []
+    for age_id in valid_ages:
+        copied = data.copy()
+        copied['age_group_id'] = age_id
+        df.append(copied)
+    data = pd.concat(df)
+    distribution_cols = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
+                         'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
+
+    data = utilities.normalize(data, fill_value=0, cols_to_fill=distribution_cols)
+    id_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure', 'year_id']
+    data = pd.melt(data, id_vars=id_cols, value_vars=distribution_cols, var_name='parameter')
+    return data
+
+
+def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFrame:
+    """ It applies age restrictions according to affected causes
+    and affected measures. If affected measure is incidence_rate,
+    it applies the yld_age_restrictions. If affected measure is
+    excess_mortality, it applies the yll_age_restrictions to filter
+    the relative_risk data"""
+
+    causes_map = {c.name: c for c in causes}
+    temp = []
+    affected_entities = set(data.affected_entity)
+    affected_measures = set(data.affected_measure)
+    for cause, measure in product(affected_entities, affected_measures):
+        df = data[(data.affected_entity == cause) & (data.affected_measure)]
+        cause = causes_map[cause]
+        if measure == 'excess_mortality':
+            start, end = utilities.get_age_group_ids_by_restriction(cause, 'yll')
+        else:  # incidence_rate
+            start, end = utilities.get_age_group_ids_by_restriction(cause, 'yld')
+        temp.append(df[df.age_group_id.isin(range(start, end + 1))])
+    data = pd.concat(temp)
+    return data
+
+
+def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'relative_risk', location_id)
 
     if entity.kind == 'risk_factor':
-        data = pull_rr_data_from_gbd(entity_id, location_id)
-        data = filter_to_most_detailed(data)
-    elif entity.kind == 'coverage_gap' and entity in special_cases:
-        data = pull_rr_data_from_gbd(entity_id, location_id)
-        draw_cols = [f'draw_{i}' for i in range(1000)]
-        data.loc[:, draw_cols] = 1 / data.loc[:, draw_cols]
-        data = handle_gbd_coverage_gap_data(entity, data, 1)
-        data['coverage_gap'] = entity.name
-        data['affected_measure'] = 'incidence_rate' if entity.affected_causes else 'exposure_parameters'
-    elif entity.kind == 'coverage_gap':
-        data = gbd.get_auxiliary_data('relative_risk', 'coverage_gap', entity.name)
-        data['coverage_gap'] = entity.name
-        del data['measure']
-        data['affected_measure'] = 'incidence_rate' if entity.affected_causes else 'exposure_parameters'
-    else:
-        raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'relative_risk'")
+        # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
+        #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
+        #  2/8/19 K.W.
+        yll_only_causes = set([c.gbd_id for c in causes if c.restrictions.yll_only])
+        data = data[~data.cause_id.isin(yll_only_causes)]
 
-    data = standardize_all_age_groups(data)
-    data = standardize_data(data, 1)
-    return data
+        data = utilities.convert_affected_entity(data, 'cause_id')
+        morbidity = data.morbidity == 1
+        mortality = data.mortality == 1
+        data.loc[morbidity & mortality, 'affected_measure'] = 'incidence_rate'
+        data.loc[morbidity & ~mortality, 'affected_measure'] = 'incidence_rate'
+        data.loc[~morbidity & mortality, 'affected_measure'] = 'excess_mortality'
+        data = filter_relative_risk_to_cause_restrictions(data)
+    else:  # coverage_gap
+        data = utilities.convert_affected_entity(data, 'rei_id')
+        data['affected_measure'] = 'exposure_parameters'
 
+    result = []
+    for affected_entity in data.affected_entity.unique():
+        df = data[data.affected_entity == affected_entity]
+        df = df.groupby('parameter').apply(lambda d: utilities.normalize(d, fill_value=1))
+        result.append(df)
+    data = pd.concat(result)
+    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'])
 
-def pull_rr_data_from_gbd(measure_id, location_id):
-    data = gbd.get_relative_risk(risk_id=measure_id, location_id=location_id)
-    data = data.rename(columns={f'rr_{i}': f'draw_{i}' for i in range(1000)})
-
-    # FIXME: I'm passing because this is broken for zinc_deficiency, and I don't have time to investigate -J.C.
-    # err_msg = ("Not all relative risk data has both the 'mortality' and 'morbidity' flag "
-    #            + "set. This may not indicate an error but it is a case we don't explicitly handle. "
-    #            + "If you need this risk, come talk to one of the programmers.")
-    # assert np.all((measure_data.mortality == 1) & (measure_data.morbidity == 1)), err_msg
-    data.loc[data.morbidity == 1, 'affected_measure'] = 'incidence_rate'
-    data.loc[(data.mortality == 1) & (data.morbidity == 0), 'affected_measure'] = 'excess_mortality'
-
-    if (((data.morbidity == 1) & (data.mortality == 0)).any()
-            and not ((data.morbidity == 0) & (data.mortality == 1)).any()):
-        raise DataMissingError(f"Morbidity only relative risk data for measure_id {measure_id} was retrieved, "
-                               f"but no mortality only rr data found.")
-
-    return data.drop(['metric_id', 'modelable_entity_id', 'mortality', 'morbidity'], 'columns')
-
-
-def get_population_attributable_fraction(entity, location_id):
-    entity_id = get_id_for_measure(entity, 'population_attributable_fraction')
-
-    if entity.kind == 'etiology' or \
-            (entity.kind == 'risk_factor' and entity.distribution in ['ensemble', 'normal', 'lognormal']):
-        data = gbd.get_paf(entity_id=entity_id, location_id=location_id)
-        data = filter_to_most_detailed(data)
-
-    else:
-        raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'population_attributable_fraction'")
-
-    # TODO: figure out if we need to assert some property of the different PAF measures
-    mortality_data = data[data['measure_id'] == get_measure_id('YLL')]
-    morbidity_data = data[data['measure_id'] == get_measure_id('YLD')]
-    del mortality_data['measure_id']
-    del morbidity_data['measure_id']
-
-    # FIXME: I'm passing because this is broken for SBP, it's unimportant, and I don't have time to investigate -J.C.
-    # measure_ids = {name_measure_map[m] for m in ['death', 'DALY', 'YLD', 'YLL']}
-    # err_msg = ("Not all PAF data has values for deaths, DALYs, YLDs and YLLs. "
-    #           + "This may not indicate an error but it is a case we don't explicitly handle. "
-    #           + "If you need this PAF, come talk to one of the programmers.")
-    # assert np.all(
-    #    measure_data.groupby(key_columns).measure_id.unique().apply(lambda x: set(x) == measure_ids)), err_msg
-
-    if not morbidity_data.empty and mortality_data.empty:
-        raise DataMissingError(f"Morbidity population attributable fraction data for entity {entity.name} was "
-                               f"retrieved, but no accompanying mortality data was found.")
-
-    # standardize mortality and morbidity data separately because any extra cols (e.g., mort, morb) will result in dupes
-    mortality_data = standardize_data(mortality_data, 0)
-    morbidity_data = standardize_data(morbidity_data, 0)
-
-    mortality_data['affected_measure'] = 'excess_mortality'
-    morbidity_data['affected_measure'] = 'incidence_rate'
-
-    data = morbidity_data
-    if not mortality_data.empty: # appending if one data set is empty changes dtypes from ints to floats
-        data = data.append(mortality_data)
-    return data
-
-
-def get_exposure(entity, location_id):
-    special_cases = [coverage_gaps.low_measles_vaccine_coverage_first_dose]
-    entity_id = get_id_for_measure(entity, 'exposure')
-
-    if entity.kind in ['risk_factor', 'etiology']:
-        data = gbd.get_exposure(entity_id=entity_id, location_id=location_id)
-        measure_id = get_exposure_measure_id(data)
-        if measure_id == get_measure_id('prevalence'):
-            data = convert_exposure_prevalence_to_proportion(data)
-        data = handle_exposure_from_gbd(data)
-    elif entity in special_cases:
-        data = gbd.get_exposure(entity_id=entity_id, location_id=location_id)
-        data = handle_gbd_coverage_gap_data(entity, data, 0)
-        data = handle_exposure_from_gbd(data)
-        del data['modelable_entity_id']
-        del data['metric_id']
-    elif entity.kind == 'coverage_gap':
-        data = gbd.get_auxiliary_data('exposure', entity.kind, entity.name)
-        data = data[data.location_id == location_id] if set(data.location_id) != {1} else data
-        data['coverage_gap'] = entity.name
-        del data['measure']
-    else:
-        raise InvalidQueryError(f"Entity {entity.name} has no data for measure 'exposure'")
-
-    return standardize_all_age_groups(data)
-
-
-def convert_exposure_prevalence_to_proportion(data):
-    # FIXME:
-    # Some categorical risks come from cause models, or they get weird exposure
-    # models that report prevalence instead of proportion.  We should do a
-    # systematic review of them and work with the risk factors team to get the
-    # exposure reported consistently.  In the mean time we scale the unit-full
-    # prevalence numbers to unit-less proportion numbers. - J.C.
-    key_cols = ['age_group_id', 'location_id', 'sex_id', 'year_id']
-    draw_cols = [f'draw_{i}' for i in range(1000)]
-
-    data = data.set_index(key_cols)
-    data = data[draw_cols + ['rei_id', 'measure_id', 'parameter']]
-
-    total_prevalence = data[draw_cols].reset_index().groupby(key_cols).sum()
-    for parameter in data['parameter'].unique():
-        correct_parameter = data['parameter'] == parameter
-        data.loc[correct_parameter, draw_cols] /= total_prevalence
-    data = data.reset_index()
-    data['measure_id'] = get_measure_id('proportion')
+    if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
+        tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+        if np.allclose(data.loc[data.parameter == tmrel_cat, 'value'], 1.0):
+            data.loc[data.parameter == tmrel_cat, 'value'] = 1.0
 
     return data
 
 
-def get_exposure_measure_id(data):
-    measure_ids = data.measure_id.unique()
-    if len(measure_ids) > 1:
-        raise UnhandledDataError("Exposures should always come back with a single measure, "
-                                 "or they should be dealt with as a special case.  ")
+def filter_by_relative_risk(df: pd.DataFrame, relative_risk: pd.DataFrame) -> pd.DataFrame:
+    c_id = df.cause_id.unique()[0]
+    rr = relative_risk[relative_risk.cause_id == c_id]
+    #  We presume all attributable mortality moves through incidence.
+    if set(rr.mortality) == {1} and set(rr.morbidity) == {1}:
+        df = df[df.measure_id == MEASURES['YLDs']]
+    return df
 
-    return int(measure_ids)
 
+def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], location_id: int) -> pd.DataFrame:
+    causes_map = {c.gbd_id: c for c in causes}
+    if entity.kind == 'risk_factor':
+        data = extract.extract_data(entity, 'population_attributable_fraction', location_id)
+        relative_risk = extract.extract_data(entity, 'relative_risk', location_id)
 
-def handle_exposure_from_gbd(data):
-    correct_measure = data.measure_id.isin([get_measure_id('proportion'), get_measure_id('continuous')])
-    data = data[correct_measure]
-    # FIXME: Is this the only data we need to delete measure id for?
-    del data['measure_id']
+        # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
+        #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
+        #  2/8/19 K.W.
+        yll_only_causes = set([c.gbd_id for c in causes if c.restrictions.yll_only])
+        data = data[~data.cause_id.isin(yll_only_causes)]
+        relative_risk = relative_risk[~relative_risk.cause_id.isin(yll_only_causes)]
+
+        data = data.groupby('cause_id', as_index=False).apply(filter_by_relative_risk, relative_risk).reset_index(drop=True)
+
+        temp = []
+        # We filter paf age groups by cause level restrictions.
+        for (c_id, measure), df in data.groupby(['cause_id', 'measure_id']):
+            cause = causes_map[c_id]
+            measure = 'yll' if measure == MEASURES['YLLs'] else 'yld'
+            df = utilities.filter_data_by_restrictions(df, cause, measure, utility_data.get_age_group_ids())
+            temp.append(df)
+        data = pd.concat(temp, ignore_index=True)
+
+    else:  # etiology
+        data = extract.extract_data(entity, 'etiology_population_attributable_fraction', location_id)
+        cause = [c for c in causes if entity in c.etiologies][0]
+        data = utilities.filter_data_by_restrictions(data, cause, 'inner', utility_data.get_age_group_ids())
+        if np.any(data[DRAW_COLUMNS] < 0):
+            warnings.warn(f"{entity.name.capitalize()} has negative values for paf. These will be replaced with 0.")
+            other_cols = [c for c in data.columns if c not in DRAW_COLUMNS]
+            data.set_index(other_cols, inplace=True)
+            data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()
+
+    data = utilities.convert_affected_entity(data, 'cause_id')
+    data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
+    data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
+    data = data.groupby(['affected_entity', 'affected_measure']).apply(lambda df: utilities.normalize(df, fill_value=0))
+    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'])
     return data
 
 
-def handle_gbd_coverage_gap_data(entity, data, fill_value):
-    if len(entity.affected_causes) != 1:
-        raise UnhandledDataError("We only handle coverage gaps affecting a single cause. "
-                                 "Tell James if you see this error.")
-    restrictions = entity.affected_causes[0].restrictions
-    if restrictions.yll_only:
-        raise UnhandledDataError("The PAFs we use are for YLDs, so causes with no attributable YLDs should not"
-                                 "have associated exposures or RRs.")
+def get_mediation_factors(entity, location_id):
+    raise NotImplementedError()
 
-    # We pulled coverage, not exposure, so invert the categories.
-    data['parameter'] = data.parameter.map({'cat1': 'cat2', 'cat2': 'cat1'})
-    data['coverage_gap'] = entity.name
 
-    age_group_ids = get_age_group_ids(restrictions, 'yld')
-    correct_age_groups = data['age_group_id'].isin(age_group_ids)
+def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'estimate', location_id)
 
-    draw_cols = [f'draw_{i}' for i in range(1000)]
-    data.loc[~correct_age_groups, draw_cols] = fill_value
+    key_columns = ['location_id', 'year_id']
+    if entity.by_age:
+        key_columns.append('age_group_id')
+    if entity.by_sex:
+        key_columns.append('sex_id')
 
+    data = pd.melt(data, id_vars=key_columns,
+                   value_vars=['mean_value', 'upper_value', 'lower_value'], var_name='parameter')
+    data = utilities.normalize(data)
     return data
 
 
-def get_exposure_standard_deviation(entity, location_id):
-    entity_id = get_id_for_measure(entity, 'exposure_standard_deviation')
-    data = gbd.get_exposure_standard_deviation(entity_id, location_id)
-
-    key_cols = ['age_group_id', 'location_id', 'sex_id', 'year_id', 'rei_id']
-    draw_cols = [f'draw_{i}' for i in range(1000)]
-
-    return data[key_cols + draw_cols]
-
-
-###############
-# Other stuff #
-###############
-
-def get_annual_visits(entity, location_id):
-    entity_id = get_id_for_measure(entity, 'annual_visits')
-    measure_data = gbd.get_modelable_entity_draws(me_id=entity_id, location_id=location_id)
-    measure_data['healthcare_entity'] = entity.name
-
-    correct_measure = measure_data['measure_id'] == get_measure_id('continuous')
-    correct_sex = measure_data['sex_id'] != gbd.COMBINED
-
-    return measure_data[correct_measure & correct_sex]
-
-
-def get_cost(entity, location_id):
-    cost_data = gbd.get_auxiliary_data('cost', entity.kind, entity.name)
-    if 'location_id' in cost_data.columns:
-        cost_data = cost_data[cost_data['location_id'] == location_id]
-    return cost_data
-
-
-def get_effects(entity, _):
-    data = gbd.get_auxiliary_data('effects', entity.kind, entity.name)
-    data = data.drop(columns=['year_id', 'sex_id'])
+def get_cost(entity: Union[HealthcareEntity, HealthTechnology], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'cost', location_id)
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + [entity.kind])
     return data
 
 
-def get_coverage(entity, location_id):
-    data = gbd.get_auxiliary_data('coverage', entity.kind, entity.name)
-    data = data[data['location_id'] == location_id]
+def get_utilization(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'utilization', location_id)
+    data = utilities.normalize(data, fill_value=0)
+    data = utilities.reshape(data)
     return data
 
 
-####################################
-# Measures for risk like entities  #
-####################################
-
-
-def get_ensemble_weights(risk):
-    data = gbd.get_auxiliary_data('ensemble_weights', 'risk_factor', 'all')
-    data = data[data['risk_id'] == risk.gbd_id]
+def get_structure(entity: Population, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'structure', location_id)
+    data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
+    data = utilities.normalize(data)
     return data
 
 
-#######################
-# Other kinds of data #
-#######################
-
-
-def get_population(location):
-    population = gbd.get_population(get_location_id(location))
-    population["location"] = location
-    keep_columns = ['age_group_id', 'location', 'year_id', 'sex_id', 'population']
-    return population[keep_columns]
-
-
-def get_age_bins():
-    return gbd.get_age_bins()
-
-
-def get_theoretical_minimum_risk_life_expectancy():
-    data = gbd.get_theoretical_minimum_risk_life_expectancy()
-    # TODO: Figure out a more rigorous way to handle generating age bins
-    # (esp. last edge) from precise ages
-    data = data.rename(columns={'age': 'age_group_start'})
-    data['age_group_end'] = data.age_group_start.shift(-1).fillna(125)
+def get_theoretical_minimum_risk_life_expectancy(entity: Population, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'theoretical_minimum_risk_life_expectancy', location_id)
+    data = data.rename(columns={'age': 'age_group_start', 'life_expectancy': 'value'})
+    data['age_group_end'] = data.age_group_start.shift(-1).fillna(125.)
     return data
 
 
-def get_subregions(location):
-    return gbd.get_subregions(get_location_id(location))
+def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
+    age_bins = utility_data.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
+    return age_bins
 
 
-def get_covariate_estimate(covariate, location):
-    location_id = get_location_id(location)
-    data = gbd.get_covariate_estimate(covariate.gbd_id, location_id)
-    data['location'] = location
-    data = data.drop('location_id', 'columns')
-    return data
+def get_demographic_dimensions(entity: Population, location_id: int, draws: bool = False) -> pd.DataFrame:
+    ages = utility_data.get_age_group_ids()
+    estimation_years = utility_data.get_estimation_years()
+    years = range(min(estimation_years), max(estimation_years) + 1)
+    sexes = [SEXES['Male'], SEXES['Female']]
+    location = [location_id]
+    values = [location, sexes, ages, years]
+    names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
+    if draws:
+        values.append(range(1000))
+        names.append('draw')
 
-
-def get_location_id(location_name):
-    return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[location_name]
-
-
-def get_location_name(location_id):
-    return {r.location_id: r.location_name for _, r in gbd.get_location_ids().iterrows()}[location_id]
-
-
-def get_estimation_years():
-    return gbd.get_estimation_years(gbd.GBD_ROUND_ID)
-
-
-
-
+    demographic_dimensions = (pd.MultiIndex
+                              .from_product(values, names=names)
+                              .to_frame(index=False))
+    demographic_dimensions = utilities.normalize(demographic_dimensions)
+    return demographic_dimensions
