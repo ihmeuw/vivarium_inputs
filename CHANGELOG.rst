@@ -1,3 +1,7 @@
+**2.0.1 - 02/14/19**
+
+ - Update dependencies
+
 **2.0.0 - 02/14/19**
 
  - Rewrite vivarium inputs for GBD 2017.
