@@ -18,7 +18,7 @@ class ArtifactPassthrough:
                             'location': [self.location, 'Global']}
         self.config_filter_term = validate_filter_term(builder.configuration.input_data.artifact_filter_term)
 
-    def load(self, entity_key: str, future=False, **column_filters: str) -> Any:
+    def load(self, entity_key: str, **column_filters: str) -> Any:
         entity_key = EntityKey(entity_key)
         data = loader(entity_key, self.location, self.modeled_causes)
 
