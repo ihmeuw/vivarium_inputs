@@ -1,8 +1,10 @@
 """Access to vivarium simulation input data."""
+from typing import Union
+
 import pandas as pd
 
 from gbd_mapping import ModelableEntity
-from vivarium_inputs import core, utilities
+from vivarium_inputs import core, utilities, extract, utility_data
 from vivarium_inputs.globals import Population
 import vivarium_inputs.validation.sim as validation
 
@@ -142,3 +144,63 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
     return utilities.sort_data(data)
+
+
+def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[pd.Series, pd.DataFrame]:
+    """Pull raw data from GBD for the requested entity, measure, and location.
+    Skip standard raw validation checks in order to return data that can be
+    investigated for oddities. The only filter that occurs is by applicable
+    measure id, metric id, or to most detailed causes where relevant.
+
+    Available measures:
+
+        For entity kind 'sequela':
+            incidence, prevalence, birth_prevalence, disability_weight
+
+        For entity kind 'cause':
+            incidence, prevalence, birth_prevalence, disability_weight,
+            remission, deaths
+
+        For entity kind 'coverage_gap':
+            exposure, exposure_standard_deviation, exposure_distribution_weights,
+            relative_risk
+
+        For entity kind 'risk_factor':
+            exposure, exposure_standard_deviation, exposure_distribution_weights,
+            relative_risk, population_attributable_fraction, mediation_factors
+
+        For entity kind 'etiology':
+            population_attributable_fraction
+
+        For entity kind 'alternative_risk_factor':
+            exposure, exposure_standard_deviation, exposure_distribution_weights
+
+        For entity kind 'covariate':
+            estimate
+
+        For entity kind 'healthcare_entity':
+            cost, utilization
+
+        For entity kind 'health_technology':
+            cost
+
+        For entity kind 'population':
+            structure, theoretical_minimum_risk_life_expectancy
+
+    Parameters
+    ----------
+    entity
+        Entity for which to extract data.
+    measure
+        Measure for which to extract data.
+    location
+        Location for which to extract data.
+
+    Returns
+    -------
+    Data for the entity-measure pair and specific location requested, with no
+    formatting or reshaping.
+    """
+    location_id = utility_data.get_location_id(location)
+    data = extract.extract_data(entity, measure, location_id, validate=False)
+    return data
