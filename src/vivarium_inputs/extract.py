@@ -9,7 +9,37 @@ from vivarium_inputs.utilities import filter_to_most_detailed_causes
 import vivarium_inputs.validation.raw as validation
 
 
-def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.DataFrame]:
+def extract_data(entity, measure: str, location_id: int, validate: bool = True) -> Union[pd.Series, pd.DataFrame]:
+    """Check metadata for the requested entity-measure pair. Pull raw data from
+    GBD. The only filtering that occurs is by applicable measure id, metric id,
+    or to most detailed causes where relevant. If validate is turned on, will
+    also pull any additional data needed for raw validation and call raw
+    validation on the extracted data.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to extract data.
+    measure
+        Measure for which to extract data.
+    location_id
+        Location for which to extract data.
+    validate
+        Flag indicating whether additional data needed for raw validation
+        should be extracted and whether raw validation should be performed.
+        Should only be set to False if data is being extracted for
+        investigation. Never extract data for a simulation without validation.
+
+    Returns
+    -------
+    Data for the entity-measure pair and specific location requested.
+
+    Raises
+    ------
+    DataDoesNotExistError
+        If data for the entity-measure-location set requested does not exist.
+
+    """
     extractors = {
         # Cause-like measures
         'incidence': (extract_incidence, {}),
@@ -42,7 +72,6 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
     try:
         main_extractor, additional_extractors = extractors[measure]
         data = main_extractor(entity, location_id)
-        additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors.items()}
     except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError, InputsException) as e:
         if isinstance(e, ValueError) and f'Metadata associated with rei_id = {entity.gbd_id}' not in str(e):
             raise e
@@ -54,7 +83,10 @@ def extract_data(entity, measure: str, location_id: int) -> Union[pd.Series, pd.
         else:
             raise DataDoesNotExistError(f'{measure.capitalize()} data for {entity.name} does not exist.')
 
-    validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
+    if validate:
+        additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors.items()}
+        validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
+
     return data
 
 
