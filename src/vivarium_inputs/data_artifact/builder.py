@@ -39,6 +39,9 @@ class ArtifactBuilder:
         self.processed_entities = set()
         self.start_time = datetime.now()
 
+        # always include demographic dimensions so data free components don't have to rebuild artifacts
+        self.load('population.demographic_dimensions')
+
         builder.event.register_listener('post_setup', self.end_processing)
 
     @staticmethod
