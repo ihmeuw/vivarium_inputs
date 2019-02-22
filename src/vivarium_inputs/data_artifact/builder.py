@@ -22,11 +22,6 @@ class OutdatedArtifactWarning(Warning):
 
 
 class ArtifactBuilder:
-    configuration_defaults = {
-        'input_data': {
-            'forecast': False
-        }
-    }
 
     def setup(self, builder):
         path = builder.configuration.input_data.artifact_path
@@ -38,6 +33,9 @@ class ArtifactBuilder:
         self.modeled_causes = {c.cause for c in builder.components.get_components(DiseaseModel)}
         self.processed_entities = set()
         self.start_time = datetime.now()
+
+        # always include demographic dimensions so data free components don't have to rebuild artifacts
+        self.load('population.demographic_dimensions')
 
         builder.event.register_listener('post_setup', self.end_processing)
 
@@ -82,24 +80,24 @@ class ArtifactBuilder:
 
         return artifact
 
-    def load(self, entity_key: str, future=False, **__) -> Any:
+    def load(self, entity_key: str, **__) -> Any:
         entity_key = EntityKey(entity_key)
         if entity_key not in self.artifact:
-            self.process(entity_key, future)
-        data = self.artifact.load(entity_key, future)
+            self.process(entity_key)
+        data = self.artifact.load(entity_key)
         return filter_data(data, **__) if isinstance(data, pd.DataFrame) else data
 
     def end_processing(self, event) -> None:
         _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
 
-    def process(self, entity_key: EntityKey, future=False) -> None:
+    def process(self, entity_key: EntityKey) -> None:
         if entity_key not in self.processed_entities:
-            _worker(entity_key, self.location, self.modeled_causes, self.artifact, future)
+            _worker(entity_key, self.location, self.modeled_causes, self.artifact)
             self.processed_entities.add(entity_key)
 
 
 def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str],
-            artifact: Artifact, future: bool) -> None:
+            artifact: Artifact) -> None:
     data = loader(entity_key, location, modeled_causes, all_measures=False)
     artifact.write(entity_key, data)
 
