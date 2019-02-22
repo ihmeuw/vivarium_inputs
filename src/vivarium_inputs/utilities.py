@@ -41,8 +41,11 @@ def scrub_sex(data):
 def scrub_age(data):
     if 'age_group_id' in data.columns:
         age_bins = (utility_data.get_age_bins()
-                    .filter(['age_group_id', 'age_group_start', 'age_group_end']))
-        data = data.merge(age_bins, on='age_group_id').drop('age_group_id', 'columns')
+                    .filter(['age_group_id', 'age_group_start', 'age_group_end'])
+                    .set_index('age_group_id'))
+        data['age_group_start'] = data['age_group_id'].map(age_bins['age_group_start'])
+        data['age_group_end'] = data['age_group_id'].map(age_bins['age_group_end'])
+        data = data.drop('age_group_id', 'columns')
     return data
 
 
