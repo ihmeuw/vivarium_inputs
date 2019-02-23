@@ -60,8 +60,8 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
               help="Turn on debug mode for logging")
 @click.option('--error_logs', '-e', is_flag=True,
               help="Write SGE error logs to output location")
-@click.option('--memory', '-m', default=10, help="Specifies the amount of memory in G that will be requested for a "
-                                                 "job. Defaults to 10. Only applies to the new cluster.")
+@click.option('--memory', '-m', default=15, help="Specifies the amount of memory in G that will be requested for a "
+                                                 "job. Defaults to 15. Only applies to the new cluster.")
 def multi_build_artifact(model_specification, locations, project, output_root, append, verbose, error_logs, memory):
     """
     multi_build_artifact is a program for building data artifacts on the cluster
@@ -84,7 +84,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
 
     If you are running this on the new cluster and find your jobs failing with no
     messages in the log files, consider the memory usage of the job by typing
-    "qacct -j <job_id>" and the default memory usage used by this script of 10G.
+    "qacct -j <job_id>" and the default memory usage used by this script of 15G.
     The new cluster will kill jobs that go over memory without giving a useful message.
     """
 
@@ -200,7 +200,7 @@ def submit_job(command: str, name: str):
 
 def build_submit_command(python_context_path: str, job_name: str, project: str,
                          error_log_dir: Union[str, pathlib.Path], script_args: str, memory: int,
-                         slots: int = 2, archive: bool = False, queue: str = 'all.q', hold=False, jids=None) -> str:
+                         slots: int = 8, archive: bool = False, queue: str = 'all.q', hold=False, jids=None) -> str:
     """Construct a valid qsub job command string.
 
     Parameters
