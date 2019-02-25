@@ -15,12 +15,14 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
-        'numpy',
+        # FIXME: Newer versions of numpy have conflicting dependencies
+        # with pytables.
+        'numpy<=1.15.4',
         'scipy',
         'pandas',
         'click',
         'joblib',
-        'tables',
+        'tables<=3.4.0',
         'vivarium>=0.8.18',
         'vivarium_public_health>=0.9.0',
         'gbd_mapping>=2.0.0',

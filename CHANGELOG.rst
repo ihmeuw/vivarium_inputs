@@ -1,3 +1,11 @@
+**2.0.2 - 02/24/19**
+
+ - Make sure demographic dimensions are in every artifact.
+ - Expose public API
+ - Remove forecast vestiges.
+ - Add top level function to pull raw GBD data.
+ - Update memory limits on artifact builder.
+
 **2.0.1 - 02/14/19**
 
  - Update dependencies
