@@ -1,3 +1,8 @@
+
+**1.0.19 - 02/26/19**
+
+  - Update the forecasting module to handle covariates not varied by ages.
+
 **1.0.18 - 01/04/19**
 
  - Add support for multi-location artifacts.
