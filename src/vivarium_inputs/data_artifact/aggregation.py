@@ -92,7 +92,7 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
             assert np.all([d == data[0] for d in data])
             artifact.write(k, data[0])
 
-    logging.debug('Finished aggregating keys. Commencing cleanup of location-specific artifact.')
+    logging.debug('Finished aggregating keys. Commencing cleanup of location-specific artifacts.')
 
     # clean-up
     for loc in valid_locations:
