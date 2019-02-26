@@ -68,9 +68,9 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
             valid_artifacts.append(a)
             valid_locations.extend(a.load('metadata.locations'))
         else:
-            logging.warning(f'Missing_keys: {keyspace_set.difference(set(a.load("metadata.keyspace")))} '
-                            f'for location:{a.load("metadata.locations")} All artifacts not aggregated'
-                            f'will be stored in {artifact_path}/broken_artifacts.', ArtifactAggregationWarning)
+            warnings.warn(f'Missing_keys: {keyspace_set.difference(set(a.load("metadata.keyspace")))} '
+                          f'for location:{a.load("metadata.locations")} All artifacts not aggregated'
+                          f'will be stored in {artifact_path}/broken_artifacts.', ArtifactAggregationWarning)
 
     artifact = Artifact(artifact_path.as_posix())
     artifact.write("metadata.locations", valid_locations)
