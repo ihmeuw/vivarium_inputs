@@ -89,14 +89,16 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     """
 
     if len(set(locations)) > 15:
-        raise ValueError(f'We can make an artifact for upto 15 locations. You provide {len(set(locations))} locations')
+        raise ValueError(f'We can make an artifact for up to 15 locations. '
+                         f'You provided {len(set(locations))} locations.')
 
     if len(set(locations)) < 1:
-        raise ValueError('You should provide a list of locations for this aritfcat. You did not provide any')
+        raise ValueError('You must provide a list of locations for this artifact. You did not provide any.')
 
     config_path = pathlib.Path(model_specification).resolve()
     python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
+    output_root = get_output_base(output_root)
 
     if append:
         click.secho('Pre-processing the existing artifact for appending. Please wait for the job submission messages. '
