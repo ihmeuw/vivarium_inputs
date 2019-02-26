@@ -137,7 +137,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     locations = [l.replace("'", "-") for l in locations]
     aggregate_script = pathlib.Path(__file__).parent / 'aggregation.py'
     aggregate_args = f'--locations {" ".join(locations)} --output_root {output_root} ' \
-        f'--config_path {config_path} --verbose {verbose}'
+        f'--config_path {config_path} {"--verbose" if verbose else ""}'
     aggregate_job_name = f"{config_path.stem}_aggregate_artifacts"
     aggregate_command = build_submit_command(python_context_path, aggregate_job_name, 
                                              project, error_log_dir, f'{aggregate_script} {aggregate_args}', memory=35,
