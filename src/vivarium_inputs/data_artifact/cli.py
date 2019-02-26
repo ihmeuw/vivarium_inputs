@@ -141,7 +141,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     aggregate_job_name = f"{config_path.stem}_aggregate_artifacts"
     aggregate_command = build_submit_command(python_context_path, aggregate_job_name, 
                                              project, error_log_dir, f'{aggregate_script} {aggregate_args}', memory=35,
-                                             archive=True, queue='all.q', hold=True, jids=jids, slots=20)
+                                             archive=True, queue='all.q', hold=True, jids=jids, slots=15)
     submit_job(aggregate_command, aggregate_job_name)
 
 
