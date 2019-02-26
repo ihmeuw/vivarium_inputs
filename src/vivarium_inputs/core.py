@@ -227,7 +227,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
 
     data = utilities.normalize(data, fill_value=0, cols_to_fill=distribution_cols)
-    id_cols = ['rei_id', 'location_id', 'sex_id', 'age_group_id', 'measure', 'year_id']
+    id_cols = ['location_id', 'sex_id', 'age_group_id', 'year_id']
     data = pd.melt(data, id_vars=id_cols, value_vars=distribution_cols, var_name='parameter')
     return data
 
