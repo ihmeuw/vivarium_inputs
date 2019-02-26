@@ -32,9 +32,12 @@ def test_unpack_arguments():
     config_path = 'path/to/test.yaml'
     output_root = 'path/to/artifact'
     locations = ['United States', 'Canada']
-    args = f'--config_path {config_path} --output_root {output_root} --locations United_States Canada '.split()
+    args = f'--config_path {config_path} --output_root {output_root} --locations United_States Canada'
     parser = argparse.ArgumentParser()
-    assert aggregation.unpack_arguments(parser, args) == (Path(config_path), locations, output_root)
+    assert aggregation.unpack_arguments(parser, args.split()) == (Path(config_path), locations, output_root, False)
+    parser = argparse.ArgumentParser()
+    assert aggregation.unpack_arguments(parser, (args + ' --verbose').split()) == (Path(config_path), locations,
+                                                                                   output_root, True)
 
 
 def test_aggregate_one_location(single_artifact, mocker):
@@ -142,11 +145,8 @@ def test_disaggregate_with_different_versions(single_artifact):
     config_name = 'test'
     output_root = Path(aggregated_artifact.path).parent
 
-    with pytest.warns(ArtifactAggregationWarning) as record:
+    with pytest.warns(ArtifactAggregationWarning, match = 'different versions'):
         disaggregated_artifacts_locations = aggregation.disaggregate(config_name, output_root)
-        assert len(record) == 1
-        assert str(record[0].message) == 'Your artifact was built under the different versions and we cannot append it.' \
-                                         ' It will be built from scratch'
 
     for loc in disaggregated_artifacts_locations:
         new_individual_artifact_path = output_root / f'{config_name}_{loc}.hdf'

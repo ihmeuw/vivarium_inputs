@@ -2,7 +2,6 @@ from bdb import BdbQuit
 import os
 import shutil
 import logging
-import getpass
 import pathlib
 import argparse
 import subprocess
@@ -15,6 +14,7 @@ from vivarium.interface.interactive import InteractiveContext
 from vivarium.config_tree import ConfigTree
 
 from vivarium_inputs.data_artifact.aggregation import disaggregate
+from vivarium_inputs.data_artifact import utilities
 
 
 @click.command()
@@ -66,7 +66,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     """
     multi_build_artifact is a program for building data artifacts on the cluster
     from a MODEL_SPECIFICATION file. It will generate a single artifact containing
-    the data for multiple locations (up to 15 locations only).
+    the data for multiple locations (up to 5 locations only).
 
     This script necessarily offloads work to the cluster, and so requires being
     run in the cluster environment.  It will qsub jobs for building artifacts
@@ -88,20 +88,22 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     The new cluster will kill jobs that go over memory without giving a useful message.
     """
 
-    if len(set(locations)) > 15:
-        raise ValueError(f'We can make an artifact for upto 15 locations. You provide {len(set(locations))} locations')
+    if len(set(locations)) > 5:
+        raise ValueError(f'We can make an artifact for up to 5 locations. '
+                         f'You provided {len(set(locations))} locations.')
 
     if len(set(locations)) < 1:
-        raise ValueError('You should provide a list of locations for this aritfcat. You did not provide any')
+        raise ValueError('You must provide a list of locations for this artifact. You did not provide any.')
 
     config_path = pathlib.Path(model_specification).resolve()
     python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
+    output_root = utilities.get_output_base(output_root)
 
     if append:
         click.secho('Pre-processing the existing artifact for appending. Please wait for the job submission messages. '
-                    'It may take long espeically if your aritfact already includes many locations inside. '
-                    'please DO NOT quit during the process', fg='blue')
+                    'It may take long, especially if your artifact already includes many locations. '
+                    'Please DO NOT QUIT during the process.', fg='blue')
         existing_locations = disaggregate(config_path.stem, output_root)
     else:
         existing_locations = {}
@@ -114,7 +116,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     if verbose:
         script_args += f" --verbose "
 
-    error_log_dir = _make_log_dir(output_root) if error_logs else None
+    error_log_dir = utilities.make_log_dir(output_root) if error_logs else None
     jids = list()
 
     existing_locations_jobs = {loc: f"{config_path.stem}_{loc}_build_artifact" for loc in existing_locations}
@@ -134,11 +136,12 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
 
     locations = [l.replace("'", "-") for l in locations]
     aggregate_script = pathlib.Path(__file__).parent / 'aggregation.py'
-    aggregate_args = f'--locations {" ".join(locations)} --output_root {output_root} --config_path {config_path}'
+    aggregate_args = f'--locations {" ".join(locations)} --output_root {output_root} ' \
+        f'--config_path {config_path} {"--verbose" if verbose else ""}'
     aggregate_job_name = f"{config_path.stem}_aggregate_artifacts"
     aggregate_command = build_submit_command(python_context_path, aggregate_job_name, 
-                                             project, error_log_dir, f'{aggregate_script} {aggregate_args}', memory,
-                                             archive=True, queue='all.q', hold=True, jids=jids)
+                                             project, error_log_dir, f'{aggregate_script} {aggregate_args}', memory=35,
+                                             archive=True, queue='all.q', hold=True, jids=jids, slots=15)
     submit_job(aggregate_command, aggregate_job_name)
 
 
@@ -288,8 +291,7 @@ def _build_artifact():
     parser.add_argument('--pdb', action='store_true')
     args = parser.parse_args()
 
-    _setup_logging(args.output_root, args.verbose, args.location,
-                   args.model_specification, args.append)
+    utilities.setup_logging(args.output_root, args.verbose, args.location, args.model_specification, args.append)
 
     try:
         main(args.model_specification, args.output_root, args.location, args.append)
@@ -408,76 +410,13 @@ def get_output_path(configuration_arg: str, output_root_arg: str,
 
     configuration_path = pathlib.Path(configuration_arg)
 
-    output_base = get_output_base(output_root_arg)
+    output_base = utilities.get_output_base(output_root_arg)
 
     if location_arg:
         output_path = output_base / (configuration_path.stem + f'_{location_arg}.hdf')
     else:
         output_path = output_base / (configuration_path.stem + '.hdf')
     return str(output_path)
-
-
-def get_output_base(output_root_arg: str) -> pathlib.Path:
-    """Resolve the correct output directory
-
-    Defaults to /ihme/scratch/users/{user}/vivarium_artifacts/
-    if no user passed output directory. Makes output directory
-    if doesn't already exist.
-
-    Parameters
-    ----------
-    output_root_arg
-        The output_root argument passed to the click executable
-
-    Returns
-    -------
-        A PathLike object containing the path to the output directory
-    """
-
-    if output_root_arg:
-        output_base = pathlib.Path(output_root_arg).resolve()
-    else:
-        output_base = (pathlib.Path('/share') / 'scratch' / 'users' /
-                       getpass.getuser() / 'vivarium_artifacts')
-
-    if not output_base.is_dir():
-        output_base.mkdir(parents=True)
-
-    return output_base
-
-
-def _make_log_dir(output_root):
-    output_log_dir = get_output_base(output_root) / 'logs'
-
-    if not output_log_dir.is_dir():
-        output_log_dir.mkdir()
-
-    return output_log_dir
-
-
-def _setup_logging(output_root, verbose, location,
-                   model_specification, append):
-    """ Setup logging to write to a file in the output directory
-
-    Log file named as {model_specification}_{location}_build_artifact.log
-    to match naming format of qsubbed jobs. File saved in output directory
-    (either passed by user or default)/logs. Raises error if that output
-    directory is not found.
-
-    """
-
-    output_log_dir = _make_log_dir(output_root)
-
-    log_level = logging.DEBUG if verbose else logging.ERROR
-    log_tag = f'_{location}' if location is not None else ''
-    spec_name = pathlib.Path(model_specification).resolve().stem
-    log_name = f'{output_log_dir}/{spec_name}{log_tag}_build_artifact.log'
-
-    logging.basicConfig(level=log_level,
-                        format='%(asctime)s %(levelname)-8s %(message)s',
-                        datefmt="%m-%d-%y %H:%M",
-                        filename=log_name,
-                        filemode='a' if append else 'w')
 
 
 if __name__ == "__main__":
