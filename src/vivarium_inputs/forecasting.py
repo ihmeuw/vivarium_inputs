@@ -135,7 +135,7 @@ def standardize_data(data: pd.DataFrame, fill_value: int) -> pd.DataFrame:
     # because forecasting data is already in long format, we need a custom standardize method
 
     # age_groups that we expect to exist for each entity
-    whole_age_groups = gbd.get_age_group_id()
+    whole_age_groups = gbd.get_age_group_id() if set(data.age_group_id) != {22} else [22]
     sex_id = data.sex_id.unique()
     year_id = data.year_id.unique()
     location_id = data.location_id.unique()
