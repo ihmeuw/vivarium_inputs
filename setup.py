@@ -22,8 +22,8 @@ if __name__ == "__main__":
         'joblib',
         'tables',
         'vivarium',
-        'vivarium_public_health',
-        'gbd_mapping',
+        'vivarium_public_health<0.9',
+        'gbd_mapping<2.0',
     ]
 
     data_requires = [
