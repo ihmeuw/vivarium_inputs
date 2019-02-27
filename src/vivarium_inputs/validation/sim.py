@@ -156,7 +156,7 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)
 
@@ -196,7 +196,7 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)
 
@@ -237,7 +237,7 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
 
     """
     expected_cols = ['draw', 'location', 'sex', 'year_start', 'year_end', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_location_column(data, context)
     validate_sex_column(data)
@@ -280,7 +280,7 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
@@ -318,7 +318,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationVal
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)
 
@@ -355,7 +355,7 @@ def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)
 
@@ -392,7 +392,7 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)
 
@@ -449,7 +449,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter', 'draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
@@ -514,7 +514,7 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)
 
@@ -558,7 +558,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_demographic_columns(data, context)
     validate_value_column(data)
@@ -611,7 +611,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter', 'draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     risk_relationship = data.groupby(['affected_entity', 'affected_measure', 'parameter'])
     risk_relationship.apply(validate_standard_columns, context)
@@ -683,7 +683,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(validate_standard_columns, context)
@@ -749,7 +749,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
         expected_cols += ['sex']
     if entity.by_age:
         expected_cols += ['age_group_start', 'age_group_end']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_location_column(data, context)
     if entity.by_sex:
@@ -785,7 +785,7 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcare
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
@@ -818,7 +818,7 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: 
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
@@ -852,7 +852,7 @@ def validate_structure(data: pd.DataFrame, entity: Population, context: Simulati
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_demographic_columns(data, context)
     validate_value_column(data)
@@ -893,7 +893,7 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
 
     """
     expected_cols = ['age_group_start', 'age_group_end', 'value']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
         raise DataTransformationError("Age data must be contained in columns named "
@@ -935,7 +935,7 @@ def validate_age_bins(data: pd.DataFrame, entity: Population, context: Simulatio
 
     """
     expected_cols = ['age_group_start', 'age_group_end', 'age_group_name']
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_age_columns(data, context=context)
 
@@ -962,7 +962,7 @@ def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
 
     """
     expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS
-    check_expected_columns(expected_cols, data.columns)
+    validate_expected_columns(expected_cols, data.columns)
 
     validate_demographic_columns(data, context)
 
@@ -970,6 +970,29 @@ def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
 #############
 # UTILITIES #
 #############
+
+def validate_expected_columns(expected_cols: List, existing_cols: List) -> None:
+    """Verify that the passed lists of columns match.
+
+    Parameters
+    ----------
+    expected_cols
+        List of column names expected.
+    existing_cols
+        List of column names actually found in data.
+
+    Raises
+    ------
+    DataTransformationError
+        If `expected_cols` does not match `existing_cols`.
+
+    """
+    if set(existing_cols) < set(expected_cols):
+        raise DataTransformationError(f'Data is missing columns: '
+                                      f'{set(expected_cols).difference(set(existing_cols))}.')
+    elif set(existing_cols) > set(expected_cols):
+        raise DataTransformationError(f'Data returned extra columns: '
+                                      f'{set(existing_cols).difference(set(expected_cols))}.')
 
 
 def validate_standard_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
@@ -1315,26 +1338,3 @@ def check_covariate_values(data: pd.DataFrame) -> None:
                                       'estimates for lower, mean, and upper values are not all 0 '
                                       'and it is not the case that lower < mean < upper. ')
 
-
-def check_expected_columns(expected_cols: List, existing_cols: List) -> None:
-    """Verify that the passed lists of columns match.
-
-    Parameters
-    ----------
-    expected_cols
-        List of column names expected.
-    existing_cols
-        List of column names actually found in data.
-
-    Raises
-    ------
-    DataTransformationError
-        If `expected_cols` does not match `existing_cols`.
-
-    """
-    if set(existing_cols) < set(expected_cols):
-        raise DataTransformationError(f'Data is missing columns: '
-                                      f'{set(expected_cols).difference(set(existing_cols))}.')
-    elif set(existing_cols) > set(expected_cols):
-        raise DataTransformationError(f'Data returned extra columns: '
-                                      f'{set(existing_cols).difference(set(expected_cols))}.')
