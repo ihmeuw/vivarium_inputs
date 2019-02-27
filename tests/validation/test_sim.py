@@ -36,12 +36,6 @@ def test_validate_draw_column_incorrect_number(draws):
         sim.validate_draw_column(df)
 
 
-def test_validate_draw_column_missing_column():
-    df = pd.DataFrame({'draw_columns': range(1000)})
-    with pytest.raises(DataTransformationError, match='in a column named'):
-        sim.validate_draw_column(df)
-
-
 @pytest.mark.parametrize("location", ("Kenya", "Papua New Guinea"))
 def test__validate_location_column_pass(mock_validation_context, location):
     mock_validation_context['location'] = location
@@ -60,13 +54,6 @@ def test_validate_location_column_fail(mock_validation_context, locations, expec
         sim.validate_location_column(df, mock_validation_context)
 
 
-def test_validate_location_column_missing_column(mock_validation_context):
-    mock_validation_context['location'] = 'Kenya'
-    df = pd.DataFrame({'location_column': ['Kenya']})
-    with pytest.raises(DataTransformationError, match='in a column named'):
-        sim.validate_location_column(df, mock_validation_context)
-
-
 def test_validate_sex_column_pass():
     df = pd.DataFrame({'sex': ['Male', 'Female']})
     sim.validate_sex_column(df)
@@ -80,12 +67,6 @@ def test_validate_sex_column_pass():
 def test_validate_sex_column_fail(sexes):
     df = pd.DataFrame({'sex': sexes})
     with pytest.raises(DataTransformationError):
-        sim.validate_sex_column(df)
-
-
-def test_validate_sex_column_missing_column():
-    df = pd.DataFrame({'sex_column': ['Male', 'Female']})
-    with pytest.raises(DataTransformationError, match='in a column named'):
         sim.validate_sex_column(df)
 
 
@@ -108,16 +89,6 @@ def test_validate_age_columns_missing_group(mock_validation_context):
         sim.validate_age_columns(ages, mock_validation_context)
 
 
-@pytest.mark.parametrize("columns", (('age_group_start',), ('age_group_end',), ('age_group_id_start', 'age_group_end')),
-                         ids=('missing_end', 'missing_start', 'typo'))
-def test_validate_age_columns_missing_column(columns, mock_validation_context):
-    df = pd.DataFrame()
-    for col in columns:
-        df[col] = [1, 2]
-    with pytest.raises(DataTransformationError, match='in columns named'):
-        sim.validate_age_columns(df, mock_validation_context)
-
-
 def test_validate_year_columns_pass(mock_validation_context):
     expected_years = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
     sim.validate_year_columns(expected_years, mock_validation_context)
@@ -137,17 +108,6 @@ def test__validate_year_columns_missing_group(mock_validation_context):
         sim.validate_year_columns(df, mock_validation_context)
 
 
-@pytest.mark.parametrize("columns",
-                         (('year_start',), ('year_end',), ('year_id_start', 'year_end')),
-                         ids=("missing_end", "missing_start", "typo"))
-def test_validate_year_columns_missing(mock_validation_context, columns):
-    df = pd.DataFrame()
-    for col in columns:
-        df[col] = [1, 2, 3]
-    with pytest.raises(DataTransformationError, match='in columns named'):
-        sim.validate_year_columns(df, mock_validation_context)
-
-
 @pytest.mark.parametrize("values", [(-1, 2, 3)], ids=['integers'])
 def test_validate_value_column_pass(values):
     df = pd.DataFrame({'value': values})
@@ -160,12 +120,6 @@ def test_validate_value_column_pass(values):
 def test_validate_value_column_fail(values):
     df = pd.DataFrame({'value': values})
     with pytest.raises(DataTransformationError):
-        sim.validate_value_column(df)
-
-
-def test_validate_value_column_missing():
-    df = pd.DataFrame({'value_column': [1, 2, 3]})
-    with pytest.raises(DataTransformationError, match='in a column named'):
         sim.validate_value_column(df)
 
 
@@ -221,3 +175,22 @@ def test_check_sex_restrictions_fail(values, restrictions, fill):
     df = pd.DataFrame({'sex': ['Male', 'Male', 'Female', 'Female'], 'value': values})
     with pytest.raises(DataTransformationError):
         sim.check_sex_restrictions(df, restrictions[0], restrictions[1], fill)
+
+
+@pytest.mark.parametrize('df', [pd.DataFrame(columns=['a', 'b', 'c', 'd']),
+                                pd.DataFrame({'a': 0, 'b': 0, 'c': 0, 'd': 0}, index=[17]),
+                                pd.DataFrame({'a': 1, 'b': 2, 'c': 3, 'd': np.NaN}, index=[5, 10, 15])])
+def test_validate_expected_columns_pass(df):
+    cols = ['a', 'b', 'c', 'd']
+    sim.validate_expected_columns(cols, df.columns)
+
+
+@pytest.mark.parametrize('df', [pd.DataFrame(columns=['a', 'b', 'c', 'd']),
+                                pd.DataFrame({'a': 0, 'b': 0, 'c': 0, 'd': 0}, index=[17]),
+                                pd.DataFrame({'a': 1, 'b': 2, 'c': 3, 'd': np.NaN}, index=[5, 10, 15])])
+def test_validate_expected_columns_fail(df):
+    cols = ['a', 'b', 'c', 'd']
+    with pytest.raises(DataTransformationError, match='missing'):
+        sim.validate_expected_columns(cols + ['e'], df.columns)
+    with pytest.raises(DataTransformationError, match='extra'):
+        sim.validate_expected_columns(cols[1:], df.columns)

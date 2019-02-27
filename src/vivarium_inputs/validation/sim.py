@@ -1,4 +1,4 @@
-from typing import Union, Dict
+from typing import Union, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -29,6 +29,8 @@ VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 VALID_UTILIZATION_RANGE = (0, 50)
 VALID_POPULATION_RANGE = (0, 100_000_000)
 VALID_LIFE_EXP_RANGE = (0, 90)
+
+SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age_group_start', 'age_group_end', 'year_start', 'year_end']
 
 
 class SimulationValidationContext:
@@ -153,6 +155,9 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
         expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[0],
@@ -190,6 +195,9 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[0],
@@ -228,6 +236,9 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         boundary values.
 
     """
+    expected_cols = ['draw', 'location', 'sex', 'year_start', 'year_end', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_location_column(data, context)
     validate_sex_column(data)
     validate_year_columns(data, context)
@@ -268,6 +279,9 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
         expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
                                  boundary_type='lower', value_columns=['value'],
@@ -303,6 +317,9 @@ def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationVal
         expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[0],
@@ -337,6 +354,9 @@ def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context
         expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[0],
@@ -371,6 +391,9 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
         expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
@@ -425,6 +448,9 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         distribution.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter', 'draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
@@ -487,6 +513,9 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
         outside the expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[0],
@@ -528,6 +557,9 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
         outside the expected boundary values, or weights don't sum to 1 or 0.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_demographic_columns(data, context)
     validate_value_column(data)
 
@@ -538,7 +570,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    non_weight_columns = list(set(data.columns).difference({'parameter', 'value'}))
+    non_weight_columns = SCRUBBED_DEMOGRAPHIC_COLUMNS
     weights_sum = data.groupby(non_weight_columns)['value'].sum()
     if not weights_sum.apply(lambda s: np.isclose(s, 1.0) or np.isclose(s, 0.0)).all():
         raise DataTransformationError("Exposure weights do not sum to one across demographics.")
@@ -578,6 +610,9 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         entities with categorical distributions.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter', 'draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     risk_relationship = data.groupby(['affected_entity', 'affected_measure', 'parameter'])
     risk_relationship.apply(validate_standard_columns, context)
 
@@ -647,6 +682,9 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         outside the expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(validate_standard_columns, context)
 
@@ -706,17 +744,22 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
         group.
 
     """
-    cols = ['location', 'year_start', 'year_end']
+    expected_cols = ['location', 'year_start', 'year_end', 'parameter', 'value']
+    if entity.by_sex:
+        expected_cols += ['sex']
+    if entity.by_age:
+        expected_cols += ['age_group_start', 'age_group_end']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_location_column(data, context)
     if entity.by_sex:
         validate_sex_column(data)
-        cols += ['sex']
     if entity.by_age:
         validate_age_columns(data, context=context)
-        cols += ['age_group_start', 'age_group_end']
     validate_year_columns(data, context)
     validate_value_column(data)
 
+    cols = set(expected_cols).difference({'parameter', 'value'})
     data.groupby(cols).apply(check_covariate_values)
 
 
@@ -741,6 +784,9 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcare
         expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
                                  value_columns=['value'], inclusive=True,
@@ -771,6 +817,9 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: 
         expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
                                  value_columns=['value'], inclusive=True,
@@ -802,6 +851,9 @@ def validate_structure(data: pd.DataFrame, entity: Population, context: Simulati
         expected boundary values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['value']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_demographic_columns(data, context)
     validate_value_column(data)
 
@@ -840,6 +892,9 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
         monotonically decreasing over age.
 
     """
+    expected_cols = ['age_group_start', 'age_group_end', 'value']
+    validate_expected_columns(expected_cols, data.columns)
+
     if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
         raise DataTransformationError("Age data must be contained in columns named "
                                       "'age_group_start' and 'age_group_end'.")
@@ -879,6 +934,9 @@ def validate_age_bins(data: pd.DataFrame, entity: Population, context: Simulatio
         If any age columns are incorrectly named or contain invalid values.
 
     """
+    expected_cols = ['age_group_start', 'age_group_end', 'age_group_name']
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_age_columns(data, context=context)
 
 
@@ -903,12 +961,38 @@ def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
         values.
 
     """
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_columns(expected_cols, data.columns)
+
     validate_demographic_columns(data, context)
 
 
 #############
 # UTILITIES #
 #############
+
+def validate_expected_columns(expected_cols: List, existing_cols: List) -> None:
+    """Verify that the passed lists of columns match.
+
+    Parameters
+    ----------
+    expected_cols
+        List of column names expected.
+    existing_cols
+        List of column names actually found in data.
+
+    Raises
+    ------
+    DataTransformationError
+        If `expected_cols` does not match `existing_cols`.
+
+    """
+    if set(existing_cols) < set(expected_cols):
+        raise DataTransformationError(f'Data is missing columns: '
+                                      f'{set(expected_cols).difference(set(existing_cols))}.')
+    elif set(existing_cols) > set(expected_cols):
+        raise DataTransformationError(f'Data returned extra columns: '
+                                      f'{set(existing_cols).difference(set(expected_cols))}.')
 
 
 def validate_standard_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
@@ -960,7 +1044,7 @@ def validate_demographic_columns(data: pd.DataFrame, context: SimulationValidati
 
 
 def validate_draw_column(data: pd.DataFrame) -> None:
-    """Validate that draw column in the data has the expected name and values.
+    """Validate that draw column in the data has the expected values.
 
     Parameters
     ----------
@@ -970,20 +1054,15 @@ def validate_draw_column(data: pd.DataFrame) -> None:
     Raises
     ------
     DataTransformationError
-        If data does not contain a column named 'draw' or that column does not
-        contain all values in the range [0, 999].
+        If 'draw' column does not contain all values in the range [0, 999].
 
     """
-    if 'draw' not in data.columns:
-        raise DataTransformationError("Draw data must be contained in a column named 'draw'.")
-
     if set(data['draw']) != set(range(1000)):
         raise DataTransformationError('Draw must contain [0, 999].')
 
 
 def validate_location_column(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that location column in the data has the expected name
-    and value.
+    """Validate that location column in the data has the expected value.
 
     Parameters
     ----------
@@ -995,19 +1074,16 @@ def validate_location_column(data: pd.DataFrame, context: SimulationValidationCo
     Raises
     ------
     DataTransformationError
-        If data does not contain a column named 'location' or that column does
-        not only the single location given in `context`.
+        If 'location' column does not contain only the single location given
+        in `context`.
 
     """
-    if 'location' not in data.columns:
-        raise DataTransformationError("Location data must be contained in a column named 'location'.")
-
     if len(data['location'].unique()) != 1 or data['location'].unique()[0] != context['location']:
         raise DataTransformationError('Location must contain a single value that matches specified location.')
 
 
 def validate_sex_column(data: pd.DataFrame) -> None:
-    """Validate that sex column in the data has the expected name and values.
+    """Validate that sex column in the data has the expected values.
 
     Parameters
     ----------
@@ -1017,19 +1093,15 @@ def validate_sex_column(data: pd.DataFrame) -> None:
     Raises
     ------
     DataTransformationError
-        If data does not contain a column named 'sex' or that column does not
-        contain only the values 'Male' and 'Female'.
+        If 'sex' column does not contain only the values 'Male' and 'Female'.
 
     """
-    if 'sex' not in data.columns:
-        raise DataTransformationError("Sex data must be contained in a column named 'sex'.")
-
     if set(data['sex']) != {'Male', 'Female'}:
         raise DataTransformationError("Sex must contain 'Male' and 'Female' and nothing else.")
 
 
 def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that age columns in the data have the expected names and values.
+    """Validate that age columns in the data have the expected values.
 
     Parameters
     ----------
@@ -1041,15 +1113,10 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
     Raises
     ------
     DataTransformationError
-        If data does not contain columns named 'age_grouo_start' and
-        'age_group_end' or if those columns do not contain the full range of
-        expected age bins supplied in `context`.
+        If 'age_grouo_start' and 'age_group_end' columns do not contain the
+        full range of expected age bins supplied in `context`.
 
     """
-    if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
-        raise DataTransformationError("Age data must be contained in columns named"
-                                      " 'age_group_start' and 'age_group_end'.")
-
     expected_ages = (context['age_bins']
                      .filter(['age_group_start', 'age_group_end'])
                      .sort_values(['age_group_start', 'age_group_end']))
@@ -1063,8 +1130,7 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
 
 
 def validate_year_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that year columns in the data have the expected names and
-    values.
+    """Validate that year columns in the data have the expected values.
 
     Parameters
     ----------
@@ -1076,14 +1142,10 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
     Raises
     ------
     DataTransformationError
-        If data does not contain columns named 'year_start' and
-        'year_end' or if those columns do not contain the full range of
+        If 'year_start' and 'year_end' columns do not contain the full range of
         expected year bins supplied in `context`.
 
     """
-    if 'year_start' not in data.columns or 'year_end' not in data.columns:
-        raise DataTransformationError("Year data must be contained in columns named 'year_start', and 'year_end'.")
-
     expected_years = context['years'].sort_values(['year_start', 'year_end'])
     year_block = (data[['year_start', 'year_end']]
                   .drop_duplicates()
@@ -1095,8 +1157,7 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
 
 
 def validate_value_column(data: pd.DataFrame) -> None:
-    """Validate that value column in the data has the expected name and no
-    missing values.
+    """Validate that value column in the data has no missing values.
 
     Parameters
     ----------
@@ -1108,13 +1169,9 @@ def validate_value_column(data: pd.DataFrame) -> None:
     Raises
     ------
     DataTransformationError
-        If data does not contain a column named `value` or that column contains
-        any NaN or Inf values.
+        If `value` column contains any NaN or Inf values.
 
     """
-    if 'value' not in data.columns:
-        raise DataTransformationError("Value data must be contained in a column named 'value'.")
-
     if np.any(data.value.isna()):
         raise DataTransformationError('Value data found to contain NaN.')
     if np.any(np.isinf(data.value.values)):
