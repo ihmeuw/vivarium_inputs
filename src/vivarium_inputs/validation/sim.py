@@ -759,7 +759,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
     validate_year_columns(data, context)
     validate_value_column(data)
 
-    cols = set(expected_cols).difference({'parameter', 'value'})
+    cols = list(set(expected_cols).difference({'parameter', 'value'}))
     data.groupby(cols).apply(check_covariate_values)
 
 
