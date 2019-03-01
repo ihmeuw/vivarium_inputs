@@ -14,8 +14,8 @@ components:
                         - DummyLoadComponent("population.demographic_dimensions")
 
                         # coverage_gap
-                        - DummyLoadComponent("coverage_gap.lack_of_breastfeeding_promotion.exposure")
-                        - DummyLoadComponent("coverage_gap.lack_of_breastfeeding_promotion.relative_risk")
+#                        - DummyLoadComponent("coverage_gap.lack_of_breastfeeding_promotion.exposure")
+#                        - DummyLoadComponent("coverage_gap.lack_of_breastfeeding_promotion.relative_risk")
 
                         # utilization
                         - DummyLoadComponent("healthcare_entity.inpatient_visits.utilization")
