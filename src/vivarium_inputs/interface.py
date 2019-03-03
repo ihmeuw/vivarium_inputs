@@ -8,6 +8,11 @@ from vivarium_inputs import core, utilities, extract, utility_data
 from vivarium_inputs.globals import Population
 import vivarium_inputs.validation.sim as validation
 
+def shim_set_index(df):
+    non_val_columns = df.columns.difference({'value'})
+    df = df.set_index(list(non_val_columns))
+    return df
+
 
 def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
@@ -64,6 +69,9 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
     data = core.get_data(entity, measure, location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, entity, measure, location)
+
+    data = shim_set_index(data)
+
     return utilities.sort_data(data)
 
 
@@ -88,6 +96,9 @@ def get_population_structure(location: str) -> pd.DataFrame:
     data = core.get_data(pop, 'structure', location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'structure', location)
+
+    data = shim_set_index(data)
+
     return utilities.sort_data(data)
 
 
@@ -105,6 +116,9 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
     pop = Population()
     data = core.get_data(pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
     validation.validate_for_simulation(data, pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
+
+    data = shim_set_index(data)
+
     return utilities.sort_data(data)
 
 
@@ -121,6 +135,9 @@ def get_age_bins() -> pd.DataFrame:
     pop = Population()
     data = core.get_data(pop, 'age_bins', 'Global')
     validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
+
+    data = shim_set_index(data)
+
     return utilities.sort_data(data)
 
 
@@ -143,6 +160,9 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     data = core.get_data(pop, 'demographic_dimensions', location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
+
+    data = shim_set_index(data)
+
     return utilities.sort_data(data)
 
 
