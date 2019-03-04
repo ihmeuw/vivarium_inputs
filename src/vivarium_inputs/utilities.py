@@ -163,10 +163,12 @@ def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str])
     return data
 
 
-def reshape(data: pd.DataFrame, to_keep=DEMOGRAPHIC_COLUMNS) -> pd.DataFrame:
-    data = pd.melt(data.rename(columns={draw: i for i, draw in enumerate(DRAW_COLUMNS)}),
-                   id_vars=to_keep, value_vars=range(len(DRAW_COLUMNS)), var_name='draw')
-    data.draw = data.draw.astype(int)
+def reshape(data: pd.DataFrame) -> pd.DataFrame:
+    if set(data.columns).intersection(DRAW_COLUMNS):
+        data = pd.melt(data.rename(columns={draw: i for i, draw in enumerate(DRAW_COLUMNS)}),
+                       id_vars=data.columns.difference(DRAW_COLUMNS),
+                       value_vars=range(len(DRAW_COLUMNS)), var_name='draw')
+        data.draw = data.draw.astype(int)
     return data
 
 
