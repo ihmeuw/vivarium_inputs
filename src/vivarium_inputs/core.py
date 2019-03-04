@@ -375,7 +375,7 @@ def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
 def get_cost(entity: Union[HealthcareEntity, HealthTechnology], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'cost', location_id)
     data = utilities.normalize(data, fill_value=0)
-    data = data[DEMOGRAPHIC_COLUMNS + [entity.kind]]
+    data = data[DEMOGRAPHIC_COLUMNS + [entity.kind] + DRAW_COLUMNS]
     data = utilities.reshape(data)
     return data
 
