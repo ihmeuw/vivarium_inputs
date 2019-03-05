@@ -21,17 +21,6 @@ components:
                         - DummyLoadComponent("risk_factor.residential_radon.relative_risk")
                         - DummyLoadComponent("risk_factor.residential_radon.population_attributable_fraction")
 
-                        # normal
-                        - DummyLoadComponent("risk_factor.iron_deficiency.exposure")
-                        - DummyLoadComponent("risk_factor.iron_deficiency.exposure_standard_deviation")
-                        - DummyLoadComponent("risk_factor.iron_deficiency.relative_risk")
-                        - DummyLoadComponent("risk_factor.iron_deficiency.population_attributable_fraction")
-
-                        # unordered polytomous
-                        - DummyLoadComponent("risk_factor.occupational_ergonomic_factors.exposure")
-                        - DummyLoadComponent("risk_factor.occupational_ergonomic_factors.relative_risk")
-                        - DummyLoadComponent("risk_factor.occupational_ergonomic_factors.population_attributable_fraction")
-
                         # ensemble
                         - DummyLoadComponent("risk_factor.high_ldl_cholesterol.exposure")
                         - DummyLoadComponent("risk_factor.high_ldl_cholesterol.exposure_standard_deviation")
@@ -41,6 +30,18 @@ components:
                         # etiology
                         - DummyLoadComponent("etiology.cholera.population_attributable_fraction")
                         - DummyLoadComponent("etiology.h_influenzae_type_b.population_attributable_fraction")
+
+# THESE DON'T CURRENTLY RUN
+#                        # normal
+#                        - DummyLoadComponent("risk_factor.iron_deficiency.exposure")
+#                        - DummyLoadComponent("risk_factor.iron_deficiency.exposure_standard_deviation")
+#                        - DummyLoadComponent("risk_factor.iron_deficiency.relative_risk")
+#                        - DummyLoadComponent("risk_factor.iron_deficiency.population_attributable_fraction")
+#
+#                        # unordered polytomous
+#                        - DummyLoadComponent("risk_factor.occupational_ergonomic_factors.exposure")
+#                        - DummyLoadComponent("risk_factor.occupational_ergonomic_factors.relative_risk")
+#                        - DummyLoadComponent("risk_factor.occupational_ergonomic_factors.population_attributable_fraction")
 
 configuration:
         input_data:
