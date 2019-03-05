@@ -16,6 +16,7 @@ def get_data(entity, measure: str, location: str):
     measure_handlers = {
         # Cause-like measures
         'incidence': (get_incidence, ('cause', 'sequela')),
+        'raw_incidence': (get_raw_incidence, ('cause', 'sequela')),
         'prevalence': (get_prevalence, ('cause', 'sequela')),
         'birth_prevalence': (get_birth_prevalence, ('cause', 'sequela')),
         'disability_weight': (get_disability_weight, ('cause', 'sequela')),
@@ -23,6 +24,7 @@ def get_data(entity, measure: str, location: str):
         'cause_specific_mortality': (get_cause_specific_mortality, ('cause',)),
         'excess_mortality': (get_excess_mortality, ('cause',)),
         'case_fatality': (get_case_fatality, ('cause',)),
+        'deaths': (get_deaths, ('cause',)),
         # Risk-like measures
         'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
@@ -56,7 +58,7 @@ def get_data(entity, measure: str, location: str):
     return data
 
 
-def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+def get_raw_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'incidence', location_id)
     if entity.kind == 'cause':
         restrictions_entity = entity
@@ -68,8 +70,15 @@ def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFra
                                                  'yld', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
     data = data[DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS]
-    data = utilities.reshape(data).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
-    prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    data = utilities.reshape(data)
+    return data
+
+
+def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = get_data(entity, 'raw_incidence', location_id)  ## FIXME: this needs to be location
+    data = data.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    prevalence = get_data(entity, 'prevalence', location_id)  ## FIXME: this needs to be location
+    prevalence = prevalence.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0).reset_index()
@@ -144,7 +153,7 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    deaths = _get_deaths(entity, location_id)
+    deaths = get_deaths(entity, location_id)
     pop = get_structure(Population(), location_id)
     data = deaths.merge(pop, on=DEMOGRAPHIC_COLUMNS)
     data['value'] = data['value_x'] / data['value_y']
@@ -163,7 +172,7 @@ def get_case_fatality(entity: Cause, location_id: int):
     raise NotImplementedError()
 
 
-def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
+def get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'deaths', location_id)
     data = utilities.filter_data_by_restrictions(data, entity,
                                                  'yll', utility_data.get_age_group_ids())
