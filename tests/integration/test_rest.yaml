@@ -1,0 +1,39 @@
+plugins:
+        optional:
+                data:
+                        controller: "vivarium_inputs.data_artifact.ArtifactPassthrough"
+                        builder_interface: "vivarium_public_health.dataset_manager.ArtifactManagerInterface"
+
+components:
+        vivarium_inputs:
+                testing:
+                        # population
+                        - DummyLoadComponent("population.structure")
+                        - DummyLoadComponent("population.theoretical_minimum_risk_life_expectancy")
+                        - DummyLoadComponent("population.age_bins")
+                        - DummyLoadComponent("population.demographic_dimensions")
+
+                        # coverage_gap
+#                        - DummyLoadComponent("coverage_gap.lack_of_breastfeeding_promotion.exposure")
+#                        - DummyLoadComponent("coverage_gap.lack_of_breastfeeding_promotion.relative_risk")
+
+                        # utilization
+                        - DummyLoadComponent("healthcare_entity.inpatient_visits.utilization")
+                        - DummyLoadComponent("healthcare_entity.outpatient_visits.utilization")
+
+                        # cost
+                        - DummyLoadComponent("healthcare_entity.inpatient_visits.cost")
+                        - DummyLoadComponent("healthcare_entity.outpatient_visits.cost")
+                        - DummyLoadComponent("health_technology.hypertension_drugs.cost")
+
+                        # covariate
+                        - DummyLoadComponent("covariate.age_specific_fertility_rate.estimate")
+                        - DummyLoadComponent("covariate.live_births_by_sex.estimate")
+                        - DummyLoadComponent("covariate.antenatal_care_4_visits_coverage_proportion.estimate")
+                        - DummyLoadComponent("covariate.antenatal_care_1_visit_coverage_proportion.estimate")
+
+
+configuration:
+        input_data:
+                location: Ethiopia
+                input_draw_number: 0
