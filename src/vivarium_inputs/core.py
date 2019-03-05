@@ -67,7 +67,7 @@ def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFra
     data = utilities.filter_data_by_restrictions(data, restrictions_entity,
                                                  'yld', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
-    data = data [DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS]
+    data = data[DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS]
     data = utilities.reshape(data).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     # Convert from "True incidence" to the incidence rate among susceptibles
