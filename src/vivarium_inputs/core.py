@@ -116,11 +116,11 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
         if entity.sequelae:
             for sequela in entity.sequelae:
                 try:
-                    prevalence = get_prevalence(sequela, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+                    prevalence = get_data(sequela, 'prevalence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
-                disability = get_disability_weight(sequela, location_id)
+                disability = get_data(sequela, 'disability_weight', location_id)
                 disability['location_id'] = location_id
                 disability = disability.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
                 data += prevalence * disability
