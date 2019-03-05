@@ -72,7 +72,7 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
 
     data = shim_set_index(data)
 
-    return utilities.sort_data(data)
+    return utilities.sort_hierarchical_data(data)
 
 
 def get_population_structure(location: str) -> pd.DataFrame:
@@ -99,7 +99,7 @@ def get_population_structure(location: str) -> pd.DataFrame:
 
     data = shim_set_index(data)
 
-    return utilities.sort_data(data)
+    return utilities.sort_hierarchical_data(data)
 
 
 def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
@@ -119,7 +119,7 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
 
     data = shim_set_index(data)
 
-    return utilities.sort_data(data)
+    return utilities.sort_hierarchical_data(data)
 
 
 def get_age_bins() -> pd.DataFrame:
@@ -138,7 +138,7 @@ def get_age_bins() -> pd.DataFrame:
 
     data = shim_set_index(data)
 
-    return utilities.sort_data(data)
+    return utilities.sort_hierarchical_data(data)
 
 
 def get_demographic_dimensions(location: str) -> pd.DataFrame:
@@ -161,10 +161,9 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
 
-    data = shim_set_index(data)
+    # data = shim_set_index(data)
 
-    return utilities.sort_data(data)
-
+    return data
 
 def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
