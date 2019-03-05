@@ -153,8 +153,8 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    deaths = get_deaths(entity, location_id)
-    pop = get_structure(Population(), location_id)
+    deaths = get_data(entity, 'deaths', location_id)
+    pop = get_data(Population(), 'structure', location_id)
     data = deaths.merge(pop, on=DEMOGRAPHIC_COLUMNS)
     data['value'] = data['value_x'] / data['value_y']
     return data.drop(['value_x', 'value_y'], 'columns')
