@@ -108,9 +108,7 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
-        data = get_demographic_dimensions(Population(), location_id, draws=True)
-        data['value'] = 0.0
-        data = data.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+        data = utility_data.generate_full_data(0.0, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
         if entity.sequelae:
             for sequela in entity.sequelae:
                 try:
@@ -125,8 +123,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
         data = data.reset_index()
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
-            data = get_demographic_dimensions(Population(), location_id, draws=True)
-            data['value'] = 0.0
+            data = utility_data.generate_full_data(0.0, location_id)
         else:
             data = extract.extract_data(entity, 'disability_weight', location_id)
             data = utilities.normalize(data)
@@ -414,7 +411,7 @@ def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
     return age_bins
 
 
-def get_demographic_dimensions(entity: Population, location_id: int, draws: bool = False) -> pd.DataFrame:
+def get_demographic_dimensions(entity: Population, location_id: int) -> pd.DataFrame:
     ages = utility_data.get_age_group_ids()
     estimation_years = utility_data.get_estimation_years()
     years = range(min(estimation_years), max(estimation_years) + 1)
@@ -422,9 +419,6 @@ def get_demographic_dimensions(entity: Population, location_id: int, draws: bool
     location = [location_id]
     values = [location, sexes, ages, years]
     names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
-    if draws:
-        values.append(range(1000))
-        names.append('draw')
 
     demographic_dimensions = (pd.MultiIndex
                               .from_product(values, names=names)
