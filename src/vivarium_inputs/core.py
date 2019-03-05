@@ -244,7 +244,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     affected_entities = set(data.affected_entity)
     affected_measures = set(data.affected_measure)
     for cause, measure in product(affected_entities, affected_measures):
-        df = data[(data.affected_entity == cause) & (data.affected_measure)]
+        df = data[(data.affected_entity == cause) & (data.affected_measure == measure)]
         cause = causes_map[cause]
         if measure == 'excess_mortality':
             start, end = utilities.get_age_group_ids_by_restriction(cause, 'yll')
