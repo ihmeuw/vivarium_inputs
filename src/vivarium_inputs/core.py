@@ -12,7 +12,7 @@ from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEA
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
-def get_data(entity, measure: str, location: str):
+def get_data(entity, measure: str, location: Union[str, int]):
     measure_handlers = {
         # Cause-like measures
         'incidence': (get_incidence, ('cause', 'sequela')),
@@ -53,7 +53,7 @@ def get_data(entity, measure: str, location: str):
     if entity.kind not in entity_types:
         raise InvalidQueryError(f'{measure.capitalize()} not available for {entity.kind}.')
 
-    location_id = utility_data.get_location_id(location)
+    location_id = utility_data.get_location_id(location) if isinstance(location, str) else location
     data = handler(entity, location_id)
     return data
 
@@ -75,9 +75,9 @@ def get_raw_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.Dat
 
 
 def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
-    data = get_data(entity, 'raw_incidence', location_id)  ## FIXME: this needs to be location
+    data = get_data(entity, 'raw_incidence', location_id)
     data = data.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
-    prevalence = get_data(entity, 'prevalence', location_id)  ## FIXME: this needs to be location
+    prevalence = get_data(entity, 'prevalence', location_id)
     prevalence = prevalence.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
