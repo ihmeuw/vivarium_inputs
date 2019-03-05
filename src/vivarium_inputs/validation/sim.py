@@ -784,7 +784,7 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcare
         expected boundary values.
 
     """
-    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value']
+    expected_cols = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', 'value', entity.kind]
     validate_expected_columns(expected_cols, data.columns)
 
     validate_standard_columns(data, context)

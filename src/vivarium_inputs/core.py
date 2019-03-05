@@ -67,6 +67,7 @@ def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFra
     data = utilities.filter_data_by_restrictions(data, restrictions_entity,
                                                  'yld', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     data = utilities.reshape(data).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     # Convert from "True incidence" to the incidence rate among susceptibles
@@ -85,15 +86,16 @@ def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFr
     data = utilities.filter_data_by_restrictions(data, restrictions_entity,
                                                  'yld', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     data = utilities.reshape(data)
     return data
 
 
 def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'birth_prevalence', location_id)
-    data = data.drop('age_group_id', 'columns')
+    data = data.filter(['year_id', 'sex_id', 'location_id'] + DRAW_COLUMNS)
     data = utilities.normalize(data, fill_value=0)
-    data = utilities.reshape(data, to_keep=('year_id', 'sex_id', 'location_id'))
+    data = utilities.reshape(data)
     return data
 
 
@@ -124,6 +126,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
             cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
             data = utilities.clear_disability_weight_outside_restrictions(data, cause, 0.0,
                                                                           utility_data.get_age_group_ids())
+            data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
             data = utilities.reshape(data)
 
     return data
@@ -135,6 +138,7 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
     data = utilities.filter_data_by_restrictions(data, entity,
                                                  'yld', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     data = utilities.reshape(data)
     return data
 
@@ -164,6 +168,7 @@ def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
     data = utilities.filter_data_by_restrictions(data, entity,
                                                  'yll', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     data = utilities.reshape(data)
     return data
 
@@ -193,7 +198,8 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
                 .reset_index())
     else:
         data = utilities.normalize(data, fill_value=0)
-    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['parameter'])
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS + ['parameter'])
+    data = utilities.reshape(data)
     return data
 
 
@@ -206,6 +212,7 @@ def get_exposure_standard_deviation(entity: Union[RiskFactor, AlternativeRiskFac
     data = data[data.age_group_id.isin(valid_age_groups)]
 
     data = utilities.normalize(data, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     data = utilities.reshape(data)
     return data
 
@@ -227,8 +234,8 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
 
     data = utilities.normalize(data, fill_value=0, cols_to_fill=distribution_cols)
-    id_cols = ['location_id', 'sex_id', 'age_group_id', 'year_id']
-    data = pd.melt(data, id_vars=id_cols, value_vars=distribution_cols, var_name='parameter')
+    data = data.filter(['location_id', 'sex_id', 'age_group_id', 'year_id'] + distribution_cols)
+    data = utilities.reshape(data, value_cols=distribution_cols, var_name='parameter')
     return data
 
 
@@ -244,7 +251,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     affected_entities = set(data.affected_entity)
     affected_measures = set(data.affected_measure)
     for cause, measure in product(affected_entities, affected_measures):
-        df = data[(data.affected_entity == cause) & (data.affected_measure)]
+        df = data[(data.affected_entity == cause) & (data.affected_measure == measure)]
         cause = causes_map[cause]
         if measure == 'excess_mortality':
             start, end = utilities.get_age_group_ids_by_restriction(cause, 'yll')
@@ -282,7 +289,8 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         df = df.groupby('parameter').apply(lambda d: utilities.normalize(d, fill_value=1))
         result.append(df)
     data = pd.concat(result)
-    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'])
+    data = data.filter(DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'] + DRAW_COLUMNS)
+    data = utilities.reshape(data)
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
@@ -339,7 +347,8 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
     data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
     data = data.groupby(['affected_entity', 'affected_measure']).apply(lambda df: utilities.normalize(df, fill_value=0))
-    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'])
+    data = data.filter(DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'] + DRAW_COLUMNS)
+    data = utilities.reshape(data)
     return data
 
 
@@ -356,22 +365,25 @@ def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
     if entity.by_sex:
         key_columns.append('sex_id')
 
-    data = pd.melt(data, id_vars=key_columns,
-                   value_vars=['mean_value', 'upper_value', 'lower_value'], var_name='parameter')
+    value_cols = ['mean_value', 'upper_value', 'lower_value']
+    data = data.filter(key_columns + value_cols)
     data = utilities.normalize(data)
+    data = utilities.reshape(data, value_cols=value_cols, var_name='parameter')
     return data
 
 
 def get_cost(entity: Union[HealthcareEntity, HealthTechnology], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'cost', location_id)
     data = utilities.normalize(data, fill_value=0)
-    data = utilities.reshape(data, to_keep=DEMOGRAPHIC_COLUMNS + [entity.kind])
+    data = data.filter(DEMOGRAPHIC_COLUMNS + [entity.kind] + DRAW_COLUMNS)
+    data = utilities.reshape(data)
     return data
 
 
 def get_utilization(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'utilization', location_id)
     data = utilities.normalize(data, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     data = utilities.reshape(data)
     return data
 
