@@ -302,7 +302,7 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
         tmrel_data = data.loc[data.parameter == tmrel_cat]
         tmrel_data[DRAW_COLUMNS] = tmrel_data[DRAW_COLUMNS].mask(np.isclose(tmrel_data[DRAW_COLUMNS], 1.0), 1.0)
-        data = pd.concat(tmrel_data, data.loc[data.parameter != tmrel_cat])
+        data = pd.concat([tmrel_data, data.loc[data.parameter != tmrel_cat]])
 
     return data
 
