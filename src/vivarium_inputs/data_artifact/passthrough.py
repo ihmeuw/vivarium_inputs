@@ -23,6 +23,9 @@ class ArtifactPassthrough:
         data = loader(entity_key, self.location, self.modeled_causes)
 
         if isinstance(data, pd.DataFrame):
+            # pop structure is a df but not multi-indexed because it has no columns beyond our indexing dimensions
+            if isinstance(data.index, pd.MultiIndex):
+                data = data.reset_index()
             for key, val in self.base_filter.items():
                 if key in data.columns:
                     column_filters[key] = val
