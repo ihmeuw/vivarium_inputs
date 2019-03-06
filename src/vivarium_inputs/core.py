@@ -108,7 +108,8 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
-        data = utility_data.generate_full_data(0.0, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+        data = (utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
+                .set_index(DEMOGRAPHIC_COLUMNS + ['draw']))
         if entity.sequelae:
             for sequela in entity.sequelae:
                 try:
@@ -123,7 +124,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
         data = data.reset_index()
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
-            data = utility_data.generate_full_data(0.0, location_id)
+            data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
         else:
             data = extract.extract_data(entity, 'disability_weight', location_id)
             data = utilities.normalize(data)
@@ -412,16 +413,6 @@ def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
 
 
 def get_demographic_dimensions(entity: Population, location_id: int) -> pd.DataFrame:
-    ages = utility_data.get_age_group_ids()
-    estimation_years = utility_data.get_estimation_years()
-    years = range(min(estimation_years), max(estimation_years) + 1)
-    sexes = [SEXES['Male'], SEXES['Female']]
-    location = [location_id]
-    values = [location, sexes, ages, years]
-    names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
-
-    demographic_dimensions = (pd.MultiIndex
-                              .from_product(values, names=names)
-                              .to_frame(index=False))
+    demographic_dimensions = utility_data.get_demographic_dimensions(location_id)
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
