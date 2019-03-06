@@ -161,8 +161,6 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
 
-    # data = shim_set_index(data)
-
     return data
 
 def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[pd.Series, pd.DataFrame]:
