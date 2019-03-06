@@ -156,8 +156,8 @@ def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFram
 
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    csmr = get_cause_specific_mortality(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
-    prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    csmr = get_data(entity, 'cause_specific_mortality', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    prevalence = get_data(entity, 'prevalence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data.reset_index()
