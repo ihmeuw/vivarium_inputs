@@ -181,7 +181,6 @@ def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
     sorted_data_index = [n for n in sort_order if n in data.index.names]
     sorted_data_index.extend([n for n in data.index.names if n not in sorted_data_index])
 
-    # reorder index levels to the same order we wish to sort them
     data = data.reorder_levels(sorted_data_index)
     data = data.sort_index()
 
