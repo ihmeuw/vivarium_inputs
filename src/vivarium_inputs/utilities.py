@@ -192,7 +192,8 @@ def sort_data(data: pd.DataFrame) -> pd.DataFrame:
 
     sorted_data_columns = [c for c in SORT_ORDER if c in data.columns]
     sorted_data_columns.extend([c for c in data.columns if c not in sorted_data_columns])
-
+    
+    data = data[sorted_data_columns]  # reorder the columns
     data = data.sort_values(sorted_data_columns)
 
     return data
