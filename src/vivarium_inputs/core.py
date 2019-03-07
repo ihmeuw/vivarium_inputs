@@ -69,7 +69,9 @@ def get_data(entity, measure: str, location: Union[str, int]):
         value_cols, var_name = DRAW_COLUMNS, 'draw'
 
     data = utilities.reshape(data, value_cols=value_cols, var_name=var_name)
-    data = data.reset_index()
+
+    if isinstance(data.index, pd.MultiIndex):
+        data = data.reset_index()
     return data
 
 
