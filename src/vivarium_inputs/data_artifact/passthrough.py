@@ -23,7 +23,8 @@ class ArtifactPassthrough:
         data = loader(entity_key, self.location, self.modeled_causes)
 
         if isinstance(data, pd.DataFrame):
-            # demog dimensions is a df but not multi-indexed because it has no columns beyond our indexing dimensions
+            # demog dimensions and age bins are a df but not multi-indexed because they have no columns beyond our
+            # indexing dimensions
             if isinstance(data.index, pd.MultiIndex):
                 data = data.reset_index()
             for key, val in self.base_filter.items():
