@@ -163,16 +163,17 @@ def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str])
     return data
 
 
-def reshape(data: Union[pd.DataFrame, pd.Series], value_cols: List = DRAW_COLUMNS, var_name: str = 'draw') -> pd.DataFrame:
-    if set(data.columns).intersection(value_cols):
-        data = data.set_index(list(data.columns.difference(value_cols)))
-        if value_cols == DRAW_COLUMNS:
-            data = data.rename(columns={draw: i for i, draw in enumerate(DRAW_COLUMNS)})
-        data.columns.name = var_name
-        data = data.stack()
-        data.name = 'value'
-    elif isinstance(data, pd.DataFrame):  # we haven't already put everything but value into index
-        data = data.set_index(list(data.columns.difference({'value'})))
+def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str = 'draw') -> pd.DataFrame:
+    if isinstance(data, pd.DataFrame) and not isinstance(data, pd.MultiIndex):
+        if set(data.columns).intersection(value_cols):
+            data = data.set_index(list(data.columns.difference(value_cols)))
+            if value_cols == DRAW_COLUMNS:
+                data = data.rename(columns={draw: i for i, draw in enumerate(DRAW_COLUMNS)})
+            data.columns.name = var_name
+            data = data.stack()
+            data.name = 'value'
+        else:
+            data = data.set_index(list(data.columns.difference({'value'})))
     else:  # we've already set an index
         import pdb; pdb.set_trace()
         pass
