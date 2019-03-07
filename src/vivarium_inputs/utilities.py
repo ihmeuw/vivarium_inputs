@@ -164,7 +164,7 @@ def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str])
 
 
 def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str = 'draw') -> pd.DataFrame:
-    if isinstance(data, pd.DataFrame) and not isinstance(data, pd.MultiIndex):
+    if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):
         if set(data.columns).intersection(value_cols):  # reshape wide to long over value_cols
             data = data.set_index(list(data.columns.difference(value_cols)))
             if value_cols == DRAW_COLUMNS:
@@ -172,7 +172,7 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str =
             data.columns.name = var_name
             data = data.stack()
             data.name = 'value'
-        elif 'value' in data.columns:  # already in right shape so set index as long as one non-index column
+        else:  # already in right shape so set index
             data = data.set_index(list(data.columns.difference({'value'})))
     else:  # we've already set an index
         pass
