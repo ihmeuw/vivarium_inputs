@@ -8,6 +8,7 @@ from vivarium_inputs import core, utilities, extract, utility_data
 from vivarium_inputs.globals import Population
 import vivarium_inputs.validation.sim as validation
 
+
 def shim_set_index(df):
     non_val_columns = df.columns.difference({'value'})
     df = df.set_index(list(non_val_columns))
@@ -136,9 +137,7 @@ def get_age_bins() -> pd.DataFrame:
     data = core.get_data(pop, 'age_bins', 'Global')
     validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
 
-    data = shim_set_index(data)
-
-    return utilities.sort_hierarchical_data(data)
+    return utilities.sort_data(data)
 
 
 def get_demographic_dimensions(location: str) -> pd.DataFrame:
@@ -161,7 +160,8 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
 
-    return data
+    return utilities.sort_data(data)
+
 
 def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
