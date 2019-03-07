@@ -391,7 +391,6 @@ def get_utilization(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'utilization', location_id)
     data = utilities.normalize(data, fill_value=0)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
-    data = utilities.reshape(data)
     return data
 
 
