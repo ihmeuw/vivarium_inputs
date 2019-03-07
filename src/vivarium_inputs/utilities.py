@@ -9,7 +9,6 @@ import pandas as pd
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 
-SORT_ORDER = ['draw', 'location', 'sex', 'age_group_start', 'age_group_end', 'year_start', 'year_end']
 
 ##################################################
 # Functions to remove GBD conventions from data. #
@@ -178,23 +177,12 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str =
 
 def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
     """Reorder index labels of a hierarchical index and sort in level order."""
-    # sort_order = ['draw', 'location', 'sex', 'age_group_start', 'age_group_end', 'year_start', 'year_end']
-    sorted_data_index = [n for n in SORT_ORDER if n in data.index.names]
+    sort_order = ['draw', 'location', 'sex', 'age_group_start', 'age_group_end', 'year_start', 'year_end']
+    sorted_data_index = [n for n in sort_order if n in data.index.names]
     sorted_data_index.extend([n for n in data.index.names if n not in sorted_data_index])
 
     data = data.reorder_levels(sorted_data_index)
     data = data.sort_index()
-
-    return data
-
-
-def sort_data(data: pd.DataFrame) -> pd.DataFrame:
-
-    sorted_data_columns = [c for c in SORT_ORDER if c in data.columns]
-    sorted_data_columns.extend([c for c in data.columns if c not in sorted_data_columns])
-    
-    data = data[sorted_data_columns]  # reorder the columns
-    data = data.sort_values(sorted_data_columns)
 
     return data
 
