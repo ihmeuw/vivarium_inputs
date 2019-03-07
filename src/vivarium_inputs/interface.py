@@ -136,8 +136,10 @@ def get_age_bins() -> pd.DataFrame:
     pop = Population()
     data = core.get_data(pop, 'age_bins', 'Global')
     validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
+    
+    data = shim_set_index(data)
 
-    return utilities.sort_data(data)
+    return utilities.sort_hierarchical_data(data)
 
 
 def get_demographic_dimensions(location: str) -> pd.DataFrame:
@@ -160,7 +162,9 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
 
-    return utilities.sort_data(data)
+    data = shim_set_index(data)
+
+    return utilities.sort_hierarchical_data(data)
 
 
 def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[pd.Series, pd.DataFrame]:
