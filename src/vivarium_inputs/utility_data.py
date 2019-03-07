@@ -2,7 +2,7 @@ from typing import List
 
 import pandas as pd
 
-from vivarium_inputs.globals import gbd
+from vivarium_inputs.globals import gbd, SEXES
 
 
 def get_estimation_years(*_, **__) -> pd.Series:
@@ -39,3 +39,23 @@ def get_location_id_parents(location_id: int) -> List[int]:
     location_metadata = gbd.get_location_path_to_global().set_index('location_id')
     parent_ids = [int(loc) for loc in location_metadata.at[location_id, 'path_to_top_parent'].split(',')]
     return parent_ids
+
+
+def get_demographic_dimensions(location_id: int, draws: bool = False, value: float = None) -> pd.DataFrame:
+    ages = get_age_group_ids()
+    estimation_years = get_estimation_years()
+    years = range(min(estimation_years), max(estimation_years) + 1)
+    sexes = [SEXES['Male'], SEXES['Female']]
+    location = [location_id]
+    values = [location, sexes, ages, years]
+    names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
+    if draws:
+        values.append(range(1000))
+        names.append('draw')
+
+    data = (pd.MultiIndex
+            .from_product(values, names=names)
+            .to_frame(index=False))
+    if draws:
+        data['value'] = value
+    return data

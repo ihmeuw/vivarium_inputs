@@ -12,10 +12,11 @@ from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEA
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
-def get_data(entity, measure: str, location: str):
+def get_data(entity, measure: str, location: Union[str, int]):
     measure_handlers = {
         # Cause-like measures
         'incidence': (get_incidence, ('cause', 'sequela')),
+        'raw_incidence': (get_raw_incidence, ('cause', 'sequela')),
         'prevalence': (get_prevalence, ('cause', 'sequela')),
         'birth_prevalence': (get_birth_prevalence, ('cause', 'sequela')),
         'disability_weight': (get_disability_weight, ('cause', 'sequela')),
@@ -23,6 +24,7 @@ def get_data(entity, measure: str, location: str):
         'cause_specific_mortality': (get_cause_specific_mortality, ('cause',)),
         'excess_mortality': (get_excess_mortality, ('cause',)),
         'case_fatality': (get_case_fatality, ('cause',)),
+        'deaths': (get_deaths, ('cause',)),
         # Risk-like measures
         'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
@@ -51,12 +53,12 @@ def get_data(entity, measure: str, location: str):
     if entity.kind not in entity_types:
         raise InvalidQueryError(f'{measure.capitalize()} not available for {entity.kind}.')
 
-    location_id = utility_data.get_location_id(location)
+    location_id = utility_data.get_location_id(location) if isinstance(location, str) else location
     data = handler(entity, location_id)
     return data
 
 
-def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+def get_raw_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'incidence', location_id)
     if entity.kind == 'cause':
         restrictions_entity = entity
@@ -68,8 +70,13 @@ def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFra
                                                  'yld', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
-    data = utilities.reshape(data).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
-    prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    data = utilities.reshape(data)
+    return data
+
+
+def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = get_data(entity, 'raw_incidence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    prevalence = get_data(entity, 'prevalence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0).reset_index()
@@ -101,25 +108,23 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
-        data = get_demographic_dimensions(Population(), location_id, draws=True)
-        data['value'] = 0.0
-        data = data.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+        data = (utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
+                .set_index(DEMOGRAPHIC_COLUMNS + ['draw']))
         if entity.sequelae:
             for sequela in entity.sequelae:
                 try:
-                    prevalence = get_prevalence(sequela, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+                    prevalence = get_data(sequela, 'prevalence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
-                disability = get_disability_weight(sequela, location_id)
+                disability = get_data(sequela, 'disability_weight', location_id)
                 disability['location_id'] = location_id
                 disability = disability.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
                 data += prevalence * disability
         data = data.reset_index()
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
-            data = get_demographic_dimensions(Population(), location_id, draws=True)
-            data['value'] = 0.0
+            data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
         else:
             data = extract.extract_data(entity, 'disability_weight', location_id)
             data = utilities.normalize(data)
@@ -144,16 +149,16 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    deaths = _get_deaths(entity, location_id)
-    pop = get_structure(Population(), location_id)
+    deaths = get_data(entity, 'deaths', location_id)
+    pop = get_data(Population(), 'structure', location_id)
     data = deaths.merge(pop, on=DEMOGRAPHIC_COLUMNS)
     data['value'] = data['value_x'] / data['value_y']
     return data.drop(['value_x', 'value_y'], 'columns')
 
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    csmr = get_cause_specific_mortality(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
-    prevalence = get_prevalence(entity, location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    csmr = get_data(entity, 'cause_specific_mortality', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    prevalence = get_data(entity, 'prevalence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data.reset_index()
@@ -163,7 +168,7 @@ def get_case_fatality(entity: Cause, location_id: int):
     raise NotImplementedError()
 
 
-def _get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
+def get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'deaths', location_id)
     data = utilities.filter_data_by_restrictions(data, entity,
                                                  'yll', utility_data.get_age_group_ids())
@@ -407,20 +412,7 @@ def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
     return age_bins
 
 
-def get_demographic_dimensions(entity: Population, location_id: int, draws: bool = False) -> pd.DataFrame:
-    ages = utility_data.get_age_group_ids()
-    estimation_years = utility_data.get_estimation_years()
-    years = range(min(estimation_years), max(estimation_years) + 1)
-    sexes = [SEXES['Male'], SEXES['Female']]
-    location = [location_id]
-    values = [location, sexes, ages, years]
-    names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
-    if draws:
-        values.append(range(1000))
-        names.append('draw')
-
-    demographic_dimensions = (pd.MultiIndex
-                              .from_product(values, names=names)
-                              .to_frame(index=False))
+def get_demographic_dimensions(entity: Population, location_id: int) -> pd.DataFrame:
+    demographic_dimensions = utility_data.get_demographic_dimensions(location_id)
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
