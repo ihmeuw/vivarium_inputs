@@ -136,7 +136,7 @@ def get_age_bins() -> pd.DataFrame:
     data = core.get_data(pop, 'age_bins', 'Global')
     validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
 
-    data = shim_set_index(data)
+    # data = shim_set_index(data)
 
     return utilities.sort_hierarchical_data(data)
 
