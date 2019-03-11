@@ -177,6 +177,7 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str =
             data.columns.name = var_name
             data = data.stack()
             data.name = 'value'
+            data = data.to_frame()  # stack turns df into a series
         else:  # already in right shape so set index
             data = data.set_index(get_ordered_index_cols(list(data.columns.difference({'value'}))))
     else:  # we've already set an index
