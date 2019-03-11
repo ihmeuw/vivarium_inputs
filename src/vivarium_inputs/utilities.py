@@ -9,6 +9,7 @@ import pandas as pd
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 
+INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ['draw', 'affected_entity', 'affected_measure', 'parameter']
 
 ##################################################
 # Functions to remove GBD conventions from data. #
@@ -163,17 +164,21 @@ def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str])
     return data
 
 
+def get_ordered_index_cols(data_columns: List):
+    return [i for i in INDEX_COLUMNS if i in data_columns] + list(set(data_columns).difference(INDEX_COLUMNS))
+
+
 def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str = 'draw') -> pd.DataFrame:
     if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):
         if set(data.columns).intersection(value_cols):  # reshape wide to long over value_cols
-            data = data.set_index(list(data.columns.difference(value_cols)))
+            data = data.set_index(get_ordered_index_cols(list(data.columns.difference(value_cols))))
             if value_cols == DRAW_COLUMNS:
                 data = data.rename(columns={draw: i for i, draw in enumerate(DRAW_COLUMNS)})
             data.columns.name = var_name
             data = data.stack()
             data.name = 'value'
         else:  # already in right shape so set index
-            data = data.set_index(list(data.columns.difference({'value'})))
+            data = data.set_index(get_ordered_index_cols(list(data.columns.difference({'value'}))))
     else:  # we've already set an index
         pass
     return data
