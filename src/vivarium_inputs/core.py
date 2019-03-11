@@ -67,7 +67,7 @@ def get_data(entity, measure: str, location: Union[str, int]):
         value_cols, var_name = DISTRIBUTION_COLUMNS, 'parameter'
     else:
         value_cols, var_name = DRAW_COLUMNS, 'draw'
-    import pdb; pdb.set_trace()
+
     data = utilities.reshape(data, value_cols=value_cols, var_name=var_name)
 
     return data
@@ -353,7 +353,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
     data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
-    data = data.groupby(['affected_entity', 'affected_measure']).apply(utilities.normalize, fill_value=0)
+    data = data.groupby(['affected_entity', 'affected_measure']).apply(utilities.normalize, fill_value=0).reset_index()
     data = data.filter(DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'] + DRAW_COLUMNS)
     return data
 
