@@ -67,7 +67,7 @@ def get_data(entity, measure: str, location: Union[str, int]):
         value_cols, var_name = DISTRIBUTION_COLUMNS, 'parameter'
     else:
         value_cols, var_name = DRAW_COLUMNS, 'draw'
-
+    import pdb; pdb.set_trace()
     data = utilities.reshape(data, value_cols=value_cols, var_name=var_name)
 
     return data
@@ -129,7 +129,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
                 disability = get_data(sequela, 'disability_weight', location_id)
-                disability['location_id'] = location_id
+                disability.index = disability.index.set_levels([location_id], 'location_id')
                 data += prevalence * disability
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
