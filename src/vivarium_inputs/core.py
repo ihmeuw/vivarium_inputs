@@ -70,8 +70,6 @@ def get_data(entity, measure: str, location: Union[str, int]):
 
     data = utilities.reshape(data, value_cols=value_cols, var_name=var_name)
 
-    if isinstance(data.index, pd.MultiIndex):
-        data = data.reset_index()
     return data
 
 

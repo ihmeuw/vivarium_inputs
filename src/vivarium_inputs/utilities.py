@@ -16,18 +16,22 @@ from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SP
 
 
 def scrub_gbd_conventions(data, location):
+    import pdb; pdb.set_trace()
     data = scrub_location(data, location)
     data = scrub_sex(data)
     data = scrub_age(data)
     data = scrub_year(data)
     data = scrub_affected_entity(data)
+
+    data = data.reset_index()
     return data
 
 
 def scrub_location(data, location):
-    if 'location_id' in data.columns:
-        data = data.drop('location_id', 'columns')
-    data['location'] = location
+    if 'location_id' in data.index.names:
+        data.index = data.index.rename('location', 'location_id').set_levels([location], 'location')
+    else:
+
     return data
 
 
