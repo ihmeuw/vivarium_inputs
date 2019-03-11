@@ -159,8 +159,9 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
     deaths = get_data(entity, 'deaths', location_id).reset_index(level='draw')  # population isn't by draws
     pop = get_data(Population(), 'structure', location_id)
-    deaths /= pop
-    return deaths
+    data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
+    data['value'] = data['value_deaths'].divide(data['value_pop'])
+    return data.drop(['value_deaths', 'value_pop'], 'columns')
 
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
