@@ -16,7 +16,6 @@ from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SP
 
 
 def scrub_gbd_conventions(data, location):
-    import pdb; pdb.set_trace()
     data = scrub_location(data, location)
     data = scrub_sex(data)
     data = scrub_age(data)
@@ -29,43 +28,50 @@ def scrub_gbd_conventions(data, location):
 
 def scrub_location(data, location):
     if 'location_id' in data.index.names:
-        data.index = data.index.rename('location', 'location_id').set_levels([location], 'location')
-    else:
-
+        data.index = data.index.droplevel(['location_id'])
+    data = pd.concat([data], keys=[location], names=['location'])
     return data
 
 
 def scrub_sex(data):
-    if 'sex_id' in data.columns:
-        data['sex'] = data['sex_id'].map({1: 'Male', 2: 'Female'})
-        data = data.drop('sex_id', 'columns')
+    if 'sex_id' in data.index.names:
+        levels = list(data.index.levels[data.index.names.index('sex_id')])
+        levels = list(map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x), levels))
+        data.index = data.index.rename('sex', 'sex_id').set_levels(levels, 'sex')
     return data
 
 
 def scrub_age(data):
-    if 'age_group_id' in data.columns:
+    if 'age_group_id' in data.index.names:
         age_bins = (utility_data.get_age_bins()
                     .filter(['age_group_id', 'age_group_start', 'age_group_end'])
                     .set_index('age_group_id'))
-        data['age_group_start'] = data['age_group_id'].map(age_bins['age_group_start'])
-        data['age_group_end'] = data['age_group_id'].map(age_bins['age_group_end'])
-        data = data.drop('age_group_id', 'columns')
+        levels = list(data.index.levels[data.index.names.index('age_group_id')])
+        starts = list(map(lambda x: age_bins['age_group_start'][x], levels))
+        if isinstance(data, pd.Series):
+            data = data.to_frame()
+        data = (data.assign(age_group_end=data.index.get_level_values('age_group_id').map(age_bins['age_group_end']))
+                .set_index('age_group_end', append=True))
+        data.index = data.index.rename('age_group_start', 'age_group_id').set_levels(starts, 'age_group_start')
     return data
 
 
 def scrub_year(data):
-    if 'year_id' in data.columns:
-        data = data.rename(columns={'year_id': 'year_start'})
-        data['year_end'] = data['year_start'] + 1
+    if 'year_id' in data.index.names:
+        data.index = data.index.rename('year_start', 'year_id')
+        if isinstance(data, pd.Series):
+            data = data.to_frame()
+        data = data.assign(year_end=data.index.get_level_values('year_start')+1).set_index('year_end', append=True)
     return data
 
 
 def scrub_affected_entity(data):
     CAUSE_BY_ID = {c.gbd_id: c for c in causes}
     # RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
-    if 'cause_id' in data.columns:
-        data['affected_entity'] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
-        data.drop('cause_id', axis=1, inplace=True)
+    if 'cause_id' in data.index.names:
+        levels = list(data.index.levels[data.index.names.index('cause_id')])
+        levels = list(map(lambda x: CAUSE_BY_ID[x].name))
+        data.index = data.index.rename('affected_entity', 'cause_id').set_levels(levels, 'affected_entity')
     return data
 
 
