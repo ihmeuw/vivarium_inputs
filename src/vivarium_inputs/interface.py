@@ -62,7 +62,6 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
 
     """
     data = core.get_data(entity, measure, location)
-    data = data.reset_index()
     data = utilities.scrub_gbd_conventions(data, location)
     data = data.reset_index()
     validation.validate_for_simulation(data, entity, measure, location)
@@ -88,7 +87,6 @@ def get_population_structure(location: str) -> pd.DataFrame:
     """
     pop = Population()
     data = core.get_data(pop, 'structure', location)
-    data = data.reset_index()
     data = utilities.scrub_gbd_conventions(data, location)
     data = data.reset_index()
     validation.validate_for_simulation(data, pop, 'structure', location)
@@ -147,7 +145,6 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     """
     pop = Population()
     data = core.get_data(pop, 'demographic_dimensions', location)
-    data = data.reset_index()
     data = utilities.scrub_gbd_conventions(data, location)
     data = data.reset_index()
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
