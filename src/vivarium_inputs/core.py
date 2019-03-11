@@ -296,7 +296,9 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
     result = []
     for affected_entity in data.affected_entity.unique():
         df = data[data.affected_entity == affected_entity]
-        df = df.groupby('parameter').apply(lambda d: utilities.normalize(d, fill_value=1))
+        df = (df.groupby('parameter')
+              .apply(utilities.normalize, fill_value=1)
+              .reset_index(drop=True))
         result.append(df)
     data = pd.concat(result)
     data = data.filter(DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'] + DRAW_COLUMNS)
@@ -358,7 +360,9 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     data = utilities.convert_affected_entity(data, 'cause_id')
     data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
     data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
-    data = data.groupby(['affected_entity', 'affected_measure']).apply(utilities.normalize, fill_value=0)
+    data = (data.groupby(['affected_entity', 'affected_measure'])
+            .apply(utilities.normalize, fill_value=0)
+            .reset_index(drop=True))
     data = data.filter(DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure'] + DRAW_COLUMNS)
     return data
 
