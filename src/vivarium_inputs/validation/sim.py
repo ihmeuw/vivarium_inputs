@@ -124,6 +124,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
         raise NotImplementedError()
 
     context = SimulationValidationContext(location, **context_args)
+    data = data.reset_index()
     validators[measure](data, entity, context)
 
 
