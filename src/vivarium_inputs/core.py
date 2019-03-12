@@ -70,8 +70,6 @@ def get_data(entity, measure: str, location: Union[str, int]):
 
     data = utilities.reshape(data, value_cols=value_cols, var_name=var_name)
 
-    if isinstance(data.index, pd.MultiIndex):
-        data = data.reset_index()
     return data
 
 
@@ -91,11 +89,11 @@ def get_raw_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.Dat
 
 
 def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
-    data = get_data(entity, 'raw_incidence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
-    prevalence = get_data(entity, 'prevalence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    data = get_data(entity, 'raw_incidence', location_id)
+    prevalence = get_data(entity, 'prevalence', location_id)
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
-    return data.fillna(0).reset_index()
+    return data.fillna(0)
 
 
 def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
@@ -122,20 +120,18 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
-        data = (utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
-                .set_index(DEMOGRAPHIC_COLUMNS + ['draw']))
+        data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
+        data = data.set_index(utilities.get_ordered_index_cols(data.columns.difference({'value'})))
         if entity.sequelae:
             for sequela in entity.sequelae:
                 try:
-                    prevalence = get_data(sequela, 'prevalence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+                    prevalence = get_data(sequela, 'prevalence', location_id)
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
                 disability = get_data(sequela, 'disability_weight', location_id)
-                disability['location_id'] = location_id
-                disability = disability.set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+                disability.index = disability.index.set_levels([location_id], 'location_id')
                 data += prevalence * disability
-        data = data.reset_index()
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
             data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
@@ -161,19 +157,19 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    deaths = get_data(entity, 'deaths', location_id)
+    deaths = get_data(entity, 'deaths', location_id).reset_index(level='draw')  # population isn't by draws
     pop = get_data(Population(), 'structure', location_id)
-    data = deaths.merge(pop, on=DEMOGRAPHIC_COLUMNS)
-    data['value'] = data['value_x'] / data['value_y']
-    return data.drop(['value_x', 'value_y'], 'columns')
+    data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
+    data['value'] = data['value_deaths'].divide(data['value_pop'])
+    return data.drop(['value_deaths', 'value_pop'], 'columns')
 
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    csmr = get_data(entity, 'cause_specific_mortality', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
-    prevalence = get_data(entity, 'prevalence', location_id).set_index(DEMOGRAPHIC_COLUMNS + ['draw'])
+    csmr = get_data(entity, 'cause_specific_mortality', location_id)
+    prevalence = get_data(entity, 'prevalence', location_id)
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
-    return data.reset_index()
+    return data
 
 
 def get_case_fatality(entity: Cause, location_id: int):
