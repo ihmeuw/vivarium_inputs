@@ -85,9 +85,7 @@ class ArtifactBuilder:
         if entity_key not in self.artifact:
             self.process(entity_key)
         data = self.artifact.load(entity_key)
-        # demog dimensions and age bins are a df but not multi-indexed because they have no columns beyond our
-        # indexing dimensions
-        if isinstance(data, pd.DataFrame) and isinstance(data.index, pd.MultiIndex):
+        if isinstance(data, pd.DataFrame):  # could be metadata dict
             data = data.reset_index()
         return filter_data(data, **__) if isinstance(data, pd.DataFrame) else data
 
