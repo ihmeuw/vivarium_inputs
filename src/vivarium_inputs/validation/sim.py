@@ -1049,7 +1049,7 @@ def validate_demographic_columns(data: pd.DataFrame, context: SimulationValidati
 
 
 def validate_draw_column(data: pd.DataFrame) -> None:
-    """Validate that draw column in the data has the expected values.
+    """Validate that draw index column in the data has the expected values.
 
     Parameters
     ----------
@@ -1062,12 +1062,12 @@ def validate_draw_column(data: pd.DataFrame) -> None:
         If 'draw' column does not contain all values in the range [0, 999].
 
     """
-    if set(data['draw']) != set(range(1000)):
+    if set(data.index.unique('draw')) != set(range(1000)):
         raise DataTransformationError('Draw must contain [0, 999].')
 
 
 def validate_location_column(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that location column in the data has the expected value.
+    """Validate that location index column in the data has the expected value.
 
     Parameters
     ----------
@@ -1083,12 +1083,13 @@ def validate_location_column(data: pd.DataFrame, context: SimulationValidationCo
         in `context`.
 
     """
-    if len(data['location'].unique()) != 1 or data['location'].unique()[0] != context['location']:
+    data_locations = data.index.unique('location')
+    if len(data_locations) != 1 or data_locations[0] != context['location']:
         raise DataTransformationError('Location must contain a single value that matches specified location.')
 
 
 def validate_sex_column(data: pd.DataFrame) -> None:
-    """Validate that sex column in the data has the expected values.
+    """Validate that sex index column in the data has the expected values.
 
     Parameters
     ----------
@@ -1101,12 +1102,12 @@ def validate_sex_column(data: pd.DataFrame) -> None:
         If 'sex' column does not contain only the values 'Male' and 'Female'.
 
     """
-    if set(data['sex']) != {'Male', 'Female'}:
+    if set(data.index.unique('sex')) != {'Male', 'Female'}:
         raise DataTransformationError("Sex must contain 'Male' and 'Female' and nothing else.")
 
 
 def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that age columns in the data have the expected values.
+    """Validate that age indexcolumns in the data have the expected values.
 
     Parameters
     ----------
@@ -1122,11 +1123,12 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
         full range of expected age bins supplied in `context`.
 
     """
+    import pdb; pdb.set_trace()
     expected_ages = (context['age_bins']
                      .filter(['age_group_start', 'age_group_end'])
                      .sort_values(['age_group_start', 'age_group_end']))
-    age_block = (data[['age_group_start', 'age_group_end']]
-                 .drop_duplicates()
+    age_block = (pd.DataFrame({'age_group_start': data.index.get_level_values('age_group_start'),
+                               'age_group_end': data.index.get_level_values('age_group_end')})
                  .sort_values(['age_group_start', 'age_group_end'])
                  .reset_index(drop=True))
 
