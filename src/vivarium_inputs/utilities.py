@@ -168,7 +168,7 @@ def normalize_age(data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str])
     return data
 
 
-def get_ordered_index_cols(data_columns: pd.Index):
+def get_ordered_index_cols(data_columns: Union[pd.Index, set]):
     return [i for i in INDEX_COLUMNS if i in data_columns] + list(data_columns.difference(INDEX_COLUMNS))
 
 
@@ -185,8 +185,8 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str =
         else:  # already in right shape so set index
             data = data.set_index(get_ordered_index_cols(data.columns.difference({'value'})))
     elif not data.columns.difference({'value'}).empty:  # we missed some columns that need to be in index
-        data = data.set_index(data.columns.difference({'value'}), append=True)
-        data = data.reorder_levels(get_ordered_index_cols(data.index.names))
+        data = data.set_index(list(data.columns.difference({'value'})), append=True)
+        data = data.reorder_levels(get_ordered_index_cols(set(data.index.names)))
     else:  # we've already set the full index
         pass
     return data
