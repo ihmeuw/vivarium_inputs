@@ -65,8 +65,7 @@ def scrub_affected_entity(data):
     CAUSE_BY_ID = {c.gbd_id: c for c in causes}
     # RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
     if 'cause_id' in data.index.names:
-        levels = list(data.index.levels[data.index.names.index('cause_id')])
-        levels = list(map(lambda x: CAUSE_BY_ID[x].name))
+        levels = data.index.unique('cause_id').map(lambda x: CAUSE_BY_ID[x].name)
         data.index = data.index.rename('affected_entity', 'cause_id').set_levels(levels, 'affected_entity')
     return data
 
