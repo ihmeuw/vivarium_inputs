@@ -34,7 +34,7 @@ def scrub_location(data, location):
 
 def scrub_sex(data):
     if 'sex_id' in data.index.names:
-        levels = list(data.index.unique('sex_id').map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x)))
+        levels = list(data.index.levels[data.index.names.index('sex_id')].map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x)))
         data.index = data.index.rename('sex', 'sex_id').set_levels(levels, 'sex')
     return data
 
@@ -42,7 +42,7 @@ def scrub_sex(data):
 def scrub_age(data):
     if 'age_group_id' in data.index.names:
         age_bins = utility_data.get_age_bins().set_index('age_group_id')
-        starts = list(data.index.unique('age_group_id').map(age_bins['age_group_start']))
+        starts = list(data.index.levels[data.index.names.index('age_group_id')].map(age_bins['age_group_start']))
         data = (data.assign(age_group_end=(data.index.get_level_values('age_group_id')
                                            .map(age_bins['age_group_end'])))
                 .set_index('age_group_end', append=True))
@@ -61,7 +61,7 @@ def scrub_affected_entity(data):
     CAUSE_BY_ID = {c.gbd_id: c for c in causes}
     # RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
     if 'cause_id' in data.index.names:
-        levels = list(data.index.unique('cause_id').map(lambda x: CAUSE_BY_ID[x].name))
+        levels = list(data.index.levels[data.index.names.index('cause_id')].map(lambda x: CAUSE_BY_ID[x].name))
         data.index = data.index.rename('affected_entity', 'cause_id').set_levels(levels, 'affected_entity')
     return data
 
