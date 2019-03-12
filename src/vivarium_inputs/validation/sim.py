@@ -1119,18 +1119,14 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
     Raises
     ------
     DataTransformationError
-        If 'age_grouo_start' and 'age_group_end' columns do not contain the
+        If 'age_group_start' and 'age_group_end' columns do not contain the
         full range of expected age bins supplied in `context`.
 
     """
-    import pdb; pdb.set_trace()
-    expected_ages = (context['age_bins']
-                     .filter(['age_group_start', 'age_group_end'])
-                     .sort_values(['age_group_start', 'age_group_end']))
-    age_block = (pd.DataFrame({'age_group_start': data.index.get_level_values('age_group_start'),
-                               'age_group_end': data.index.get_level_values('age_group_end')})
-                 .sort_values(['age_group_start', 'age_group_end'])
-                 .reset_index(drop=True))
+    expected_ages = (context['age_bins'].filter(['age_group_start', 'age_group_end'])
+                     .set_index(['age_group_start', 'age_group_end'])).index
+    age_block = (data.index.droplevel(list(set(data.index.names)
+                                           .difference({'age_group_start', 'age_group_end'}))).unique())
 
     if not age_block.equals(expected_ages):
         raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
@@ -1153,11 +1149,10 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
         expected year bins supplied in `context`.
 
     """
-    expected_years = context['years'].sort_values(['year_start', 'year_end'])
-    year_block = (data[['year_start', 'year_end']]
-                  .drop_duplicates()
-                  .sort_values(['year_start', 'year_end'])
-                  .reset_index(drop=True))
+    expected_years = (context['years'].filter(['year_start', 'year_end'])
+                      .set_index(['year_start', 'year_end'])).index
+    year_block = (data.index.droplevel(list(set(data.index.names)
+                                            .difference({'year_start', 'year_end'}))).unique())
 
     if not year_block.equals(expected_years):
         raise DataTransformationError('Year_start and year_end must cover [1990, 2017] in intervals of one year.')
@@ -1218,7 +1213,7 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
     age_start = float(age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start'])
     age_end = float(age_bins.loc[age_bins.age_group_id == end_id, 'age_group_end'])
 
-    outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
+    outside = data.query('age_group_start < @age_start or age_group_end > @age_end')
 
     if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
             entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] and
