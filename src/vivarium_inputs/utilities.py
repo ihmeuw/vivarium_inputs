@@ -47,8 +47,6 @@ def scrub_age(data):
                     .set_index('age_group_id'))
         levels = list(data.index.levels[data.index.names.index('age_group_id')])
         starts = list(map(lambda x: age_bins['age_group_start'][x], levels))
-        if isinstance(data, pd.Series):
-            data = data.to_frame()
         data = (data.assign(age_group_end=data.index.get_level_values('age_group_id').map(age_bins['age_group_end']))
                 .set_index('age_group_end', append=True))
         data.index = data.index.rename('age_group_start', 'age_group_id').set_levels(starts, 'age_group_start')
@@ -58,8 +56,6 @@ def scrub_age(data):
 def scrub_year(data):
     if 'year_id' in data.index.names:
         data.index = data.index.rename('year_start', 'year_id')
-        if isinstance(data, pd.Series):
-            data = data.to_frame()
         data = data.assign(year_end=data.index.get_level_values('year_start')+1).set_index('year_end', append=True)
     return data
 
