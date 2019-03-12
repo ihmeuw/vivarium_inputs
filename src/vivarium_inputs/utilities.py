@@ -44,9 +44,7 @@ def scrub_sex(data):
 
 def scrub_age(data):
     if 'age_group_id' in data.index.names:
-        age_bins = (utility_data.get_age_bins()
-                    .filter(['age_group_id', 'age_group_start', 'age_group_end'])
-                    .set_index('age_group_id'))
+        age_bins = utility_data.get_age_bins().set_index('age_group_id')
         starts = list(data.index.unique('age_group_id').map(lambda x: age_bins['age_group_start'].get(x, x)))
         data = (data.assign(age_group_end=(data.index.get_level_values('age_group_id')
                                            .map(lambda x: age_bins['age_group_end'].get(x, x))))
