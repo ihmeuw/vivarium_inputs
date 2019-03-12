@@ -34,8 +34,7 @@ def scrub_location(data, location):
 
 def scrub_sex(data):
     if 'sex_id' in data.index.names:
-        levels = list(data.index.levels[data.index.names.index('sex_id')])
-        levels = list(map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x), levels))
+        levels = data.index.levels[data.index.names.index('sex_id')].map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x))
         data.index = data.index.rename('sex', 'sex_id').set_levels(levels, 'sex')
     return data
 
@@ -45,8 +44,7 @@ def scrub_age(data):
         age_bins = (utility_data.get_age_bins()
                     .filter(['age_group_id', 'age_group_start', 'age_group_end'])
                     .set_index('age_group_id'))
-        levels = list(data.index.levels[data.index.names.index('age_group_id')])
-        starts = list(map(lambda x: age_bins['age_group_start'][x], levels))
+        starts = data.index.levels[data.index.names.index('age_group_id')].map(lambda x: age_bins['age_group_start'][x])
         data = (data.assign(age_group_end=data.index.get_level_values('age_group_id').map(age_bins['age_group_end']))
                 .set_index('age_group_end', append=True))
         data.index = data.index.rename('age_group_start', 'age_group_id').set_levels(starts, 'age_group_start')
