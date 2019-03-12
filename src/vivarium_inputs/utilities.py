@@ -26,12 +26,9 @@ def scrub_gbd_conventions(data, location):
 
 
 def scrub_location(data, location):
-    if 'location_id' in data.index.names and len(data.index.unique('location_id')) == 1:
-        data.index = data.index.rename('location', 'location_id').set_levels([location], 'location')
-    else:
-        if 'location_id' in data.index.names:
-            data.index = data.index.droplevel(['location_id'])
-        data = pd.concat([data], keys=[location], names=['location'])
+    if 'location_id' in data.index.names:
+        data.index = data.index.droplevel(['location_id'])
+    data = pd.concat([data], keys=[location], names=['location'])
     return data
 
 
