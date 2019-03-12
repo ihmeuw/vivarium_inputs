@@ -26,15 +26,18 @@ def scrub_gbd_conventions(data, location):
 
 
 def scrub_location(data, location):
-    if 'location_id' in data.index.names:
-        data.index = data.index.droplevel(['location_id'])
-    data = pd.concat([data], keys=[location], names=['location'])
+    if 'location_id' in data.index.names and len(data.index.unique('location_id')) == 1:
+        data.index = data.index.rename('location', 'location_id').set_levels([location], 'location')
+    else:
+        if 'location_id' in data.index.names:
+            data.index = data.index.droplevel(['location_id'])
+        data = pd.concat([data], keys=[location], names=['location'])
     return data
 
 
 def scrub_sex(data):
     if 'sex_id' in data.index.names:
-        levels = data.index.levels[data.index.names.index('sex_id')].map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x))
+        levels = data.index.unique('sex_id').map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x))
         data.index = data.index.rename('sex', 'sex_id').set_levels(levels, 'sex')
     return data
 
@@ -44,7 +47,7 @@ def scrub_age(data):
         age_bins = (utility_data.get_age_bins()
                     .filter(['age_group_id', 'age_group_start', 'age_group_end'])
                     .set_index('age_group_id'))
-        starts = data.index.levels[data.index.names.index('age_group_id')].map(lambda x: age_bins['age_group_start'][x])
+        starts = data.index.unique('age_group_id').map(lambda x: age_bins['age_group_start'])
         data = (data.assign(age_group_end=data.index.get_level_values('age_group_id').map(age_bins['age_group_end']))
                 .set_index('age_group_end', append=True))
         data.index = data.index.rename('age_group_start', 'age_group_id').set_levels(starts, 'age_group_start')
@@ -62,8 +65,7 @@ def scrub_affected_entity(data):
     CAUSE_BY_ID = {c.gbd_id: c for c in causes}
     # RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
     if 'cause_id' in data.index.names:
-        levels = list(data.index.levels[data.index.names.index('cause_id')])
-        levels = list(map(lambda x: CAUSE_BY_ID[x].name))
+        levels = data.index.unique('cause_id').map(lambda x: CAUSE_BY_ID[x].name)
         data.index = data.index.rename('affected_entity', 'cause_id').set_levels(levels, 'affected_entity')
     return data
 
