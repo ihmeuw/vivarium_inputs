@@ -121,7 +121,7 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
         data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
-        data = data.set_index(utilities.get_ordered_index_cols(list(data.columns.difference({'value'}))))
+        data = data.set_index(utilities.get_ordered_index_cols(data.columns.difference({'value'})))
         if entity.sequelae:
             for sequela in entity.sequelae:
                 try:
