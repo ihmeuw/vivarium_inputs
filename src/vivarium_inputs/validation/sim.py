@@ -1124,9 +1124,11 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
 
     """
     expected_ages = (context['age_bins'].filter(['age_group_start', 'age_group_end'])
-                     .set_index(['age_group_start', 'age_group_end'])).index
+                     .set_index(['age_group_start', 'age_group_end'])
+                     .index.reorder_levels(['age_group_start', 'age_group_end']))
     age_block = (data.index.droplevel(list(set(data.index.names)
-                                           .difference({'age_group_start', 'age_group_end'}))).unique())
+                                           .difference({'age_group_start', 'age_group_end'})))
+                 .unique().reorder_levels(['age_group_start', 'age_group_end']))
 
     if not age_block.equals(expected_ages):
         raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
@@ -1150,9 +1152,11 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
 
     """
     expected_years = (context['years'].filter(['year_start', 'year_end'])
-                      .set_index(['year_start', 'year_end'])).index
+                      .set_index(['year_start', 'year_end'])
+                      .index.reorder_levels(['year_start', 'year_end']))
     year_block = (data.index.droplevel(list(set(data.index.names)
-                                            .difference({'year_start', 'year_end'}))).unique())
+                                            .difference({'year_start', 'year_end'})))
+                  .unique().reorder_levels(['year_start', 'year_end']))
 
     if not year_block.equals(expected_years):
         raise DataTransformationError('Year_start and year_end must cover [1990, 2017] in intervals of one year.')
