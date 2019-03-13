@@ -1333,9 +1333,9 @@ def check_covariate_values(data: pd.DataFrame) -> None:
          that lower < mean < upper.
 
     """
-    lower = data.query('parameter == "lower_value').value.values
-    mean = data.query('parameter == "mean_value').value.values
-    upper = data.query('parameter == "upper_value').value.values
+    lower = data.query('parameter == "lower_value"').value.values
+    mean = data.query('parameter == "mean_value"').value.values
+    upper = data.query('parameter == "upper_value"').value.values
 
     # allow the case where lower = mean = upper = 0 b/c of things like age
     # specific fertility rate where all estimates are 0 for young age groups
