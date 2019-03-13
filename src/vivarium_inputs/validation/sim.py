@@ -1130,7 +1130,7 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
                                            .difference({'age_group_start', 'age_group_end'})))
                  .unique().reorder_levels(['age_group_start', 'age_group_end']))
 
-    if not age_block.equals(expected_ages):
+    if not age_block.equal_levels(expected_ages):
         raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
 
 
@@ -1158,7 +1158,7 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
                                             .difference({'year_start', 'year_end'})))
                   .unique().reorder_levels(['year_start', 'year_end']))
 
-    if not year_block.equals(expected_years):
+    if not year_block.equal_levels(expected_years):
         raise DataTransformationError('Year_start and year_end must cover [1990, 2017] in intervals of one year.')
 
 
