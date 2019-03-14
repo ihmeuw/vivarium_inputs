@@ -1123,14 +1123,14 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
         full range of expected age bins supplied in `context`.
 
     """
-    expected_ages = (context['age_bins'].filter(['age_group_start', 'age_group_end'])
-                     .set_index(['age_group_start', 'age_group_end'])
-                     .index.reorder_levels(['age_group_start', 'age_group_end']))
-    age_block = (data.index.droplevel(list(set(data.index.names)
-                                           .difference({'age_group_start', 'age_group_end'})))
-                 .unique().reorder_levels(['age_group_start', 'age_group_end']))
+    expected_ages = (context['age_bins']
+                     .filter(['age_group_start', 'age_group_end'])
+                     .sort_values(['age_group_start', 'age_group_end']))
+    age_block = (pd.DataFrame({'age_group_start': data.index.get_level_values('age_group_start'),
+                               'age_group_end': data.index.get_level_values('age_group_end')})
+                 .drop_duplicates().sort_values(['age_group_start', 'age_group_end']).reset_index(drop=True))
 
-    if not age_block.equal_levels(expected_ages):
+    if not age_block.equals(expected_ages):
         raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
 
 
@@ -1151,14 +1151,14 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
         expected year bins supplied in `context`.
 
     """
-    expected_years = (context['years'].filter(['year_start', 'year_end'])
-                      .set_index(['year_start', 'year_end'])
-                      .index.reorder_levels(['year_start', 'year_end']))
-    year_block = (data.index.droplevel(list(set(data.index.names)
-                                            .difference({'year_start', 'year_end'})))
-                  .unique().reorder_levels(['year_start', 'year_end']))
+    expected_years = (context['years']
+                      .filter(['year_start', 'year_end'])
+                      .sort_values(['year_start', 'year_end']))
+    year_block = (pd.DataFrame({'year_start': data.index.get_level_values('year_start'),
+                                'year_end': data.index.get_level_values('year_end')})
+                  .drop_duplicates().sort_values(['year_start', 'year_end']).reset_index(drop=True))
 
-    if not year_block.equal_levels(expected_years):
+    if not year_block.equals(expected_years):
         raise DataTransformationError('Year_start and year_end must cover [1990, 2017] in intervals of one year.')
 
 
