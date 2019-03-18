@@ -629,8 +629,8 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         raise NotImplementedError()
 
     protective_causes = [c.name for c in PROTECTIVE_CAUSE_RISK_PAIRS.get(entity.name, [])]
-    protective = data.query('affected_entity in @protective_causes')
-    non_protective = data.loc[data.index.difference(protective.index)]
+    protective = data.loc[data.index.isin(protective_causes, 'affected_entity')]
+    non_protective = data.loc[~data.index.isin(protective_causes, 'affected_entity')]
 
     if not protective.empty:
         check_value_columns_boundary(protective, boundary_value=0, boundary_type='lower',
@@ -647,7 +647,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
     if is_categorical:
         tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]  # chop 'cat' and sort
-        if not (data.query('parameter == @tmrel_cat').value == 1.0).all():
+        if not (data.loc[data.index.isin([tmrel_cat], 'parameter')].value == 1.0).all():
             raise DataTransformationError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
@@ -691,8 +691,8 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     risk_relationship.apply(validate_standard_columns, context)
 
     protective_causes = [c.name for c in PROTECTIVE_CAUSE_RISK_PAIRS.get(entity.name, [])]
-    protective = data.query('affected_entity in @protective_causes')
-    non_protective = data.loc[data.index.difference(protective.index)]
+    protective = data.loc[data.index.isin(protective_causes, 'affected_entity')]
+    non_protective = data.loc[~data.index.isin(protective_causes, 'affected_entity')]
 
     if not protective.empty:
         check_value_columns_boundary(protective, boundary_value=VALID_PROTECTIVE_PAF_MIN, boundary_type='lower',
@@ -1214,10 +1214,9 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
     """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
-    age_start = float(age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start'])
-    age_end = float(age_bins.loc[age_bins.age_group_id == end_id, 'age_group_end'])
+    in_range_ages = age_bins.loc[start_id <= age_bins.age_group_id <= end_id, 'age_group_start']
 
-    outside = data.query('age_group_start < @age_start or age_group_end > @age_end')
+    outside = data.loc[data.index.isin(in_range_ages, 'age_group_start')]
 
     if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
             entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] and
@@ -1264,10 +1263,10 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
     """
     outside = None
     if male_only:
-        outside = data.query("sex == 'Female'")
+        outside = data.loc[data.index.get_level_values('sex') == "Female"]
         sex = 'male'
     elif female_only:
-        outside = data.query("sex == 'Male'")
+        outside = data.loc[data.index.get_level_values('sex') == "Male"]
         sex = 'female'
     if outside is not None:
         if entity is not None and (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
@@ -1306,8 +1305,8 @@ def _check_cat_risk_fill_values(outside_data: pd.DataFrame, entity: Union[RiskFa
 
     """
     tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
-    outside_unexposed = outside_data.query('parameter == @tmrel_cat')
-    outside_exposed = outside_data.query('parameter != @tmrel_cat')
+    outside_unexposed = outside_data.loc[outside_data.index.get_level_values('parameter') == tmrel_cat]
+    outside_exposed = outside_data.loc[outside_data.index.get_level_values('parameter') != tmrel_cat]
     if not outside_unexposed.empty and (outside_unexposed.value != fill_value['unexposed']).any():
         raise DataTransformationError(f'{restriction.capitalize()} restrictions for TMREL cat are violated by a '
                                       f'value other than fill={fill_value["unexposed"]}.')
@@ -1333,9 +1332,9 @@ def check_covariate_values(data: pd.DataFrame) -> None:
          that lower < mean < upper.
 
     """
-    lower = data.query('parameter == "lower_value"').value.values
-    mean = data.query('parameter == "mean_value"').value.values
-    upper = data.query('parameter == "upper_value"').value.values
+    lower = data.xs('lower_value', level='parameter').value.values
+    mean = data.xs('mean_value', level='parameter').value.values
+    upper = data.xs('upper_value', level='parameter').value.values
 
     # allow the case where lower = mean = upper = 0 b/c of things like age
     # specific fertility rate where all estimates are 0 for young age groups
