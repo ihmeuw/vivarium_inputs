@@ -1264,10 +1264,10 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
     """
     outside = None
     if male_only:
-        outside = data.loc[data.index.get_level_values('sex') == "Female"]
+        outside = data.xs('Female', level='sex')
         sex = 'male'
     elif female_only:
-        outside = data.loc[data.index.get_level_values('sex') == "Male"]
+        outside = data.xs('Male', level='sex')
         sex = 'female'
     if outside is not None:
         if entity is not None and (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
