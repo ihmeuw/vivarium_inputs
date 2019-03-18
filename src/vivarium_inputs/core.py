@@ -132,6 +132,8 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                 disability = get_data(sequela, 'disability_weight', location_id)
                 disability.index = disability.index.set_levels([location_id], 'location_id')
                 data += prevalence * disability
+        cause_prevalence = get_data(entity, 'prevalence', location_id)
+        data = (data / cause_prevalence).fillna(0)
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
             data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
