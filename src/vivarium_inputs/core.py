@@ -214,6 +214,8 @@ def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None
         data = data.drop('sequela_id', 'columns')
         data = data.reset_index()
         data.loc[:, 'cause_id'] = entity.gbd_id
+        cause_prev = get_prevalence(entity, location_id).reset_index(drop=True)
+        data = (data / cause_prev).fillna(0)
 
     else:
         raise InvalidQueryError("Only sequela and causes have disability weights associated with them.")
