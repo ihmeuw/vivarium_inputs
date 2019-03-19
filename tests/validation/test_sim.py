@@ -196,11 +196,11 @@ def test_check_sex_restrictions_fail(values, restrictions, fill):
                                 pd.DataFrame({'a': [1]*3, 'b': [2]*3, 'c': [3]*3, 'd': [np.NaN]*3})])
 def test_validate_expected_index_columns_pass(df):
     cols = ['a', 'b', 'c', 'd']
-    sim.validate_expected_index_columns([None], df.index.names, cols, df.columns)
+    sim.validate_expected_index_and_columns([None], df.index.names, cols, df.columns)
     df = df.set_index(cols[:2])
-    sim.validate_expected_index_columns(cols[:2], df.index.names, cols[2:], df.columns)
+    sim.validate_expected_index_and_columns(cols[:2], df.index.names, cols[2:], df.columns)
     df = df.set_index(cols[2:], append=True)
-    sim.validate_expected_index_columns(cols, df.index.names, [], df.columns)
+    sim.validate_expected_index_and_columns(cols, df.index.names, [], df.columns)
 
 
 @pytest.mark.parametrize('df', [pd.DataFrame(columns=['a', 'b', 'c', 'd']),
@@ -209,13 +209,13 @@ def test_validate_expected_index_columns_pass(df):
 def test_validate_expected_columns_fail(df):
     cols = ['a', 'b', 'c', 'd']
     with pytest.raises(DataTransformationError, match='missing columns'):
-        sim.validate_expected_index_columns([None], df.index.names, cols + ['e'], df.columns)
+        sim.validate_expected_index_and_columns([None], df.index.names, cols + ['e'], df.columns)
     with pytest.raises(DataTransformationError, match='missing index names'):
         data = df.set_index(cols[:2])
-        sim.validate_expected_index_columns(cols[:3], data.index.names, cols[:2], data.columns)
+        sim.validate_expected_index_and_columns(cols[:3], data.index.names, cols[:2], data.columns)
 
     with pytest.raises(DataTransformationError, match='extra columns'):
-        sim.validate_expected_index_columns([None], df.index.names, cols[1:], df.columns)
+        sim.validate_expected_index_and_columns([None], df.index.names, cols[1:], df.columns)
     with pytest.raises(DataTransformationError, match='extra index names'):
         data = df.set_index(cols[:2])
-        sim.validate_expected_index_columns(cols[:1], data.index.names, cols[:2], data.columns)
+        sim.validate_expected_index_and_columns(cols[:1], data.index.names, cols[:2], data.columns)

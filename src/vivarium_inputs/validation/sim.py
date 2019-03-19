@@ -158,7 +158,7 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_standard_columns(data, context)
 
@@ -198,7 +198,7 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_standard_columns(data, context)
 
@@ -239,7 +239,7 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
 
     """
     expected_index_names = ['draw', 'location', 'sex', 'year_start', 'year_end']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_location_column(data, context)
     validate_sex_column(data)
@@ -282,7 +282,7 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
@@ -320,7 +320,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationVal
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_standard_columns(data, context)
 
@@ -357,7 +357,7 @@ def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_standard_columns(data, context)
 
@@ -394,7 +394,7 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_standard_columns(data, context)
 
@@ -451,7 +451,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter', 'draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
@@ -516,7 +516,7 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_standard_columns(data, context)
 
@@ -560,7 +560,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_demographic_columns(data, context)
     validate_value_column(data)
@@ -613,7 +613,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter', 'draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     risk_relationship = data.groupby(['affected_entity', 'affected_measure', 'parameter'])
     risk_relationship.apply(validate_standard_columns, context)
@@ -685,7 +685,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(validate_standard_columns, context)
@@ -751,7 +751,7 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
         expected_index_names += ['sex']
     if entity.by_age:
         expected_index_names += ['age_group_start', 'age_group_end']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_location_column(data, context)
     if entity.by_sex:
@@ -787,7 +787,7 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcare
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw', entity.kind]
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
@@ -820,7 +820,7 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: 
 
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['draw']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
@@ -853,7 +853,7 @@ def validate_structure(data: pd.DataFrame, entity: Population, context: Simulati
         expected boundary values.
 
     """
-    validate_expected_index_columns(SCRUBBED_DEMOGRAPHIC_COLUMNS, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(SCRUBBED_DEMOGRAPHIC_COLUMNS, data.index.names, ['value'], data.columns)
 
     validate_demographic_columns(data, context)
     validate_value_column(data)
@@ -894,7 +894,7 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
 
     """
     expected_index_names = ['age_group_start', 'age_group_end']
-    validate_expected_index_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     age_min, age_max = 0, 110
     if data.index.unique('age_group_start').min() > age_min or data.index.unique('age_group_start').max() < age_max:
@@ -932,7 +932,7 @@ def validate_age_bins(data: pd.DataFrame, entity: Population, context: Simulatio
 
     """
     expected_index_names = ['age_group_start', 'age_group_end', 'age_group_name']
-    validate_expected_index_columns(expected_index_names, data.index.names, [], data.columns)
+    validate_expected_index_and_columns(expected_index_names, data.index.names, [], data.columns)
 
     validate_age_columns(data, context=context)
 
@@ -958,7 +958,7 @@ def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
         values.
 
     """
-    validate_expected_index_columns(SCRUBBED_DEMOGRAPHIC_COLUMNS, data.index.names, [], data.columns)
+    validate_expected_index_and_columns(SCRUBBED_DEMOGRAPHIC_COLUMNS, data.index.names, [], data.columns)
 
     validate_demographic_columns(data, context)
 
@@ -967,8 +967,8 @@ def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
 # UTILITIES #
 #############
 
-def validate_expected_index_columns(expected_index_names: List, existing_index_names: List, expected_cols: List,
-                                    existing_cols: List) -> None:
+def validate_expected_index_and_columns(expected_index_names: List, existing_index_names: List, expected_cols: List,
+                                        existing_cols: List) -> None:
     """Verify that the passed lists of columns and index names match.
 
     Parameters
@@ -1214,10 +1214,10 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
     """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
-    in_range_ages = age_bins.loc[(age_bins.age_group_id < start_id) & (age_bins.age_group_id > end_id),
+    in_range_ages = age_bins.loc[(age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id),
                                  'age_group_start']
 
-    outside = data.loc[data.index.isin(in_range_ages, 'age_group_start')]
+    outside = data.loc[~data.index.isin(in_range_ages, 'age_group_start')]
 
     if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
             entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] and
