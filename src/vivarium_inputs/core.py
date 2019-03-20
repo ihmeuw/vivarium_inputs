@@ -219,7 +219,7 @@ def get_disability_weight(entity: Union[Sequela, Cause], location_id: int = None
         cols = ['age_group_id', 'sex_id', 'year_id']
         cause_prev = get_prevalence(entity, location_id).set_index(cols)
         data = data.set_index(cols)
-        draw_cols = [f'draw_{i}' for i in range(1000)]
+        draw_cols = [c for c in data if 'draw' in c]
         data.loc[:, draw_cols] = (data[draw_cols] / cause_prev[draw_cols]).fillna(0)
         data = data.reset_index()
 
