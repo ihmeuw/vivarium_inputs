@@ -1,3 +1,5 @@
+import warnings
+
 import pandas as pd
 import numpy as np
 import math
@@ -267,10 +269,10 @@ def validate_value_range(entity_key, data):
 
         # all supported entity/measures as of 3/22/19 should be > 0
         if np.any(data.value < 0):
-            raise DataMissingError(f'Data for {entity_key} does not contain all values above 0.')
+            warnings.warn(f'Data for {entity_key} does not contain all values above 0.')
 
         if np.any(data.value > max_value):
-            raise DataMissingError(f'Data for {entity_key} contains values above maximum {max_value}.')
+            warnings.warn(f'Data for {entity_key} contains values above maximum {max_value}.')
 
         if np.any(data.value.isna()) or np.any(np.isinf(data.value.values)):
             raise DataMissingError(f'Data for {entity_key} contains NaN or Inf values.')
