@@ -203,9 +203,14 @@ def replicate_data(data):
 
 
 def validate_data(entity_key, data):
+    validate_demographic_block(entity_key, data)
+    validate_value_range(entity_key, data)
+
+
+def validate_demographic_block(entity_key, data):
     ages = gbd.get_age_bins()
     age_start = ages['age_group_years_start']
-    year_start = range(2017, MAX_YEAR+1)
+    year_start = range(2017, MAX_YEAR + 1)
     if 'live_births_by_sex' in entity_key:
         sexes = ['Both']
     elif 'population.structure' in entity_key:
@@ -237,6 +242,31 @@ def validate_data(entity_key, data):
 
     demographic_block = data[names]
     if demographic_block.shape[0] != values:
-        raise DataMissingError(f'Data does not have a correctly-sized demographic block.')
+        raise DataMissingError(f'Data for {entity_key} does not have a correctly-sized demographic block.')
 
 
+def validate_value_range(entity_key, data):
+    maxes = {
+        'proportion': 1,
+        'population': 100_000_000,
+        'incidence': 50,
+        'cause_specific_mortality': 6,
+    }
+    if 'value' in data:
+        if 'proportion' in entity_key:
+            max_value = maxes['proportion']
+        elif 'population.structure' in entity_key:
+            max_value = maxes['population']
+        elif 'cause_specific_mortality' in entity_key:
+            max_value = maxes['cause_specific_mortality']
+        elif 'incidence' in entity_key:
+            max_value = maxes['incidence']
+        else:
+            raise NotImplementedError(f'No max value on record for {entity_key}.')
+
+        # all supported entity/measures as of 3/22/19 should be > 0
+        if not (data.value > 0).all():
+            raise DataMissingError(f'Data for {entity_key} does not contain all values above 0.')
+
+        if not (data.value <= max_value).all():
+            raise DataMissingError(f'Data for {entity_key} contains values above maximum {max_value}.')
