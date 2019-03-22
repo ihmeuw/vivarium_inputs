@@ -202,19 +202,17 @@ def replicate_data(data):
 def validate_data(entity_key, data):
     ages = gbd.get_age_bins()
     age_start = ages['age_group_years_start']
-    age_end = ages['age_group_years_end']
     year_start = range(2017, MAX_YEAR+1)
-    year_end = range(2018, MAX_YEAR+2)
     sexes = ['Male', 'Female'] if 'live_births_by_sex' not in entity_key else ['Both']
     draws = range(NUM_DRAWS)
 
     values, names = [], []
     if 'age_group_start' in data:
-        values += [age_start, age_end]
-        names += ['age_group_start', 'age_group_end']
+        values += [age_start]
+        names += ['age_group_start']
     if 'year_start' in data:
-        values += [year_start, year_end]
-        names += ['year_start', 'year_end']
+        values += [year_start]
+        names += ['year_start']
     if 'sex' in data:
         values += [sexes]
         names += ['sex']
