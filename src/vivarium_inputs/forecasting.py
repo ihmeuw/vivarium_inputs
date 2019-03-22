@@ -39,7 +39,7 @@ def load_forecast(entity_key: EntityKey, location: str):
     }
     mapping, getter, measures = entity_data[entity_key.type].values()
     entity = mapping[entity_key.name]
-    data = getter(entity, entity_key.measure, get_location_id(location))
+    data = getter(entity, entity_key.measure, get_location_id(location)).reset_index(drop=True)
     data['location'] = location
     validate_data(entity_key, data)
     return data
