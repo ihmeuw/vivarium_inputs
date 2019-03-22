@@ -207,24 +207,31 @@ def validate_data(entity_key, data):
     age_start = ages['age_group_years_start']
     year_start = range(2017, MAX_YEAR+1)
     sexes = ['Male', 'Female'] if 'live_births_by_sex' not in entity_key else ['Both']
-    draws = range(NUM_DRAWS)
 
-    values, names = [], []
+    values, names = 1, []
     if 'age_group_start' in data:
-        values += [age_start]
+        values *= len(age_start)
+        if set(data.age_group_start) != set(age_start):
+            raise DataMissingError(f'Data for {entity_key} does not have the correct set of ages.')
         names += ['age_group_start']
     if 'year_start' in data:
-        values += [year_start]
+        values *= len(year_start)
+        if set(data.year_start) != set(year_start):
+            raise DataMissingError(f'Data for {entity_key} does not have the correct set of years.')
         names += ['year_start']
     if 'sex' in data:
-        values += [sexes]
+        values *= len(sexes)
+        if set(data.sex) != set(sexes):
+            raise DataMissingError(f'Data for {entity_key} does not have the correct set of sexes.')
         names += ['sex']
     if 'draw' in data:
-        values += [draws]
-    names += ['draw']
+        values *= NUM_DRAWS
+        if set(data.draws) != set(range(NUM_DRAWS)):
+            raise DataMissingError(f'Data for {entity_key} does not have the correct set of draws.')
+        names += ['draw']
 
-    expected_demographic_block = pd.MultiIndex.from_product(values, names=names).to_frame(index=False)
-    if not data[names].equals(expected_demographic_block):
-        raise DataMissingError(f'Data for {entity_key} does not contain full expected demographic block.')
+    demographic_block = data[names].drop_duplicates()
+    if demographic_block.shape[0] != values:
+        raise DataMissingError(f'Data does not have a correctly-sized demographic block.')
 
 
