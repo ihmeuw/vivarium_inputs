@@ -208,7 +208,7 @@ def validate_data(entity_key, data):
     year_start = range(2017, MAX_YEAR+1)
     if 'live_births_by_sex' in entity_key:
         sexes = ['Both']
-    elif entity_key == 'population.structure':
+    elif 'population.structure' in entity_key:
         sexes = ['Male', 'Female', 'Both']
     else:
         sexes = ['Male', 'Female']
