@@ -226,7 +226,7 @@ def validate_data(entity_key, data):
         names += ['sex']
     if 'draw' in data:
         values *= NUM_DRAWS
-        if set(data.draws) != set(range(NUM_DRAWS)):
+        if set(data.draw) != set(range(NUM_DRAWS)):
             raise DataMissingError(f'Data for {entity_key} does not have the correct set of draws.')
         names += ['draw']
 
