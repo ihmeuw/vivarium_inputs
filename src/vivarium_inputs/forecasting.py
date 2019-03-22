@@ -64,7 +64,7 @@ def get_population_data(_, measure, location_id):
     if measure == 'structure':
         data = forecasting.get_population(location_id)
         value_column = 'population'
-        data = normalize_forecasting(data, value_column)
+        data = normalize_forecasting(data, value_column, sexes=['Male', 'Female', 'Both'])
         return data[BASE_COLUMNS + [value_column]]
     else:
         raise ValueError(f"Only population.structure is supported from forecasting. You requested {measure}.")
@@ -206,7 +206,12 @@ def validate_data(entity_key, data):
     ages = gbd.get_age_bins()
     age_start = ages['age_group_years_start']
     year_start = range(2017, MAX_YEAR+1)
-    sexes = ['Male', 'Female'] if 'live_births_by_sex' not in entity_key else ['Both']
+    if 'live_births_by_sex' in entity_key:
+        sexes = ['Both']
+    elif entity_key == 'population.structure':
+        sexes = ['Male', 'Female', 'Both']
+    else:
+        sexes = ['Male', 'Female']
 
     values, names = 1, []
     if 'age_group_start' in data:
