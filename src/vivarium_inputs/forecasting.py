@@ -235,7 +235,7 @@ def validate_data(entity_key, data):
             raise DataMissingError(f'Data for {entity_key} does not have the correct set of draws.')
         names += ['draw']
 
-    demographic_block = data[names].drop_duplicates()
+    demographic_block = data[names]
     if demographic_block.shape[0] != values:
         raise DataMissingError(f'Data does not have a correctly-sized demographic block.')
 
