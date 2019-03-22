@@ -217,24 +217,24 @@ def mock_sequelae_disability_weights(sequelae, dw_data):
     return combined
 
 
-def mock_sequelae_prevalence(sequela, __, prev_data):
-    """Mocks sequela prevalence data, used to patch the call to get_prevalence from core.py as a side effect. Data is
+def mock_prevalence(entity, __, prev_data):
+    """Mocks prevalence data, used to patch the call to get_prevalence from core.py as a side effect. Data is
     supplied to the function."""
-    sequela_data = prev_data[sequela.name]
-    draw_cols = [f"draw_{i}" for i in range(sequela_data.shape[1])]
+    entity_data = prev_data[entity.name]
+    draw_cols = [f"draw_{i}" for i in range(entity_data.shape[1])]
     id_data = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2],
             'age_group_id': [4, 5], 'measure_id': [5], 'metric_id': [3]}
     index = pd.DataFrame(columns=draw_cols, index=pd.MultiIndex.from_product([*id_data.values()], names=[*id_data.keys()])).index
-    sequela_data.index = index
-    sequela_data = sequela_data.reset_index()
-    sequela_data['sequela_id'] = sequela.gbd_id
+    entity_data.index = index
+    entity_data = entity_data.reset_index()
+    entity_data[f'{entity.kind}_id'] = entity.gbd_id
 
-    return sequela_data
+    return entity_data
 
 
-def make_test_disability_weight_data(sequelae, num_draws=10):
-    """Mock data for sequelae prevalence and disability weights, as well as their weighted sum. This can be used as
-    expected output for cause-level disability weights."""
+def make_test_disability_weight_data(sequelae, cause=None, num_draws=10):
+    """Mock data for sequelae prevalence and disability weights, as well as their weighted sum scaled to cause
+    prevalence. This can be used as expected output for cause-level disability weights."""
 
     draw_cols = [f"draw_{i}" for i in range(num_draws)]
     data = {'year_id': [1990, 1995, 2000], 'location_id': [1], 'sex_id': [1, 2],
@@ -254,6 +254,12 @@ def make_test_disability_weight_data(sequelae, num_draws=10):
             expected = pd.DataFrame(prev_draws.values * dw_draws.values)
         else:
             expected += pd.DataFrame(prev_draws.values * dw_draws.values)
+
+    if cause is not None:
+        # set cause prevalence to 0.5 for all draws/demographic groups
+        prev_data[cause.name] = pd.DataFrame(data=np.ones((len(prev_frame), num_draws))/2, columns=draw_cols)
+        # scale weighted sum of sequelae disability weights to cause prev of 0.5
+        expected /= 0.5
 
     dw_data = pd.concat(dw_data, axis=0).reset_index(drop=True)
     expected.columns = [f'draw_{i}' for i in range(num_draws)]
@@ -284,7 +290,7 @@ def test_get_disability_weight_cause(mocker):
 
     cause = causes.urticaria
 
-    prev_data, dw_data, expected = make_test_disability_weight_data(cause.sequelae)
+    prev_data, dw_data, expected = make_test_disability_weight_data(cause.sequelae, cause)
 
     # mock disability weights
     gbd_mock = mocker.patch("vivarium_inputs.core.gbd")
@@ -293,7 +299,7 @@ def test_get_disability_weight_cause(mocker):
 
     # mock prevalence
     prevalence_mock = mocker.patch("vivarium_inputs.core.get_prevalence")
-    prevalence_mock.side_effect = partial(mock_sequelae_prevalence, prev_data=prev_data)
+    prevalence_mock.side_effect = partial(mock_prevalence, prev_data=prev_data)
 
     mock_location_id = 1.0
     cause_disability_weight = core.get_disability_weight(cause, mock_location_id)

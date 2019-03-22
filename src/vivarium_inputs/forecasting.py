@@ -94,8 +94,7 @@ def _get_live_births_by_sex(location_id):
     data = data.groupby(['draw', 'year_id', 'location_id'])[['live_births']].sum().reset_index()
     # normalize first because it would drop sex_id = 3 and duplicate for male and female but we need both for use in
     # vph FertilityCrudeBirthRate
-    data = normalize_forecasting(data)
-    data['parameter'] = 'mean_value'
+    data = normalize_forecasting(data, 'mean_value')
     data['sex'] = 'Both'
     return data
 
