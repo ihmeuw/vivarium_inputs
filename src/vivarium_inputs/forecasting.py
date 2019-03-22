@@ -265,7 +265,7 @@ def validate_value_range(entity_key, data):
             raise NotImplementedError(f'No max value on record for {entity_key}.')
 
         # all supported entity/measures as of 3/22/19 should be > 0
-        if not (data.value > 0).all():
+        if not (data.value >= 0).all():
             raise DataMissingError(f'Data for {entity_key} does not contain all values above 0.')
 
         if not (data.value <= max_value).all():
