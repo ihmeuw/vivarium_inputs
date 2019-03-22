@@ -2,13 +2,15 @@ import pandas as pd
 import math
 
 from vivarium_inputs.core import get_location_id
-from vivarium_inputs.utilities import normalize_for_simulation, get_age_group_bins_from_age_group_id, gbd, forecasting
+from vivarium_inputs.utilities import (normalize_for_simulation, get_age_group_bins_from_age_group_id,
+                                       gbd, forecasting, DataMissingError)
 from gbd_mapping import causes, covariates, etiologies
 from vivarium_public_health.dataset_manager import EntityKey
 
 NUM_DRAWS = 1000
 FERTILE_AGE_GROUP_IDS = list(range(7, 15 + 1))  # need for calc live births by sex
 BASE_COLUMNS = ['year_start', 'year_end', 'age_group_start', 'age_group_end', 'draw', 'sex']
+MAX_YEAR = 2040
 
 
 def load_forecast(entity_key: EntityKey, location: str):
@@ -38,6 +40,7 @@ def load_forecast(entity_key: EntityKey, location: str):
     entity = mapping[entity_key.name]
     data = getter(entity, entity_key.measure, get_location_id(location))
     data['location'] = location
+    validate_data(entity_key, data)
     return data
 
 
@@ -113,6 +116,9 @@ def normalize_forecasting(data: pd.DataFrame, value_column='value') -> pd.DataFr
             data = get_age_group_bins_from_age_group_id(data)
 
     # not filtering on year as in vivarium_inputs.data_artifact.utilities.normalize b/c will drop future data
+    # only keeping data out to 2040 for consistency
+    if 'year_start' in data:
+        data = data[(data.year_start >= 2017) & (data.year_start <= MAX_YEAR)]
 
     if 'scenario' in data:
         data = data.drop("scenario", "columns")
@@ -191,5 +197,33 @@ def replicate_data(data):
             full_data = full_data.append(new_data)
 
     return full_data
+
+
+def validate_data(entity_key, data):
+    ages = gbd.get_age_bins()
+    age_start = ages['age_group_years_start']
+    age_end = ages['age_group_years_end']
+    year_start = range(2017, MAX_YEAR+1)
+    year_end = range(2018, MAX_YEAR+2)
+    sexes = ['Male', 'Female'] if 'live_births_by_sex' not in entity_key else ['Both']
+    draws = range(NUM_DRAWS)
+
+    values, names = [], []
+    if 'age_group_start' in data:
+        values += [age_start, age_end]
+        names += ['age_group_start', 'age_group_end']
+    if 'year_start' in data:
+        values += [year_start, year_end]
+        names += ['year_start', 'year_end']
+    if 'sex' in data:
+        values += [sexes]
+        names += ['sex']
+    if 'draw' in data:
+        values += [draws]
+    names += ['draw']
+
+    expected_demographic_block = pd.MultiIndex.from_product(values, names=names).to_frame(index=False)
+    if not data[names].equals(expected_demographic_block):
+        raise DataMissingError(f'Data for {entity_key} does not contain full expected demographic block.')
 
 
