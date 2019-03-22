@@ -97,12 +97,12 @@ def _get_live_births_by_sex(location_id):
     data = data.groupby(['draw', 'year_id', 'location_id'])[['live_births']].sum().reset_index()
     # normalize first because it would drop sex_id = 3 and duplicate for male and female but we need both for use in
     # vph FertilityCrudeBirthRate
-    data = normalize_forecasting(data, 'mean_value')
+    data = normalize_forecasting(data, 'mean_value', ['Both'])
     data['sex'] = 'Both'
     return data
 
 
-def normalize_forecasting(data: pd.DataFrame, value_column='value') -> pd.DataFrame:
+def normalize_forecasting(data: pd.DataFrame, value_column='value', sexes=['Male', 'Female']) -> pd.DataFrame:
     assert not data.empty
 
     data = normalize_for_simulation(rename_value_columns(data, value_column))
@@ -122,6 +122,9 @@ def normalize_forecasting(data: pd.DataFrame, value_column='value') -> pd.DataFr
 
     if 'scenario' in data:
         data = data.drop("scenario", "columns")
+
+    if 'sex' in data:
+        data = data[data.sex.isin(sexes)]
 
     # make sure there are at least NUM_DRAWS draws
     return replicate_data(data)
