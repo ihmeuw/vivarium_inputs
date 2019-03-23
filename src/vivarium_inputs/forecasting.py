@@ -275,4 +275,4 @@ def validate_value_range(entity_key, data):
             warnings.warn(f'Data for {entity_key} contains values above maximum {max_value}.')
 
         if np.any(data.value.isna()) or np.any(np.isinf(data.value.values)):
-            raise DataMissingError(f'Data for {entity_key} contains NaN or Inf values.')
+            warnings.warn(f'Data for {entity_key} contains NaN or Inf values.')
