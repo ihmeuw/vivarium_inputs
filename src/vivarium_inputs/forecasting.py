@@ -1,5 +1,3 @@
-import warnings
-
 import pandas as pd
 import numpy as np
 import math
@@ -9,6 +7,10 @@ from vivarium_inputs.utilities import (normalize_for_simulation, get_age_group_b
                                        gbd, forecasting, DataMissingError)
 from gbd_mapping import causes, covariates, etiologies
 from vivarium_public_health.dataset_manager import EntityKey
+
+import logging
+
+_log = logging.getLogger(__name__)
 
 NUM_DRAWS = 1000
 FERTILE_AGE_GROUP_IDS = list(range(7, 15 + 1))  # need for calc live births by sex
@@ -269,10 +271,10 @@ def validate_value_range(entity_key, data):
 
         # all supported entity/measures as of 3/22/19 should be > 0
         if np.any(data.value < 0):
-            warnings.warn(f'Data for {entity_key} does not contain all values above 0.')
+            _log.debug(f'Data for {entity_key} does not contain all values above 0.')
 
         if np.any(data.value > max_value):
-            warnings.warn(f'Data for {entity_key} contains values above maximum {max_value}.')
+            _log.debug(f'Data for {entity_key} contains values above maximum {max_value}.')
 
         if np.any(data.value.isna()) or np.any(np.isinf(data.value.values)):
-            warnings.warn(f'Data for {entity_key} contains NaN or Inf values.')
+            _log.debug(f'Data for {entity_key} contains NaN or Inf values.')
