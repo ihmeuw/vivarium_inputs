@@ -62,7 +62,7 @@ def get_etiology_data(etiology, measure, location_id):
     data = standardize_data(data, 0)
     value_column = 'value'
     data = normalize_forecasting(data, value_column)
-    data = data.fillna(0)  # incidence values for age 95-125 for shigella are NaN - fill to 0
+    data.value = data.value.fillna(0)  # incidence values for age 95-125 for shigella are NaN - fill to 0
     return data[BASE_COLUMNS + [value_column]]
 
 
