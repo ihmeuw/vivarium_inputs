@@ -62,6 +62,7 @@ def get_etiology_data(etiology, measure, location_id):
     data = standardize_data(data, 0)
     value_column = 'value'
     data = normalize_forecasting(data, value_column)
+    data = data.fillna(0)  # incidence values for age 95-125 for shigella are NaN - fill to 0
     return data[BASE_COLUMNS + [value_column]]
 
 
@@ -85,6 +86,8 @@ def get_covariate_data(covariate, measure, location_id):
         data = forecasting.get_entity_measure(covariate, measure, location_id)
         data = standardize_data(data, 0)
         data = normalize_forecasting(data, value_column)
+    if 'proportion' in covariate.name:
+        data.loc[data.value < 0] = 0
     return data
 
 
@@ -271,10 +274,10 @@ def validate_value_range(entity_key, data):
 
         # all supported entity/measures as of 3/22/19 should be > 0
         if np.any(data.value < 0):
-            _log.debug(f'Data for {entity_key} does not contain all values above 0.')
+            raise DataMissingError(f'Data for {entity_key} does not contain all values above 0.')
 
         if np.any(data.value > max_value):
             _log.debug(f'Data for {entity_key} contains values above maximum {max_value}.')
 
         if np.any(data.value.isna()) or np.any(np.isinf(data.value.values)):
-            _log.debug(f'Data for {entity_key} contains NaN or Inf values.')
+            raise DataMissingError(f'Data for {entity_key} contains NaN or Inf values.')
