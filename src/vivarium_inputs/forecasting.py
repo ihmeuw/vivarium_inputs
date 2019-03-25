@@ -271,7 +271,8 @@ def validate_value_range(entity_key, data):
             max_value = maxes['incidence']
         else:
             raise NotImplementedError(f'No max value on record for {entity_key}.')
-
+        # FIXME: for shigella model, all we care about is 2025-2040 so restricting to that range
+        data = data[data.year_start >= 2025]
         # all supported entity/measures as of 3/22/19 should be > 0
         if np.any(data.value < 0):
             raise DataMissingError(f'Data for {entity_key} does not contain all values above 0.')
