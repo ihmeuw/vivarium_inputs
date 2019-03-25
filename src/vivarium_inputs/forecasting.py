@@ -87,7 +87,7 @@ def get_covariate_data(covariate, measure, location_id):
         data = standardize_data(data, 0)
         data = normalize_forecasting(data, value_column)
     if 'proportion' in covariate.name:
-        data.loc[data.value < 0] = 0
+        data.value.loc[data.value < 0] = 0
     return data
 
 
