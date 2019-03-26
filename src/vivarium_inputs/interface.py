@@ -63,8 +63,8 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
     """
     data = core.get_data(entity, measure, location)
     data = utilities.scrub_gbd_conventions(data, location)
-    data = data.reset_index()
     validation.validate_for_simulation(data, entity, measure, location)
+    data = data.reset_index()
     return utilities.sort_data(data)
 
 
@@ -88,8 +88,8 @@ def get_population_structure(location: str) -> pd.DataFrame:
     pop = Population()
     data = core.get_data(pop, 'structure', location)
     data = utilities.scrub_gbd_conventions(data, location)
-    data = data.reset_index()
     validation.validate_for_simulation(data, pop, 'structure', location)
+    data = data.reset_index()
     return utilities.sort_data(data)
 
 
@@ -106,8 +106,8 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
     """
     pop = Population()
     data = core.get_data(pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
-    data = data.reset_index()
     validation.validate_for_simulation(data, pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
+    data = data.reset_index()
     return utilities.sort_data(data)
 
 
@@ -123,8 +123,8 @@ def get_age_bins() -> pd.DataFrame:
     """
     pop = Population()
     data = core.get_data(pop, 'age_bins', 'Global')
-    data = data.reset_index()
     validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
+    data = data.reset_index()
     return utilities.sort_data(data)
 
 
@@ -146,8 +146,8 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     pop = Population()
     data = core.get_data(pop, 'demographic_dimensions', location)
     data = utilities.scrub_gbd_conventions(data, location)
-    data = data.reset_index()
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
+    data = data.reset_index()
     return utilities.sort_data(data)
 
 
