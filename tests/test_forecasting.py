@@ -18,11 +18,11 @@ def test_rename_value_columns():
 
 
 def test_normalize_forecasting():
-    data = pd.DataFrame({'year_id': [1990, 2000, 2010, 2020], 'scenario': [0]*4,
-                         'value': range(0, 4), 'age_group_id': 22})
+    data = pd.DataFrame({'year_id': [2020, 2030, 2035, 2040, 2041], 'scenario': [0]*5,
+                         'value': range(0, 5), 'age_group_id': 22})
 
-    expected_base = pd.DataFrame({'year_start': [1990, 2000, 2010, 2020],
-                             'year_end': [2000, 2010, 2020, 2021], 'draw': 0,
+    expected_base = pd.DataFrame({'year_start': [2020, 2030, 2035, 2040],
+                             'year_end': [2030, 2035, 2040, 2041], 'draw': 0,
                              'value': range(0, 4)})
 
     expected = expected_base.copy()
