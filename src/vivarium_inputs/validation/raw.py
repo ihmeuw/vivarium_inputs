@@ -26,7 +26,7 @@ MIN_PAF = 0
 MIN_PROTECTIVE_PAF = -1
 MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
-MAX_POP = 141_000_000  # pop data includes both sexes combined at this point
+MAX_POP = 145_000_000  # pop data includes both sexes combined at this point
 
 
 class RawValidationContext:
