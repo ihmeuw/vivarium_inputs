@@ -27,7 +27,7 @@ VALID_PAF_RANGE = (0.0, 1.0)
 VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 VALID_UTILIZATION_RANGE = (0, 50)
-VALID_POPULATION_RANGE = (0, 141_000_000)
+VALID_POPULATION_RANGE = (0, 75_000_000)
 VALID_LIFE_EXP_RANGE = (0, 90)
 
 SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age_group_start', 'age_group_end', 'year_start', 'year_end']
