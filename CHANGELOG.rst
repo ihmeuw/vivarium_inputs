@@ -1,3 +1,7 @@
+**1.0.20 - 03/26/19**
+
+ - Bugfix to scale cause level disability weight by prevalence.
+ - Add validation for forecasting data.
 
 **1.0.19 - 02/26/19**
 
