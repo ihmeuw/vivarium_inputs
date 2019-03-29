@@ -1,3 +1,11 @@
+**2.0.3 - 03/29/19**
+
+ - Update memory requirements for building artifacts.
+ - Fix multi-build artifact.
+ - Add integration tests.
+ - Make reshape faster, idempotent, and move to get_data function.
+ - Various bugfixes.
+
 **2.0.2 - 02/24/19**
 
  - Make sure demographic dimensions are in every artifact.
