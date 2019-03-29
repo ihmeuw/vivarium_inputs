@@ -22,8 +22,7 @@ class ArtifactPassthrough:
         entity_key = EntityKey(entity_key)
         data = loader(entity_key, self.location, self.modeled_causes)
 
-        if isinstance(data, pd.DataFrame):  # could be a metadata dict
-            data = data.reset_index()
+        if isinstance(data, pd.DataFrame):
             for key, val in self.base_filter.items():
                 if key in data.columns:
                     column_filters[key] = val
