@@ -594,7 +594,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         raise NotImplementedError()
 
     protective_causes = [c.name for c in PROTECTIVE_CAUSE_RISK_PAIRS.get(entity.name, [])]
-    protective = data[data.affected_entity.isin([c.name for c in protective_causes])]
+    protective = data[data.affected_entity.isin(protective_causes)]
     non_protective = data.loc[data.index.difference(protective.index)]
 
     if not protective.empty:
@@ -653,7 +653,7 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     risk_relationship.apply(validate_standard_columns, context)
 
     protective_causes = [c.name for c in PROTECTIVE_CAUSE_RISK_PAIRS.get(entity.name, [])]
-    protective = data[data.affected_entity.isin([c.name for c in protective_causes])]
+    protective = data[data.affected_entity.isin(protective_causes)]
     non_protective = data.loc[data.index.difference(protective.index)]
 
     if not protective.empty:
