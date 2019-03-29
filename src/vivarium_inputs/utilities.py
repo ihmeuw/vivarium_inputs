@@ -42,18 +42,18 @@ def scrub_sex(data):
 def scrub_age(data):
     if 'age_group_id' in data.index.names:
         age_bins = utility_data.get_age_bins().set_index('age_group_id')
-        starts = list(data.index.levels[data.index.names.index('age_group_id')].map(age_bins['age_group_start']))
-        data = (data.assign(age_group_end=(data.index.get_level_values('age_group_id')
-                                           .map(age_bins['age_group_end'])))
-                .set_index('age_group_end', append=True))
-        data.index = data.index.rename('age_group_start', 'age_group_id').set_levels(starts, 'age_group_start')
+        id_levels = data.index.levels[data.index.names.index('age_group_id')]
+        interval_levels = [pd.Interval(age_bins.age_group_start[id],
+                                       age_bins.age_group_end[id], closed='left') for id in id_levels]
+        data.index = data.index.rename('age_group', 'age_group_id').set_levels(interval_levels, 'age_group')
     return data
 
 
 def scrub_year(data):
     if 'year_id' in data.index.names:
-        data.index = data.index.rename('year_start', 'year_id')
-        data = data.assign(year_end=data.index.get_level_values('year_start')+1).set_index('year_end', append=True)
+        id_levels = data.index.levels[data.index.names.index('year_id')]
+        interval_levels = [pd.Interval(year_id, year_id + 1, closed='left') for year_id in id_levels]
+        data.index = data.index.rename('year', 'year_id').set_levels(interval_levels, 'year')
     return data
 
 
