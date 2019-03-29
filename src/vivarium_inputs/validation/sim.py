@@ -16,7 +16,7 @@ VALID_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_BIRTH_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
-# FIXME: bumping csmr max to 3 because of age group scaling 2/8/19 - K.W.
+# FIXME: bumping csmr max because of age group scaling 2/8/19 - K.W.
 VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 6)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
 VALID_EXPOSURE_RANGE = (0.0, {'continuous': 10_000.0, 'categorical': 1.0})
@@ -30,7 +30,7 @@ VALID_UTILIZATION_RANGE = (0, 50)
 VALID_POPULATION_RANGE = (0, 75_000_000)
 VALID_LIFE_EXP_RANGE = (0, 90)
 
-SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age_group_start', 'age_group_end', 'year_start', 'year_end']
+SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age_group', 'year']
 
 
 class SimulationValidationContext:
@@ -1107,7 +1107,7 @@ def validate_sex_column(data: pd.DataFrame) -> None:
 
 
 def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that age indexcolumns in the data have the expected values.
+    """Validate that age index column in the data has the expected values.
 
     Parameters
     ----------
@@ -1119,23 +1119,19 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
     Raises
     ------
     DataTransformationError
-        If 'age_group_start' and 'age_group_end' columns do not contain the
-        full range of expected age bins supplied in `context`.
+        If 'age_group' column does not contain the full range of expected
+        age bins supplied in `context`.
 
     """
-    expected_ages = (context['age_bins']
-                     .filter(['age_group_start', 'age_group_end'])
-                     .sort_values(['age_group_start', 'age_group_end']))
-    age_block = (pd.DataFrame({'age_group_start': data.index.get_level_values('age_group_start'),
-                               'age_group_end': data.index.get_level_values('age_group_end')})
-                 .drop_duplicates().sort_values(['age_group_start', 'age_group_end']).reset_index(drop=True))
+    expected_ages = [pd.Interval(row.age_group_start, row.age_group_end, closed='left') for idx, row in context['age_bins'].iterrows()]
+    data_ages = data.index.levels[data.index.names.index('age_group')]
 
-    if not age_block.equals(expected_ages):
+    if not sorted(data_ages) == sorted(expected_ages):
         raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
 
 
 def validate_year_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that year columns in the data have the expected values.
+    """Validate that year column in the data has the expected values.
 
     Parameters
     ----------
@@ -1147,18 +1143,14 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
     Raises
     ------
     DataTransformationError
-        If 'year_start' and 'year_end' columns do not contain the full range of
-        expected year bins supplied in `context`.
+        If 'year' column does not contain the full range of expected year bins
+        supplied in `context`.
 
     """
-    expected_years = (context['years']
-                      .filter(['year_start', 'year_end'])
-                      .sort_values(['year_start', 'year_end']))
-    year_block = (pd.DataFrame({'year_start': data.index.get_level_values('year_start'),
-                                'year_end': data.index.get_level_values('year_end')})
-                  .drop_duplicates().sort_values(['year_start', 'year_end']).reset_index(drop=True))
+    expected_years = [pd.Interval(row.year_start, row.year_end, closed='left') for idx, row in context['years'].iterrows()]
+    data_years = data.index.levels[data.index.names.index('year')]
 
-    if not year_block.equals(expected_years):
+    if not sorted(data_years) == sorted(expected_years):
         raise DataTransformationError('Year_start and year_end must cover [1990, 2017] in intervals of one year.')
 
 

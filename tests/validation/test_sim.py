@@ -74,7 +74,10 @@ def test_validate_age_columns_pass(mock_validation_context):
     ages = (mock_validation_context['age_bins']
             .filter(['age_group_start', 'age_group_end']))
     # Shuffle the rows and set index
-    ages = ages.sample(frac=1).reset_index(drop=True).set_index(['age_group_start', 'age_group_end'])
+    ages = ages.sample(frac=1).reset_index(drop=True)
+    ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
+                                                       closed='left', name='age_group'),
+                          append=True)
     sim.validate_age_columns(ages, mock_validation_context)
 
 
@@ -82,7 +85,9 @@ def test_validate_age_columns_invalid_age(mock_validation_context):
     ages = (mock_validation_context['age_bins']
             .filter(['age_group_start', 'age_group_end']).copy())
     ages.loc[2, 'age_group_start'] = -1
-    ages = ages.set_index(['age_group_start', 'age_group_end'])
+    ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
+                                                       closed='left', name='age_group'),
+                          append=True)
     with pytest.raises(DataTransformationError):
         sim.validate_age_columns(ages, mock_validation_context)
 
@@ -90,32 +95,44 @@ def test_validate_age_columns_invalid_age(mock_validation_context):
 def test_validate_age_columns_missing_group(mock_validation_context):
     ages = (mock_validation_context['age_bins']
             .filter(['age_group_start', 'age_group_end']))
-    ages = ages.drop(2).set_index(['age_group_start', 'age_group_end'])
+    ages = ages.drop(2)
+    ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
+                                                       closed='left', name='age_group'),
+                          append=True)
     with pytest.raises(DataTransformationError):
         sim.validate_age_columns(ages, mock_validation_context)
 
 
 def test_validate_year_columns_pass(mock_validation_context):
-    expected_years = mock_validation_context['years']
+    years = mock_validation_context['years']
     # Shuffle the rows and set index
-    expected_years = expected_years.sample(frac=1).reset_index(drop=True).set_index(['year_start', 'year_end'])
-    sim.validate_year_columns(expected_years, mock_validation_context)
+    years = years.sample(frac=1).reset_index(drop=True)
+    years = years.set_index(pd.IntervalIndex.from_arrays(years.year_start, years.year_end,
+                                                         closed='left', name='year'),
+                            append=True)
+    sim.validate_year_columns(years, mock_validation_context)
 
 
 def test_validate_year_columns_invalid_year(mock_validation_context):
-    df = mock_validation_context['years'].copy()
-    df.loc[2, 'year_end'] = -1
+    years = mock_validation_context['years'].copy()
+    years.loc[2, 'year_end'] = 20100
     # Shuffle the rows and set index
-    df = df.sample(frac=1).reset_index(drop=True).set_index(['year_start', 'year_end'])
+    years = years.sample(frac=1).reset_index(drop=True)
+    years = years.set_index(pd.IntervalIndex.from_arrays(years.year_start, years.year_end,
+                                                         closed='left', name='year'),
+                            append=True)
     with pytest.raises(DataTransformationError):
-        sim.validate_year_columns(df, mock_validation_context)
+        sim.validate_year_columns(years, mock_validation_context)
 
 
 def test_validate_year_columns_missing_group(mock_validation_context):
-    df = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
-    df = df.drop(0).set_index(['year_start', 'year_end'])
+    years = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
+    years = years.drop(0)
+    years = years.set_index(pd.IntervalIndex.from_arrays(years.year_start, years.year_end,
+                                                         closed='left', name='year'),
+                            append=True)
     with pytest.raises(DataTransformationError):
-        sim.validate_year_columns(df, mock_validation_context)
+        sim.validate_year_columns(years, mock_validation_context)
 
 
 @pytest.mark.parametrize("values", [(-1, 2, 3)], ids=['integers'])
