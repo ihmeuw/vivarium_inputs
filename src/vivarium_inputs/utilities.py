@@ -190,7 +190,7 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str =
 
 def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
     """Reorder index labels of a hierarchical index and sort in level order."""
-    sort_order = ['draw', 'location', 'sex', 'age_group_start', 'age_group_end', 'year_start', 'year_end']
+    sort_order = ['draw', 'location', 'sex', 'age_group', 'year']
     sorted_data_index = [n for n in sort_order if n in data.index.names]
     sorted_data_index.extend([n for n in data.index.names if n not in sorted_data_index])
 
