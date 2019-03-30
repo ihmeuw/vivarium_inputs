@@ -30,7 +30,7 @@ VALID_UTILIZATION_RANGE = (0, 50)
 VALID_POPULATION_RANGE = (0, 75_000_000)
 VALID_LIFE_EXP_RANGE = (0, 90)
 
-SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age_group', 'year']
+SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age', 'year']
 
 
 class SimulationValidationContext:
@@ -1041,12 +1041,12 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
     Raises
     ------
     DataTransformationError
-        If 'age_group' column does not contain the full range of expected
+        If 'age' index does not contain the full range of expected
         age bins supplied in `context`.
 
     """
     expected_ages = [pd.Interval(row.age_group_start, row.age_group_end, closed='left') for _, row in context['age_bins'].iterrows()]
-    data_ages = data.index.levels[data.index.names.index('age_group')]
+    data_ages = data.index.levels[data.index.names.index('age')]
 
     if not sorted(data_ages) == sorted(expected_ages):
         raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
@@ -1134,7 +1134,7 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
     in_range_ages = age_bins.loc[(age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)]
     in_range_age_intervals = [pd.Interval(row.age_group_start, row.age_group_end, closed='left')
                               for _, row in in_range_ages.iterrows()]
-    outside = data.loc[~data.index.isin(in_range_age_intervals, 'age_group')]
+    outside = data.loc[~data.index.isin(in_range_age_intervals, 'age')]
 
     if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
             entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] and
