@@ -163,7 +163,9 @@ def test_check_age_restrictions(mocker, mock_validation_context, values, ids, re
     age_bins = mock_validation_context['age_bins']
     df = age_bins.filter(['age_group_start', 'age_group_end'])
     df['value'] = values
-    df = df.set_index(['age_group_start', 'age_group_end'])
+    df = df.set_index(pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end,
+                                                   closed='left', name='age_group'),
+                      append=True)
     sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)
 
 
@@ -179,7 +181,9 @@ def test_check_age_restrictions_fail(mocker, mock_validation_context, values, id
     age_bins = mock_validation_context['age_bins']
     df = age_bins.filter(['age_group_start', 'age_group_end'])
     df['value'] = values
-    df = df.set_index(['age_group_start', 'age_group_end'])
+    df = df.set_index(pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end,
+                                                   closed='left', name='age_group'),
+                      append=True)
     with pytest.raises(DataTransformationError):
         sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)
 
