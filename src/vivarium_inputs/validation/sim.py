@@ -1123,7 +1123,7 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
         age bins supplied in `context`.
 
     """
-    expected_ages = [pd.Interval(row.age_group_start, row.age_group_end, closed='left') for idx, row in context['age_bins'].iterrows()]
+    expected_ages = [pd.Interval(row.age_group_start, row.age_group_end, closed='left') for _, row in context['age_bins'].iterrows()]
     data_ages = data.index.levels[data.index.names.index('age_group')]
 
     if not sorted(data_ages) == sorted(expected_ages):
@@ -1147,7 +1147,7 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
         supplied in `context`.
 
     """
-    expected_years = [pd.Interval(row.year_start, row.year_end, closed='left') for idx, row in context['years'].iterrows()]
+    expected_years = [pd.Interval(row.year_start, row.year_end, closed='left') for _, row in context['years'].iterrows()]
     data_years = data.index.levels[data.index.names.index('year')]
 
     if not sorted(data_years) == sorted(expected_years):
@@ -1206,10 +1206,10 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
     """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
-    in_range_ages = age_bins.loc[(age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id),
-                                 'age_group_start']
-
-    outside = data.loc[~data.index.isin(in_range_ages, 'age_group_start')]
+    in_range_ages = age_bins.loc[(age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)]
+    in_range_age_intervals = [pd.Interval(row.age_group_start, row.age_group_end, closed='left')
+                              for _, row in in_range_ages.iterrows()]
+    outside = data.loc[~data.index.isin(in_range_age_intervals, 'age_group')]
 
     if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
             entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] and
