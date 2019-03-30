@@ -45,7 +45,7 @@ def scrub_age(data):
         id_levels = data.index.levels[data.index.names.index('age_group_id')]
         interval_levels = [pd.Interval(age_bins.age_group_start[id],
                                        age_bins.age_group_end[id], closed='left') for id in id_levels]
-        data.index = data.index.rename('age_group', 'age_group_id').set_levels(interval_levels, 'age_group')
+        data.index = data.index.rename('age', 'age_group_id').set_levels(interval_levels, 'age')
     return data
 
 
@@ -190,7 +190,7 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str =
 
 def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
     """Reorder index labels of a hierarchical index and sort in level order."""
-    sort_order = ['draw', 'location', 'sex', 'age_group', 'year']
+    sort_order = ['draw', 'location', 'sex', 'age', 'year']
     sorted_data_index = [n for n in sort_order if n in data.index.names]
     sorted_data_index.extend([n for n in data.index.names if n not in sorted_data_index])
 
