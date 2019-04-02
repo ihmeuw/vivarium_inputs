@@ -191,6 +191,11 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
+    if entity.name == 'low_birth_weight_and_short_gestation':
+        # residual cat is added by get_draws but all cats modeled for lbwsg so
+        # has to be removed
+        data = data[data.parameter != 'cat124']
+
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,
                                                      'outer', utility_data.get_age_group_ids())
