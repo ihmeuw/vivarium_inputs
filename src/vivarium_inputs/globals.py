@@ -148,10 +148,10 @@ PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
 
 # residual cat is added by get_draws but all cats modeled for lbwsg so
 # has to be removed
-EXTRA_RESIDUAL_CATEGORY = {risk_factors.low_birth_weight_and_short_gestation: 'cat124'}
+EXTRA_RESIDUAL_CATEGORY = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat124'}
 
 # LBWSG paf has data outside neonatal preterm birth age restrictions (but is all 1.0) - K.W. 4/2/19
-PAF_OUTSIDE_AGE_RESTRICTIONS = {risk_factors.low_birth_weight_and_short_gestation: [causes.neonatal_preterm_birth]}
+PAF_OUTSIDE_AGE_RESTRICTIONS = {risk_factors.low_birth_weight_and_short_gestation.name: [causes.neonatal_preterm_birth]}
 
 
 class Population(ModelableEntity):

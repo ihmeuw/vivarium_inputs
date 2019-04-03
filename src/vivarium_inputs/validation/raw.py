@@ -1654,8 +1654,8 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, context: RawValidationCo
         extra_paf = set(paf.age_group_id).intersection(valid_but_no_rr)
 
         measure = 'YLLs' if measure_id == MEASURES['YLLs'] else 'YLDs'
-        if not_valid_paf and not (entity in PAF_OUTSIDE_AGE_RESTRICTIONS
-                                  and cause in PAF_OUTSIDE_AGE_RESTRICTIONS[entity]):
+        if not_valid_paf and not (entity.name in PAF_OUTSIDE_AGE_RESTRICTIONS
+                                  and cause in PAF_OUTSIDE_AGE_RESTRICTIONS[entity.name]):
             raise DataAbnormalError(f'{measure} paf for {cause.name} and {entity.name} have data outside '
                                     f'of cause restrictions: {set(paf.age_group_id) - cause_restriction_ages}')
 

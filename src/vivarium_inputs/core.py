@@ -191,8 +191,8 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    if entity in EXTRA_RESIDUAL_CATEGORY:
-        data = data[data.parameter != EXTRA_RESIDUAL_CATEGORY[entity]]
+    if entity.name in EXTRA_RESIDUAL_CATEGORY:
+        data = data[data.parameter != EXTRA_RESIDUAL_CATEGORY[entity.name]]
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,
