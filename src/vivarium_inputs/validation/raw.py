@@ -10,7 +10,7 @@ from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
-                                     DataDoesNotExistError, Population, PROBLEMATIC_RISKS)
+                                     DataDoesNotExistError, Population, PROBLEMATIC_RISKS, PAF_OUTSIDE_AGE_RESTRICTIONS)
 
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
@@ -1654,9 +1654,8 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, context: RawValidationCo
         extra_paf = set(paf.age_group_id).intersection(valid_but_no_rr)
 
         measure = 'YLLs' if measure_id == MEASURES['YLLs'] else 'YLDs'
-        # FIXME: LBWSG paf has data outside neonatal preterm birth age restrictions (but is all 1.0) - K.W. 4/2/19
-        if not_valid_paf and not (entity.name == 'low_birth_weight_and_short_gestation'
-                                  and cause.name == 'neonatal_preterm_birth'):
+        if not_valid_paf and not (entity in PAF_OUTSIDE_AGE_RESTRICTIONS
+                                  and cause in PAF_OUTSIDE_AGE_RESTRICTIONS[entity]):
             raise DataAbnormalError(f'{measure} paf for {cause.name} and {entity.name} have data outside '
                                     f'of cause restrictions: {set(paf.age_group_id) - cause_restriction_ages}')
 

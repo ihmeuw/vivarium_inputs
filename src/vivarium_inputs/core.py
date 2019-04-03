@@ -8,7 +8,7 @@ import numpy as np
 
 from vivarium_inputs import utilities, extract, utility_data
 from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
-                                     Population, DataDoesNotExistError)
+                                     Population, DataDoesNotExistError, EXTRA_RESIDUAL_CATEGORY)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
@@ -191,10 +191,8 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
-    if entity.name == 'low_birth_weight_and_short_gestation':
-        # residual cat is added by get_draws but all cats modeled for lbwsg so
-        # has to be removed
-        data = data[data.parameter != 'cat124']
+    if entity in EXTRA_RESIDUAL_CATEGORY:
+        data = data[data.parameter != EXTRA_RESIDUAL_CATEGORY[entity]]
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,
