@@ -1505,10 +1505,10 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool) ->
                                                      'rows with only one of the mortality or morbidity flags set to 1.')
     else:
         if yld_only and mortality.any():
-            raise DataAbnormalError(base_error_msg + 'rows with the mortality flag set to 1 but the affected entity'
+            raise DataAbnormalError(base_error_msg + 'rows with the mortality flag set to 1 but the affected entity '
                                                      'is restricted to yld_only.')
         elif yll_only and morbidity.any():
-            raise DataAbnormalError(base_error_msg + 'rows with the morbidity flag set to 1 but the affected entity'
+            raise DataAbnormalError(base_error_msg + 'rows with the morbidity flag set to 1 but the affected entity '
                                                      'is restricted to yll_only.')
         else:
             pass
