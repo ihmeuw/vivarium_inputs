@@ -720,8 +720,6 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
     check_years(data, context, 'either')
     check_location(data, context)
 
-    cats = data.groupby('parameter')
-
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         restrictions = entity.restrictions
         age_start = get_restriction_age_boundary(entity, 'start')
@@ -729,11 +727,11 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         male_expected = not restrictions.female_only
         female_expected = not restrictions.male_only
 
-        cats.apply(check_age_group_ids, context, None, None)
-        cats.apply(check_sex_ids, context, male_expected, female_expected)
+        check_age_group_ids(data, context, None, None)
+        check_sex_ids(data, context, male_expected, female_expected)
 
-        cats.apply(check_age_restrictions, context, age_start, age_end, error=False)
-        cats.apply(check_sex_restrictions, context, entity.restrictions.male_only, entity.restrictions.female_only)
+        check_age_restrictions(data, context, age_start, age_end, error=False)
+        check_sex_restrictions(data, context, entity.restrictions.male_only, entity.restrictions.female_only)
 
         # we only have metadata about tmred for risk factors
         if entity.kind == 'risk_factor' and entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
@@ -745,8 +743,8 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
                 check_value_columns_boundary(data, tmrel, 'lower',
                                              value_columns=DRAW_COLUMNS, inclusive=True, error=None)
     else:  # CoverageGap
-        cats.apply(check_age_group_ids, context, None, None)
-        cats.apply(check_sex_ids, context, True, True)
+        check_age_group_ids(data, context, None, None)
+        check_sex_ids(data, context, True, True)
 
     if entity.distribution in ('dichotomous', 'ordered_polytomous', 'unordered_polytomous'):  # categorical
         check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS,
@@ -1506,15 +1504,12 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool) ->
             raise DataAbnormalError(base_error_msg + 'row with both mortality and morbidity flags set to 1 as well as '
                                                      'rows with only one of the mortality or morbidity flags set to 1.')
     else:
-        if morbidity.any() and no_mortality.all() and not yld_only:
-            raise DataAbnormalError(base_error_msg + 'only rows with the morbidity flag set to 1 but the affected '
-                                                     'entity is not restricted to yld_only.')
-        elif mortality.any() and no_morbidity.all() and not yll_only:
-            raise DataAbnormalError(base_error_msg + 'only rows with the mortality flag set to 1 but the affected '
-                                                     'entity is not restricted to yll_only.')
-        elif mortality.any() and morbidity.any() and (yld_only or yll_only):
-            raise DataAbnormalError(base_error_msg + f'rows for both morbidity and mortality, but the affected entity '
-                                    f'is restricted to {"yll_only" if yll_only else "yld_only"}.')
+        if yld_only and mortality.any():
+            raise DataAbnormalError(base_error_msg + 'rows with the mortality flag set to 1 but the affected entity'
+                                                     'is restricted to yld_only.')
+        elif yll_only and morbidity.any():
+            raise DataAbnormalError(base_error_msg + 'rows with the morbidity flag set to 1 but the affected entity'
+                                                     'is restricted to yll_only.')
         else:
             pass
 
