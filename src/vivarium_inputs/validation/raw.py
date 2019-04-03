@@ -1654,7 +1654,9 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, context: RawValidationCo
         extra_paf = set(paf.age_group_id).intersection(valid_but_no_rr)
 
         measure = 'YLLs' if measure_id == MEASURES['YLLs'] else 'YLDs'
-        if not_valid_paf:
+        # FIXME: LBWSG paf has data outside neonatal preterm birth age restrictions (but is all 1.0) - K.W. 4/2/19
+        if not_valid_paf and not (entity.name == 'low_birth_weight_and_short_gestation'
+                                  and cause.name == 'neonatal_preterm_birth'):
             raise DataAbnormalError(f'{measure} paf for {cause.name} and {entity.name} have data outside '
                                     f'of cause restrictions: {set(paf.age_group_id) - cause_restriction_ages}')
 
