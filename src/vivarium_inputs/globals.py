@@ -146,6 +146,8 @@ BOUNDARY_SPECIAL_CASES = {
 PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
                          "zinc deficiency relative risk data breaks central comp interpolation."}
 
+NON_MAX_TMREL = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat56'}
+
 
 class Population(ModelableEntity):
     """Entity wrapper for querying population measures."""
