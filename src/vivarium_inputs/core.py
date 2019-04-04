@@ -90,12 +90,10 @@ def get_raw_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.Dat
 
 def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     data = get_data(entity, 'raw_incidence', location_id)
-    data = data.set_index(utilities.get_ordered_index_cols(data.columns.difference({'value'})))
     prevalence = get_data(entity, 'prevalence', location_id)
-    prevalence = prevalence.set_index(utilities.get_ordered_index_cols(prevalence.columns.difference({'value'})))
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
-    return data.fillna(0).reset_index()
+    return data.fillna(0)
 
 
 def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
@@ -128,20 +126,14 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
             for sequela in entity.sequelae:
                 try:
                     prevalence = get_data(sequela, 'prevalence', location_id)
-                    prevalence = prevalence.set_index(
-                        utilities.get_ordered_index_cols(prevalence.columns.difference({'value'})))
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
                 disability = get_data(sequela, 'disability_weight', location_id)
-                disability['location_id'] = location_id
-                disability = disability.set_index(
-                    utilities.get_ordered_index_cols(disability.columns.difference({'value'})))
+                disability.index = disability.index.set_levels([location_id], 'location_id')
                 data += prevalence * disability
         cause_prevalence = get_data(entity, 'prevalence', location_id)
-        cause_prevalence = cause_prevalence.set_index(
-            utilities.get_ordered_index_cols(cause_prevalence.columns.difference({'value'})))
-        data = (data / cause_prevalence).fillna(0).reset_index()
+        data = (data / cause_prevalence).fillna(0)
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
             data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
@@ -167,23 +159,19 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    deaths = get_data(entity, 'deaths', location_id)
-    deaths = deaths.set_index(utilities.get_ordered_index_cols(deaths.columns.difference({'draw', 'value'})))
+    deaths = get_data(entity, 'deaths', location_id).reset_index(level='draw')  # population isn't by draws
     pop = get_data(Population(), 'structure', location_id)
-    pop = pop.set_index(utilities.get_ordered_index_cols(pop.columns.difference({'value'})))
     data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
     data['value'] = data['value_deaths'].divide(data['value_pop'])
-    return data.drop(['value_deaths', 'value_pop'], 'columns').reset_index()
+    return data.drop(['value_deaths', 'value_pop'], 'columns')
 
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
     csmr = get_data(entity, 'cause_specific_mortality', location_id)
-    csmr = csmr.set_index(utilities.get_ordered_index_cols(csmr.columns.difference({'value'})))
     prevalence = get_data(entity, 'prevalence', location_id)
-    prevalence = prevalence.set_index(utilities.get_ordered_index_cols(prevalence.columns.difference({'value'})))
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
-    return data.reset_index()
+    return data
 
 
 def get_case_fatality(entity: Cause, location_id: int):
