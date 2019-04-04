@@ -8,7 +8,7 @@ import numpy as np
 
 from vivarium_inputs import utilities, extract, utility_data
 from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
-                                     Population, DataDoesNotExistError)
+                                     Population, DataDoesNotExistError, EXTRA_RESIDUAL_CATEGORY)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
@@ -202,6 +202,9 @@ def get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
+
+    if entity.name in EXTRA_RESIDUAL_CATEGORY:
+        data = data[data.parameter != EXTRA_RESIDUAL_CATEGORY[entity.name]]
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,
