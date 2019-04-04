@@ -2,7 +2,8 @@ from typing import List
 
 import pandas as pd
 
-from vivarium_inputs.globals import gbd, SEXES
+from vivarium_inputs.globals import gbd, SEXES, NON_MAX_TMREL
+from gbd_mapping import RiskFactor
 
 
 def get_estimation_years(*_, **__) -> pd.Series:
@@ -59,3 +60,11 @@ def get_demographic_dimensions(location_id: int, draws: bool = False, value: flo
     if draws:
         data['value'] = value
     return data
+
+
+def get_tmrel_category(entity: RiskFactor) -> str:
+    if entity.name in NON_MAX_TMREL:
+        tmrel_cat = NON_MAX_TMREL[entity.name]
+    else:
+        tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+    return tmrel_cat
