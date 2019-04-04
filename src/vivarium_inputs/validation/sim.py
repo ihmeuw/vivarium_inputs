@@ -611,7 +611,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
                                  value_columns=['value'], error=DataTransformationError)
 
     if is_categorical:
-        tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]  # chop 'cat' and sort
+        tmrel_cat = utility_data.get_tmrel_category(entity)
         if not (data.loc[data.parameter == tmrel_cat, 'value'] == 1.0).all():
             raise DataTransformationError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
@@ -1236,7 +1236,7 @@ def _check_cat_risk_fill_values(outside_data: pd.DataFrame, entity: Union[RiskFa
         If the outside_data contains values other than fill_value for the
         correct categories.
     """
-    tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+    tmrel_cat = utility_data.get_tmrel_category(entity)
     outside_unexposed = outside_data[outside_data.parameter == tmrel_cat]
     outside_exposed = outside_data[outside_data.parameter != tmrel_cat]
     if not outside_unexposed.empty and (outside_unexposed.value != fill_value['unexposed']).any():

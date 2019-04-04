@@ -146,6 +146,8 @@ BOUNDARY_SPECIAL_CASES = {
 PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
                          "zinc deficiency relative risk data breaks central comp interpolation."}
 
+NON_MAX_TMREL = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat56'}
+
 # residual cat is added by get_draws but all cats modeled for lbwsg so
 # has to be removed
 EXTRA_RESIDUAL_CATEGORY = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat124'}
