@@ -394,6 +394,6 @@ def split_interval(interval_column, split_column_prefix, data):
     if interval_column in data.index.names:
         data[f'{split_column_prefix}_end'] = pd.Series(data.index.get_level_values(interval_column)).apply(lambda x: x.right)
         interval_starts = [x.left for x in data.index.levels[data.index.names.index(interval_column)]]
-        data.index = (data.index.rename(interval_column, f'{split_column_prefix}_start')
+        data.index = (data.index.rename(f'{split_column_prefix}_start', interval_column)
                       .set_levels(interval_starts, f'{split_column_prefix}_start'))
         return data.set_index(f'{split_column_prefix}_end', append=True)
