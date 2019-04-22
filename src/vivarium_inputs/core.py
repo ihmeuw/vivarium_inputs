@@ -62,13 +62,13 @@ def get_data(entity, measure: str, location: Union[str, int]):
     data = handler(entity, location_id)
 
     if measure == 'estimate':
-        value_cols, var_name = COVARIATE_VALUE_COLUMNS, 'parameter'
+        value_cols = COVARIATE_VALUE_COLUMNS
     elif measure == 'exposure_distribution_weights':
-        value_cols, var_name = DISTRIBUTION_COLUMNS, 'parameter'
+        value_cols = DISTRIBUTION_COLUMNS
     else:
-        value_cols, var_name = DRAW_COLUMNS, 'draw'
+        value_cols = DRAW_COLUMNS
 
-    data = utilities.reshape(data, value_cols=value_cols, var_name=var_name)
+    data = utilities.reshape(data, value_cols=value_cols)
 
     return data
 
