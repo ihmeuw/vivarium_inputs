@@ -66,6 +66,14 @@ def scrub_affected_entity(data):
     return data
 
 
+def set_age_interval(data):
+    if 'age_group_start' in data.index.names:
+        bins = zip(data.index.get_level_values('age_group_start'), data.index.get_level_values('age_group_end'))
+        data = data.assign(age=[pd.Interval(x[0], x[1], closed='left') for x in bins]).set_index('age', append=True)
+        data.index = data.index.droplevel('age_group_start').droplevel('age_group_end')
+    return data
+
+
 ###############################################################
 # Functions to normalize GBD data over a standard demography. #
 ###############################################################
