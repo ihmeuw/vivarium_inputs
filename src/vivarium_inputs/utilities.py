@@ -176,20 +176,11 @@ def get_ordered_index_cols(data_columns: Union[pd.Index, set]):
     return [i for i in INDEX_COLUMNS if i in data_columns] + list(data_columns.difference(INDEX_COLUMNS))
 
 
-def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str = 'draw') -> pd.DataFrame:
-    if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):
-        if set(data.columns).intersection(value_cols):  # reshape wide to long over value_cols
-            data = data.set_index(get_ordered_index_cols(data.columns.difference(value_cols)))
-            if value_cols == DRAW_COLUMNS:
-                data = data.rename(columns={draw: i for i, draw in enumerate(DRAW_COLUMNS)})
-            data.columns.name = var_name
-            data = data.stack()
-            data.name = 'value'
-            data = data.to_frame()  # stack turns df into a series
-        else:  # already in right shape so set index
-            data = data.set_index(get_ordered_index_cols(data.columns.difference({'value'})))
-    elif not data.columns.difference({'value'}).empty:  # we missed some columns that need to be in index
-        data = data.set_index(list(data.columns.difference({'value'})), append=True)
+def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS) -> pd.DataFrame:
+    if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):  # push all non-val cols into index
+        data = data.set_index(get_ordered_index_cols(data.columns.difference(value_cols)))
+    elif not data.columns.difference(value_cols).empty:  # we missed some columns that need to be in index
+        data = data.set_index(list(data.columns.difference(value_cols)), append=True)
         data = data.reorder_levels(get_ordered_index_cols(set(data.index.names)))
     else:  # we've already set the full index
         pass
@@ -397,4 +388,3 @@ def get_exposure_and_restriction_ages(exposure: pd.DataFrame, entity: RiskFactor
     valid_age_groups = exposure_age_groups.intersection(restriction_age_groups)
 
     return valid_age_groups
-
