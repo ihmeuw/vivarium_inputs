@@ -73,7 +73,7 @@ def setup_logging(output_root, verbose, tag, model_specification, append):
                         filemode='a' if append else 'w')
 
 
-def split_interval(interval_column, split_column_prefix, data):
+def split_interval(data, interval_column, split_column_prefix):
     if isinstance(data, pd.DataFrame) and interval_column in data.index.names:
         data[f'{split_column_prefix}_end'] = [x.right for x in data.index.get_level_values(interval_column)]
         if not isinstance(data.index, pd.MultiIndex):
