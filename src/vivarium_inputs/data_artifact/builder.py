@@ -11,8 +11,7 @@ from vivarium_public_health.dataset_manager import (EntityKey, Artifact, get_loc
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
-from vivarium_inputs.data_artifact.utilities import get_versions
-from vivarium_inputs.utilities import split_interval
+from vivarium_inputs.data_artifact.utilities import get_versions, split_interval
 
 
 _log = logging.getLogger(__name__)

@@ -5,7 +5,7 @@ from vivarium_public_health.dataset_manager import EntityKey, filter_data, valid
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
-from vivarium_inputs.utilities import split_interval
+from vivarium_inputs.data_artifact.utilities import split_interval
 
 
 class ArtifactPassthrough:
