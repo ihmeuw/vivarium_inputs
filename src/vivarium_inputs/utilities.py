@@ -402,7 +402,13 @@ def get_exposure_and_restriction_ages(exposure: pd.DataFrame, entity: RiskFactor
 def split_interval(interval_column, split_column_prefix, data):
     if interval_column in data.index.names:
         data[f'{split_column_prefix}_end'] = [x.right for x in data.index.get_level_values(interval_column)]
-        interval_starts = [x.left for x in data.index.levels[data.index.names.index(interval_column)]]
-        data.index = (data.index.rename(f'{split_column_prefix}_start', interval_column)
-                      .set_levels(interval_starts, f'{split_column_prefix}_start'))
-        return data.set_index(f'{split_column_prefix}_end', append=True)
+        if not isinstance(data.index, pd.MultiIndex):
+            data[f'{split_column_prefix}_start'] = [x.left for x in data.index.get_level_values(interval_column)]
+            data = data.set_index([f'{split_column_prefix}_start', f'{split_column_prefix}_end'])
+        else:
+            interval_starts = [x.left for x in data.index.levels[data.index.names.index(interval_column)]]
+            data.index = (data.index.rename(f'{split_column_prefix}_start', interval_column)
+                          .set_levels(interval_starts, f'{split_column_prefix}_start'))
+            data = data.set_index(f'{split_column_prefix}_end', append=True)
+    return data
+
