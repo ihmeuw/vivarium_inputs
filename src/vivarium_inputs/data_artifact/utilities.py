@@ -3,6 +3,8 @@ import logging
 import pathlib
 import pkg_resources
 
+import pandas as pd
+
 
 def get_versions():
     libraries = ['vivarium', 'vivarium_inputs', 'vivarium_public_health', 'gbd_mapping']
@@ -69,3 +71,17 @@ def setup_logging(output_root, verbose, tag, model_specification, append):
                         datefmt="%m-%d-%y %H:%M",
                         filename=log_name,
                         filemode='a' if append else 'w')
+
+
+def split_interval(interval_column, split_column_prefix, data):
+    if isinstance(data, pd.DataFrame) and interval_column in data.index.names:
+        data[f'{split_column_prefix}_end'] = [x.right for x in data.index.get_level_values(interval_column)]
+        if not isinstance(data.index, pd.MultiIndex):
+            data[f'{split_column_prefix}_start'] = [x.left for x in data.index.get_level_values(interval_column)]
+            data = data.set_index([f'{split_column_prefix}_start', f'{split_column_prefix}_end'])
+        else:
+            interval_starts = [x.left for x in data.index.levels[data.index.names.index(interval_column)]]
+            data.index = (data.index.rename(f'{split_column_prefix}_start', interval_column)
+                          .set_levels(interval_starts, f'{split_column_prefix}_start'))
+            data = data.set_index(f'{split_column_prefix}_end', append=True)
+    return data
