@@ -5,6 +5,7 @@ from vivarium_public_health.dataset_manager import EntityKey, filter_data, valid
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
+from vivarium_inputs.data_artifact.utilities import split_interval
 
 
 class ArtifactPassthrough:
@@ -23,7 +24,10 @@ class ArtifactPassthrough:
         data = loader(entity_key, self.location, self.modeled_causes)
 
         if isinstance(data, pd.DataFrame):  # could be a metadata dict
+            data = split_interval(data, interval_column='age', split_column_prefix='age_group')
+            data = split_interval(data, interval_column='year', split_column_prefix='year')
             data = data.reset_index()
+
             for key, val in self.base_filter.items():
                 if key in data.columns:
                     column_filters[key] = val

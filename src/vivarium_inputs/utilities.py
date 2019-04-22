@@ -42,18 +42,18 @@ def scrub_sex(data):
 def scrub_age(data):
     if 'age_group_id' in data.index.names:
         age_bins = utility_data.get_age_bins().set_index('age_group_id')
-        starts = list(data.index.levels[data.index.names.index('age_group_id')].map(age_bins['age_group_start']))
-        data = (data.assign(age_group_end=(data.index.get_level_values('age_group_id')
-                                           .map(age_bins['age_group_end'])))
-                .set_index('age_group_end', append=True))
-        data.index = data.index.rename('age_group_start', 'age_group_id').set_levels(starts, 'age_group_start')
+        id_levels = data.index.levels[data.index.names.index('age_group_id')]
+        interval_levels = [pd.Interval(age_bins.age_group_start[age_id],
+                                       age_bins.age_group_end[age_id], closed='left') for age_id in id_levels]
+        data.index = data.index.rename('age', 'age_group_id').set_levels(interval_levels, 'age')
     return data
 
 
 def scrub_year(data):
     if 'year_id' in data.index.names:
-        data.index = data.index.rename('year_start', 'year_id')
-        data = data.assign(year_end=data.index.get_level_values('year_start')+1).set_index('year_end', append=True)
+        id_levels = data.index.levels[data.index.names.index('year_id')]
+        interval_levels = [pd.Interval(year_id, year_id + 1, closed='left') for year_id in id_levels]
+        data.index = data.index.rename('year', 'year_id').set_levels(interval_levels, 'year')
     return data
 
 
@@ -63,6 +63,14 @@ def scrub_affected_entity(data):
     if 'cause_id' in data.index.names:
         levels = list(data.index.levels[data.index.names.index('cause_id')].map(lambda x: CAUSE_BY_ID[x].name))
         data.index = data.index.rename('affected_entity', 'cause_id').set_levels(levels, 'affected_entity')
+    return data
+
+
+def set_age_interval(data):
+    if 'age_group_start' in data.index.names:
+        bins = zip(data.index.get_level_values('age_group_start'), data.index.get_level_values('age_group_end'))
+        data = data.assign(age=[pd.Interval(x[0], x[1], closed='left') for x in bins]).set_index('age', append=True)
+        data.index = data.index.droplevel('age_group_start').droplevel('age_group_end')
     return data
 
 
@@ -190,11 +198,12 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str =
 
 def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
     """Reorder index labels of a hierarchical index and sort in level order."""
-    sort_order = ['draw', 'location', 'sex', 'age_group_start', 'age_group_end', 'year_start', 'year_end']
+    sort_order = ['draw', 'location', 'sex', 'age', 'year']
     sorted_data_index = [n for n in sort_order if n in data.index.names]
     sorted_data_index.extend([n for n in data.index.names if n not in sorted_data_index])
 
-    data = data.reorder_levels(sorted_data_index)
+    if isinstance(data.index, pd.MultiIndex):
+        data = data.reorder_levels(sorted_data_index)
     data = data.sort_index()
 
     return data

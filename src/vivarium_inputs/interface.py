@@ -104,6 +104,7 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
     """
     pop = Population()
     data = core.get_data(pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
+    data = utilities.set_age_interval(data)
     validation.validate_for_simulation(data, pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
     return utilities.sort_hierarchical_data(data)
 
@@ -120,6 +121,7 @@ def get_age_bins() -> pd.DataFrame:
     """
     pop = Population()
     data = core.get_data(pop, 'age_bins', 'Global')
+    data = utilities.set_age_interval(data)
     validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
     return utilities.sort_hierarchical_data(data)
 
