@@ -43,8 +43,8 @@ def scrub_age(data):
     if 'age_group_id' in data.index.names:
         age_bins = utility_data.get_age_bins().set_index('age_group_id')
         id_levels = data.index.levels[data.index.names.index('age_group_id')]
-        interval_levels = [pd.Interval(age_bins.age_group_start[id],
-                                       age_bins.age_group_end[id], closed='left') for id in id_levels]
+        interval_levels = [pd.Interval(age_bins.age_group_start[age_id],
+                                       age_bins.age_group_end[age_id], closed='left') for age_id in id_levels]
         data.index = data.index.rename('age', 'age_group_id').set_levels(interval_levels, 'age')
     return data
 
