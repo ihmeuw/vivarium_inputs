@@ -24,18 +24,6 @@ def mock_validation_context():
     return context
 
 
-def test__validate_draw_column_pass():
-    df = pd.DataFrame({'draw': range(1000), 'other': [0]*1000}).set_index(['draw', 'other'])
-    sim.validate_draw_column(df)
-
-
-@pytest.mark.parametrize('draws', (900, 1100), ids=('too_few', 'too_many'))
-def test_validate_draw_column_incorrect_number(draws):
-    df = pd.DataFrame({'draw': range(draws), 'other': [0]*draws}).set_index(['draw', 'other'])
-    with pytest.raises(DataTransformationError):
-        sim.validate_draw_column(df)
-
-
 @pytest.mark.parametrize("location", ("Kenya", "Papua New Guinea"))
 def test__validate_location_column_pass(mock_validation_context, location):
     mock_validation_context['location'] = location
@@ -78,7 +66,7 @@ def test_validate_age_columns_pass(mock_validation_context):
     ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
                                                        closed='left', name='age'),
                           append=True)
-    sim.validate_age_columns(ages, mock_validation_context)
+    sim.validate_age_column(ages, mock_validation_context)
 
 
 def test_validate_age_columns_invalid_age(mock_validation_context):
@@ -89,7 +77,7 @@ def test_validate_age_columns_invalid_age(mock_validation_context):
                                                        closed='left', name='age'),
                           append=True)
     with pytest.raises(DataTransformationError):
-        sim.validate_age_columns(ages, mock_validation_context)
+        sim.validate_age_column(ages, mock_validation_context)
 
 
 def test_validate_age_columns_missing_group(mock_validation_context):
@@ -100,7 +88,7 @@ def test_validate_age_columns_missing_group(mock_validation_context):
                                                        closed='left', name='age'),
                           append=True)
     with pytest.raises(DataTransformationError):
-        sim.validate_age_columns(ages, mock_validation_context)
+        sim.validate_age_column(ages, mock_validation_context)
 
 
 def test_validate_year_columns_pass(mock_validation_context):
@@ -110,7 +98,7 @@ def test_validate_year_columns_pass(mock_validation_context):
     years = years.set_index(pd.IntervalIndex.from_arrays(years.year_start, years.year_end,
                                                          closed='left', name='year'),
                             append=True)
-    sim.validate_year_columns(years, mock_validation_context)
+    sim.validate_year_column(years, mock_validation_context)
 
 
 def test_validate_year_columns_invalid_year(mock_validation_context):
@@ -122,7 +110,7 @@ def test_validate_year_columns_invalid_year(mock_validation_context):
                                                          closed='left', name='year'),
                             append=True)
     with pytest.raises(DataTransformationError):
-        sim.validate_year_columns(years, mock_validation_context)
+        sim.validate_year_column(years, mock_validation_context)
 
 
 def test_validate_year_columns_missing_group(mock_validation_context):
@@ -132,7 +120,7 @@ def test_validate_year_columns_missing_group(mock_validation_context):
                                                          closed='left', name='year'),
                             append=True)
     with pytest.raises(DataTransformationError):
-        sim.validate_year_columns(years, mock_validation_context)
+        sim.validate_year_column(years, mock_validation_context)
 
 
 @pytest.mark.parametrize("values", [(-1, 2, 3)], ids=['integers'])
@@ -161,11 +149,8 @@ def test_check_age_restrictions(mocker, mock_validation_context, values, ids, re
     entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
     entity.return_value = ids
     age_bins = mock_validation_context['age_bins']
-    df = age_bins.filter(['age_group_start', 'age_group_end'])
-    df['value'] = values
-    df = df.set_index(pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end,
-                                                   closed='left', name='age'),
-                      append=True)
+    idx = pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end, closed='left', name='age')
+    df = pd.DataFrame({'value': values}, index=idx)
     sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)
 
 
@@ -179,11 +164,8 @@ def test_check_age_restrictions_fail(mocker, mock_validation_context, values, id
     entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
     entity.return_value = ids
     age_bins = mock_validation_context['age_bins']
-    df = age_bins.filter(['age_group_start', 'age_group_end'])
-    df['value'] = values
-    df = df.set_index(pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end,
-                                                   closed='left', name='age'),
-                      append=True)
+    idx = pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end, closed='left', name='age')
+    df = pd.DataFrame({'value': values}, index=idx)
     with pytest.raises(DataTransformationError):
         sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)
 
