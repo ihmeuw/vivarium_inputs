@@ -15,6 +15,7 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 DISTRIBUTION_COLUMNS = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
 COVARIATE_VALUE_COLUMNS = ['mean_value', 'upper_value', 'lower_value']
+POPULATION_VALUE_COLUMNS = ['value']
 
 
 def get_data(entity, measure: str, location: Union[str, int]):
@@ -65,6 +66,8 @@ def get_data(entity, measure: str, location: Union[str, int]):
         value_cols = COVARIATE_VALUE_COLUMNS
     elif measure == 'exposure_distribution_weights':
         value_cols = DISTRIBUTION_COLUMNS
+    elif measure in ['structure', 'theoretical_minimum_risk_life_expectancy']:
+        value_cols = POPULATION_VALUE_COLUMNS
     else:
         value_cols = DRAW_COLUMNS
 
@@ -159,11 +162,11 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    deaths = get_data(entity, 'deaths', location_id).reset_index(level='draw')  # population isn't by draws
+    deaths = get_data(entity, 'deaths', location_id)  # population isn't by draws
     pop = get_data(Population(), 'structure', location_id)
     data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
-    data['value'] = data['value_deaths'].divide(data['value_pop'])
-    return data.drop(['value_deaths', 'value_pop'], 'columns')
+    data[DRAW_COLUMNS] = data[DRAW_COLUMNS].divide(data.value, axis=0)
+    return data.drop(['value'], 'columns')
 
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
