@@ -9,7 +9,7 @@ import pandas as pd
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 
-INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ['draw', 'affected_entity', 'affected_measure', 'parameter']
+INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter']
 
 ##################################################
 # Functions to remove GBD conventions from data. #
@@ -196,7 +196,7 @@ def wide_to_long(data: pd.DataFrame, value_cols: List, var_name: str) -> pd.Data
 
 def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
     """Reorder index labels of a hierarchical index and sort in level order."""
-    sort_order = ['draw', 'location', 'sex', 'age', 'year']
+    sort_order = ['location', 'sex', 'age', 'year']
     sorted_data_index = [n for n in sort_order if n in data.index.names]
     sorted_data_index.extend([n for n in data.index.names if n not in sorted_data_index])
 
