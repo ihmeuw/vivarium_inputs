@@ -187,6 +187,13 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS) -> pd.DataFrame
     return data
 
 
+def wide_to_long(data: pd.DataFrame, value_cols: List, var_name: str) -> pd.DataFrame:
+    if set(data.columns).intersection(value_cols):
+        id_cols = data.columns.difference(value_cols)
+        data = pd.melt(data, id_vars=id_cols, value_vars=value_cols, var_name=var_name)
+    return data
+
+
 def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
     """Reorder index labels of a hierarchical index and sort in level order."""
     sort_order = ['draw', 'location', 'sex', 'age', 'year']
