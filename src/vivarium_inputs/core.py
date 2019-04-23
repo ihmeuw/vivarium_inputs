@@ -15,7 +15,6 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 DISTRIBUTION_COLUMNS = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
                          'lnorm', 'norm', 'glnorm', 'betasr', 'mgamma', 'mgumbel']
 COVARIATE_VALUE_COLUMNS = ['mean_value', 'upper_value', 'lower_value']
-POPULATION_VALUE_COLUMNS = ['value']
 
 
 def get_data(entity, measure: str, location: Union[str, int]):
@@ -62,12 +61,9 @@ def get_data(entity, measure: str, location: Union[str, int]):
     location_id = utility_data.get_location_id(location) if isinstance(location, str) else location
     data = handler(entity, location_id)
 
-    if measure == 'estimate':
-        value_cols = COVARIATE_VALUE_COLUMNS
-    elif measure == 'exposure_distribution_weights':
-        value_cols = DISTRIBUTION_COLUMNS
-    elif measure in ['structure', 'theoretical_minimum_risk_life_expectancy']:
-        value_cols = POPULATION_VALUE_COLUMNS
+    if measure in ['structure', 'theoretical_minimum_risk_life_expectancy',
+                   'estimate', 'exposure_distribution_weights']:
+        value_cols = ['value']
     else:
         value_cols = DRAW_COLUMNS
 
@@ -261,6 +257,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     data = data.filter(['location_id', 'sex_id', 'age_group_id', 'year_id'] + DISTRIBUTION_COLUMNS)
+    data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name='parameter')
     return data
 
 
@@ -397,6 +394,7 @@ def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
 
     data = data.filter(key_columns + COVARIATE_VALUE_COLUMNS)
     data = utilities.normalize(data)
+    data = utilities.wide_to_long(data, COVARIATE_VALUE_COLUMNS, var_name='parameter')
     return data
 
 
