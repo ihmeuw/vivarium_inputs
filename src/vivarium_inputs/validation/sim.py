@@ -461,7 +461,6 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
                                           "'continuous' in the parameter column.")
         valid_kwd = 'continuous'
     elif is_categorical:
-        import pdb; pdb.set_trace()
         if set(data.index.unique('parameter')) != set(entity.categories.to_dict()):  # to_dict removes None
             raise DataTransformationError("Categorical exposure data does not contain all "
                                           "categories in the parameter column.")
@@ -746,11 +745,11 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
         group.
 
     """
-    expected_index_names = ['location', 'year_start', 'year_end', 'parameter']
+    expected_index_names = ['location', 'year', 'parameter']
     if entity.by_sex:
         expected_index_names += ['sex']
     if entity.by_age:
-        expected_index_names += ['age_group_start', 'age_group_end']
+        expected_index_names += ['age']
     validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     validate_location_column(data, context)
