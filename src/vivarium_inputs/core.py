@@ -8,7 +8,7 @@ import numpy as np
 
 from vivarium_inputs import utilities, extract, utility_data
 from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
-                                     Population, DataDoesNotExistError)
+                                     Population, DataDoesNotExistError, EXTRA_RESIDUAL_CATEGORY)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 
 
@@ -190,12 +190,15 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], 
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
+    if entity.name in EXTRA_RESIDUAL_CATEGORY:
+        data = data[data.parameter != EXTRA_RESIDUAL_CATEGORY[entity.name]]
+
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,
                                                      'outer', utility_data.get_age_group_ids())
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
-        tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+        tmrel_cat = utility_data.get_tmrel_category(entity)
         exposed = data[data.parameter != tmrel_cat]
         unexposed = data[data.parameter == tmrel_cat]
 
@@ -302,7 +305,7 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
     data = data.filter(DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'] + DRAW_COLUMNS)
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
-        tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+        tmrel_cat = utility_data.get_tmrel_category(entity)
         tmrel_data = data.loc[data.parameter == tmrel_cat]
         tmrel_data[DRAW_COLUMNS] = tmrel_data[DRAW_COLUMNS].mask(np.isclose(tmrel_data[DRAW_COLUMNS], 1.0), 1.0)
         data = pd.concat([tmrel_data, data.loc[data.parameter != tmrel_cat]])
