@@ -61,14 +61,13 @@ def get_data(entity, measure: str, location: Union[str, int]):
     location_id = utility_data.get_location_id(location) if isinstance(location, str) else location
     data = handler(entity, location_id)
 
-    if measure == 'estimate':
-        value_cols, var_name = COVARIATE_VALUE_COLUMNS, 'parameter'
-    elif measure == 'exposure_distribution_weights':
-        value_cols, var_name = DISTRIBUTION_COLUMNS, 'parameter'
+    if measure in ['structure', 'theoretical_minimum_risk_life_expectancy',
+                   'estimate', 'exposure_distribution_weights']:
+        value_cols = ['value']
     else:
-        value_cols, var_name = DRAW_COLUMNS, 'draw'
+        value_cols = DRAW_COLUMNS
 
-    data = utilities.reshape(data, value_cols=value_cols, var_name=var_name)
+    data = utilities.reshape(data, value_cols=value_cols)
 
     return data
 
@@ -121,7 +120,7 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
         data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
-        data = data.set_index(utilities.get_ordered_index_cols(data.columns.difference({'value'})))
+        data = data.set_index(utilities.get_ordered_index_cols(data.columns.difference(DRAW_COLUMNS)))
         if entity.sequelae:
             for sequela in entity.sequelae:
                 try:
@@ -159,11 +158,11 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    deaths = get_data(entity, 'deaths', location_id).reset_index(level='draw')  # population isn't by draws
+    deaths = get_data(entity, 'deaths', location_id)  # population isn't by draws
     pop = get_data(Population(), 'structure', location_id)
     data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
-    data['value'] = data['value_deaths'].divide(data['value_pop'])
-    return data.drop(['value_deaths', 'value_pop'], 'columns')
+    data[DRAW_COLUMNS] = data[DRAW_COLUMNS].divide(data.value, axis=0)
+    return data.drop(['value'], 'columns')
 
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
@@ -247,6 +246,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     data = data.filter(['location_id', 'sex_id', 'age_group_id', 'year_id'] + DISTRIBUTION_COLUMNS)
+    data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name='parameter')
     return data
 
 
@@ -383,6 +383,7 @@ def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
 
     data = data.filter(key_columns + COVARIATE_VALUE_COLUMNS)
     data = utilities.normalize(data)
+    data = utilities.wide_to_long(data, COVARIATE_VALUE_COLUMNS, var_name='parameter')
     return data
 
 
