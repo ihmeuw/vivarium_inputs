@@ -1,7 +1,7 @@
 from typing import Any
 
 import pandas as pd
-from vivarium_public_health.dataset_manager import EntityKey, filter_data, validate_filter_term
+from vivarium_public_health.dataset_manager import EntityKey, filter_data, validate_filter_term, split_interval
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
@@ -22,7 +22,11 @@ class ArtifactPassthrough:
         entity_key = EntityKey(entity_key)
         data = loader(entity_key, self.location, self.modeled_causes)
 
-        if isinstance(data, pd.DataFrame):
+        if isinstance(data, pd.DataFrame):  # could be a metadata dict
+            data = data.reset_index()
+            data = split_interval('age', 'age_group', data)
+            data = split_interval('year', 'year', data)
+
             for key, val in self.base_filter.items():
                 if key in data.columns:
                     column_filters[key] = val
