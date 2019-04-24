@@ -740,19 +740,20 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
         group.
 
     """
-    cols = ['location', 'year_start', 'year_end']
-
-    validate_location_column(data, context)
+    expected_index_names = ['location', 'year', 'parameter']
     if entity.by_sex:
         validate_sex_column(data)
-        cols += ['sex']
+        expected_index_names += ['sex']
     if entity.by_age:
-        validate_age_column(data, context=context)
-        cols += ['age_group_start', 'age_group_end']
+        validate_age_column(data, context)
+        expected_index_names += ['age']
+
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_location_column(data, context)
     validate_year_column(data, context)
     validate_value_column(data)
 
-    data.groupby(cols).apply(check_covariate_values)
+    data.groupby(expected_index_names).apply(check_covariate_values)
 
 
 def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity],
