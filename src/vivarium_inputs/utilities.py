@@ -26,16 +26,16 @@ def scrub_gbd_conventions(data, location):
 
 
 def scrub_location(data, location):
-    if 'location_id' in data.columns:
-        data = data.drop('location_id', 'columns')
-    data['location'] = location
+    if 'location_id' in data.index.names:
+        data.index = data.index.droplevel(['location_id'])
+    data = pd.concat([data], keys=[location], names=['location'])
     return data
 
 
 def scrub_sex(data):
-    if 'sex_id' in data.columns:
-        data['sex'] = data['sex_id'].map({1: 'Male', 2: 'Female'})
-        data = data.drop('sex_id', 'columns')
+    if 'sex_id' in data.index.names:
+        levels = list(data.index.levels[data.index.names.index('sex_id')].map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x)))
+        data.index = data.index.rename('sex', 'sex_id').set_levels(levels, 'sex')
     return data
 
 

@@ -168,7 +168,6 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
     deaths = get_data(entity, 'deaths', location_id)  # population isn't by draws
     pop = get_data(Population(), 'structure', location_id)
-    pop = pop.set_index(utilities.get_ordered_index_cols(pop.columns.difference({'value'})))
     data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
     data[DRAW_COLUMNS] = data[DRAW_COLUMNS].divide(data.value, axis=0)
     return data.drop(['value'], 'columns')
@@ -176,9 +175,7 @@ def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFram
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
     csmr = get_data(entity, 'cause_specific_mortality', location_id)
-    csmr = csmr.set_index(utilities.get_ordered_index_cols(csmr.columns.difference({'value'})))
     prevalence = get_data(entity, 'prevalence', location_id)
-    prevalence = prevalence.set_index(utilities.get_ordered_index_cols(prevalence.columns.difference({'value'})))
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data.reset_index()

@@ -454,7 +454,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
     if is_continuous:
-        if set(data.parameter) != {"continuous"}:
+        if set(data.index.unique('parameter'))!= {"continuous"}:
             raise DataTransformationError("Continuous exposure data should contain "
                                           "'continuous' in the parameter column.")
         valid_kwd = 'continuous'
@@ -556,6 +556,9 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
         outside the expected boundary values, or weights don't sum to 1 or 0.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
+
     validate_demographic_columns(data, context)
     validate_value_column(data)
 
@@ -566,7 +569,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    non_weight_columns = list(set(data.columns).difference({'parameter', 'value'}))
+    non_weight_columns = SCRUBBED_DEMOGRAPHIC_COLUMNS
     weights_sum = data.groupby(non_weight_columns)['value'].sum()
     if not weights_sum.apply(lambda s: np.isclose(s, 1.0) or np.isclose(s, 0.0)).all():
         raise DataTransformationError("Exposure weights do not sum to one across demographics.")
@@ -753,7 +756,8 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
     validate_year_column(data, context)
     validate_value_column(data)
 
-    data.groupby(expected_index_names).apply(check_covariate_values)
+    cols = list(set(expected_index_names).difference({'parameter', 'value'}))
+    data.groupby(cols).apply(check_covariate_values)
 
 
 def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, HealthcareEntity],
@@ -956,6 +960,39 @@ def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
 # UTILITIES #
 #############
 
+def validate_expected_index_and_columns(expected_index_names: List, existing_index_names: List, expected_cols: List,
+                                        existing_cols: List) -> None:
+    """Verify that the passed lists of columns and index names match.
+
+    Parameters
+    ----------
+    expected_index_names
+        List of index names expected.
+    existing_index_names
+        List of index names actually found in data.
+    expected_cols
+        List of column names expected.
+    existing_cols
+        List of column names actually found in data.
+
+    Raises
+    ------
+    DataTransformationError
+        If `expected_index_names` doesn't match of `existing_index_names` or
+        `expected_cols` does not match `existing_cols`.
+
+    """
+    to_check = [(set(expected_index_names), set(existing_index_names), 'index names'),
+                (set(expected_cols), set(existing_cols), 'columns')]
+    for c in to_check:
+        if c[1] < c[0]:
+            raise DataTransformationError(f'Data is missing {c[2]}: '
+                                          f'{c[0].difference(c[1])}.')
+        elif c[1] > c[0]:
+            raise DataTransformationError(f'Data returned extra {c[2]} '
+                                          f'{c[1].difference(c[0])}.')
+
+
 def validate_standard_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
     """Validate that location, sex, age, year, and value columns in the
     passed dataframe all have the expected names and values.
@@ -1004,8 +1041,7 @@ def validate_demographic_columns(data: pd.DataFrame, context: SimulationValidati
 
 
 def validate_location_column(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that location column in the data has the expected name
-    and value.
+    """Validate that location index column in the data has the expected value.
 
     Parameters
     ----------
@@ -1017,18 +1053,17 @@ def validate_location_column(data: pd.DataFrame, context: SimulationValidationCo
     Raises
     ------
     DataTransformationError
-        If data does not contain a column named 'location' or that column does
-        not only the single location given in `context`.
-    """
-    if 'location' not in data.columns:
-        raise DataTransformationError("Location data must be contained in a column named 'location'.")
+        If 'location' column does not contain only the single location given
+        in `context`.
 
-    if len(data['location'].unique()) != 1 or data['location'].unique()[0] != context['location']:
+    """
+    data_locations = data.index.unique('location')
+    if len(data_locations) != 1 or data_locations[0] != context['location']:
         raise DataTransformationError('Location must contain a single value that matches specified location.')
 
 
 def validate_sex_column(data: pd.DataFrame) -> None:
-    """Validate that sex column in the data has the expected name and values.
+    """Validate that sex index column in the data has the expected values.
 
     Parameters
     ----------
@@ -1038,13 +1073,10 @@ def validate_sex_column(data: pd.DataFrame) -> None:
     Raises
     ------
     DataTransformationError
-        If data does not contain a column named 'sex' or that column does not
-        contain only the values 'Male' and 'Female'.
-    """
-    if 'sex' not in data.columns:
-        raise DataTransformationError("Sex data must be contained in a column named 'sex'.")
+        If 'sex' column does not contain only the values 'Male' and 'Female'.
 
-    if set(data['sex']) != {'Male', 'Female'}:
+    """
+    if set(data.index.unique('sex')) != {'Male', 'Female'}:
         raise DataTransformationError("Sex must contain 'Male' and 'Female' and nothing else.")
 
 
@@ -1269,9 +1301,9 @@ def check_covariate_values(data: pd.DataFrame) -> None:
         If lower, mean, and upper values are not all 0 and it is not the case
          that lower < mean < upper.
     """
-    lower = data[data.parameter == 'lower_value'].value.values
-    mean = data[data.parameter == 'mean_value'].value.values
-    upper = data[data.parameter == 'upper_value'].value.values
+    lower = data.xs('lower_value', level='parameter').value.values
+    mean = data.xs('mean_value', level='parameter').value.values
+    upper = data.xs('upper_value', level='parameter').value.values
 
     # allow the case where lower = mean = upper = 0 b/c of things like age
     # specific fertility rate where all estimates are 0 for young age groups
