@@ -85,6 +85,11 @@ class ArtifactBuilder:
         if entity_key not in self.artifact:
             self.process(entity_key)
         data = self.artifact.load(entity_key)
+        if isinstance(data, pd.DataFrame):  # could be metadata dict
+            data = data.reset_index()
+            draw_col = [c for c in data if 'draw' in c]
+            if draw_col:
+                data = data.rename(columns={draw_col[0]: 'value'})
         return filter_data(data, **__) if isinstance(data, pd.DataFrame) else data
 
     def end_processing(self, event) -> None:
