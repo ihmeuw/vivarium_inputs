@@ -6,7 +6,7 @@ import pandas as pd
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (DataTransformationError, Population,
-                                     PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES)
+                                     PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES, DRAW_COLUMNS)
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
@@ -155,13 +155,16 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
@@ -192,13 +195,16 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
@@ -230,6 +236,9 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         boundary values.
 
     """
+    expected_index_names = ['location', 'sex', 'year_start', 'year_end']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_location_column(data, context)
     validate_sex_column(data)
     validate_year_columns(data, context)
@@ -237,10 +246,10 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     validate_value_column(data)
 
     check_value_columns_boundary(data, boundary_value=VALID_BIRTH_PREVALENCE_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_BIRTH_PREVALENCE_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
@@ -270,12 +279,15 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
@@ -305,13 +317,16 @@ def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationVal
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0, context=context)
@@ -339,13 +354,16 @@ def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0, context=context)
@@ -373,17 +391,20 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     if entity.name in BOUNDARY_SPECIAL_CASES['excess_mortality'].get(context['location'], {}):
         max_val = BOUNDARY_SPECIAL_CASES['excess_mortality'][context['location']][entity.name]
     else:
         max_val = VALID_EXCESS_MORT_RANGE[1]
-    check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=['value'],
+    check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0, context=context)
@@ -427,6 +448,9 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         distribution.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
@@ -444,18 +468,18 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         raise NotImplementedError()
 
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_RANGE[1][valid_kwd],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     cats = data.groupby('parameter')
     cats.apply(validate_standard_columns, context)
 
     if is_categorical:
-        non_categorical_columns = list(set(data.columns).difference({'parameter', 'value'}))
-        if not np.allclose(data.groupby(non_categorical_columns)['value'].sum(), 1.0):
+        non_categorical_columns = list(set(data.index.names).difference({'parameter'}))
+        if not np.allclose(data.groupby(non_categorical_columns).sum(axis=1), 1.0):
             raise DataTransformationError("Categorical exposures do not sum to one across categories.")
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
@@ -489,13 +513,16 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
         outside the expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
