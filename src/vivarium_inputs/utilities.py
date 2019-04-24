@@ -387,3 +387,13 @@ def get_exposure_and_restriction_ages(exposure: pd.DataFrame, entity: RiskFactor
     valid_age_groups = exposure_age_groups.intersection(restriction_age_groups)
 
     return valid_age_groups
+
+
+def split_interval(interval_column, split_column_prefix, data):
+    if interval_column in data.index.names:
+        data[f'{split_column_prefix}_end'] = data.index.get_level_values(interval_column).apply(lambda x: x.right)
+        interval_starts = [x.left for x in data.index.levels[data.index.names.index(interval_column)]]
+        data.index = (data.index.rename(interval_column, f'{split_column_prefix}_start')
+                      .set_levels(interval_starts, f'{split_column_prefix}_start'))
+        return data.set_index(f'{split_column_prefix}_end', append=True)
+
