@@ -626,8 +626,8 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         raise NotImplementedError()
 
     protective_causes = [c.name for c in PROTECTIVE_CAUSE_RISK_PAIRS.get(entity.name, [])]
-    protective = data[data.affected_entity.isin(protective_causes)]
-    non_protective = data.loc[data.index.difference(protective.index)]
+    protective = data.loc[data.index.isin(protective_causes, 'affected_entity')]
+    non_protective = data.loc[~data.index.isin(protective_causes, 'affected_entity')]
 
     if not protective.empty:
         check_value_columns_boundary(protective, boundary_value=0, boundary_type='lower',
@@ -648,7 +648,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
             raise DataTransformationError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
-        if (data.affected_measure == 'incidence_rate').all():
+        if (data.index.unique('affected_measure') == 'incidence_rate').all():
             check_age_restrictions(data, entity, rest_type='inner', fill_value=1.0, context=context)
         else:
             check_age_restrictions(data, entity, rest_type='yll', fill_value=1.0, context=context)
@@ -688,8 +688,8 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
     risk_relationship.apply(validate_standard_columns, context)
 
     protective_causes = [c.name for c in PROTECTIVE_CAUSE_RISK_PAIRS.get(entity.name, [])]
-    protective = data[data.affected_entity.isin(protective_causes)]
-    non_protective = data.loc[data.index.difference(protective.index)]
+    protective = data.loc[data.index.isin(protective_causes, 'affected_entity')]
+    non_protective = data.loc[~data.index.isin(protective_causes, 'affected_entity')]
 
     if not protective.empty:
         check_value_columns_boundary(protective, boundary_value=VALID_PROTECTIVE_PAF_MIN, boundary_type='lower',
