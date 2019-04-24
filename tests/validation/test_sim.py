@@ -90,9 +90,6 @@ def test_validate_sex_column_missing_column():
 
 
 def test_validate_age_columns_pass(mock_validation_context):
-<<<<<<< 36e086f333f54afc4d9459a7fa6d6801bbea3fe2
-    ages = mock_validation_context['age_bins'].filter(['age_group_start', 'age_group_end'])
-=======
     ages = (mock_validation_context['age_bins']
             .filter(['age_group_start', 'age_group_end']))
     # Shuffle the rows and set index
@@ -100,35 +97,26 @@ def test_validate_age_columns_pass(mock_validation_context):
     ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
                                                        closed='left', name='age_group'),
                           append=True)
->>>>>>> update validators + tests for intervals
     sim.validate_age_columns(ages, mock_validation_context)
 
 
 def test_validate_age_columns_invalid_age(mock_validation_context):
     ages = mock_validation_context['age_bins'].filter(['age_group_start', 'age_group_end'])
     ages.loc[2, 'age_group_start'] = -1
-<<<<<<< 36e086f333f54afc4d9459a7fa6d6801bbea3fe2
-=======
     ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
                                                        closed='left', name='age_group'),
                           append=True)
->>>>>>> update validators + tests for intervals
     with pytest.raises(DataTransformationError):
         sim.validate_age_columns(ages, mock_validation_context)
 
 
 def test_validate_age_columns_missing_group(mock_validation_context):
-<<<<<<< 36e086f333f54afc4d9459a7fa6d6801bbea3fe2
-    ages = mock_validation_context['age_bins'].filter(['age_group_start', 'age_group_end'])
-    ages.drop(2, inplace=True)
-=======
     ages = (mock_validation_context['age_bins']
             .filter(['age_group_start', 'age_group_end']))
     ages = ages.drop(2)
     ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
                                                        closed='left', name='age_group'),
                           append=True)
->>>>>>> update validators + tests for intervals
     with pytest.raises(DataTransformationError):
         sim.validate_age_columns(ages, mock_validation_context)
 
@@ -144,15 +132,6 @@ def test_validate_age_columns_missing_column(columns, mock_validation_context):
 
 
 def test_validate_year_columns_pass(mock_validation_context):
-<<<<<<< 36e086f333f54afc4d9459a7fa6d6801bbea3fe2
-    expected_years = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
-    sim.validate_year_columns(expected_years, mock_validation_context)
-
-
-def test_validate_year_columns_invalid_year(mock_validation_context):
-    df = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
-    df.loc[2, 'year_end'] = -1
-=======
     years = mock_validation_context['years']
     # Shuffle the rows and set index
     years = years.sample(frac=1).reset_index(drop=True)
@@ -170,23 +149,16 @@ def test_validate_year_columns_invalid_year(mock_validation_context):
     years = years.set_index(pd.IntervalIndex.from_arrays(years.year_start, years.year_end,
                                                          closed='left', name='year'),
                             append=True)
->>>>>>> update validators + tests for intervals
     with pytest.raises(DataTransformationError):
         sim.validate_year_columns(years, mock_validation_context)
 
 
-<<<<<<< 36e086f333f54afc4d9459a7fa6d6801bbea3fe2
-def test__validate_year_columns_missing_group(mock_validation_context):
-    df = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
-    df.drop(0, inplace=True)
-=======
 def test_validate_year_columns_missing_group(mock_validation_context):
     years = mock_validation_context['years'].sort_values(['year_start', 'year_end'])
     years = years.drop(0)
     years = years.set_index(pd.IntervalIndex.from_arrays(years.year_start, years.year_end,
                                                          closed='left', name='year'),
                             append=True)
->>>>>>> update validators + tests for intervals
     with pytest.raises(DataTransformationError):
         sim.validate_year_columns(years, mock_validation_context)
 
@@ -236,6 +208,9 @@ def test_check_age_restrictions(mocker, mock_validation_context, values, ids, re
     age_bins = mock_validation_context['age_bins']
     df = age_bins.filter(['age_group_start', 'age_group_end'])
     df['value'] = values
+    df = df.set_index(pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end,
+                                                   closed='left', name='age_group'),
+                      append=True)
     sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)
 
 
@@ -251,6 +226,9 @@ def test_check_age_restrictions_fail(mocker, mock_validation_context, values, id
     age_bins = mock_validation_context['age_bins']
     df = age_bins.filter(['age_group_start', 'age_group_end'])
     df['value'] = values
+    df = df.set_index(pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end,
+                                                   closed='left', name='age_group'),
+                      append=True)
     with pytest.raises(DataTransformationError):
         sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)
 
