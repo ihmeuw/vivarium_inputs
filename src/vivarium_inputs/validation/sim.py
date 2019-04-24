@@ -843,12 +843,11 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
         monotonically decreasing over age.
 
     """
-    if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
-        raise DataTransformationError("Age data must be contained in columns named "
-                                      "'age_group_start' and 'age_group_end'.")
+    expected_index_names = ['age']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
 
     age_min, age_max = 0, 110
-    if data.age_group_start.min() > age_min or data.age_group_start.max() < age_max:
+    if data.index.unique('age').min().left > age_min or data.index.unique('age').max().right < age_max:
         raise DataTransformationError(f'Life expectancy data does not span the '
                                       f'entire age range [{age_min}, {age_max}].')
 
@@ -859,7 +858,7 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
                                  value_columns=['value'], inclusive=False,
                                  error=DataTransformationError)
 
-    if not data.sort_values(by='age_group_start', ascending=False).value.is_monotonic:
+    if not data.sort_values(by='age', ascending=False).value.is_monotonic:
         raise DataTransformationError('Life expectancy data is not monotonically decreasing over age.')
 
 
@@ -882,6 +881,9 @@ def validate_age_bins(data: pd.DataFrame, entity: Population, context: Simulatio
         If any age columns are incorrectly named or contain invalid values.
 
     """
+    expected_index_names = ['age', 'age_group_name']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, [], data.columns)
+
     validate_age_columns(data, context=context)
 
 
