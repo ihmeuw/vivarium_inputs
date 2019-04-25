@@ -478,7 +478,7 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
     if is_categorical:
         non_categorical_columns = list(set(data.index.names).difference({'parameter'}))
-        if not np.allclose(data.groupby(non_categorical_columns).sum(axis=1), 1.0):
+        if not np.allclose(data.groupby(non_categorical_columns).sum(), 1.0):
             raise DataTransformationError("Categorical exposures do not sum to one across categories.")
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
