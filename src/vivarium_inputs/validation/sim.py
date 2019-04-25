@@ -1201,7 +1201,6 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
     """Given an entity and which restrictions to use, ensure that all data for
     sexes outside of the restrictions for that entity has values only of
     fill_value.
-
     Parameters
     ----------
     data
@@ -1222,20 +1221,18 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
         Optional. Used to check if the entity is a categorical risk, in which
         case only used for exposure data validation where the fill_values vary
         by category.
-
     Raises
     ------
     DataTransformationError
         If any values other than fill_value are found in any non-index columns
         in data outside the restrictions of entity.
-
     """
     outside = None
     if male_only:
-        outside = data[data.sex == 'Female']
+        outside = data.xs('Female', level='sex')
         sex = 'male'
     elif female_only:
-        outside = data[data.sex == 'Male']
+        outside = data.xs('Male', level='sex')
         sex = 'female'
     if outside is not None:
         if entity is not None and (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
