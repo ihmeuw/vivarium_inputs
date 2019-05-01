@@ -184,6 +184,9 @@ kind is included in the table below. Finally, `location` should be the string
 location for which you want to pull data (e.g., 'Ethiopia'), in the form used by
 GBD (e.g., 'United States' instead of 'USA').
 
+To pull simulation-prepped entity-measure data, you must have plenty of available
+memory. Please have at least 50GB on a qlogin.
+
 For example, to pull prevalence data for diarrheal diseases in Kenya, we would
 do the following:
 

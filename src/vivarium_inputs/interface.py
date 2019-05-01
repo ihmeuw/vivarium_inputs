@@ -12,7 +12,8 @@ import vivarium_inputs.validation.sim as validation
 def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
-    values or ranges and expanding over all demographic dimensions.
+    values or ranges and expanding over all demographic dimensions. To pull data
+    using this function, please have at least 50GB of memory available.
 
     Available measures:
 
