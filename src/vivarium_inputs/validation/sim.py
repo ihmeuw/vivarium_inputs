@@ -640,8 +640,8 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         check_value_columns_boundary(data.loc[non_protective_mask], boundary_value=VALID_RELATIVE_RISK_RANGE[0],
                                      boundary_type='lower', value_columns=DRAW_COLUMNS)
 
-    check_value_columns_boundary(data.loc[non_protective_mask], boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd],
-                                 boundary_type='upper', value_columns=DRAW_COLUMNS, error=DataTransformationError)
+        check_value_columns_boundary(data.loc[non_protective_mask], boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd],
+                                     boundary_type='upper', value_columns=DRAW_COLUMNS, error=DataTransformationError)
 
     if is_categorical:
         tmrel_cat = utility_data.get_tmrel_category(entity)
