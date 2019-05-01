@@ -294,21 +294,14 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         data = utilities.convert_affected_entity(data, 'rei_id')
         data['affected_measure'] = 'exposure_parameters'
 
-    result = []
-    for affected_entity in data.affected_entity.unique():
-        df = data[data.affected_entity == affected_entity]
-        df = (df.groupby('parameter')
-              .apply(utilities.normalize, fill_value=1)
-              .reset_index(drop=True))
-        result.append(df)
-    data = pd.concat(result)
     data = data.filter(DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'] + DRAW_COLUMNS)
+    data = data.groupby(['affected_entity', 'parameter']).apply(utilities.normalize, fill_value=1).reset_index(drop=True)
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
         tmrel_cat = utility_data.get_tmrel_category(entity)
-        tmrel_data = data.loc[data.parameter == tmrel_cat]
-        tmrel_data[DRAW_COLUMNS] = tmrel_data[DRAW_COLUMNS].mask(np.isclose(tmrel_data[DRAW_COLUMNS], 1.0), 1.0)
-        data = pd.concat([tmrel_data, data.loc[data.parameter != tmrel_cat]])
+        tmrel_mask = data.parameter == tmrel_cat
+        data.loc[tmrel_mask, DRAW_COLUMNS] = (data.loc[tmrel_mask, DRAW_COLUMNS]
+                                              .mask(np.isclose(data.loc[tmrel_mask, DRAW_COLUMNS], 1.0), 1.0))
 
     return data
 
