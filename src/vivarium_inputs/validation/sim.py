@@ -626,21 +626,22 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         raise NotImplementedError()
 
     protective_causes = [c.name for c in PROTECTIVE_CAUSE_RISK_PAIRS.get(entity.name, [])]
-    protective = data.loc[data.index.isin(protective_causes, 'affected_entity')]
-    non_protective = data.loc[~data.index.isin(protective_causes, 'affected_entity')]
+    protective_mask = data.index.isin(protective_causes, 'affected_entity')
 
-    if not protective.empty:
-        check_value_columns_boundary(protective, boundary_value=0, boundary_type='lower',
+    if np.any(protective_mask):
+        check_value_columns_boundary(data.loc[protective_mask], boundary_value=0, boundary_type='lower',
                                      value_columns=DRAW_COLUMNS, inclusive=False,
                                      error=DataTransformationError)
-        check_value_columns_boundary(protective, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
+        check_value_columns_boundary(data.loc[protective_mask], boundary_value=VALID_RELATIVE_RISK_RANGE[0],
                                      boundary_type='upper', value_columns=DRAW_COLUMNS)
-    if not non_protective.empty:
-        check_value_columns_boundary(non_protective, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
+
+    non_protective_mask = ~protective_mask
+    if np.any(non_protective_mask):
+        check_value_columns_boundary(data.loc[non_protective_mask], boundary_value=VALID_RELATIVE_RISK_RANGE[0],
                                      boundary_type='lower', value_columns=DRAW_COLUMNS)
 
-    check_value_columns_boundary(non_protective, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd], boundary_type='upper',
-                                 value_columns=DRAW_COLUMNS, error=DataTransformationError)
+    check_value_columns_boundary(data.loc[non_protective_mask], boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS, error=DataTransformationError)
 
     if is_categorical:
         tmrel_cat = utility_data.get_tmrel_category(entity)
