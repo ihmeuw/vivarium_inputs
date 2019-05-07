@@ -33,7 +33,7 @@ do
         echo upstream branch found for ${branch} in ${upstream_repo}
         # clone and install upstream stuff if target branch exists
         git clone --branch=$branch https://github.com/ihmeuw/${upstream_repo}.git
-        pushd vivarium
+        pushd ${upstream_repo}
         pip install .
         popd
     else
