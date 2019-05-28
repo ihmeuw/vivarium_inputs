@@ -11,7 +11,7 @@ from vivarium_public_health.dataset_manager import (EntityKey, Artifact, get_loc
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
-from vivarium_inputs.data_artifact.utilities import get_versions
+from vivarium_inputs.data_artifact.utilities import get_versions, split_interval
 
 
 _log = logging.getLogger(__name__)
@@ -85,6 +85,11 @@ class ArtifactBuilder:
         if entity_key not in self.artifact:
             self.process(entity_key)
         data = self.artifact.load(entity_key)
+        if isinstance(data, pd.DataFrame):  # could be metadata dict
+            data = data.reset_index()
+            draw_col = [c for c in data if 'draw' in c]
+            if draw_col:
+                data = data.rename(columns={draw_col[0]: 'value'})
         return filter_data(data, **__) if isinstance(data, pd.DataFrame) else data
 
     def end_processing(self, event) -> None:
@@ -99,6 +104,9 @@ class ArtifactBuilder:
 def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str],
             artifact: Artifact) -> None:
     data = loader(entity_key, location, modeled_causes, all_measures=False)
+    # FIXME: This is a hack since hdf files can't handle pandas.Interval objects
+    data = split_interval(data, interval_column='age', split_column_prefix='age_group')
+    data = split_interval(data, interval_column='year', split_column_prefix='year')
     artifact.write(entity_key, data)
 
 

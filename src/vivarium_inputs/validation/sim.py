@@ -6,7 +6,7 @@ import pandas as pd
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (DataTransformationError, Population,
-                                     PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES)
+                                     PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES, DRAW_COLUMNS)
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
@@ -16,13 +16,13 @@ VALID_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_BIRTH_PREVALENCE_RANGE = (0.0, 1.0)
 VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
-# FIXME: bumping csmr max to 3 because of age group scaling 2/8/19 - K.W.
+# FIXME: bumping csmr max because of age group scaling 2/8/19 - K.W.
 VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 6)  # used mortality viz, picked worst country 15q45, mul by ~1.25
 VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
 VALID_EXPOSURE_RANGE = (0.0, {'continuous': 10_000.0, 'categorical': 1.0})
 VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_EXPOSURE_DIST_WEIGHTS_RANGE = (0.0, 1.0)
-VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 10.0, 'categorical': 350.0})
+VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 10.0, 'categorical': 2550.0})
 VALID_PAF_RANGE = (0.0, 1.0)
 VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
@@ -30,7 +30,7 @@ VALID_UTILIZATION_RANGE = (0, 50)
 VALID_POPULATION_RANGE = (0, 75_000_000)
 VALID_LIFE_EXP_RANGE = (0, 90)
 
-SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age_group_start', 'age_group_end', 'year_start', 'year_end']
+SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age', 'year']
 
 
 class SimulationValidationContext:
@@ -155,13 +155,16 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_INCIDENCE_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
@@ -192,13 +195,16 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_PREVALENCE_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
@@ -230,17 +236,19 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
         boundary values.
 
     """
+    expected_index_names = ['location', 'sex', 'year_start', 'year_end']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_location_column(data, context)
     validate_sex_column(data)
-    validate_year_columns(data, context)
-    validate_draw_column(data)
+    validate_year_column(data, context)
     validate_value_column(data)
 
     check_value_columns_boundary(data, boundary_value=VALID_BIRTH_PREVALENCE_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_BIRTH_PREVALENCE_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
@@ -270,12 +278,15 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_DISABILITY_WEIGHT_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     restrictions_entity = [c for c in causes if entity in c.sequelae][0] if entity.kind == 'sequela' else entity
@@ -305,13 +316,16 @@ def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationVal
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_REMISSION_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='yld', fill_value=0.0, context=context)
@@ -339,13 +353,16 @@ def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_CAUSE_SPECIFIC_MORTALITY_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0, context=context)
@@ -373,17 +390,20 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_EXCESS_MORT_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     if entity.name in BOUNDARY_SPECIAL_CASES['excess_mortality'].get(context['location'], {}):
         max_val = BOUNDARY_SPECIAL_CASES['excess_mortality'][context['location']][entity.name]
     else:
         max_val = VALID_EXCESS_MORT_RANGE[1]
-    check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=['value'],
+    check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0, context=context)
@@ -427,16 +447,19 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         distribution.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     is_continuous = entity.distribution in ['normal', 'lognormal', 'ensemble']
     is_categorical = entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']
 
     if is_continuous:
-        if set(data.parameter) != {"continuous"}:
+        if set(data.index.unique('parameter'))!= {"continuous"}:
             raise DataTransformationError("Continuous exposure data should contain "
                                           "'continuous' in the parameter column.")
         valid_kwd = 'continuous'
     elif is_categorical:
-        if set(data.parameter) != set(entity.categories.to_dict()):  # to_dict removes None
+        if set(data.index.unique('parameter')) != set(entity.categories.to_dict()):  # to_dict removes None
             raise DataTransformationError("Categorical exposure data does not contain all "
                                           "categories in the parameter column.")
         valid_kwd = 'categorical'
@@ -444,18 +467,18 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         raise NotImplementedError()
 
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_RANGE[1][valid_kwd],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     cats = data.groupby('parameter')
     cats.apply(validate_standard_columns, context)
 
     if is_categorical:
-        non_categorical_columns = list(set(data.columns).difference({'parameter', 'value'}))
-        if not np.allclose(data.groupby(non_categorical_columns)['value'].sum(), 1.0):
+        non_categorical_columns = list(set(data.index.names).difference({'parameter'}))
+        if not np.allclose(data.groupby(non_categorical_columns).sum(), 1.0):
             raise DataTransformationError("Categorical exposures do not sum to one across categories.")
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
@@ -489,13 +512,16 @@ def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskF
         outside the expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
 
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[0],
-                                 boundary_type='lower', value_columns=['value'],
+                                 boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, boundary_value=VALID_EXPOSURE_SD_RANGE[1],
-                                 boundary_type='upper', value_columns=['value'],
+                                 boundary_type='upper', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
     check_age_restrictions(data, entity, rest_type='outer', fill_value=0.0, context=context)
@@ -530,6 +556,9 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
         outside the expected boundary values, or weights don't sum to 1 or 0.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['parameter']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
+
     validate_demographic_columns(data, context)
     validate_value_column(data)
 
@@ -540,7 +569,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
                                  boundary_type='upper', value_columns=['value'],
                                  error=DataTransformationError)
 
-    non_weight_columns = list(set(data.columns).difference({'parameter', 'value'}))
+    non_weight_columns = SCRUBBED_DEMOGRAPHIC_COLUMNS
     weights_sum = data.groupby(non_weight_columns)['value'].sum()
     if not weights_sum.apply(lambda s: np.isclose(s, 1.0) or np.isclose(s, 0.0)).all():
         raise DataTransformationError("Exposure weights do not sum to one across demographics.")
@@ -580,6 +609,9 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         entities with categorical distributions.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     risk_relationship = data.groupby(['affected_entity', 'affected_measure', 'parameter'])
     risk_relationship.apply(validate_standard_columns, context)
 
@@ -594,29 +626,30 @@ def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, Coverag
         raise NotImplementedError()
 
     protective_causes = [c.name for c in PROTECTIVE_CAUSE_RISK_PAIRS.get(entity.name, [])]
-    protective = data[data.affected_entity.isin(protective_causes)]
-    non_protective = data.loc[data.index.difference(protective.index)]
+    protective_mask = data.index.isin(protective_causes, 'affected_entity')
 
-    if not protective.empty:
-        check_value_columns_boundary(protective, boundary_value=0, boundary_type='lower',
-                                     value_columns=['value'], inclusive=False,
+    if np.any(protective_mask):
+        check_value_columns_boundary(data.loc[protective_mask], boundary_value=0, boundary_type='lower',
+                                     value_columns=DRAW_COLUMNS, inclusive=False,
                                      error=DataTransformationError)
-        check_value_columns_boundary(protective, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
-                                     boundary_type='upper', value_columns=['value'])
-    if not non_protective.empty:
-        check_value_columns_boundary(non_protective, boundary_value=VALID_RELATIVE_RISK_RANGE[0],
-                                     boundary_type='lower', value_columns=['value'])
+        check_value_columns_boundary(data.loc[protective_mask], boundary_value=VALID_RELATIVE_RISK_RANGE[0],
+                                     boundary_type='upper', value_columns=DRAW_COLUMNS)
 
-    check_value_columns_boundary(non_protective, boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd], boundary_type='upper',
-                                 value_columns=['value'], error=DataTransformationError)
+    non_protective_mask = ~protective_mask
+    if np.any(non_protective_mask):
+        check_value_columns_boundary(data.loc[non_protective_mask], boundary_value=VALID_RELATIVE_RISK_RANGE[0],
+                                     boundary_type='lower', value_columns=DRAW_COLUMNS)
+
+        check_value_columns_boundary(data.loc[non_protective_mask], boundary_value=VALID_RELATIVE_RISK_RANGE[1][range_kwd],
+                                     boundary_type='upper', value_columns=DRAW_COLUMNS, error=DataTransformationError)
 
     if is_categorical:
         tmrel_cat = utility_data.get_tmrel_category(entity)
-        if not (data.loc[data.parameter == tmrel_cat, 'value'] == 1.0).all():
+        if not (data.loc[data.index.isin([tmrel_cat], 'parameter')].values == 1.0).all():
             raise DataTransformationError(f"The TMREL category {tmrel_cat} contains values other than 1.0.")
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
-        if (data.affected_measure == 'incidence_rate').all():
+        if (data.index.unique('affected_measure') == 'incidence_rate').all():
             check_age_restrictions(data, entity, rest_type='inner', fill_value=1.0, context=context)
         else:
             check_age_restrictions(data, entity, rest_type='yll', fill_value=1.0, context=context)
@@ -649,26 +682,29 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         outside the expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     risk_relationship = data.groupby(['affected_entity', 'affected_measure'])
     risk_relationship.apply(validate_standard_columns, context)
 
     protective_causes = [c.name for c in PROTECTIVE_CAUSE_RISK_PAIRS.get(entity.name, [])]
-    protective = data[data.affected_entity.isin(protective_causes)]
-    non_protective = data.loc[data.index.difference(protective.index)]
+    protective = data.loc[data.index.isin(protective_causes, 'affected_entity')]
+    non_protective = data.loc[~data.index.isin(protective_causes, 'affected_entity')]
 
     if not protective.empty:
         check_value_columns_boundary(protective, boundary_value=VALID_PROTECTIVE_PAF_MIN, boundary_type='lower',
-                                     value_columns=['value'], error=DataTransformationError)
+                                     value_columns=DRAW_COLUMNS, error=DataTransformationError)
         check_value_columns_boundary(protective, boundary_value=VALID_PAF_RANGE[0], boundary_type='upper',
-                                     value_columns=['value'])
+                                     value_columns=DRAW_COLUMNS)
         check_value_columns_boundary(protective, boundary_value=VALID_PAF_RANGE[1], boundary_type='upper',
-                                     value_columns=['value'], error=DataTransformationError)
+                                     value_columns=DRAW_COLUMNS, error=DataTransformationError)
     if not non_protective.empty:
         check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[0],
-                                     boundary_type='lower', value_columns=['value'],
+                                     boundary_type='lower', value_columns=DRAW_COLUMNS,
                                      error=DataTransformationError)
         check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[1],
-                                     boundary_type='upper', value_columns=['value'],
+                                     boundary_type='upper', value_columns=DRAW_COLUMNS,
                                      error=DataTransformationError)
 
     for (c_name, measure), g in risk_relationship:
@@ -708,18 +744,20 @@ def validate_estimate(data: pd.DataFrame, entity: Covariate, context: Simulation
         group.
 
     """
-    cols = ['location', 'year_start', 'year_end']
-
-    validate_location_column(data, context)
+    expected_index_names = ['location', 'year', 'parameter']
     if entity.by_sex:
         validate_sex_column(data)
-        cols += ['sex']
+        expected_index_names += ['sex']
     if entity.by_age:
-        validate_age_columns(data, context=context)
-        cols += ['age_group_start', 'age_group_end']
-    validate_year_columns(data, context)
+        validate_age_column(data, context)
+        expected_index_names += ['age']
+
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
+    validate_location_column(data, context)
+    validate_year_column(data, context)
     validate_value_column(data)
 
+    cols = list(set(expected_index_names).difference({'parameter', 'value'}))
     data.groupby(cols).apply(check_covariate_values)
 
 
@@ -744,12 +782,15 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcare
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS + [entity.kind]
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_COST_RANGE[0], 'lower',
-                                 value_columns=['value'], inclusive=True,
+                                 value_columns=DRAW_COLUMNS, inclusive=True,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, VALID_COST_RANGE[1][entity.kind], 'upper',
-                                 value_columns=['value'], inclusive=True,
+                                 value_columns=DRAW_COLUMNS, inclusive=True,
                                  error=DataTransformationError)
 
 
@@ -774,12 +815,15 @@ def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: 
         expected boundary values.
 
     """
+    expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
+    validate_expected_index_and_columns(expected_index_names, data.index.names, DRAW_COLUMNS, data.columns)
+
     validate_standard_columns(data, context)
     check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[0], 'lower',
-                                 value_columns=['value'], inclusive=True,
+                                 value_columns=DRAW_COLUMNS, inclusive=True,
                                  error=DataTransformationError)
     check_value_columns_boundary(data, VALID_UTILIZATION_RANGE[1], 'upper',
-                                 value_columns=['value'], inclusive=True,
+                                 value_columns=DRAW_COLUMNS, inclusive=True,
                                  error=DataTransformationError)
 
 
@@ -843,12 +887,13 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
         monotonically decreasing over age.
 
     """
-    if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
-        raise DataTransformationError("Age data must be contained in columns named "
-                                      "'age_group_start' and 'age_group_end'.")
+    expected_index_names = ['age']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, ['value'], data.columns)
+
+    validate_value_column(data)
 
     age_min, age_max = 0, 110
-    if data.age_group_start.min() > age_min or data.age_group_start.max() < age_max:
+    if data.index.unique('age').min().left > age_min or data.index.unique('age').max().right < age_max:
         raise DataTransformationError(f'Life expectancy data does not span the '
                                       f'entire age range [{age_min}, {age_max}].')
 
@@ -859,7 +904,7 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
                                  value_columns=['value'], inclusive=False,
                                  error=DataTransformationError)
 
-    if not data.sort_values(by='age_group_start', ascending=False).value.is_monotonic:
+    if not data.sort_values(by='age', ascending=False).value.is_monotonic:
         raise DataTransformationError('Life expectancy data is not monotonically decreasing over age.')
 
 
@@ -882,7 +927,10 @@ def validate_age_bins(data: pd.DataFrame, entity: Population, context: Simulatio
         If any age columns are incorrectly named or contain invalid values.
 
     """
-    validate_age_columns(data, context=context)
+    expected_index_names = ['age', 'age_group_name']
+    validate_expected_index_and_columns(expected_index_names, data.index.names, [], data.columns)
+
+    validate_age_column(data, context=context)
 
 
 def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
@@ -913,8 +961,41 @@ def validate_demographic_dimensions(data: pd.DataFrame, entity: Population,
 # UTILITIES #
 #############
 
+def validate_expected_index_and_columns(expected_index_names: List, existing_index_names: List, expected_cols: List,
+                                        existing_cols: List) -> None:
+    """Verify that the passed lists of columns and index names match.
+
+    Parameters
+    ----------
+    expected_index_names
+        List of index names expected.
+    existing_index_names
+        List of index names actually found in data.
+    expected_cols
+        List of column names expected.
+    existing_cols
+        List of column names actually found in data.
+
+    Raises
+    ------
+    DataTransformationError
+        If `expected_index_names` doesn't match of `existing_index_names` or
+        `expected_cols` does not match `existing_cols`.
+
+    """
+    to_check = [(set(expected_index_names), set(existing_index_names), 'index names'),
+                (set(expected_cols), set(existing_cols), 'columns')]
+    for c in to_check:
+        if c[1] < c[0]:
+            raise DataTransformationError(f'Data is missing {c[2]}: '
+                                          f'{c[0].difference(c[1])}.')
+        elif c[1] > c[0]:
+            raise DataTransformationError(f'Data returned extra {c[2]} '
+                                          f'{c[1].difference(c[0])}.')
+
+
 def validate_standard_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that location, sex, age, year, draw, and value columns in the
+    """Validate that location, sex, age, year, and value columns in the
     passed dataframe all have the expected names and values.
 
     Parameters
@@ -932,7 +1013,6 @@ def validate_standard_columns(data: pd.DataFrame, context: SimulationValidationC
 
     """
     validate_demographic_columns(data, context)
-    validate_draw_column(data)
     validate_value_column(data)
 
 
@@ -957,35 +1037,12 @@ def validate_demographic_columns(data: pd.DataFrame, context: SimulationValidati
     """
     validate_location_column(data, context)
     validate_sex_column(data)
-    validate_age_columns(data, context=context)
-    validate_year_columns(data, context)
-
-
-def validate_draw_column(data: pd.DataFrame) -> None:
-    """Validate that draw column in the data has the expected name and values.
-
-    Parameters
-    ----------
-    data
-        Simulation-prepped data to validate.
-
-    Raises
-    ------
-    DataTransformationError
-         If data does not contain a column named 'draw' or that column does not
-         contain all values in the range [0, 999].
-
-    """
-    if 'draw' not in data.columns:
-        raise DataTransformationError("Draw data must be contained in a column named 'draw'.")
-
-    if set(data['draw']) != set(range(1000)):
-        raise DataTransformationError('Draw must contain [0, 999].')
+    validate_age_column(data, context=context)
+    validate_year_column(data, context)
 
 
 def validate_location_column(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that location column in the data has the expected name
-    and value.
+    """Validate that location index column in the data has the expected value.
 
     Parameters
     ----------
@@ -997,18 +1054,17 @@ def validate_location_column(data: pd.DataFrame, context: SimulationValidationCo
     Raises
     ------
     DataTransformationError
-        If data does not contain a column named 'location' or that column does
-        not only the single location given in `context`.
-    """
-    if 'location' not in data.columns:
-        raise DataTransformationError("Location data must be contained in a column named 'location'.")
+        If 'location' column does not contain only the single location given
+        in `context`.
 
-    if len(data['location'].unique()) != 1 or data['location'].unique()[0] != context['location']:
+    """
+    data_locations = data.index.unique('location')
+    if len(data_locations) != 1 or data_locations[0] != context['location']:
         raise DataTransformationError('Location must contain a single value that matches specified location.')
 
 
 def validate_sex_column(data: pd.DataFrame) -> None:
-    """Validate that sex column in the data has the expected name and values.
+    """Validate that sex index column in the data has the expected values.
 
     Parameters
     ----------
@@ -1018,18 +1074,15 @@ def validate_sex_column(data: pd.DataFrame) -> None:
     Raises
     ------
     DataTransformationError
-        If data does not contain a column named 'sex' or that column does not
-        contain only the values 'Male' and 'Female'.
-    """
-    if 'sex' not in data.columns:
-        raise DataTransformationError("Sex data must be contained in a column named 'sex'.")
+        If 'sex' column does not contain only the values 'Male' and 'Female'.
 
-    if set(data['sex']) != {'Male', 'Female'}:
+    """
+    if set(data.index.unique('sex')) != {'Male', 'Female'}:
         raise DataTransformationError("Sex must contain 'Male' and 'Female' and nothing else.")
 
 
-def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that age columns in the data have the expected names and values.
+def validate_age_column(data: pd.DataFrame, context: SimulationValidationContext) -> None:
+    """Validate that age index column in the data has the expected values.
 
     Parameters
     ----------
@@ -1041,29 +1094,19 @@ def validate_age_columns(data: pd.DataFrame, context: SimulationValidationContex
     Raises
     ------
     DataTransformationError
-        If data does not contain columns named 'age_grouo_start' and
-        'age_group_end' or if those columns do not contain the full range of
-        expected age bins supplied in `context`.
+        If 'age' index does not contain the full range of expected
+        age bins supplied in `context`.
+
     """
-    if 'age_group_start' not in data.columns or 'age_group_end' not in data.columns:
-        raise DataTransformationError("Age data must be contained in columns named"
-                                      " 'age_group_start' and 'age_group_end'.")
+    expected_ages = [pd.Interval(row.age_group_start, row.age_group_end, closed='left') for _, row in context['age_bins'].iterrows()]
+    data_ages = data.index.levels[data.index.names.index('age')]
 
-    expected_ages = (context['age_bins']
-                     .filter(['age_group_start', 'age_group_end'])
-                     .sort_values(['age_group_start', 'age_group_end']))
-    age_block = (data[['age_group_start', 'age_group_end']]
-                 .drop_duplicates()
-                 .sort_values(['age_group_start', 'age_group_end'])
-                 .reset_index(drop=True))
-
-    if not age_block.equals(expected_ages):
+    if not sorted(data_ages) == sorted(expected_ages):
         raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
 
 
-def validate_year_columns(data: pd.DataFrame, context: SimulationValidationContext) -> None:
-    """Validate that year columns in the data have the expected names and
-    values.
+def validate_year_column(data: pd.DataFrame, context: SimulationValidationContext) -> None:
+    """Validate that year column in the data has the expected values.
 
     Parameters
     ----------
@@ -1075,26 +1118,20 @@ def validate_year_columns(data: pd.DataFrame, context: SimulationValidationConte
     Raises
     ------
     DataTransformationError
-        If data does not contain columns named 'year_start' and
-        'year_end' or if those columns do not contain the full range of
-        expected year bins supplied in `context`.
+        If 'year' index column does not contain the full range of expected year bins
+        supplied in `context`.
+
     """
-    if 'year_start' not in data.columns or 'year_end' not in data.columns:
-        raise DataTransformationError("Year data must be contained in columns named 'year_start', and 'year_end'.")
+    expected_years = [pd.Interval(row.year_start, row.year_end, closed='left') for _, row in context['years'].iterrows()]
+    data_years = data.index.levels[data.index.names.index('year')]
 
-    expected_years = context['years'].sort_values(['year_start', 'year_end'])
-    year_block = (data[['year_start', 'year_end']]
-                  .drop_duplicates()
-                  .sort_values(['year_start', 'year_end'])
-                  .reset_index(drop=True))
-
-    if not year_block.equals(expected_years):
+    if not sorted(data_years) == sorted(expected_years):
         raise DataTransformationError('Year_start and year_end must cover [1990, 2017] in intervals of one year.')
 
 
 def validate_value_column(data: pd.DataFrame) -> None:
-    """Validate that value column in the data has the expected name and no
-    missing values.
+    """Validate that value columns (i.e., any non-index columns) in the data
+    have no missing values.
 
     Parameters
     ----------
@@ -1106,15 +1143,13 @@ def validate_value_column(data: pd.DataFrame) -> None:
     Raises
     ------
     DataTransformationError
-        If data does not contain a column named `value` or that column contains
-        any NaN or Inf values.
-    """
-    if 'value' not in data.columns:
-        raise DataTransformationError("Value data must be contained in a column named 'value'.")
+        If any non-index columns contain any NaN or Inf values.
 
-    if np.any(data.value.isna()):
+    """
+
+    if np.any(np.isnan(data.values)):
         raise DataTransformationError('Value data found to contain NaN.')
-    if np.any(np.isinf(data.value.values)):
+    if np.any(np.isinf(data.values)):
         raise DataTransformationError('Value data found to contain infinity.')
 
 
@@ -1142,22 +1177,23 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
     Raises
     ------
     DataTransformationError
-        If any values other than fill_value are found in data outside the
-        restrictions of entity.
+        If any values other than fill_value are found in any non-index columns
+        in data outside the restrictions of entity.
+
     """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
-    age_start = float(age_bins.loc[age_bins.age_group_id == start_id, 'age_group_start'])
-    age_end = float(age_bins.loc[age_bins.age_group_id == end_id, 'age_group_end'])
-
-    outside = data.loc[(data.age_group_start < age_start) | (data.age_group_end > age_end)]
+    in_range_ages = age_bins.loc[(age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)]
+    in_range_age_intervals = [pd.Interval(row.age_group_start, row.age_group_end, closed='left')
+                              for _, row in in_range_ages.iterrows()]
+    outside = data.loc[~data.index.isin(in_range_age_intervals, 'age')]
 
     if (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
             entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous'] and
             isinstance(fill_value, dict)):
         _check_cat_risk_fill_values(outside, entity, fill_value, 'age')
 
-    elif not outside.empty and (outside.value != fill_value).any():
+    elif not outside.empty and np.any(outside.values != fill_value):
         raise DataTransformationError(f"Age restrictions are violated by a value other than fill={fill_value}.")
 
 
@@ -1166,7 +1202,6 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
     """Given an entity and which restrictions to use, ensure that all data for
     sexes outside of the restrictions for that entity has values only of
     fill_value.
-
     Parameters
     ----------
     data
@@ -1187,19 +1222,18 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
         Optional. Used to check if the entity is a categorical risk, in which
         case only used for exposure data validation where the fill_values vary
         by category.
-
     Raises
     ------
     DataTransformationError
-        If any values other than fill_value are found in data outside the
-        restrictions of entity.
+        If any values other than fill_value are found in any non-index columns
+        in data outside the restrictions of entity.
     """
     outside = None
     if male_only:
-        outside = data[data.sex == 'Female']
+        outside = data.xs('Female', level='sex')
         sex = 'male'
     elif female_only:
-        outside = data[data.sex == 'Male']
+        outside = data.xs('Male', level='sex')
         sex = 'female'
     if outside is not None:
         if entity is not None and (entity.kind in ['risk_factor', 'alternative_risk_factor'] and
@@ -1207,7 +1241,7 @@ def check_sex_restrictions(data: pd.DataFrame, male_only: bool, female_only: boo
                                    and isinstance(fill_value, dict)):
             _check_cat_risk_fill_values(outside, entity, fill_value, 'sex')
 
-        elif (outside.value != fill_value).any():
+        elif np.any(outside.values != fill_value):
             raise DataTransformationError(f"Restriction to {sex} sex only is violated "
                                           f"by a value other than fill={fill_value}.")
 
@@ -1233,16 +1267,17 @@ def _check_cat_risk_fill_values(outside_data: pd.DataFrame, entity: Union[RiskFa
     Raises
     ------
     DataTransformationError
-        If the outside_data contains values other than fill_value for the
-        correct categories.
+        If the outside_data contains values other than fill_value in any
+        non-index columns for the correct categories.
+
     """
     tmrel_cat = utility_data.get_tmrel_category(entity)
-    outside_unexposed = outside_data[outside_data.parameter == tmrel_cat]
-    outside_exposed = outside_data[outside_data.parameter != tmrel_cat]
-    if not outside_unexposed.empty and (outside_unexposed.value != fill_value['unexposed']).any():
+    outside_unexposed = outside_data.loc[outside_data.index.get_level_values('parameter') == tmrel_cat]
+    outside_exposed = outside_data.loc[outside_data.index.get_level_values('parameter') != tmrel_cat]
+    if not outside_unexposed.empty and np.any(outside_unexposed.values != fill_value['unexposed']):
         raise DataTransformationError(f'{restriction.capitalize()} restrictions for TMREL cat are violated by a '
                                       f'value other than fill={fill_value["unexposed"]}.')
-    if not outside_exposed.empty and (outside_exposed.value != fill_value['exposed']).any():
+    if not outside_exposed.empty and np.any(outside_exposed.values != fill_value['exposed']):
         raise DataTransformationError(f'{restriction.capitalize()} restrictions for non-TMREL categories are violated '
                                       f'by a value other than fill={fill_value["exposed"]}.')
 
@@ -1264,9 +1299,9 @@ def check_covariate_values(data: pd.DataFrame) -> None:
         If lower, mean, and upper values are not all 0 and it is not the case
          that lower < mean < upper.
     """
-    lower = data[data.parameter == 'lower_value'].value.values
-    mean = data[data.parameter == 'mean_value'].value.values
-    upper = data[data.parameter == 'upper_value'].value.values
+    lower = data.xs('lower_value', level='parameter').value.values
+    mean = data.xs('mean_value', level='parameter').value.values
+    upper = data.xs('upper_value', level='parameter').value.values
 
     # allow the case where lower = mean = upper = 0 b/c of things like age
     # specific fertility rate where all estimates are 0 for young age groups

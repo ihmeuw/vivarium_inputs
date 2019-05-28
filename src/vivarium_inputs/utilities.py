@@ -9,7 +9,7 @@ import pandas as pd
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
 
-INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ['draw', 'affected_entity', 'affected_measure', 'parameter']
+INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter']
 
 ##################################################
 # Functions to remove GBD conventions from data. #
@@ -26,34 +26,35 @@ def scrub_gbd_conventions(data, location):
 
 
 def scrub_location(data, location):
-    if 'location_id' in data.columns:
-        data = data.drop('location_id', 'columns')
-    data['location'] = location
+    if 'location_id' in data.index.names:
+        data.index = data.index.rename('location', 'location_id').set_levels([location], 'location')
+    else:
+        data = pd.concat([data], keys=[location], names=['location'])
     return data
 
 
 def scrub_sex(data):
-    if 'sex_id' in data.columns:
-        data['sex'] = data['sex_id'].map({1: 'Male', 2: 'Female'})
-        data = data.drop('sex_id', 'columns')
+    if 'sex_id' in data.index.names:
+        levels = list(data.index.levels[data.index.names.index('sex_id')].map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x)))
+        data.index = data.index.rename('sex', 'sex_id').set_levels(levels, 'sex')
     return data
 
 
 def scrub_age(data):
-    if 'age_group_id' in data.columns:
-        age_bins = (utility_data.get_age_bins()
-                    .filter(['age_group_id', 'age_group_start', 'age_group_end'])
-                    .set_index('age_group_id'))
-        data['age_group_start'] = data['age_group_id'].map(age_bins['age_group_start'])
-        data['age_group_end'] = data['age_group_id'].map(age_bins['age_group_end'])
-        data = data.drop('age_group_id', 'columns')
+    if 'age_group_id' in data.index.names:
+        age_bins = utility_data.get_age_bins().set_index('age_group_id')
+        id_levels = data.index.levels[data.index.names.index('age_group_id')]
+        interval_levels = [pd.Interval(age_bins.age_group_start[age_id],
+                                       age_bins.age_group_end[age_id], closed='left') for age_id in id_levels]
+        data.index = data.index.rename('age', 'age_group_id').set_levels(interval_levels, 'age')
     return data
 
 
 def scrub_year(data):
-    if 'year_id' in data.columns:
-        data = data.rename(columns={'year_id': 'year_start'})
-        data['year_end'] = data['year_start'] + 1
+    if 'year_id' in data.index.names:
+        id_levels = data.index.levels[data.index.names.index('year_id')]
+        interval_levels = [pd.Interval(year_id, year_id + 1, closed='left') for year_id in id_levels]
+        data.index = data.index.rename('year', 'year_id').set_levels(interval_levels, 'year')
     return data
 
 
@@ -63,6 +64,14 @@ def scrub_affected_entity(data):
     if 'cause_id' in data.columns:
         data['affected_entity'] = data.cause_id.apply(lambda cause_id: CAUSE_BY_ID[cause_id].name)
         data.drop('cause_id', axis=1, inplace=True)
+    return data
+
+
+def set_age_interval(data):
+    if 'age_group_start' in data.index.names:
+        bins = zip(data.index.get_level_values('age_group_start'), data.index.get_level_values('age_group_end'))
+        data = data.assign(age=[pd.Interval(x[0], x[1], closed='left') for x in bins]).set_index('age', append=True)
+        data.index = data.index.droplevel('age_group_start').droplevel('age_group_end')
     return data
 
 
@@ -168,40 +177,33 @@ def get_ordered_index_cols(data_columns: Union[pd.Index, set]):
     return [i for i in INDEX_COLUMNS if i in data_columns] + list(data_columns.difference(INDEX_COLUMNS))
 
 
-def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS, var_name: str = 'draw') -> pd.DataFrame:
-    if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):
-        if set(data.columns).intersection(value_cols):  # reshape wide to long over value_cols
-            data = data.set_index(get_ordered_index_cols(data.columns.difference(value_cols)))
-            if value_cols == DRAW_COLUMNS:
-                data = data.rename(columns={draw: i for i, draw in enumerate(DRAW_COLUMNS)})
-            data.columns.name = var_name
-            data = data.stack()
-            data.name = 'value'
-            data = data.to_frame()  # stack turns df into a series
-        else:  # already in right shape so set index
-            data = data.set_index(get_ordered_index_cols(data.columns.difference({'value'})))
-    elif not data.columns.difference({'value'}).empty:  # we missed some columns that need to be in index
-        data = data.set_index(list(data.columns.difference({'value'})), append=True)
+def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS) -> pd.DataFrame:
+    if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):  # push all non-val cols into index
+        data = data.set_index(get_ordered_index_cols(data.columns.difference(value_cols)))
+    elif not data.columns.difference(value_cols).empty:  # we missed some columns that need to be in index
+        data = data.set_index(list(data.columns.difference(value_cols)), append=True)
         data = data.reorder_levels(get_ordered_index_cols(set(data.index.names)))
     else:  # we've already set the full index
         pass
-    return data.reset_index()
+    return data
 
 
-def sort_data(data: pd.DataFrame) -> pd.DataFrame:
-    key_cols = []
-    if 'draw' in data.columns:
-        key_cols.append('draw')
-    key_cols.extend([c for c in ['location', 'sex', 'age_group_start',
-                                 'age_group_end', 'year_start', 'year_end'] if c in data.columns])
-    other_cols = data.columns.difference(key_cols + ['value'])
-    key_cols.extend(other_cols)
-    data = data.sort_values(key_cols).reset_index(drop=True)
+def wide_to_long(data: pd.DataFrame, value_cols: List, var_name: str) -> pd.DataFrame:
+    if set(data.columns).intersection(value_cols):
+        id_cols = data.columns.difference(value_cols)
+        data = pd.melt(data, id_vars=id_cols, value_vars=value_cols, var_name=var_name)
+    return data
 
-    sorted_cols = key_cols
-    if 'value' in data.columns:
-        sorted_cols += ['value']
-    data = data[sorted_cols]
+
+def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
+    """Reorder index labels of a hierarchical index and sort in level order."""
+    sort_order = ['location', 'sex', 'age', 'year']
+    sorted_data_index = [n for n in sort_order if n in data.index.names]
+    sorted_data_index.extend([n for n in data.index.names if n not in sorted_data_index])
+
+    if isinstance(data.index, pd.MultiIndex):
+        data = data.reorder_levels(sorted_data_index)
+    data = data.sort_index()
     return data
 
 

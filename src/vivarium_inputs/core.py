@@ -61,14 +61,13 @@ def get_data(entity, measure: str, location: Union[str, int]):
     location_id = utility_data.get_location_id(location) if isinstance(location, str) else location
     data = handler(entity, location_id)
 
-    if measure == 'estimate':
-        value_cols, var_name = COVARIATE_VALUE_COLUMNS, 'parameter'
-    elif measure == 'exposure_distribution_weights':
-        value_cols, var_name = DISTRIBUTION_COLUMNS, 'parameter'
+    if measure in ['structure', 'theoretical_minimum_risk_life_expectancy',
+                   'estimate', 'exposure_distribution_weights']:
+        value_cols = ['value']
     else:
-        value_cols, var_name = DRAW_COLUMNS, 'draw'
+        value_cols = DRAW_COLUMNS
 
-    data = utilities.reshape(data, value_cols=value_cols, var_name=var_name)
+    data = utilities.reshape(data, value_cols=value_cols)
 
     return data
 
@@ -90,12 +89,10 @@ def get_raw_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.Dat
 
 def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     data = get_data(entity, 'raw_incidence', location_id)
-    data = data.set_index(utilities.get_ordered_index_cols(data.columns.difference({'value'})))
     prevalence = get_data(entity, 'prevalence', location_id)
-    prevalence = prevalence.set_index(utilities.get_ordered_index_cols(prevalence.columns.difference({'value'})))
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
-    return data.fillna(0).reset_index()
+    return data.fillna(0)
 
 
 def get_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
@@ -123,24 +120,18 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
     if entity.kind == 'cause':
         data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
-        data = data.set_index(utilities.get_ordered_index_cols(data.columns.difference({'value'})))
+        data = data.set_index(utilities.get_ordered_index_cols(data.columns.difference(DRAW_COLUMNS)))
         if entity.sequelae:
             for sequela in entity.sequelae:
                 try:
                     prevalence = get_data(sequela, 'prevalence', location_id)
-                    prevalence = prevalence.set_index(
-                        utilities.get_ordered_index_cols(prevalence.columns.difference({'value'})))
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
                 disability = get_data(sequela, 'disability_weight', location_id)
-                disability['location_id'] = location_id
-                disability = disability.set_index(
-                    utilities.get_ordered_index_cols(disability.columns.difference({'value'})))
+                disability.index = disability.index.set_levels([location_id], 'location_id')
                 data += prevalence * disability
         cause_prevalence = get_data(entity, 'prevalence', location_id)
-        cause_prevalence = cause_prevalence.set_index(
-            utilities.get_ordered_index_cols(cause_prevalence.columns.difference({'value'})))
         data = (data / cause_prevalence).fillna(0).reset_index()
     else:  # entity.kind == 'sequela'
         if not entity.healthstate.disability_weight_exists:
@@ -167,23 +158,19 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    deaths = get_data(entity, 'deaths', location_id)
-    deaths = deaths.set_index(utilities.get_ordered_index_cols(deaths.columns.difference({'draw', 'value'})))
+    deaths = get_data(entity, 'deaths', location_id)  # population isn't by draws
     pop = get_data(Population(), 'structure', location_id)
-    pop = pop.set_index(utilities.get_ordered_index_cols(pop.columns.difference({'value'})))
     data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
-    data['value'] = data['value_deaths'].divide(data['value_pop'])
-    return data.drop(['value_deaths', 'value_pop'], 'columns').reset_index()
+    data[DRAW_COLUMNS] = data[DRAW_COLUMNS].divide(data.value, axis=0)
+    return data.drop(['value'], 'columns')
 
 
 def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
     csmr = get_data(entity, 'cause_specific_mortality', location_id)
-    csmr = csmr.set_index(utilities.get_ordered_index_cols(csmr.columns.difference({'value'})))
     prevalence = get_data(entity, 'prevalence', location_id)
-    prevalence = prevalence.set_index(utilities.get_ordered_index_cols(prevalence.columns.difference({'value'})))
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
-    return data.reset_index()
+    return data
 
 
 def get_case_fatality(entity: Cause, location_id: int):
@@ -259,6 +246,7 @@ def get_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeRiskF
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     data = data.filter(['location_id', 'sex_id', 'age_group_id', 'year_id'] + DISTRIBUTION_COLUMNS)
+    data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name='parameter')
     return data
 
 
@@ -306,21 +294,14 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         data = utilities.convert_affected_entity(data, 'rei_id')
         data['affected_measure'] = 'exposure_parameters'
 
-    result = []
-    for affected_entity in data.affected_entity.unique():
-        df = data[data.affected_entity == affected_entity]
-        df = (df.groupby('parameter')
-              .apply(utilities.normalize, fill_value=1)
-              .reset_index(drop=True))
-        result.append(df)
-    data = pd.concat(result)
     data = data.filter(DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'] + DRAW_COLUMNS)
+    data = data.groupby(['affected_entity', 'parameter']).apply(utilities.normalize, fill_value=1).reset_index(drop=True)
 
     if entity.distribution in ['dichotomous', 'ordered_polytomous', 'unordered_polytomous']:
         tmrel_cat = utility_data.get_tmrel_category(entity)
-        tmrel_data = data.loc[data.parameter == tmrel_cat]
-        tmrel_data[DRAW_COLUMNS] = tmrel_data[DRAW_COLUMNS].mask(np.isclose(tmrel_data[DRAW_COLUMNS], 1.0), 1.0)
-        data = pd.concat([tmrel_data, data.loc[data.parameter != tmrel_cat]])
+        tmrel_mask = data.parameter == tmrel_cat
+        data.loc[tmrel_mask, DRAW_COLUMNS] = (data.loc[tmrel_mask, DRAW_COLUMNS]
+                                              .mask(np.isclose(data.loc[tmrel_mask, DRAW_COLUMNS], 1.0), 1.0))
 
     return data
 
@@ -395,6 +376,7 @@ def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
 
     data = data.filter(key_columns + COVARIATE_VALUE_COLUMNS)
     data = utilities.normalize(data)
+    data = utilities.wide_to_long(data, COVARIATE_VALUE_COLUMNS, var_name='parameter')
     return data
 
 
