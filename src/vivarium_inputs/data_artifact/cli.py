@@ -328,7 +328,7 @@ def main(model_specification_file, output_root, location, append):
 
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
-    components = component_config_parser.get_components(component_config)
+    components = component_config_parser.get_components_by_type(component_config)
     
     logging.debug("Setting up simulation")
     simulation = InteractiveContext(simulation_config, components, plugin_manager)
