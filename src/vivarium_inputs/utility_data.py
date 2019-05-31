@@ -50,15 +50,13 @@ def get_demographic_dimensions(location_id: int, draws: bool = False, value: flo
     location = [location_id]
     values = [location, sexes, ages, years]
     names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
-    if draws:
-        values.append(range(1000))
-        names.append('draw')
 
     data = (pd.MultiIndex
             .from_product(values, names=names)
             .to_frame(index=False))
     if draws:
-        data['value'] = value
+        for i in range(1000):
+            data[f'draw_{i}'] = value
     return data
 
 

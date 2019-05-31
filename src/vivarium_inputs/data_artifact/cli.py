@@ -40,7 +40,9 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
 
     If you are running this job from a qlogin on the new cluster, you must
     specifically request J drive access when you qlogin by adding "-l archive=TRUE"
-    to your qsub command."""
+    to your qsub command.
+
+    Please have at least 50GB of memory on your qlogin."""
     _build_artifact()
 
 
@@ -60,8 +62,8 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
               help="Turn on debug mode for logging")
 @click.option('--error_logs', '-e', is_flag=True,
               help="Write SGE error logs to output location")
-@click.option('--memory', '-m', default=15, help="Specifies the amount of memory in G that will be requested for a "
-                                                 "job. Defaults to 15. Only applies to the new cluster.")
+@click.option('--memory', '-m', default=50, help="Specifies the amount of memory in G that will be requested for a "
+                                                 "job. Defaults to 50. Only applies to the new cluster.")
 def multi_build_artifact(model_specification, locations, project, output_root, append, verbose, error_logs, memory):
     """
     multi_build_artifact is a program for building data artifacts on the cluster
@@ -84,7 +86,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
 
     If you are running this on the new cluster and find your jobs failing with no
     messages in the log files, consider the memory usage of the job by typing
-    "qacct -j <job_id>" and the default memory usage used by this script of 15G.
+    "qacct -j <job_id>" and the default memory usage used by this script of 50G.
     The new cluster will kill jobs that go over memory without giving a useful message.
     """
 
