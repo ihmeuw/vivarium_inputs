@@ -30,7 +30,7 @@ class ArtifactBuilder:
         self.location = builder.configuration.input_data.location
         self.artifact = self.initialize_artifact(path, append, draw, self.location)
 
-        self.modeled_causes = {c.cause for c in builder.components.get_components(DiseaseModel)}
+        self.modeled_causes = {c.cause for c in builder.components.get_components_by_type(DiseaseModel)}
         self.processed_entities = set()
         self.start_time = datetime.now()
 

@@ -11,7 +11,7 @@ from vivarium_inputs.data_artifact.utilities import split_interval
 class ArtifactPassthrough:
 
     def setup(self, builder):
-        self.modeled_causes = builder.components.get_components(DiseaseModel)
+        self.modeled_causes = builder.components.get_components_by_type(DiseaseModel)
         self.location = builder.configuration.input_data.location
         draw = builder.configuration.input_data.input_draw_number
 
