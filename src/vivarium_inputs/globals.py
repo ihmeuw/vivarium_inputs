@@ -9,11 +9,12 @@ try:
     from gbd_artifacts.exceptions import NoBestVersionError
     from get_draws.api import EmptyDataFrameException, InputsException
 
-except ModuleNotFoundError:
+except ModuleNotFoundError as e:
     class GbdDummy:
         """Mock class to wrap internal dependency."""
         def __getattr__(self, item):
-            raise ModuleNotFoundError("Required package vivarium_gbd_access not found.")
+            raise ModuleNotFoundError("Required package vivarium_gbd_access could not be imported because "
+                                      f"{e}.")
     gbd = GbdDummy()
 
     class NoBestVersionError(Exception):
