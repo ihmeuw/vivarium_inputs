@@ -39,6 +39,10 @@ class ArtifactBuilder:
 
         builder.event.register_listener('post_setup', self.end_processing)
 
+    @property
+    def name(self):
+        return "artifact_builder"
+
     @staticmethod
     def initialize_artifact(path: str, append: bool, draw: int, location: str) -> Artifact:
         """
