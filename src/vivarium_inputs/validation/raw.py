@@ -10,7 +10,8 @@ from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
-                                     DataDoesNotExistError, Population, PROBLEMATIC_RISKS, PAF_OUTSIDE_AGE_RESTRICTIONS)
+                                     DataDoesNotExistError, Population, PROBLEMATIC_RISKS, PAF_OUTSIDE_AGE_RESTRICTIONS,
+                                     ABNORMAL_TMREL)
 
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
@@ -734,7 +735,8 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         check_sex_restrictions(data, context, entity.restrictions.male_only, entity.restrictions.female_only)
 
         # we only have metadata about tmred for risk factors
-        if entity.kind == 'risk_factor' and entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
+        if (entity.kind == 'risk_factor' and entity.distribution in ('ensemble', 'lognormal', 'normal')
+                and entity not in ABNORMAL_TMREL):  # continuous
             tmrel = (entity.tmred.max + entity.tmred.min)/2
             if entity.tmred.inverted:
                 check_value_columns_boundary(data, tmrel, 'upper',
