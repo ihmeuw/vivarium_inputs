@@ -16,7 +16,6 @@ try:
 except ModuleNotFoundError:
     class GbdDummy:
         """Mock class to wrap internal dependency."""
-
         def __getattr__(self, item):
             raise ModuleNotFoundError("Required package vivarium_gbd_access not found.")
     gbd = GbdDummy()
