@@ -893,7 +893,7 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
     validate_value_column(data)
 
     age_min, age_max = 0, 110
-    if data.index.unique('age').min().left > age_min or data.index.unique('age').max().right < age_max:
+    if data.index.left.min() > age_min or data.index.right.max() < age_max:
         raise DataTransformationError(f'Life expectancy data does not span the '
                                       f'entire age range [{age_min}, {age_max}].')
 
