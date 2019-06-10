@@ -6,8 +6,12 @@ from gbd_mapping import ModelableEntity, causes, risk_factors
 # IHME data and allow CI and automated testing to work.
 try:
     from vivarium_gbd_access import gbd
-    from gbd_artifacts.exceptions import NoBestVersionError
-    from get_draws.api import EmptyDataFrameException, InputsException
+
+    try:
+        from gbd_artifacts.exceptions import NoBestVersionError
+        from get_draws.api import EmptyDataFrameException, InputsException
+    except  ModuleNotFoundError:
+        raise RuntimeError("Problem importing gbd_artifacts.exceptions or get_draws.api.")
 
 except ModuleNotFoundError:
     class GbdDummy:
