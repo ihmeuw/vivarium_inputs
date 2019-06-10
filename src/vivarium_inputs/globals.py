@@ -148,8 +148,6 @@ PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
 
 NON_MAX_TMREL = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat56'}
 
-ABNORMAL_TMREL = [risk_factors.iron_deficiency]
-
 # residual cat is added by get_draws but all cats modeled for lbwsg so
 # has to be removed
 EXTRA_RESIDUAL_CATEGORY = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat124'}
