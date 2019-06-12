@@ -160,6 +160,9 @@ EXTRA_RESIDUAL_CATEGORY = {risk_factors.low_birth_weight_and_short_gestation.nam
 PAF_OUTSIDE_AGE_RESTRICTIONS = {risk_factors.low_birth_weight_and_short_gestation.name: [causes.neonatal_preterm_birth]}
 
 
+# GBD uses modelable entity 10488, which is attached to anemia not iron deficiency, for iron deficiency SD
+OTHER_MEID = {risk_factors.iron_deficiency.name: 10488}
+
 class Population(ModelableEntity):
     """Entity wrapper for querying population measures."""
     def __init__(self):

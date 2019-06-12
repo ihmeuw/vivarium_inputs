@@ -4,7 +4,7 @@ import pandas as pd
 
 from vivarium_inputs.globals import (gbd, METRICS, MEASURES,
                                      DataAbnormalError, DataDoesNotExistError,
-                                     EmptyDataFrameException, NoBestVersionError, InputsException)
+                                     EmptyDataFrameException, NoBestVersionError, InputsException, OTHER_MEID)
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
 import vivarium_inputs.validation.raw as validation
 
@@ -143,7 +143,9 @@ def extract_exposure(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_exposure_standard_deviation(entity, location_id: int) -> pd.DataFrame:
-    if entity.kind == 'risk_factor':
+    if entity.kind == 'risk_factor' and entity.name in OTHER_MEID:
+        data = gbd.get_modelable_entity_draws(OTHER_MEID[entity.name], location_id)
+    elif entity.kind == 'risk_factor':
         data = gbd.get_exposure_standard_deviation(entity.gbd_id, location_id)
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data('exposure_standard_deviation', entity.kind, entity.name, location_id)

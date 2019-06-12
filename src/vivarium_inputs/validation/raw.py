@@ -734,7 +734,8 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
         check_sex_restrictions(data, context, entity.restrictions.male_only, entity.restrictions.female_only)
 
         # we only have metadata about tmred for risk factors
-        if entity.kind == 'risk_factor' and entity.distribution in ('ensemble', 'lognormal', 'normal'):  # continuous
+        if (entity.kind == 'risk_factor' and entity.distribution in ('ensemble', 'lognormal', 'normal')
+                and entity.tmred.distribution == 'uniform'):  # continuous risk w/ tmred min and max
             tmrel = (entity.tmred.max + entity.tmred.min)/2
             if entity.tmred.inverted:
                 check_value_columns_boundary(data, tmrel, 'upper',
