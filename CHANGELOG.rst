@@ -1,3 +1,16 @@
+**3.0.0 - 06/18/19**
+
+ - Use indexes for artifact data.
+ - Bugfixes for lbwsg.
+ - Expand tmrel code to pull data when available.
+ - Memory optimizations.
+ - CI script to properly handle dependencies.
+ - Update metadata.
+ - Shift data produce to be wide on draws.
+ - Update component manager usage.
+ - Correct import guard issue.
+ - Special case for iron deficiency exposure sd.
+
 **2.0.3 - 03/29/19**
 
  - Update memory requirements for building artifacts.

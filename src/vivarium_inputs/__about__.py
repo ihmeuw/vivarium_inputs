@@ -7,7 +7,7 @@ __title__ = "vivarium_inputs"
 __summary__ = "Transformations and artifact building for the vivarium microsimulation project."
 __uri__ = "https://github.com/ihmeuw/vivarium_inputs"
 
-__version__ = "2.0.3"
+__version__ = "3.0.0"
 
 __author__ = "The vivarium developers"
 __email__ = "vivarium.dev@gmail.com"
