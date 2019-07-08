@@ -18,7 +18,7 @@ VALID_DISABILITY_WEIGHT_RANGE = (0.0, 1.0)
 VALID_REMISSION_RANGE = (0.0, 120.0)  # James' head
 # FIXME: bumping csmr max because of age group scaling 2/8/19 - K.W.
 VALID_CAUSE_SPECIFIC_MORTALITY_RANGE = (0.0, 6)  # used mortality viz, picked worst country 15q45, mul by ~1.25
-VALID_EXCESS_MORT_RANGE = (0.0, 120.0)  # James' head
+VALID_EXCESS_MORT_RANGE = (0.0, 300.0)  # subarachnoid_hemorrhage has em values close to 300 for neonatal age groups
 VALID_EXPOSURE_RANGE = (0.0, {'continuous': 10_000.0, 'categorical': 1.0})
 VALID_EXPOSURE_SD_RANGE = (0.0, 1000.0)  # James' brain
 VALID_EXPOSURE_DIST_WEIGHTS_RANGE = (0.0, 1.0)
