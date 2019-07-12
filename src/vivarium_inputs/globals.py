@@ -150,11 +150,14 @@ BOUNDARY_SPECIAL_CASES = {
         'Russian Federation': {
             'subarachnoid_hemorrhage': 800
         },
-        'South Africa':{
+        'South Africa': {
             'subarachnoid_hemorrhage': 500
         },
         'Bangladesh': {
             'subarachnoid_hemorrhage': 2_750
+        },
+        'Ukraine': {
+            'subarachnoid_hemorrhage': 500
         }
     }
 }
