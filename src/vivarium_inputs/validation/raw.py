@@ -1451,10 +1451,10 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
         yld_start, yld_end = entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end
 
         if yll_start < yld_start or yld_end < yll_end:
-            warnings.warn(f'{entity.name} has a broader yll age range than yld age range. This likely means there'
-                          f'are age groups for which there is no incidence or prevalence but there are deaths. Data will'
-                          f'be filtered by these age ranges. If you are putting this data into a simulation, please '
-                          f'ensure that you have thoroughly investigated this and verified your model.')
+            warnings.warn(f'{entity.name} has a broader yll age range than yld age range. This likely means there '
+                          f'are age groups for which there is no incidence or prevalence but there are deaths. Data '
+                          f'will be filtered by these age ranges. If you are putting this data into a simulation, '
+                          f'please ensure that you have thoroughly investigated this and verified your model.')
 
 ############################
 # RAW VALIDATION UTILITIES #
