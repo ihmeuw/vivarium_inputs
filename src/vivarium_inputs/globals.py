@@ -143,6 +143,15 @@ BOUNDARY_SPECIAL_CASES = {
     'excess_mortality': {
         'Ecuador': {
             'measles': 250_000_000
+        },
+        'China': {
+            'subarachnoid_hemorrhage': 3_775
+        },
+        'Russia': {
+            'subarachnoid_hemorrhage': 800
+        },
+        'South Africa':{
+            'subarachnoid_hemorrhage': 500
         }
     }
 }
