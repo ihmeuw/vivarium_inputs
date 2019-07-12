@@ -147,7 +147,7 @@ BOUNDARY_SPECIAL_CASES = {
         'China': {
             'subarachnoid_hemorrhage': 3_775
         },
-        'Russia': {
+        'Russian Federation': {
             'subarachnoid_hemorrhage': 800
         },
         'South Africa':{
