@@ -1436,12 +1436,14 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
     """Check that a cause does not have an age range based on its YLL
     restrictions that is broader than that based on its YLD restrictions.
 
-    Warns users if a wider age range is found so they can further investigate.
-
     Parameters
     ----------
     entity
         Cause for which to check restriction age ranges.
+
+    Warns
+    ------
+        If a wider age range is found so users can further investigate.
     """
     if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
