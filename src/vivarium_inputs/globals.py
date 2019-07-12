@@ -152,6 +152,9 @@ BOUNDARY_SPECIAL_CASES = {
         },
         'South Africa':{
             'subarachnoid_hemorrhage': 500
+        },
+        'Bangladesh': {
+            'subarachnoid_hemorrhage': 2_750
         }
     }
 }
