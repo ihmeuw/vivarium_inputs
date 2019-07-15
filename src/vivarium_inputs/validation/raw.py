@@ -1441,12 +1441,9 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
     entity
         Cause for which to check restriction age ranges.
 
-    Raises
+    Warns
     ------
-    NotImplementedError
-        If the YLL restriction age range is broader than the YLD restriction
-        age range.
-
+        If a wider age range is found so users can further investigate.
     """
     if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
@@ -1456,8 +1453,10 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
         yld_start, yld_end = entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end
 
         if yll_start < yld_start or yld_end < yll_end:
-            raise NotImplementedError(f'{entity.name} has a broader yll age range than yld age range.'
-                                      f' We currently do not support these causes.')
+            warnings.warn(f'{entity.name} has a broader yll age range than yld age range. This likely means there '
+                          f'are age groups for which there is no incidence or prevalence but there are deaths. Data '
+                          f'will be filtered by these age ranges. If you are putting this data into a simulation, '
+                          f'please ensure that you have thoroughly investigated this and verified your model.')
 
 ############################
 # RAW VALIDATION UTILITIES #
