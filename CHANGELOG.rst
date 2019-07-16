@@ -1,3 +1,9 @@
+**3.0.1 - 07/16/19**
+
+ - Allow for wider YLL age ranges than YLD with warning instead of error.
+ - Add special cases for a handful of causes with very high excess mortality.
+ - Bugfix for validating deaths data for sex-specific causes.
+
 **3.0.0 - 06/18/19**
 
  - Use indexes for artifact data.
