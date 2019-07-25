@@ -19,7 +19,7 @@ if __name__ == "__main__":
         # with pytables.
         'numpy<=1.15.4',
         'scipy',
-        'pandas',
+        'pandas<0.25',  # 0.25 requires tables >= 3.4.2
         'click',
         'joblib',
         'tables<=3.4.0',
