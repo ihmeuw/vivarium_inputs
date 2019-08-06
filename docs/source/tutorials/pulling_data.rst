@@ -352,6 +352,31 @@ argument to fill the location dimension.
     4    Kenya  Female              0.0       0.019178        1994      1995
 
 
+get_measure() versus get_raw_data() -- Which should I use?
+----------------------------------------------------------
+The general guideline is to prefer :func:`vivarium_inputs.interface.get_measure`
+over :func:`vivarium_inputs.interface.get_raw_data`.
+:func:`vivarium_inputs.interface.get_measure` will produce simulation-ready data.
+If :func:`vivarium_inputs.interface.get_measure` fails, or the data it returns
+doesn't match your expectations, then :func:`vivarium_inputs.interface.get_raw_data`
+might provide some insight into what is happening.
+
+get_raw_data()
+++++++++++++++
+Pull raw data from GBD for the requested entity, measure, and
+location. Raw validation checks are not performed to return data that can
+be investigated for oddities. The only filter that occurs is by applicable
+measure id, metric id, or to most detailed causes where relevant. No formatting
+or reshaping of the data is done.
+
+get_measure()
++++++++++++++
+Pull GBD data for measure and entity and prep for simulation input, including
+scrubbing all GBD conventions to replace IDs with meaningful values or ranges
+and expanding over all demographic dimensions. Data is reshaped to the format
+expected by `vivarium` simulations.
+
+
 .. testcode::
     :hide:
 
