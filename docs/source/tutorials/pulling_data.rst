@@ -31,7 +31,7 @@ Which should I use... get_measure() versus get_raw_data()
 ----------------------------------------------------------
 Prefer :func:`vivarium_inputs.interface.get_measure` over
 :func:`vivarium_inputs.interface.get_raw_data`. :func:`vivarium_inputs.interface.get_measure`
-will produce simulation-ready data. If :func:`vivarium_inputs.interface.get_measure`
+will produce simulation-prepped data. If :func:`vivarium_inputs.interface.get_measure`
 fails, or the data it returns doesn't match your expectations, then
 :func:`vivarium_inputs.interface.get_raw_data` might provide some insight
 into what is happening.
