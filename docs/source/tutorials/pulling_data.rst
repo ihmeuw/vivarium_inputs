@@ -15,11 +15,13 @@ for pulling data:
   - :func:`vivarium_inputs.interface.get_raw_data` will pull raw data from GBD,
     skipping all validations in order to explore and investigate.
 
-:mod:`vivarium_inputs` also provides interface methods to pull entity-measure data (e.g.,
-prevalence data for a cause or exposure for a risk factor) as well as
-population structure, life expectancy, and, for simulation-prepped data,
-data about the extents of certain demographic variables (i.e., specifically age
-bins as well as all demographic dimensions combined).
+Both of the above methods can retrieve entity-measure data (e.g.,
+prevalence data for a cause or exposure for a risk factor), population structure,
+and life expectancy. Functions to retrieve data about the extents of certain
+demographic variables --  :func:`vivarium_inputs.interface.get_age_bins` and
+:func:`vivarium_inputs.interface.get_demographic_dimensions` are somewhat
+orthogonal and imply the same data modifications inherent in
+calling :func:`vivarium_inputs.interface.get_measure`.
 
 .. contents::
     :depth: 2
