@@ -2,174 +2,49 @@
 Pulling Data
 ============
 
-:mod:`vivarium_inputs` provides an interface to pull data from GBD + auxiliary data.
-You can either pull data through the same process as simulations do, which will
-perform the same validations, transformations, and standardizations as occur
-for data that is used in a simulation, or you can pull raw data from GBD,
-skipping all validations in order to explore and investigate.
+:mod:`vivarium_inputs` provides an interface to pull data from GBD + auxiliary
+data. Use this interface to examine data that you want to use in a model to
+ensure it passes all validations and looks as you expect. You have 2 choices
+for pulling data:
 
-You can use this interface to examine data that you want to use in a model to
-ensure it passes all validations and looks as you expect.
+  - :func:`vivarium_inputs.interface.get_measure` will pull data through the
+    same process as simulations do, which will perform the same validations,
+    transformations, and standardizations as occur for data that is used in a
+    simulation.
+
+  - :func:`vivarium_inputs.interface.get_raw_data` will pull raw data from GBD,
+    skipping all validations in order to explore and investigate.
+
+Both of the above methods can retrieve entity-measure data (e.g.,
+prevalence data for a cause or exposure for a risk factor), population structure,
+and life expectancy. Functions to retrieve data about the extents of certain
+demographic variables --  :func:`vivarium_inputs.interface.get_age_bins` and
+:func:`vivarium_inputs.interface.get_demographic_dimensions` are somewhat
+orthogonal and imply the same data modifications inherent in
+calling :func:`vivarium_inputs.interface.get_measure`.
 
 .. contents::
     :depth: 2
     :local:
     :backlinks: none
 
-:mod:`vivarium_inputs` provides interface methods to pull entity-measure data (e.g.,
-prevalence data for a cause or exposure for a risk factor) as well as
-population structure, life expectancy, and, for simulation-prepped data,
-data about the extents of certain demographic variables (i.e., specifically age
-bins as well as all demographic dimensions combined).
 
-
-Pulling Raw GBD Data
---------------------
-The interface provides :func:`vivarium_inputs.interface.get_raw_data`, which can
-be used to pull entity-measure data as well as population structure and life
-expectancy. We'll walk through how to pull each of these using this function.
-
-
-Entity-Measure Data
-+++++++++++++++++++
-The interface provides :func:`vivarium_inputs.interface.get_raw_data` for pulling
-specific raw measure data for an entity for a single location from GBD, without
-the prep work that occurs on data for a simulation.
-
-``entity`` should be a :class:`gbd_mapping.base_template.ModelableEntity` (e.g.,
-a cause or coverage_gap from ``gbd_mapping``), while ``measure`` should be a string
-describing the measure for which you want to retrieve data (e.g., 'prevalence'
-or 'relative_risk'). A list of possible measures for each entity
-kind is included in the table below. Finally, ``location`` should be the string
-location for which you want to pull data (e.g., 'Ethiopia'), in the form used by
-GBD (e.g., 'United States' instead of 'USA').
-
-For example, to pull raw prevalence data for diarrheal diseases in Kenya, we would
-do the following:
-
-.. code-block:: python
-
-    from gbd_mapping import causes
-    from vivarium_inputs import get_raw_data
-
-    prev = get_raw_data(causes.diarrheal_diseases, 'prevalence', 'Kenya')
-    print(prev.head())
-
-::
-
-          year_id  age_group_id  sex_id  measure_id  cause_id    draw_0    ...      draw_999  location_id  metric_id
-    1288     1990             2       1           5       302  0.030940    ...      0.029214          180          3
-    1289     1990             3       1           5       302  0.063305    ...      0.059538          180          3
-    1290     1990             4       1           5       302  0.056916    ...      0.058788          180          3
-    1291     1990             5       1           5       302  0.026376    ...      0.035843          180          3
-    1292     1990             6       1           5       302  0.011728    ...      0.011231          180          3
-
-
-The following table lists the measures available for each entity kind for pulling raw data:
-
-.. list-table:: Available Entity-Measure Pairs
-    :header-rows: 1
-    :widths: 30, 40
-
-    *   - Entity Kind
-        - Measures
-    *   - sequela
-        - | incidence
-          | prevalence
-          | birth_prevalence
-          | disability_weight
-    *   - cause
-        - | incidence
-          | prevalence
-          | birth_prevalence
-          | disability_weight
-          | remission
-          | deaths
-    *   - coverage_gap
-        - | exposure
-          | exposure_standard_deviation
-          | exposure_distribution_weights
-          | relative_risk
-    *   - risk_factor
-        - | exposure
-          | exposure_standard_deviation
-          | exposure_distribution_weights
-          | relative_risk
-          | population_attributable_fraction
-          | mediation_factors
-    *   - alternative_risk_factor
-        - | exposure
-          | exposure_standard_deviation
-          | exposure_distribution_weights
-    *   - etiology
-        - | population_attributable_fraction
-    *   - covariate
-        - | estimate
-    *   - healthcare_entity
-        - | cost
-          | utilization
-    *   - health_technology
-        - | cost
-
-Population Structure Data
-+++++++++++++++++++++++++
-To pull raw population data for a specific location, we will actually use the same
-:func:`vivarium_inputs.interface.get_raw_data` function we used for pulling
-entity-measure data, with a special Population entity.
-
-For example, to pull population data for Kenya, we would do the following:
-
-.. code-block:: python
-
-    from vivarium_inputs import get_raw_data
-    from vivarium_inputs.globals import Population
-
-    pop = get_raw_data(Population(), 'structure', 'Kenya')
-    print(pop.head())
-
-::
-
-       age_group_id  location_id  year_id  sex_id   population  run_id
-    0             2          180     1950       1  2747.467163     117
-    1             2          180     1950       2  2484.512754     117
-    2             2          180     1950       3  5231.979917     117
-    3             2          180     1951       1  3146.320799     117
-    4             2          180     1951       2  3038.538221     117
-
-
-Life Expectancy Data
-++++++++++++++++++++
-Similarly to pull life expectancy data, we will use the same
-:func:`vivarium_inputs.interface.get_raw_data` function with the special Population
-entity. Life expectancy data is not location-specific, so we'll just use the
-'Global' location.
-
-To use:
-
-.. code-block:: python
-
-    from vivarium_inputs import get_raw_data
-    from vivarium_inputs.globals import Population
-
-    life_exp = get_raw_data(Population(), 'theoretical_minimum_risk_life_expectancy', 'Global')
-    print(life_exp.head())
-
-::
-
-        age  life_expectancy
-    0  0.00        87.885872
-    1  0.01        87.877086
-    2  0.02        87.868299
-    3  0.03        87.859513
-    4  0.04        87.850727
-
-
+Which should I use... get_measure() versus get_raw_data()
+----------------------------------------------------------
+Prefer :func:`vivarium_inputs.interface.get_measure` over
+:func:`vivarium_inputs.interface.get_raw_data`. :func:`vivarium_inputs.interface.get_measure`
+will produce simulation-prepped data. If :func:`vivarium_inputs.interface.get_measure`
+fails, or the data it returns doesn't match your expectations, then
+:func:`vivarium_inputs.interface.get_raw_data` might provide some insight
+into what is happening.
 
 Pulling Simulation-Prepped Data
 -------------------------------
 For simulation-prepped data, the interface provides separate methods to pull
 entity-measure data and population structure and life expectancy data. Additionally,
-methods to pull age bin data and demographic dimensions are provided. We'll walk
+methods to pull age bin data and demographic dimensions are provided. Simulation-
+prepped data has had GBD IDs replaced with meaningful values or ranges and
+expansion over all demographic dimensions has been performed.  We'll walk
 through how to pull data using each of these functions.
 
 Entity-Measure Data
@@ -350,6 +225,151 @@ argument to fill the location dimension.
     2    Kenya  Female              0.0       0.019178        1992      1993
     3    Kenya  Female              0.0       0.019178        1993      1994
     4    Kenya  Female              0.0       0.019178        1994      1995
+
+
+Pulling Raw GBD Data
+--------------------
+The interface provides :func:`vivarium_inputs.interface.get_raw_data`, which can
+be used to pull entity-measure data as well as population structure and life
+expectancy. Raw validation checks are not performed to return data that can
+be investigated for oddities. The only filtering that occurs is by applicable
+measure id, metric id, or to most detailed causes where relevant. No formatting
+or reshaping of the data is done. The following sections detail how to pull each
+type of data.
+
+
+Entity-Measure Data
++++++++++++++++++++
+The interface provides :func:`vivarium_inputs.interface.get_raw_data` for pulling
+specific raw measure data for an entity for a single location from GBD, without
+the prep work that occurs on data for a simulation.
+
+``entity`` should be a :class:`gbd_mapping.base_template.ModelableEntity` (e.g.,
+a cause or coverage_gap from ``gbd_mapping``), while ``measure`` should be a string
+describing the measure for which you want to retrieve data (e.g., 'prevalence'
+or 'relative_risk'). A list of possible measures for each entity
+kind is included in the table below. Finally, ``location`` should be the string
+location for which you want to pull data (e.g., 'Ethiopia'), in the form used by
+GBD (e.g., 'United States' instead of 'USA').
+
+For example, to pull raw prevalence data for diarrheal diseases in Kenya, we would
+do the following:
+
+.. code-block:: python
+
+    from gbd_mapping import causes
+    from vivarium_inputs import get_raw_data
+
+    prev = get_raw_data(causes.diarrheal_diseases, 'prevalence', 'Kenya')
+    print(prev.head())
+
+::
+
+          year_id  age_group_id  sex_id  measure_id  cause_id    draw_0    ...      draw_999  location_id  metric_id
+    1288     1990             2       1           5       302  0.030940    ...      0.029214          180          3
+    1289     1990             3       1           5       302  0.063305    ...      0.059538          180          3
+    1290     1990             4       1           5       302  0.056916    ...      0.058788          180          3
+    1291     1990             5       1           5       302  0.026376    ...      0.035843          180          3
+    1292     1990             6       1           5       302  0.011728    ...      0.011231          180          3
+
+
+The following table lists the measures available for each entity kind for pulling raw data:
+
+.. list-table:: Available Entity-Measure Pairs
+    :header-rows: 1
+    :widths: 30, 40
+
+    *   - Entity Kind
+        - Measures
+    *   - sequela
+        - | incidence
+          | prevalence
+          | birth_prevalence
+          | disability_weight
+    *   - cause
+        - | incidence
+          | prevalence
+          | birth_prevalence
+          | disability_weight
+          | remission
+          | deaths
+    *   - coverage_gap
+        - | exposure
+          | exposure_standard_deviation
+          | exposure_distribution_weights
+          | relative_risk
+    *   - risk_factor
+        - | exposure
+          | exposure_standard_deviation
+          | exposure_distribution_weights
+          | relative_risk
+          | population_attributable_fraction
+          | mediation_factors
+    *   - alternative_risk_factor
+        - | exposure
+          | exposure_standard_deviation
+          | exposure_distribution_weights
+    *   - etiology
+        - | population_attributable_fraction
+    *   - covariate
+        - | estimate
+    *   - healthcare_entity
+        - | cost
+          | utilization
+    *   - health_technology
+        - | cost
+
+Population Structure Data
++++++++++++++++++++++++++
+To pull raw population data for a specific location, we will actually use the same
+:func:`vivarium_inputs.interface.get_raw_data` function we used for pulling
+entity-measure data, with a special Population entity.
+
+For example, to pull population data for Kenya, we would do the following:
+
+.. code-block:: python
+
+    from vivarium_inputs import get_raw_data
+    from vivarium_inputs.globals import Population
+
+    pop = get_raw_data(Population(), 'structure', 'Kenya')
+    print(pop.head())
+
+::
+
+       age_group_id  location_id  year_id  sex_id   population  run_id
+    0             2          180     1950       1  2747.467163     117
+    1             2          180     1950       2  2484.512754     117
+    2             2          180     1950       3  5231.979917     117
+    3             2          180     1951       1  3146.320799     117
+    4             2          180     1951       2  3038.538221     117
+
+
+Life Expectancy Data
+++++++++++++++++++++
+Similarly to pull life expectancy data, we will use the same
+:func:`vivarium_inputs.interface.get_raw_data` function with the special Population
+entity. Life expectancy data is not location-specific, so we'll just use the
+'Global' location.
+
+To use:
+
+.. code-block:: python
+
+    from vivarium_inputs import get_raw_data
+    from vivarium_inputs.globals import Population
+
+    life_exp = get_raw_data(Population(), 'theoretical_minimum_risk_life_expectancy', 'Global')
+    print(life_exp.head())
+
+::
+
+        age  life_expectancy
+    0  0.00        87.885872
+    1  0.01        87.877086
+    2  0.02        87.868299
+    3  0.03        87.859513
+    4  0.04        87.850727
 
 
 .. testcode::
