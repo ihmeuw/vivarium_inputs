@@ -6,7 +6,7 @@ from typing import Collection, Any
 import pandas as pd
 from pathlib import Path
 
-from vivarium_public_health.dataset_manager import (EntityKey, Artifact, get_location_term, filter_data)
+from vivarium.framework.artifact import Artifact, get_location_term, filter_data
 
 from vivarium_public_health.disease import DiseaseModel
 
@@ -64,14 +64,14 @@ class ArtifactBuilder:
                 warnings.warn('We will wipe it out and build from scratch', OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
 
-            if EntityKey('metadata.locations') not in artifact:
+            if 'metadata.locations' not in artifact:
                 warnings.warn('We will build from scratch', OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
 
             elif artifact.load('metadata.locations') != [location]:
                 raise ValueError(f"Artifact has {artifact.load('metadata.locations')} and we cannot append {location}")
 
-            if EntityKey('metadata.versions') not in artifact:
+            if 'metadata.versions' not in artifact:
                 warnings.warn('We will build from scratch', OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
 
@@ -85,7 +85,6 @@ class ArtifactBuilder:
         return artifact
 
     def load(self, entity_key: str, **__) -> Any:
-        entity_key = EntityKey(entity_key)
         if entity_key not in self.artifact:
             self.process(entity_key)
         data = self.artifact.load(entity_key)
@@ -99,19 +98,22 @@ class ArtifactBuilder:
     def end_processing(self, event) -> None:
         _log.debug(f"Data loading took at most {datetime.now() - self.start_time} seconds")
 
-    def process(self, entity_key: EntityKey) -> None:
+    def process(self, entity_key: str) -> None:
         if entity_key not in self.processed_entities:
             _worker(entity_key, self.location, self.modeled_causes, self.artifact)
             self.processed_entities.add(entity_key)
 
 
-def _worker(entity_key: EntityKey, location: str, modeled_causes: Collection[str],
+def _worker(entity_key: str, location: str, modeled_causes: Collection[str],
             artifact: Artifact) -> None:
     data = loader(entity_key, location, modeled_causes, all_measures=False)
     # FIXME: This is a hack since hdf files can't handle pandas.Interval objects
-    data = split_interval(data, interval_column='age', split_column_prefix='age_group')
-    data = split_interval(data, interval_column='year', split_column_prefix='year')
-    artifact.write(entity_key, data)
+    if data is not None:
+        data = split_interval(data, interval_column='age', split_column_prefix='age_group')
+        data = split_interval(data, interval_column='year', split_column_prefix='year')
+        artifact.write(entity_key, data)
+    else:
+        _log.warning(f"None received when loading data for {entity_key}.")
 
 
 def create_new_artifact(path: str, draw: int, location: str) -> Artifact:

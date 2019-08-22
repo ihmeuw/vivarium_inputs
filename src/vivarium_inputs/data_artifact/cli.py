@@ -18,8 +18,7 @@ from vivarium_inputs.data_artifact import utilities
 
 
 @click.command()
-@click.argument('model_specification', type=click.Path(dir_okay=False,
-                readable=True))
+@click.argument('model_specification', type=click.Path(dir_okay=False))
 @click.option('--output-root', '-o', type=click.Path(file_okay=False, writable=True),
               help="Directory to save artifact to. "
                    "Overwrites model specification file")
@@ -47,8 +46,7 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
 
 
 @click.command()
-@click.argument('model_specification', type=click.Path(dir_okay=False,
-                readable=True))
+@click.argument('model_specification', type=click.Path(dir_okay=False))
 @click.argument('locations', nargs=-1)
 @click.option('--project', '-P', default='proj_cost_effect',
               help='Cluster project under which the job will '
@@ -75,7 +73,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     under the "proj_cost_effect" project unless a different project is
     specified. Multiple, optional LOCATIONS can be provided to overwrite
     the configuration file. For locations containing spaces, replace the
-    space with an underscore and surround any locations containing 
+    space with an underscore and surround any locations containing
     apostrophes with double quotes, e.g.:
 
     multi_build_artifact example.yaml Virginia Pennsylvania New_York "Cote_d'Ivoire"
@@ -141,7 +139,7 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     aggregate_args = f'--locations {" ".join(locations)} --output_root {output_root} ' \
         f'--config_path {config_path} {"--verbose" if verbose else ""}'
     aggregate_job_name = f"{config_path.stem}_aggregate_artifacts"
-    aggregate_command = build_submit_command(python_context_path, aggregate_job_name, 
+    aggregate_command = build_submit_command(python_context_path, aggregate_job_name,
                                              project, error_log_dir, f'{aggregate_script} {aggregate_args}', memory=35,
                                              archive=True, queue='all.q', hold=True, jids=jids, slots=15)
     submit_job(aggregate_command, aggregate_job_name)
@@ -315,7 +313,7 @@ def main(model_specification_file, output_root, location, append):
     model_specification.plugins.optional.update({
         "data": {
             "controller": "vivarium_inputs.data_artifact.ArtifactBuilder",
-            "builder_interface": "vivarium_public_health.dataset_manager.ArtifactManagerInterface",
+            "builder_interface": "vivarium.framework.artifact.ArtifactInterface",
         }})
 
     logging.debug("Configuring simulation")
@@ -331,7 +329,7 @@ def main(model_specification_file, output_root, location, append):
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
-    
+
     logging.debug("Setting up simulation")
     simulation = InteractiveContext(simulation_config, components, plugin_manager)
     simulation.setup()

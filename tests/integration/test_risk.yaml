@@ -1,8 +1,8 @@
 plugins:
-        optional:
+        required:
                 data:
                         controller: "vivarium_inputs.data_artifact.ArtifactPassthrough"
-                        builder_interface: "vivarium_public_health.dataset_manager.ArtifactManagerInterface"
+                        builder_interface: "vivarium.framework.artifact.ArtifactInterface"
 
 components:
         vivarium_inputs:

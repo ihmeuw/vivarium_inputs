@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import Path
 from typing import Set
 
-from vivarium_public_health.dataset_manager import Artifact, ArtifactException, get_location_term
+from vivarium.framework.artifact import Artifact, ArtifactException, get_location_term
 from vivarium_inputs.data_artifact.utilities import get_versions, setup_logging
 
 
@@ -54,7 +54,7 @@ def aggregate(artifacts: [Artifact], artifact_path: str) -> Artifact:
     """
 
     artifact_path = Path(artifact_path).resolve()
-   
+
     if artifact_path.is_file():
         artifact_path.unlink()
 
