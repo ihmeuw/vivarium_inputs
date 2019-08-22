@@ -310,7 +310,7 @@ def _build_artifact():
 
 def main(model_specification_file, output_root, location, append):
     model_specification = build_model_specification(model_specification_file)
-    model_specification.plugins.optional.update({
+    model_specification.plugins.required.update({
         "data": {
             "controller": "vivarium_inputs.data_artifact.ArtifactBuilder",
             "builder_interface": "vivarium.framework.artifact.ArtifactInterface",
