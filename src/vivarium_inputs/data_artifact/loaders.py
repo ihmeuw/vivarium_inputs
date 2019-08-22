@@ -1,7 +1,6 @@
 from typing import Set
 
 from gbd_mapping import causes, risk_factors, sequelae, covariates, etiologies, coverage_gaps
-from vivarium_public_health.dataset_manager import EntityKey
 
 from vivarium_inputs.globals import InvalidQueryError
 from vivarium_inputs.interface import (get_measure, get_population_structure, get_age_bins,
@@ -9,7 +8,7 @@ from vivarium_inputs.interface import (get_measure, get_population_structure, ge
 from vivarium_inputs.mapping_extension import alternative_risk_factors, healthcare_entities, health_technologies
 
 
-def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool = False):
+def loader(entity_key: str, location: str, modeled_causes: Set[str], all_measures: bool = False):
     entity_data = {
         "cause": {
             "mapping": causes,

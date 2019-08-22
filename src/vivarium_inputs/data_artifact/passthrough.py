@@ -1,7 +1,7 @@
 from typing import Any
 
 import pandas as pd
-from vivarium_public_health.dataset_manager import EntityKey, filter_data, validate_filter_term
+from vivarium.framework.artifact import filter_data, validate_filter_term
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
@@ -24,7 +24,6 @@ class ArtifactPassthrough:
         return "artifact_passthrough"
 
     def load(self, entity_key: str, **column_filters: str) -> Any:
-        entity_key = EntityKey(entity_key)
         data = loader(entity_key, self.location, self.modeled_causes)
 
         if isinstance(data, pd.DataFrame):  # could be a metadata dict

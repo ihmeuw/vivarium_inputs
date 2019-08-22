@@ -1,12 +1,11 @@
-import pytest
-
-from pathlib import Path
-import pandas as pd
 import argparse
+from pathlib import Path
+
+import pandas as pd
+import pytest
+from vivarium import Artifact
 
 from vivarium_inputs.data_artifact import aggregation, ArtifactAggregationWarning, get_versions
-
-from vivarium_public_health.dataset_manager import Artifact
 
 
 METADATA = ['metadata.keyspace', 'metadata.locations', 'metadata.versions']
