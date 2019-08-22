@@ -108,9 +108,12 @@ def _worker(entity_key: str, location: str, modeled_causes: Collection[str],
             artifact: Artifact) -> None:
     data = loader(entity_key, location, modeled_causes, all_measures=False)
     # FIXME: This is a hack since hdf files can't handle pandas.Interval objects
-    data = split_interval(data, interval_column='age', split_column_prefix='age_group')
-    data = split_interval(data, interval_column='year', split_column_prefix='year')
-    artifact.write(entity_key, data)
+    if data is not None:
+        data = split_interval(data, interval_column='age', split_column_prefix='age_group')
+        data = split_interval(data, interval_column='year', split_column_prefix='year')
+        artifact.write(entity_key, data)
+    else:
+        _log.warning(f"None received when loading data for {entity_key}.")
 
 
 def create_new_artifact(path: str, draw: int, location: str) -> Artifact:
