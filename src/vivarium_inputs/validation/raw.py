@@ -10,7 +10,8 @@ from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
-                                     DataDoesNotExistError, Population, PROBLEMATIC_RISKS, PAF_OUTSIDE_AGE_RESTRICTIONS)
+                                     DataDoesNotExistError, Population, PROBLEMATIC_RISKS, PAF_OUTSIDE_AGE_RESTRICTIONS,
+                                     EXCLUDE_ABNORMAL_DATA)
 
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
@@ -487,7 +488,8 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], conte
     check_sex_ids(data, context, male_expected=True, female_expected=True)
 
     check_age_restrictions(data, context, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
-    check_sex_restrictions(data, context, restrictions.male_only, restrictions.female_only)
+    if not EXCLUDE_ABNORMAL_DATA(entity, context):
+        check_sex_restrictions(data, context, restrictions.male_only, restrictions.female_only)
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
