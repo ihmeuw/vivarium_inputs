@@ -1,14 +1,14 @@
-from bdb import BdbQuit
+import sys
 import os
 import shutil
 import logging
 import pathlib
 import argparse
 import subprocess
+from bdb import BdbQuit
 from typing import Union, List, Dict
-
-from pandas import io
 from io import BytesIO
+
 import click
 
 import gbd_mapping
@@ -154,8 +154,21 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     submit_job(aggregate_command, aggregate_job_name)
 
 
-# test with random stuff out of the mapping
-def parse_entity(entity_type: str, entity_name: str):
+# TODO: test with random stuff out of the mapping
+def parse_entity(entity_type: str, entity_name: str) -> gbd_mapping.ModelableEntity:
+    """Parse an entity type and name into a gbd_mapping object,.
+
+    Parameters
+    ----------
+    entity_type
+        an entity_type from the gbd_mapping.
+    entity_name
+        an entity name.
+
+    Returns
+    -------
+        The ModelableEntity representation of the entity.
+    """
     plurality_mapping = {'sequela': 'sequelae',
                          'etiology': 'etiologies',
                          'health_technology': 'health_technologies',
@@ -168,7 +181,9 @@ def parse_entity(entity_type: str, entity_name: str):
 
 
 @click.command()
-@click.argument('entity_type', type=click.Choice(['cause', 'sequela', 'risk_factor', 'coverage_gap', 'covariate', 'etiology']))
+@click.argument('entity_type', type=click.Choice(['cause', 'sequela', 'risk_factor', 'coverage_gap', 'covariate',
+                                                  'alternative_risk_factor', 'health_technology', 'healthcare_entity',
+                                                  'etiology']))
 @click.argument('entity_name', type=click.STRING)
 @click.argument('measure', type=click.Choice(['incidence', 'raw_incidence', 'prevalence', 'birth_prevalence',
                                               'disability_weight', 'remission', 'cause_specific_mortality',
@@ -179,29 +194,31 @@ def parse_entity(entity_type: str, entity_name: str):
                                               'theoretical_minimum_risk_life_expectancy', 'age_bins',
                                               'demographic_dimensions']))
 @click.argument('location', type=click.STRING)
-def get_measure(entity_type, entity_name, measure, location):
-    """A command line interface to get_measure in the vivarium_inputs interface.
+@click.option('--silent/--no-silent', default=False, help='Suppress all warnings and output except for the data stream.'
+                                                          'useful for parsing the result programmatically.')
+def get_measure(entity_type, entity_name, measure, location, silent):
+    """A command line interface to get_measure of the vivarium_inputs interface.
+    Pulls MEASURE data for ENTITY_TYPE.ENTITY_NAME for LOCATION.
     This exists to provide a convenient way to get data for a specific measure
-    under different environments to address tables versioning issues. The data is
-    returned as raw pickled bytes. It should be read into a BytesIO object
-    and passed to read_pickle on the other end.
+    under different environments from the command line. to address tables
+    versioning issues.
 
-    ENTITY_TYPE is a string entity type
-
-    ENTITY_NAME is a string entity name that will be translated to a GBD entity
-    from the gbd mapping.
-
-    MEASURE is a location string.
-
-    LOCATION is a location string.
+    The data is returned as raw pickled bytes. It should be read into a BytesIO
+    object and passed to read_pickle on the other end.
     """
+    save_stdout = sys.stdout
+    if silent:
+        import warnings
+        warnings.filterwarnings("ignore")  # silence pandas warnings
+        # silencing joblib is non-trivial. Send stdout away instead.
+        sys.stdout = open(os.devnull, 'w')
     entity = parse_entity(entity_type, entity_name)
-    # TODO: Silence this call
-    data = vivarium_inputs.get_measure(entity, measure, location)  # let get_measure handle exceptions
+    data = vivarium_inputs.get_measure(entity, measure, location)
     bio = BytesIO()
     data.to_pickle(bio)
-    # test the serialization with a few pulls
-    return data.seek(0).read()
+    bio.seek(0)  # reset to start of "file"
+    sys.stdout = save_stdout
+    return click.echo(bio.read())
 
 
 def submit_jobs_multi_locations(locations: List, commands: Dict, job_names: Dict) -> List:
