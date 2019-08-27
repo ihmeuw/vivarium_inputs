@@ -72,6 +72,7 @@ if __name__ == "__main__":
             [console_scripts]
             build_artifact=vivarium_inputs.data_artifact.cli:build_artifact
             multi_build_artifact=vivarium_inputs.data_artifact.cli:multi_build_artifact
+            get_measure=vivarium_inputs.data_artifact.cli:get_measure
         ''',
 
         zip_safe=False,

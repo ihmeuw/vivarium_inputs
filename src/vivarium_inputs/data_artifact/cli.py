@@ -6,13 +6,20 @@ import pathlib
 import argparse
 import subprocess
 from typing import Union, List, Dict
+
+from pandas import io
+from io import BytesIO
 import click
+
+import gbd_mapping
 
 from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.plugins import PluginManager
 from vivarium.interface.interactive import InteractiveContext
 from vivarium.config_tree import ConfigTree
 
+import vivarium_inputs
+from vivarium_inputs import mapping_extension
 from vivarium_inputs.data_artifact.aggregation import disaggregate
 from vivarium_inputs.data_artifact import utilities
 
@@ -145,6 +152,56 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
                                              project, error_log_dir, f'{aggregate_script} {aggregate_args}', memory=35,
                                              archive=True, queue='all.q', hold=True, jids=jids, slots=15)
     submit_job(aggregate_command, aggregate_job_name)
+
+
+# test with random stuff out of the mapping
+def parse_entity(entity_type: str, entity_name: str):
+    plurality_mapping = {'sequela': 'sequelae',
+                         'etiology': 'etiologies',
+                         'health_technology': 'health_technologies',
+                         'healthcare_entity': 'healthcare_entities'}
+    plural_entity_type = entity_type + 's' if entity_type not in plurality_mapping else plurality_mapping[entity_type]
+    if entity_type in ['alternative_risk_factor', 'health_technology', 'healthcare_entity']:
+        return getattr(mapping_extension, plural_entity_type)[entity_name]
+    else:
+        return getattr(gbd_mapping, plural_entity_type)[entity_name]
+
+
+@click.command()
+@click.argument('entity_type', type=click.Choice(['cause', 'sequela', 'risk_factor', 'coverage_gap', 'covariate', 'etiology']))
+@click.argument('entity_name', type=click.STRING)
+@click.argument('measure', type=click.Choice(['incidence', 'raw_incidence', 'prevalence', 'birth_prevalence',
+                                              'disability_weight', 'remission', 'cause_specific_mortality',
+                                              'excess_mortality', 'case_fatality', 'deaths', 'exposure',
+                                              'exposure_standard_deviation', 'exposure_distribution_weights',
+                                              'relative_risk', 'population_attributable_fraction', 'mediation_factors',
+                                              'estimate', 'cost', 'utilization', 'structure',
+                                              'theoretical_minimum_risk_life_expectancy', 'age_bins',
+                                              'demographic_dimensions']))
+@click.argument('location', type=click.STRING)
+def get_measure(entity_type, entity_name, measure, location):
+    """A command line interface to get_measure in the vivarium_inputs interface.
+    This exists to provide a convenient way to get data for a specific measure
+    under different environments to address tables versioning issues. The data is
+    returned as raw pickled bytes. It should be read into a BytesIO object
+    and passed to read_pickle on the other end.
+
+    ENTITY_TYPE is a string entity type
+
+    ENTITY_NAME is a string entity name that will be translated to a GBD entity
+    from the gbd mapping.
+
+    MEASURE is a location string.
+
+    LOCATION is a location string.
+    """
+    entity = parse_entity(entity_type, entity_name)
+    # TODO: Silence this call
+    data = vivarium_inputs.get_measure(entity, measure, location)  # let get_measure handle exceptions
+    bio = BytesIO()
+    data.to_pickle(bio)
+    # test the serialization with a few pulls
+    return data.seek(0).read()
 
 
 def submit_jobs_multi_locations(locations: List, commands: Dict, job_names: Dict) -> List:
