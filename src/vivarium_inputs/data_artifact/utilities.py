@@ -2,8 +2,12 @@ import getpass
 import logging
 import pathlib
 import pkg_resources
+import subprocess
+import io
+from typing import Callable
 
 import pandas as pd
+import tables
 
 
 def get_versions():
@@ -85,3 +89,36 @@ def split_interval(data, interval_column, split_column_prefix):
                           .set_levels(interval_starts, f'{split_column_prefix}_start'))
             data = data.set_index(f'{split_column_prefix}_end', append=True)
     return data
+
+
+def handle_tables_versions(get_measure: Callable) -> Callable:
+    """Wraps get_measure to handle tables versioning issues.
+    The only acceptable argument is the get_measure function.
+
+    The wrapped function handles the tables version issue by catching the
+    decompression error that arises and calling out to a get_measure cli
+    endpoint under an environment with updated tables.
+
+    Returns
+    -------
+        A wrapped version of get_measure that handles tables version issues.
+    """
+    # TODO: Place the environment somewhere central
+    new_tables_get_measure = '/share/costeffectiveness/envs/tables_3.5/'
+
+    # TODO: check version. Raise if not the same.
+
+    def wrapped(entity, measure, location):
+        try:
+            get_measure(entity, measure, location)
+        except tables.exceptions.HDF5ExtError as e:
+            if 'Blosc decompression error' in e:
+                bio = io.BytesIO()
+                result = subprocess.run([new_tables_get_measure, entity.type, entity.name, measure, location, '--silent'],
+                                        stdout=subprocess.PIPE)
+                bio.write(result.stdout)
+                return pd.read_pickle(bio)
+            else:
+                raise e
+
+    return wrapped
