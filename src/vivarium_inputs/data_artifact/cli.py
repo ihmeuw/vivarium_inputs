@@ -7,11 +7,8 @@ import argparse
 import subprocess
 from bdb import BdbQuit
 from typing import Union, List, Dict
-from io import BytesIO
 
 import click
-
-import gbd_mapping
 
 from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.plugins import PluginManager
@@ -19,7 +16,6 @@ from vivarium.interface.interactive import InteractiveContext
 from vivarium.config_tree import ConfigTree
 
 import vivarium_inputs
-from vivarium_inputs import mapping_extension
 from vivarium_inputs.data_artifact.aggregation import disaggregate
 from vivarium_inputs.data_artifact import utilities
 
@@ -154,32 +150,6 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     submit_job(aggregate_command, aggregate_job_name)
 
 
-# TODO: test with random stuff out of the mapping
-def parse_entity(entity_type: str, entity_name: str) -> gbd_mapping.ModelableEntity:
-    """Parse an entity type and name into a gbd_mapping object,.
-
-    Parameters
-    ----------
-    entity_type
-        an entity_type from the gbd_mapping.
-    entity_name
-        an entity name.
-
-    Returns
-    -------
-        The ModelableEntity representation of the entity.
-    """
-    plurality_mapping = {'sequela': 'sequelae',
-                         'etiology': 'etiologies',
-                         'health_technology': 'health_technologies',
-                         'healthcare_entity': 'healthcare_entities'}
-    plural_entity_type = entity_type + 's' if entity_type not in plurality_mapping else plurality_mapping[entity_type]
-    if entity_type in ['alternative_risk_factor', 'health_technology', 'healthcare_entity']:
-        return getattr(mapping_extension, plural_entity_type)[entity_name]
-    else:
-        return getattr(gbd_mapping, plural_entity_type)[entity_name]
-
-
 @click.command()
 @click.argument('entity_type', type=click.Choice(['cause', 'sequela', 'risk_factor', 'coverage_gap', 'covariate',
                                                   'alternative_risk_factor', 'health_technology', 'healthcare_entity',
@@ -194,9 +164,8 @@ def parse_entity(entity_type: str, entity_name: str) -> gbd_mapping.ModelableEnt
                                               'theoretical_minimum_risk_life_expectancy', 'age_bins',
                                               'demographic_dimensions']))
 @click.argument('location', type=click.STRING)
-@click.option('--silent/--no-silent', default=False, help='Suppress all warnings and output except for the data stream.'
-                                                          'useful for parsing the result programmatically.')
-def get_measure(entity_type, entity_name, measure, location, silent):
+@click.option('--fname', help='An optional file name to write serialized data to. Output will default to stdout.')
+def get_measure(entity_type, entity_name, measure, location, fname):
     """A command line interface to get_measure of the vivarium_inputs interface.
     Pulls MEASURE data for ENTITY_TYPE.ENTITY_NAME for LOCATION.
     This exists to provide a convenient way to get data for a specific measure
@@ -206,19 +175,14 @@ def get_measure(entity_type, entity_name, measure, location, silent):
     The data is returned as raw pickled bytes. It should be read into a BytesIO
     object and passed to read_pickle on the other end.
     """
-    save_stdout = sys.stdout
-    if silent:
-        import warnings
-        warnings.filterwarnings("ignore")  # silence pandas warnings
-        # silencing joblib is non-trivial. Send stdout away instead.
-        sys.stdout = open(os.devnull, 'w')
-    entity = parse_entity(entity_type, entity_name)
+    entity = utilities.parse_entity(entity_type, entity_name)
     data = vivarium_inputs.get_measure(entity, measure, location)
-    bio = BytesIO()
-    data.to_pickle(bio)
-    bio.seek(0)  # reset to start of "file"
-    sys.stdout = save_stdout
-    return click.echo(bio.read())
+    if fname:
+        with open(fname, mode='wb') as f:
+            data.to_pickle(f, compression='gzip')
+    else:
+        data.to_pickle(sys.stdout.buffer)
+        sys.stdout.flush()
 
 
 def submit_jobs_multi_locations(locations: List, commands: Dict, job_names: Dict) -> List:
