@@ -3,11 +3,14 @@ import logging
 import pathlib
 import pkg_resources
 import subprocess
-import io
+import tempfile
 from typing import Callable
 
 import pandas as pd
 import tables
+
+import gbd_mapping
+from vivarium_inputs import mapping_extension
 
 
 def get_versions():
@@ -91,6 +94,32 @@ def split_interval(data, interval_column, split_column_prefix):
     return data
 
 
+# TODO: test with random stuff out of the mapping
+def parse_entity(entity_type: str, entity_name: str) -> gbd_mapping.ModelableEntity:
+    """Parse an entity type and name into a gbd_mapping object,.
+
+    Parameters
+    ----------
+    entity_type
+        an entity_type from the gbd_mapping.
+    entity_name
+        an entity name.
+
+    Returns
+    -------
+        The ModelableEntity representation of the entity.
+    """
+    plurality_mapping = {'sequela': 'sequelae',
+                         'etiology': 'etiologies',
+                         'health_technology': 'health_technologies',
+                         'healthcare_entity': 'healthcare_entities'}
+    plural_entity_type = entity_type + 's' if entity_type not in plurality_mapping else plurality_mapping[entity_type]
+    if entity_type in ['alternative_risk_factor', 'health_technology', 'healthcare_entity']:
+        return getattr(mapping_extension, plural_entity_type)[entity_name]
+    else:
+        return getattr(gbd_mapping, plural_entity_type)[entity_name]
+
+
 def handle_tables_versions(get_measure: Callable) -> Callable:
     """Wraps get_measure to handle tables versioning issues.
     The only acceptable argument is the get_measure function.
@@ -104,20 +133,20 @@ def handle_tables_versions(get_measure: Callable) -> Callable:
         A wrapped version of get_measure that handles tables version issues.
     """
     # TODO: Place the environment somewhere central
-    new_tables_get_measure = '/share/costeffectiveness/envs/tables_3.5/'
+    new_tables_get_measure = '/home/cody/miniconda3/envs/sam/bin/get_measure'
 
     # TODO: check version. Raise if not the same.
 
     def wrapped(entity, measure, location):
+
         try:
             return get_measure(entity, measure, location)
         except tables.exceptions.HDF5ExtError as e:
             if 'Blosc decompression error' in e:
-                bio = io.BytesIO()
-                result = subprocess.run([new_tables_get_measure, entity.type, entity.name, measure, location, '--silent'],
-                                        stdout=subprocess.PIPE)
-                bio.write(result.stdout)
-                return pd.read_pickle(bio)
+                with tempfile.NamedTemporaryFile() as tmpf:
+                    subprocess.run([new_tables_get_measure, entity.type, entity.name, measure, location,
+                                   '--fname', tmpf.name], check=True)
+                    return pd.read_pickle(tmpf, compression='gzip')
             else:
                 raise e
 
