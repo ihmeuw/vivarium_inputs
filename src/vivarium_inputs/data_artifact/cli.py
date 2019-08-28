@@ -181,7 +181,7 @@ def get_measure(entity_type, entity_name, measure, location, fname):
         with open(fname, mode='wb') as f:
             data.to_pickle(f, compression='gzip')
     else:
-        data.to_pickle(sys.stdout.buffer)
+        data.to_pickle(sys.stdout.buffer, compression='gzip')
         sys.stdout.flush()
 
 
