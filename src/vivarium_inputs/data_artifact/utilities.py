@@ -110,7 +110,7 @@ def handle_tables_versions(get_measure: Callable) -> Callable:
 
     def wrapped(entity, measure, location):
         try:
-            get_measure(entity, measure, location)
+            return get_measure(entity, measure, location)
         except tables.exceptions.HDF5ExtError as e:
             if 'Blosc decompression error' in e:
                 bio = io.BytesIO()
