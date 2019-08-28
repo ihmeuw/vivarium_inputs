@@ -138,11 +138,11 @@ def handle_tables_versions(get_measure: Callable) -> Callable:
     # TODO: check version. Raise if not the same.
 
     def wrapped(entity, measure, location):
-
         try:
             return get_measure(entity, measure, location)
         except tables.exceptions.HDF5ExtError as e:
             if 'Blosc decompression error' in e:
+                # TODO: Log that data failed to load
                 with tempfile.NamedTemporaryFile() as tmpf:
                     subprocess.run([new_tables_get_measure, entity.type, entity.name, measure, location,
                                    '--fname', tmpf.name], check=True)

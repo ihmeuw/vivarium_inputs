@@ -11,7 +11,7 @@ from vivarium_inputs.data_artifact.utilities import handle_tables_versions
 
 
 # Wrap get_measure to handle tables version BS.
-get_measure_handle_tables = handle_tables_versions(get_measure)
+get_measure = handle_tables_versions(get_measure)
 
 
 def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_measures: bool = False):
@@ -98,7 +98,7 @@ def get_cause_data(cause, measure, location, _):
     if measure in ["sequelae", "etiologies", "restrictions"]:
         data = get_cause_metadata(cause, measure)
     else:
-        data = get_measure_handle_tables(cause, measure, location)
+        data = get_measure(cause, measure, location)
     return data
 
 
@@ -107,7 +107,7 @@ def get_risk_data(risk, measure, location, modeled_causes):
                    "categories", "tmred", "relative_risk_scalar"]:
         data = get_risk_metadata(risk, measure, modeled_causes)
     else:
-        data = get_measure_handle_tables(risk, measure, location)
+        data = get_measure(risk, measure, location)
     return data
 
 
@@ -115,19 +115,19 @@ def get_sequela_data(sequela, measure, location, _):
     if measure == "healthstate":
         data = sequela.healthstate.name
     else:
-        data = get_measure_handle_tables(sequela, measure, location)
+        data = get_measure(sequela, measure, location)
     return data
 
 
 def get_healthcare_entity_data(healthcare_entity, measure, location, _):
-    data = get_measure_handle_tables(healthcare_entity, measure, location)
+    data = get_measure(healthcare_entity, measure, location)
     return data
 
 
 def get_health_technology_data(healthcare_technology, measure, location, _):
     if measure in ["effects", "coverage"]:
         raise NotImplementedError()
-    data = get_measure_handle_tables(healthcare_technology, measure, location)
+    data = get_measure(healthcare_technology, measure, location)
     return data
 
 
@@ -135,12 +135,12 @@ def get_coverage_gap_data(coverage_gap, measure, location, modeled_causes):
     if measure in ["affected_causes", "affected_risk_factors", "restrictions", "distribution", "levels"]:
         data = get_coverage_gap_metadata(coverage_gap, measure, modeled_causes)
     else:
-        data = get_measure_handle_tables(coverage_gap, measure, location)
+        data = get_measure(coverage_gap, measure, location)
     return data
 
 
 def get_etiology_data(etiology, measure, location, _):
-    data = get_measure_handle_tables(etiology, measure, location)
+    data = get_measure(etiology, measure, location)
     return data
 
 
@@ -157,7 +157,7 @@ def get_population_data(_, measure, location, __):
 
 
 def get_covariate_data(covariate, measure, location, _):
-    data = get_measure_handle_tables(covariate, measure, location)
+    data = get_measure(covariate, measure, location)
     return data
 
 
