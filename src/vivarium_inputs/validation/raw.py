@@ -490,6 +490,8 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], conte
     check_age_restrictions(data, context, restrictions.yld_age_group_id_start, restrictions.yld_age_group_id_end)
     if not EXCLUDE_ABNORMAL_DATA(entity, context):
         check_sex_restrictions(data, context, restrictions.male_only, restrictions.female_only)
+    else:
+        warnings.warn(f'In validate_prevalence() -- skipping check_sex_restrictions() due to data issues for {entity.name}')
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
