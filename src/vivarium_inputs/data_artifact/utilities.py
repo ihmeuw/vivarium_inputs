@@ -133,7 +133,7 @@ def handle_tables_versions(get_measure: Callable) -> Callable:
         A wrapped version of get_measure that handles tables version issues.
     """
     # TODO: Place the environment somewhere central
-    new_tables_get_measure = '/home/cody/miniconda3/envs/sam/bin/get_measure'
+    new_tables_get_measure = '/share/costeffectiveness/miniconda3/envs/tables3.5/bin/get_measure'
 
     # TODO: check version. Raise if not the same.
 
@@ -141,10 +141,11 @@ def handle_tables_versions(get_measure: Callable) -> Callable:
         try:
             return get_measure(entity, measure, location)
         except tables.exceptions.HDF5ExtError as e:
-            if 'Blosc decompression error' in e:
-                # TODO: Log that data failed to load
+            # TODO: Log that data failed to load
+            print(f"Failed to load data for {entity.kind}.{entity.name}: {measure} for location {location}")
+            if 'Blosc decompression error' in str(e):
                 with tempfile.NamedTemporaryFile() as tmpf:
-                    subprocess.run([new_tables_get_measure, entity.type, entity.name, measure, location,
+                    subprocess.run([new_tables_get_measure, entity.kind, entity.name, measure, location,
                                    '--fname', tmpf.name], check=True)
                     return pd.read_pickle(tmpf, compression='gzip')
             else:
