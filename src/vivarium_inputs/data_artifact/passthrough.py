@@ -27,7 +27,7 @@ class ArtifactPassthrough:
         data = loader(entity_key, self.location, self.modeled_causes)
 
         if isinstance(data, pd.DataFrame):  # could be a metadata dict
-            data = split_interval(data, interval_column='age', split_column_prefix='age_group')
+            data = split_interval(data, interval_column='age', split_column_prefix='age')
             data = split_interval(data, interval_column='year', split_column_prefix='year')
             data = data.reset_index()
 

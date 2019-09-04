@@ -43,9 +43,9 @@ def scrub_sex(data):
 def scrub_age(data):
     if 'age_group_id' in data.index.names:
         age_bins = utility_data.get_age_bins().set_index('age_group_id')
-        id_levels = data.index.levels[data.index.names.index('age_group_id')]
-        interval_levels = [pd.Interval(age_bins.age_group_start[age_id],
-                                       age_bins.age_group_end[age_id], closed='left') for age_id in id_levels]
+        id_levels = data.index.levels[data.index.names.index('age_id')]
+        interval_levels = [pd.Interval(age_bins.age_start[age_id],
+                                       age_bins.age_end[age_id], closed='left') for age_id in id_levels]
         data.index = data.index.rename('age', 'age_group_id').set_levels(interval_levels, 'age')
     return data
 
@@ -68,10 +68,10 @@ def scrub_affected_entity(data):
 
 
 def set_age_interval(data):
-    if 'age_group_start' in data.index.names:
-        bins = zip(data.index.get_level_values('age_group_start'), data.index.get_level_values('age_group_end'))
+    if 'age_start' in data.index.names:
+        bins = zip(data.index.get_level_values('age_start'), data.index.get_level_values('age_end'))
         data = data.assign(age=[pd.Interval(x[0], x[1], closed='left') for x in bins]).set_index('age', append=True)
-        data.index = data.index.droplevel('age_group_start').droplevel('age_group_end')
+        data.index = data.index.droplevel('age_start').droplevel('age_end')
     return data
 
 

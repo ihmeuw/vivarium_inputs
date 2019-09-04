@@ -75,7 +75,7 @@ do the following:
 
 ::
 
-      draw location     sex  age_group_start  age_group_end  year_start  year_end     value
+      draw location     sex        age_start        age_end  year_start  year_end     value
     0    0    Kenya  Female              0.0       0.019178        1990      1991  0.032557
     1    0    Kenya  Female              0.0       0.019178        1991      1992  0.031751
     2    0    Kenya  Female              0.0       0.019178        1992      1993  0.031039
@@ -146,7 +146,7 @@ For example, to pull population data for Kenya, we would do the following:
 
 ::
 
-      location     sex  age_group_start  age_group_end  year_start  year_end        value
+      location     sex        age_start        age_end  year_start  year_end        value
     0    Kenya  Female              0.0       0.019178        1990      1991  9251.406428
     1    Kenya  Female              0.0       0.019178        1991      1992  9371.524292
     2    Kenya  Female              0.0       0.019178        1992      1993  9488.631659
@@ -171,7 +171,7 @@ To use:
 
 ::
 
-       age_group_start  age_group_end      value
+             age_start        age_end      value
     0             0.00           0.01  87.885872
     1             0.01           0.02  87.877086
     2             0.02           0.03  87.868299
@@ -195,7 +195,7 @@ the exception of life expectancy, which uses its own age ranges).
 
 ::
 
-       age_group_start  age_group_end  age_group_name
+             age_start        age_end  age_group_name
     0         0.000000       0.019178  Early Neonatal
     1         0.019178       0.076712   Late Neonatal
     2         0.076712       1.000000   Post Neonatal
@@ -219,7 +219,7 @@ argument to fill the location dimension.
 
 ::
 
-      location     sex  age_group_start  age_group_end  year_start  year_end
+      location     sex        age_start        age_end  year_start  year_end
     0    Kenya  Female              0.0       0.019178        1990      1991
     1    Kenya  Female              0.0       0.019178        1991      1992
     2    Kenya  Female              0.0       0.019178        1992      1993
