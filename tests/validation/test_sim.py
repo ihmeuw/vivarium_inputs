@@ -11,8 +11,8 @@ from vivarium_inputs.globals import DataTransformationError
 def mock_validation_context():
     years = pd.DataFrame({'year_start': range(1990, 2017),
                           'year_end': range(1991, 2018)})
-    age_bins = pd.DataFrame({'age_id': [1, 2, 3, 4, 5],
-                             'age_name': ['youngest', 'young', 'middle', 'older', 'oldest'],
+    age_bins = pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5],
+                             'age_group_name': ['youngest', 'young', 'middle', 'older', 'oldest'],
                              'age_start': [0, 1, 15, 45, 60],
                              'age_end': [1, 15, 45, 60, 100]})
     context = sim.SimulationValidationContext(
@@ -146,7 +146,7 @@ def test_validate_value_column_fail(values):
         ((2, 2, 2, 1, 1), (1, 3), 'outer', 1.0),
 ], ids=('no_restr', 'left_restr', 'outer_restr', 'right_restr', 'nonzero_fill'))
 def test_check_age_restrictions(mocker, mock_validation_context, values, ids, restriction_type, fill):
-    entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_ids_by_restriction')
+    entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
     entity.return_value = ids
     age_bins = mock_validation_context['age_bins']
     idx = pd.IntervalIndex.from_arrays(age_bins.age_start, age_bins.age_end, closed='left', name='age')
@@ -161,7 +161,7 @@ def test_check_age_restrictions(mocker, mock_validation_context, values, ids, re
         ((2, 2, 2, 2, 1), (2, 5), 'outer', 1.0),
 ], ids=('both_sides', 'left_side', 'right_side', 'nonzero_fill'))
 def test_check_age_restrictions_fail(mocker, mock_validation_context, values, ids, restriction_type, fill):
-    entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_ids_by_restriction')
+    entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
     entity.return_value = ids
     age_bins = mock_validation_context['age_bins']
     idx = pd.IntervalIndex.from_arrays(age_bins.age_start, age_bins.age_end, closed='left', name='age')
