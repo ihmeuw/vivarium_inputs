@@ -11,14 +11,14 @@ components:
                         - DummyLoadComponent("cause.diarrheal_diseases.prevalence")
                         - DummyLoadComponent("cause.diarrheal_diseases.disability_weight")
                         - DummyLoadComponent("cause.diarrheal_diseases.cause_specific_mortality_rate")
-                        - DummyLoadComponent("cause.diarrheal_diseases.excess_mortality")
+                        - DummyLoadComponent("cause.diarrheal_diseases.excess_mortality_rate")
                         - DummyLoadComponent("cause.diarrheal_diseases.remission_rate")
 
                         - DummyLoadComponent("cause.lower_respiratory_infections.incidence_rate")
                         - DummyLoadComponent("cause.lower_respiratory_infections.prevalence")
                         - DummyLoadComponent("cause.lower_respiratory_infections.disability_weight")
                         - DummyLoadComponent("cause.lower_respiratory_infections.cause_specific_mortality_rate")
-                        - DummyLoadComponent("cause.lower_respiratory_infections.excess_mortality")
+                        - DummyLoadComponent("cause.lower_respiratory_infections.excess_mortality_rate")
                         - DummyLoadComponent("cause.lower_respiratory_infections.remission_rate")
 
                         - DummyLoadComponent("cause.measles.incidence_rate")
