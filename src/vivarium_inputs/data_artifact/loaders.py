@@ -13,8 +13,8 @@ def loader(entity_key: str, location: str, modeled_causes: Set[str], all_measure
         "cause": {
             "mapping": causes,
             "getter": get_cause_data,
-            "measures": ["prevalence", "incidence", "cause_specific_mortality", "disability_weight", "birth_prevalence",
-                         "excess_mortality", "remission", "sequelae", "etiologies", "restrictions",],
+            "measures": ["prevalence", "incidence_rate", "cause_specific_mortality_rate", "disability_weight", "birth_prevalence",
+                         "excess_mortality_rate", "remission_rate", "sequelae", "etiologies", "restrictions",],
         },
         "risk_factor": {
             "mapping": risk_factors,
@@ -33,12 +33,12 @@ def loader(entity_key: str, location: str, modeled_causes: Set[str], all_measure
         "sequela": {
             "mapping": sequelae,
             "getter": get_sequela_data,
-            "measures": ["healthstate", "prevalence", "incidence", "disability_weight", "birth_prevalence"],
+            "measures": ["healthstate", "prevalence", "incidence_rate", "disability_weight", "birth_prevalence"],
         },
         "healthcare_entity": {
             "mapping": healthcare_entities,
             "getter": get_healthcare_entity_data,
-            "measures": ["cost", "utilization"],
+            "measures": ["cost", "utilization_rate"],
          },
         "health_technology": {
              "mapping": health_technologies,

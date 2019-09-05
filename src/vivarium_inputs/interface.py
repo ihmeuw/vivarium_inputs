@@ -18,11 +18,11 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
     Available measures:
 
         For entity kind 'sequela':
-            incidence, prevalence, birth_prevalence, disability_weight
+            incidence_rate, prevalence, birth_prevalence, disability_weight
 
         For entity kind 'cause':
-            incidence, prevalence, birth_prevalence, disability_weight,
-            remission, cause_specific_mortality, excess_mortality
+            incidence_rate, prevalence, birth_prevalence, disability_weight,
+            remission_rate, cause_specific_mortality_rate, excess_mortality_rate
 
         For entity kind 'coverage_gap':
             exposure, exposure_standard_deviation, exposure_distribution_weights,
@@ -42,7 +42,7 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
             estimate
 
         For entity kind 'healthcare_entity':
-            cost, utilization
+            cost, utilization_rate
 
         For entity kind 'health_technology':
             cost
@@ -158,11 +158,11 @@ def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[
     Available measures:
 
         For entity kind 'sequela':
-            incidence, prevalence, birth_prevalence, disability_weight
+            incidence_rate, prevalence, birth_prevalence, disability_weight
 
         For entity kind 'cause':
-            incidence, prevalence, birth_prevalence, disability_weight,
-            remission, deaths
+            incidence_rate, prevalence, birth_prevalence, disability_weight,
+            remission_rate, deaths
 
         For entity kind 'coverage_gap':
             exposure, exposure_standard_deviation, exposure_distribution_weights,
@@ -182,7 +182,7 @@ def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[
             estimate
 
         For entity kind 'healthcare_entity':
-            cost, utilization
+            cost, utilization_rate
 
         For entity kind 'health_technology':
             cost
