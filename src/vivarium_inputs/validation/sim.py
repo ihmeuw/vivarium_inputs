@@ -1098,11 +1098,11 @@ def validate_age_column(data: pd.DataFrame, context: SimulationValidationContext
         age bins supplied in `context`.
 
     """
-    expected_ages = [pd.Interval(row.age_group_start, row.age_group_end, closed='left') for _, row in context['age_bins'].iterrows()]
+    expected_ages = [pd.Interval(row.age_start, row.age_end, closed='left') for _, row in context['age_bins'].iterrows()]
     data_ages = data.index.levels[data.index.names.index('age')]
 
     if not sorted(data_ages) == sorted(expected_ages):
-        raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
+        raise DataTransformationError('Age_start and age_end must contain all gbd age groups.')
 
 
 def validate_year_column(data: pd.DataFrame, context: SimulationValidationContext) -> None:
@@ -1184,7 +1184,7 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
     in_range_ages = age_bins.loc[(age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)]
-    in_range_age_intervals = [pd.Interval(row.age_group_start, row.age_group_end, closed='left')
+    in_range_age_intervals = [pd.Interval(row.age_start, row.age_end, closed='left')
                               for _, row in in_range_ages.iterrows()]
     outside = data.loc[~data.index.isin(in_range_age_intervals, 'age')]
 
