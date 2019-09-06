@@ -9,7 +9,7 @@ from typing import Union, List, Dict
 import click
 import yaml
 
-from vivarium.interface.interactive import InteractiveContext
+from vivarium.framework.engine import SimulationContext
 
 from vivarium_inputs.data_artifact.aggregation import disaggregate
 from vivarium_inputs.data_artifact import utilities
@@ -324,7 +324,7 @@ def main(model_specification_file, output_root, location, append):
             }
         }
     }
-    simulation = InteractiveContext(model_specification_file, configuration=config, plugin_configuration=plugin_config)
+    simulation = SimulationContext(model_specification_file, configuration=config, plugin_configuration=plugin_config)
     simulation.setup()
 
 
