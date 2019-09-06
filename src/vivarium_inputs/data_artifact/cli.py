@@ -317,10 +317,13 @@ def main(model_specification_file, output_root, location, append):
         }
     }
     plugin_config = {
-        "data": {
-            "controller": "vivarium_inputs.data_artifact.ArtifactBuilder",
-            "builder_interface": "vivarium.framework.artifact.ArtifactInterface",
-        }}
+        "required": {
+            "data": {
+                "controller": "vivarium_inputs.data_artifact.ArtifactBuilder",
+                "builder_interface": "vivarium.framework.artifact.ArtifactInterface",
+            }
+        }
+    }
     simulation = InteractiveContext(model_specification_file, configuration=config, plugin_configuration=plugin_config)
     simulation.setup()
 
