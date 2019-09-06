@@ -38,12 +38,6 @@ components:
                         - DummyLoadComponent("cause.ischemic_heart_disease.excess_mortality")
                         - DummyLoadComponent("cause.ischemic_heart_disease.disability_weight")
 
-                        - DummyLoadComponent("cause.ischemic_heart_disease.incidence")
-                        - DummyLoadComponent("cause.ischemic_heart_disease.prevalence")
-                        - DummyLoadComponent("cause.ischemic_heart_disease.cause_specific_mortality")
-                        - DummyLoadComponent("cause.ischemic_heart_disease.excess_mortality")
-                        - DummyLoadComponent("cause.ischemic_heart_disease.disability_weight")
-
                         - DummyLoadComponent("sequela.mild_angina_due_to_ischemic_heart_disease.prevalence")
                         - DummyLoadComponent("sequela.mild_diarrheal_diseases.incidence")
                         - DummyLoadComponent("sequela.mild_diarrheal_diseases.prevalence")
