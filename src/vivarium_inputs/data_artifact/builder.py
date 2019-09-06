@@ -6,7 +6,7 @@ from typing import Collection, Any
 import pandas as pd
 from pathlib import Path
 
-from vivarium.framework.artifact import Artifact, get_location_term, filter_data
+from vivarium.framework.artifact import Artifact, get_location_term, filter_data, EntityKey
 
 from vivarium_public_health.disease import DiseaseModel
 
@@ -22,6 +22,13 @@ class OutdatedArtifactWarning(Warning):
 
 
 class ArtifactBuilder:
+
+    configuration_defaults = {
+        'input_data': {
+            'artifact_path': None,
+            'artifact_filter_term': None,
+        }
+    }
 
     def setup(self, builder):
         path = builder.configuration.input_data.artifact_path
@@ -106,7 +113,7 @@ class ArtifactBuilder:
 
 def _worker(entity_key: str, location: str, modeled_causes: Collection[str],
             artifact: Artifact) -> None:
-    data = loader(entity_key, location, modeled_causes, all_measures=False)
+    data = loader(EntityKey(entity_key), location, modeled_causes, all_measures=False)
     # FIXME: This is a hack since hdf files can't handle pandas.Interval objects
     if data is not None:
         data = split_interval(data, interval_column='age', split_column_prefix='age')

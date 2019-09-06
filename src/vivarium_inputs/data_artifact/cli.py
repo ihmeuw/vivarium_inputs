@@ -7,11 +7,9 @@ import argparse
 import subprocess
 from typing import Union, List, Dict
 import click
+import yaml
 
-from vivarium.framework.configuration import build_model_specification
-from vivarium.framework.plugins import PluginManager
 from vivarium.interface.interactive import InteractiveContext
-from vivarium.config_tree import ConfigTree
 
 from vivarium_inputs.data_artifact.aggregation import disaggregate
 from vivarium_inputs.data_artifact import utilities
@@ -309,33 +307,25 @@ def _build_artifact():
 
 
 def main(model_specification_file, output_root, location, append):
-    model_specification = build_model_specification(model_specification_file)
-    model_specification.plugins.required.update({
+    logging.debug("Setting up simulation")
+
+    config = {
+        'input_data': {
+            'location': get_location(location, model_specification_file),
+            'artifact_path': get_output_path(model_specification_file, output_root, location),
+            'append_to_artifact': append
+        }
+    }
+    plugin_config = {
         "data": {
             "controller": "vivarium_inputs.data_artifact.ArtifactBuilder",
             "builder_interface": "vivarium.framework.artifact.ArtifactInterface",
-        }})
-
-    logging.debug("Configuring simulation")
-    plugin_config = model_specification.plugins
-    component_config = model_specification.components
-    simulation_config = model_specification.configuration
-
-    simulation_config.input_data.location = get_location(location, simulation_config)
-    simulation_config.input_data.artifact_path = get_output_path(model_specification_file,
-                                                                 output_root, location)
-    simulation_config.input_data.append_to_artifact = append
-
-    plugin_manager = PluginManager(plugin_config)
-    component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
-    components = component_config_parser.get_components(component_config)
-
-    logging.debug("Setting up simulation")
-    simulation = InteractiveContext(simulation_config, components, plugin_manager)
+        }}
+    simulation = InteractiveContext(model_specification_file, configuration=config, plugin_configuration=plugin_config)
     simulation.setup()
 
 
-def get_location(location_arg: str, configuration: ConfigTree) -> str:
+def get_location(location_arg: str, model_spec: str) -> str:
     """Resolve the model location
 
     This function takes in to account the model configuration and the passed
@@ -345,26 +335,26 @@ def get_location(location_arg: str, configuration: ConfigTree) -> str:
     ----------
     location_arg
         the location argument passed to the click executable
-    configuration
-        A model configuration object
+    model_spec
+        File path to the model specification
 
     Returns
     -------
     str
         The resolved location name
     """
-
+    configuration = yaml.full_load(pathlib.Path(model_spec).open())['configuration']
     if location_arg:
         return location_arg.replace('_', ' ').replace("-", "'")
     elif contains_location(configuration):
-        return configuration.input_data.location
+        return configuration['input_data']['location']
     else:
         raise argparse.ArgumentError("specify a location or include "
                                      "configuration.input_data.location "
                                      "in model specification")
 
 
-def contains_location(configuration: ConfigTree) -> bool:
+def contains_location(configuration: dict) -> bool:
     """Check if location is specified in the configuration
 
     Parameters
@@ -379,8 +369,8 @@ def contains_location(configuration: ConfigTree) -> bool:
     """
 
     return ('input_data' in configuration and
-            'location' in configuration.input_data and
-            configuration.input_data.location)
+            'location' in configuration['input_data'] and
+            configuration['input_data']['location'])
 
 
 def get_output_path(configuration_arg: str, output_root_arg: str,
