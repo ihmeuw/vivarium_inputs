@@ -1,7 +1,7 @@
 from typing import Any
 
 import pandas as pd
-from vivarium.framework.artifact import filter_data, validate_filter_term
+from vivarium.framework.artifact import filter_data, validate_filter_term, EntityKey
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
@@ -31,7 +31,7 @@ class ArtifactPassthrough:
         return "artifact_passthrough"
 
     def load(self, entity_key: str, **column_filters: str) -> Any:
-        data = loader(entity_key, self.location, self.modeled_causes)
+        data = loader(EntityKey(entity_key), self.location, self.modeled_causes)
 
         if isinstance(data, pd.DataFrame):  # could be a metadata dict
             data = split_interval(data, interval_column='age', split_column_prefix='age')
