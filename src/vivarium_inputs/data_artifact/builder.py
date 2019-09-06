@@ -23,6 +23,13 @@ class OutdatedArtifactWarning(Warning):
 
 class ArtifactBuilder:
 
+    configuration_defaults = {
+        'input_data': {
+            'artifact_path': None,
+            'artifact_filter_term': None,
+        }
+    }
+
     def setup(self, builder):
         path = builder.configuration.input_data.artifact_path
         append = builder.configuration.input_data.append_to_artifact
