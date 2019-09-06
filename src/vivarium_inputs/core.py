@@ -404,7 +404,7 @@ def get_structure(entity: Population, location_id: int) -> pd.DataFrame:
 def get_theoretical_minimum_risk_life_expectancy(entity: Population, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'theoretical_minimum_risk_life_expectancy', location_id)
     data = data.rename(columns={'age': 'age_start', 'life_expectancy': 'value'})
-    data['age_end'] = data.age_group_start.shift(-1).fillna(125.)
+    data['age_end'] = data.age_start.shift(-1).fillna(125.)
     return data
 
 
