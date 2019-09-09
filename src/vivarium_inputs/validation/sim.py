@@ -94,13 +94,13 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
     """
     validators = {
         # Cause-like measures
-        'incidence': validate_incidence,
+        'incidence_rate': validate_incidence_rate,
         'prevalence': validate_prevalence,
         'birth_prevalence': validate_birth_prevalence,
         'disability_weight': validate_disability_weight,
-        'remission': validate_remission,
-        'cause_specific_mortality': validate_cause_specific_mortality,
-        'excess_mortality': validate_excess_mortality,
+        'remission_rate': validate_remission_rate,
+        'cause_specific_mortality_rate': validate_cause_specific_mortality_rate,
+        'excess_mortality_rate': validate_excess_mortality_rate,
         # Risk-like measures
         'exposure': validate_exposure,
         'exposure_standard_deviation': validate_exposure_standard_deviation,
@@ -112,7 +112,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
         'estimate': validate_estimate,
         # Health system measures
         'cost': validate_cost,
-        'utilization': validate_utilization,
+        'utilization_rate': validate_utilization_rate,
         # Population measures
         'structure': validate_structure,
         'theoretical_minimum_risk_life_expectancy': validate_theoretical_minimum_risk_life_expectancy,
@@ -134,7 +134,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
 #########################################################
 
 
-def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext) -> None:
+def validate_incidence_rate(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped incidence
     data.
 
@@ -295,7 +295,7 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
                            restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
-def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+def validate_remission_rate(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped remission
     data.
 
@@ -332,7 +332,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationVal
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+def validate_cause_specific_mortality_rate(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped cause
     specific mortality data.
 
@@ -369,7 +369,7 @@ def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+def validate_excess_mortality_rate(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped excess
     mortality data.
 
@@ -399,8 +399,8 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
                                  boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
-    if entity.name in BOUNDARY_SPECIAL_CASES['excess_mortality'].get(context['location'], {}):
-        max_val = BOUNDARY_SPECIAL_CASES['excess_mortality'][context['location']][entity.name]
+    if entity.name in BOUNDARY_SPECIAL_CASES['excess_mortality_rate'].get(context['location'], {}):
+        max_val = BOUNDARY_SPECIAL_CASES['excess_mortality_rate'][context['location']][entity.name]
     else:
         max_val = VALID_EXCESS_MORT_RANGE[1]
     check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=DRAW_COLUMNS,
@@ -794,7 +794,7 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcare
                                  error=DataTransformationError)
 
 
-def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: SimulationValidationContext) -> None:
+def validate_utilization_rate(data: pd.DataFrame, entity: HealthcareEntity, context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped utilization
     data.
 

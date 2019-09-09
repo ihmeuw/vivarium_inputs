@@ -42,11 +42,11 @@ def extract_data(entity, measure: str, location_id: int, validate: bool = True) 
     """
     extractors = {
         # Cause-like measures
-        'incidence': (extract_incidence, {}),
+        'incidence_rate': (extract_incidence_rate, {}),
         'prevalence': (extract_prevalence, {}),
         'birth_prevalence': (extract_birth_prevalence, {}),
         'disability_weight': (extract_disability_weight, {}),
-        'remission': (extract_remission, {}),
+        'remission_rate': (extract_remission_rate, {}),
         'deaths': (extract_deaths, {'population': extract_structure}),
         # Risk-like measures
         'exposure': (extract_exposure, {}),
@@ -61,7 +61,7 @@ def extract_data(entity, measure: str, location_id: int, validate: bool = True) 
         'estimate': (extract_estimate, {}),
         # Health system measures
         'cost': (extract_cost, {}),
-        'utilization': (extract_utilization, {}),
+        'utilization': (extract_utilization_rate, {}),
         # Population measures
         'structure': (extract_structure, {}),
         'theoretical_minimum_risk_life_expectancy': (extract_theoretical_minimum_risk_life_expectancy, {}),
@@ -96,21 +96,21 @@ def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
     return data
 
 
-def extract_incidence(entity, location_id: int) -> pd.DataFrame:
+def extract_incidence_rate(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_incidence_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == MEASURES['Incidence']]
+    data = data[data.measure_id == MEASURES['Incidence rate']]
     return data
 
 
 def extract_birth_prevalence(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_birth_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == MEASURES['Incidence']]
+    data = data[data.measure_id == MEASURES['Incidence rate']]
     return data
 
 
-def extract_remission(entity, location_id: int) -> pd.DataFrame:
+def extract_remission_rate(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_modelable_entity_draws(entity.dismod_id, location_id)
-    data = data[data.measure_id == MEASURES['Remission']]
+    data = data[data.measure_id == MEASURES['Remission rate']]
     return data
 
 
@@ -189,7 +189,7 @@ def extract_cost(entity, location_id: int) -> pd.DataFrame:
     return data
 
 
-def extract_utilization(entity, location_id: int) -> pd.DataFrame:
+def extract_utilization_rate(entity, location_id: int) -> pd.DataFrame:
     data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
     return data
 

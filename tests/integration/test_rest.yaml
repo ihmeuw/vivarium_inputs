@@ -17,9 +17,9 @@ components:
 #                        - DummyLoadComponent("coverage_gap.lack_of_breastfeeding_promotion.exposure")
 #                        - DummyLoadComponent("coverage_gap.lack_of_breastfeeding_promotion.relative_risk")
 
-                        # utilization
-                        - DummyLoadComponent("healthcare_entity.inpatient_visits.utilization")
-                        - DummyLoadComponent("healthcare_entity.outpatient_visits.utilization")
+                        # utilization_rate
+                        - DummyLoadComponent("healthcare_entity.inpatient_visits.utilization_rate")
+                        - DummyLoadComponent("healthcare_entity.outpatient_visits.utilization_rate")
 
                         # cost
                         - DummyLoadComponent("healthcare_entity.inpatient_visits.cost")
