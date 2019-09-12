@@ -26,7 +26,8 @@ VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 10.0, 'categorical': 2550.0})
 VALID_PAF_RANGE = (0.0, 1.0)
 VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
-VALID_UTILIZATION_RANGE = (0, 50)
+# FIXME: bumping for Mexico (max utilization ~422) 9/12/19 - K.W.
+VALID_UTILIZATION_RANGE = (0, 500)
 VALID_POPULATION_RANGE = (0, 75_000_000)
 VALID_LIFE_EXP_RANGE = (0, 90)
 

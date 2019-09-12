@@ -61,7 +61,7 @@ def extract_data(entity, measure: str, location_id: int, validate: bool = True) 
         'estimate': (extract_estimate, {}),
         # Health system measures
         'cost': (extract_cost, {}),
-        'utilization': (extract_utilization_rate, {}),
+        'utilization_rate': (extract_utilization_rate, {}),
         # Population measures
         'structure': (extract_structure, {}),
         'theoretical_minimum_risk_life_expectancy': (extract_theoretical_minimum_risk_life_expectancy, {}),
