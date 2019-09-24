@@ -11,7 +11,7 @@ from vivarium.framework.artifact import Artifact, get_location_term, filter_data
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
-from vivarium_inputs.data_artifact.utilities import get_versions, split_interval
+from vivarium_inputs.data_artifact.utilities import get_versions, split_interval, equivalent_versions
 
 
 _log = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class ArtifactBuilder:
         self.processed_entities = set()
         self.start_time = datetime.now()
 
-        # always include demographic dimensions so data free components don't have to rebuild artifacts
+        # always include demographic dimensions so adding data free components doesn't require rebuilding artifacts
         self.load('population.demographic_dimensions')
 
         builder.event.register_listener('post_setup', self.end_processing)
@@ -54,9 +54,9 @@ class ArtifactBuilder:
     def initialize_artifact(path: str, append: bool, draw: int, location: str) -> Artifact:
         """
         For the given arguments, it checks all the basic conditions and
-        initialize the artifact. For now, all the outdated artifacts which
-        do not have proper metadata or not consistent metadata will not be
-        appended. we will wipe it out and build a new artifact.
+        initializes the artifact. For now, any artifact which is missing the
+        required metadata or have inconsistent metadata will be rebuilt
+        instead of appended.
         """
 
         if append:
@@ -68,23 +68,27 @@ class ArtifactBuilder:
 
             except NoSuchNodeError:
                 #  it means that path was a file but does not have metadata.keyspace inside
-                warnings.warn('We will wipe it out and build from scratch', OutdatedArtifactWarning)
+                warnings.warn('Keyspace information not found in existing artifact. Artifact will be rebuilt.',
+                              OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
 
             if 'metadata.locations' not in artifact:
-                warnings.warn('We will build from scratch', OutdatedArtifactWarning)
+                warnings.warn('Location information not found in existing artifact. Artifact will be rebuilt.',
+                              OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
 
             elif artifact.load('metadata.locations') != [location]:
-                raise ValueError(f"Artifact has {artifact.load('metadata.locations')} and we cannot append {location}")
+                raise ValueError(f"Artifact was build for {artifact.load('metadata.locations')}. "
+                                 f"We cannot append {location}.")
 
             if 'metadata.versions' not in artifact:
-                warnings.warn('We will build from scratch', OutdatedArtifactWarning)
+                warnings.warn('Version information not found in existing artifact. Artifact will be rebuilt.',
+                              OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
 
-            elif artifact.load('metadata.versions') != get_versions():
-                warnings.warn('Your artifact was made under different versions. We will wipe it out',
-                              OutdatedArtifactWarning)
+            elif not equivalent_versions(artifact.load('metadata.versions'), get_versions()):
+                warnings.warn('Existing artifact was built under different major/minor versions. '
+                              'Artifact will be rebuilt.', OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
         else:
             artifact = create_new_artifact(path, draw, location)
