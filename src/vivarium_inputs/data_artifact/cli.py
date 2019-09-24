@@ -179,7 +179,7 @@ def build_submit_command(python_context_path: str, job_name: str, project: str,
     logs = f"-e {str(error_log_dir)} " if error_log_dir else ""
     command = f"qsub -N {job_name} {logs} "
 
-    command += "-l fthread=1"
+    command += "-l fthread=1 "
     command += f"-l m_mem_free={memory}G "
     command += f"-P {project} "
     command += f"-q {queue} "
