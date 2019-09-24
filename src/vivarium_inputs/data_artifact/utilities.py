@@ -11,12 +11,11 @@ def get_versions():
     return {k: pkg_resources.get_distribution(k).version for k in libraries}
 
 
-def equivalent_versions(artifact_versions, current_versions):
+def comparable_versions(artifact_versions, current_versions):
     for k in set(artifact_versions.keys()).intersection(current_versions.keys()):
         if artifact_versions[k].split('.')[:-1] != current_versions[k].split('.')[:-1]:
             # difference in major/minor version numbers
             return False
-
     return True
 
 

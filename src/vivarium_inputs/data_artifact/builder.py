@@ -11,7 +11,7 @@ from vivarium.framework.artifact import Artifact, get_location_term, filter_data
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
-from vivarium_inputs.data_artifact.utilities import get_versions, split_interval, equivalent_versions
+from vivarium_inputs.data_artifact.utilities import get_versions, split_interval, comparable_versions
 
 
 _log = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ class ArtifactBuilder:
                               OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
 
-            elif not equivalent_versions(artifact.load('metadata.versions'), get_versions()):
+            elif not comparable_versions(artifact.load('metadata.versions'), get_versions()):
                 warnings.warn('Existing artifact was built under different major/minor versions. '
                               'Artifact will be rebuilt.', OutdatedArtifactWarning)
                 artifact = create_new_artifact(path, draw, location)
