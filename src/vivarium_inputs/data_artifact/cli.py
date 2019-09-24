@@ -185,9 +185,7 @@ def build_submit_command(python_context_path: str, job_name: str, project: str,
     command += f"-P {project} "
     command += f"-q {queue} "
     if archive:
-        command += '-l archive=TRUE '
-    else:
-        command += '-l archive=FALSE '
+        command += '-l archive '
 
     command += f"-b y {python_context_path} "
 
