@@ -63,7 +63,8 @@ def multi_build_artifact(model_specification, locations, project, output_root,
                     append, verbose, error_logs, memory):
     """
     multi_build_artifact is a program for building data artifacts on the cluster
-    from a MODEL_SPECIFICATION file.
+    from a MODEL_SPECIFICATION file. It will generate one artifact per given
+    location.
 
     This script necessarily offloads work to the cluster, and so requires being
     run in the cluster environment.  It will qsub jobs for building artifacts
