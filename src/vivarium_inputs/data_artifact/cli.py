@@ -74,7 +74,7 @@ def multi_build_artifact(model_specification, locations, project, output_root,
     space with an underscore and surround any locations containing
     apostrophes with double quotes, e.g.:
 
-    multi_build_artifact example.yaml Virginia Pennsylvania New_York "Cote_d'Ivoire"
+    multi_build_artifact example.yaml India South_Korea "Cote_d'Ivoire"
 
     Any artifact.path specified in the configuration file is guaranteed to
     be overwritten either by the optional output_root or a predetermined path
