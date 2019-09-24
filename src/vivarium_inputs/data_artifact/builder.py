@@ -78,7 +78,7 @@ class ArtifactBuilder:
                 artifact = create_new_artifact(path, draw, location)
 
             elif artifact.load('metadata.locations') != [location]:
-                raise ValueError(f"Artifact was build for {artifact.load('metadata.locations')}. "
+                raise ValueError(f"Artifact was built for {artifact.load('metadata.locations')}. "
                                  f"We cannot append {location}.")
 
             if 'metadata.versions' not in artifact:
