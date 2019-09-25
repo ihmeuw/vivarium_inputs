@@ -17,7 +17,7 @@ from vivarium_inputs.data_artifact.utilities import get_versions, split_interval
 _log = logging.getLogger(__name__)
 
 
-class OutdatedArtifactWarning(Warning):
+class OutdatedArtifactError(Exception):
     pass
 
 
@@ -53,43 +53,14 @@ class ArtifactBuilder:
     @staticmethod
     def initialize_artifact(path: str, append: bool, draw: int, location: str) -> Artifact:
         """
-        For the given arguments, it checks all the basic conditions and
-        initializes the artifact. For now, any artifact which is missing the
-        required metadata or have inconsistent metadata will be rebuilt
-        instead of appended.
+        If append, the existing artifact is validated and on passing, the
+        existing artifact is returned. If not append, a new artifact is created
+        and returned. In either case, the artifact returned has filter terms
+        specified for the given draw and location.
         """
-
         if append:
-            if not Path(path).is_file():
-                raise ValueError(f'{path} is not a file. You should provide the existing artifact path to append')
-
-            try:
-                artifact = Artifact(path, filter_terms=[f'draw == {draw}', get_location_term(location)])
-
-            except NoSuchNodeError:
-                #  it means that path was a file but does not have metadata.keyspace inside
-                warnings.warn('Keyspace information not found in existing artifact. Artifact will be rebuilt.',
-                              OutdatedArtifactWarning)
-                artifact = create_new_artifact(path, draw, location)
-
-            if 'metadata.locations' not in artifact:
-                warnings.warn('Location information not found in existing artifact. Artifact will be rebuilt.',
-                              OutdatedArtifactWarning)
-                artifact = create_new_artifact(path, draw, location)
-
-            elif artifact.load('metadata.locations') != [location]:
-                raise ValueError(f"Artifact was build for {artifact.load('metadata.locations')}. "
-                                 f"We cannot append {location}.")
-
-            if 'metadata.versions' not in artifact:
-                warnings.warn('Version information not found in existing artifact. Artifact will be rebuilt.',
-                              OutdatedArtifactWarning)
-                artifact = create_new_artifact(path, draw, location)
-
-            elif not comparable_versions(artifact.load('metadata.versions'), get_versions()):
-                warnings.warn('Existing artifact was built under different major/minor versions. '
-                              'Artifact will be rebuilt.', OutdatedArtifactWarning)
-                artifact = create_new_artifact(path, draw, location)
+            validate_artifact_for_appending(path, location)
+            artifact = Artifact(path, filter_terms=[f'draw == {draw}', get_location_term(location)])
         else:
             artifact = create_new_artifact(path, draw, location)
 
@@ -134,3 +105,16 @@ def create_new_artifact(path: str, draw: int, location: str) -> Artifact:
     art.write('metadata.versions', get_versions())
     art.write('metadata.locations', [location])
     return art
+
+
+def validate_artifact_for_appending(path, location):
+    if not Path(path).is_file():
+        raise ValueError(f'{path} is not a file. You must provide an existing path to an artifact to append.')
+    art = Artifact(path)
+    if art.load('metadata.locations') != [location]:
+        raise ValueError(f"Artifact was built for {art.load('metadata.locations')}. "
+                         f"We cannot append {location}.")
+    if not comparable_versions(art.load('metadata.versions'), get_versions()):
+        raise OutdatedArtifactError('Existing artifact was built under different '
+                                    'major/minor versions and cannot be appended to. '
+                                    'You must build this artifact from scratch without append specified.')
