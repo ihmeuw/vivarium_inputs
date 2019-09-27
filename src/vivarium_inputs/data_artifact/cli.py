@@ -1,17 +1,15 @@
 from bdb import BdbQuit
-import os
 import shutil
 import logging
 import pathlib
 import argparse
 import subprocess
-from typing import Union, List, Dict
+from typing import Union
 import click
 import yaml
 
 from vivarium.framework.engine import SimulationContext
 
-from vivarium_inputs.data_artifact.aggregation import disaggregate
 from vivarium_inputs.data_artifact import utilities
 
 
@@ -44,7 +42,8 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
 
 
 @click.command()
-@click.argument('model_specification', type=click.Path(dir_okay=False))
+@click.argument('model_specification', type=click.Path(dir_okay=False,
+                readable=True))
 @click.argument('locations', nargs=-1)
 @click.option('--project', '-P', default='proj_cost_effect',
               help='Cluster project under which the job will '
@@ -58,13 +57,14 @@ def build_artifact(model_specification, output_root, append, verbose, debugger):
               help="Turn on debug mode for logging")
 @click.option('--error_logs', '-e', is_flag=True,
               help="Write SGE error logs to output location")
-@click.option('--memory', '-m', default=50, help="Specifies the amount of memory in G that will be requested for a "
-                                                 "job. Defaults to 50. Only applies to the new cluster.")
-def multi_build_artifact(model_specification, locations, project, output_root, append, verbose, error_logs, memory):
+@click.option('--memory', '-m', default=10, help="Specifies the amount of memory in G that will be requested for a "
+                                                 "job. Defaults to 10.")
+def multi_build_artifact(model_specification, locations, project, output_root,
+                    append, verbose, error_logs, memory):
     """
     multi_build_artifact is a program for building data artifacts on the cluster
-    from a MODEL_SPECIFICATION file. It will generate a single artifact containing
-    the data for multiple locations (up to 5 locations only).
+    from a MODEL_SPECIFICATION file. It will generate one artifact per given
+    location.
 
     This script necessarily offloads work to the cluster, and so requires being
     run in the cluster environment.  It will qsub jobs for building artifacts
@@ -74,103 +74,48 @@ def multi_build_artifact(model_specification, locations, project, output_root, a
     space with an underscore and surround any locations containing
     apostrophes with double quotes, e.g.:
 
-    multi_build_artifact example.yaml Virginia Pennsylvania New_York "Cote_d'Ivoire"
+    multi_build_artifact example.yaml India South_Korea "Cote_d'Ivoire"
 
     Any artifact.path specified in the configuration file is guaranteed to
     be overwritten either by the optional output_root or a predetermined path
     based on user: /ihme/scratch/users/{user}/vivarium_artifacts
 
-    If you are running this on the new cluster and find your jobs failing with no
-    messages in the log files, consider the memory usage of the job by typing
-    "qacct -j <job_id>" and the default memory usage used by this script of 50G.
-    The new cluster will kill jobs that go over memory without giving a useful message.
+    If you find your jobs failing with no messages in the log files, consider
+    the memory usage of the job by typing "qacct -j <job_id>" and the default
+    memory usage used by this script of 10G. The cluster will kill jobs that
+    go over memory without giving a useful message.
     """
-
-    if len(set(locations)) > 5:
-        raise ValueError(f'We can make an artifact for up to 5 locations. '
-                         f'You provided {len(set(locations))} locations.')
-
-    if len(set(locations)) < 1:
-        raise ValueError('You must provide a list of locations for this artifact. You did not provide any.')
 
     config_path = pathlib.Path(model_specification).resolve()
     python_context_path = pathlib.Path(shutil.which("python")).resolve()
     script_path = pathlib.Path(__file__).resolve()
-    output_root = utilities.get_output_base(output_root)
 
+    script_args = f"{script_path} {config_path} "
+    if output_root:
+        script_args += f"--output-root {output_root} "
     if append:
-        click.secho('Pre-processing the existing artifact for appending. Please wait for the job submission messages. '
-                    'It may take long, especially if your artifact already includes many locations. '
-                    'Please DO NOT QUIT during the process.', fg='blue')
-        existing_locations = disaggregate(config_path.stem, output_root)
-    else:
-        existing_locations = {}
-
-    new_locations = set(locations).difference(set(existing_locations)) if set(locations) > set(existing_locations) else {}
-    new_locations = [l.replace("'", "-") for l in new_locations]
-    existing_locations = [l.replace("'", "-") for l in existing_locations]
-
-    script_args = f"{script_path} {config_path} --output-root {output_root}"
+        script_args += f"--append "
     if verbose:
-        script_args += f" --verbose "
+        script_args += f"--verbose "
 
     error_log_dir = utilities.make_log_dir(output_root) if error_logs else None
-    jids = list()
 
-    existing_locations_jobs = {loc: f"{config_path.stem}_{loc}_build_artifact" for loc in existing_locations}
-    new_locations_jobs = {loc: f"{config_path.stem}_{loc}_build_artifact" for loc in new_locations}
-
-    existing_loc_commands = {loc: build_submit_command(python_context_path, job, project, error_log_dir, script_args,
-                                                       memory, archive=True, queue='all.q') + f'--location {loc} --append'
-                             for loc, job in existing_locations_jobs.items()}
-
-    new_loc_commands = {loc: build_submit_command(python_context_path, job, project, error_log_dir, script_args, memory,
-                                                  archive=True, queue='all.q') + f'--location {loc}'
-                        for loc, job in new_locations_jobs.items()}
-
-    jids.extend(submit_jobs_multi_locations(existing_locations, existing_loc_commands, existing_locations_jobs))
-    jids.extend(submit_jobs_multi_locations(new_locations, new_loc_commands, new_locations_jobs))
-    jids = ",".join(jids)
-
-    locations = [l.replace("'", "-") for l in locations]
-    aggregate_script = pathlib.Path(__file__).parent / 'aggregation.py'
-    aggregate_args = f'--locations {" ".join(locations)} --output_root {output_root} ' \
-        f'--config_path {config_path} {"--verbose" if verbose else ""}'
-    aggregate_job_name = f"{config_path.stem}_aggregate_artifacts"
-    aggregate_command = build_submit_command(python_context_path, aggregate_job_name,
-                                             project, error_log_dir, f'{aggregate_script} {aggregate_args}', memory=35,
-                                             archive=True, queue='all.q', hold=True, jids=jids, slots=15)
-    submit_job(aggregate_command, aggregate_job_name)
-
-
-def submit_jobs_multi_locations(locations: List, commands: Dict, job_names: Dict) -> List:
-    """ submit a qsub command for the multiple location jobs and collect
-        the jobids which were successfully submitted and give click messages
-        to the user
-    Parameters
-    ----------
-    locations
-        set of name of locations for the jobs to be submitted
-    commands
-        dictionary for location(key) and matching qsub command for
-        that location(value)
-    job_names
-        dictionary for location(key) and matching job_name for
-        that location(value)
-
-    Returns
-    -------
-        job_ids
-
-    """
-    job_ids = []
     num_locations = len(locations)
-    if len(locations) > 0:
+    if num_locations > 0:
+        script_args += "--location {} "
         for i, location in enumerate(locations):
-            click.echo(f"submitting job {i + 1} of {num_locations} ({job_names[location]})")
-            jobid = submit_job(commands[location], job_names[location])
-            job_ids.append(jobid)
-    return job_ids
+            location = location.replace("'", "-")
+            job_name = f"{config_path.stem}_{location}_build_artifact"
+            command = build_submit_command(python_context_path, job_name, project, error_log_dir,
+                                           script_args.format(location), memory, archive=True, queue='all.q')
+            click.echo(f"Submitting job {i+1} of {num_locations} ({job_name}).")
+            submit_job(command, job_name)
+    else:
+        job_name = f"{config_path.stem}_build_artifact"
+        command = build_submit_command(python_context_path, job_name, project, error_log_dir, script_args,
+                                       memory, archive=True, queue='all.q')
+        click.echo(f"Submitting job {job_name}.")
+        submit_job(command, job_name)
 
 
 def submit_job(command: str, name: str):
@@ -200,8 +145,9 @@ def submit_job(command: str, name: str):
 
 
 def build_submit_command(python_context_path: str, job_name: str, project: str,
-                         error_log_dir: Union[str, pathlib.Path], script_args: str, memory: int,
-                         slots: int = 8, archive: bool = False, queue: str = 'all.q', hold=False, jids=None) -> str:
+                         error_log_dir: Union[str, pathlib.Path], script_args: str,
+                         memory: int, archive: bool = False,
+                         queue: str = 'all.q') -> str:
     """Construct a valid qsub job command string.
 
     Parameters
@@ -218,16 +164,12 @@ def build_submit_command(python_context_path: str, job_name: str, project: str,
     script_args
         A string comprised of the full path to the script to be executed
         followed by its arguments
-    slots
-        The number of slots with which to execute the job
+    memory
+        The amount of memory to request, in GB.
     archive
         toggles the archive flag. When true, J drive access will be provided.
     queue
         name of the queue to use. currently 'all.q' by default
-    hold
-        whether the job needs to wait until the given job_ids are completed
-    jids
-        when the hold is True, jids are the jobs that this new job is held for completion.
 
     Returns
     -------
@@ -237,23 +179,13 @@ def build_submit_command(python_context_path: str, job_name: str, project: str,
 
     logs = f"-e {str(error_log_dir)} " if error_log_dir else ""
     command = f"qsub -N {job_name} {logs} "
-    if hold:
-        command = f"qsub -hold_jid {jids} -N {job_name} {logs}"
 
-    if os.environ['SGE_CLUSTER_NAME'] == 'cluster':
-        command += f"-l fthread={slots} "
-        command += f"-l m_mem_free={memory}G "
-        command += f"-P {project} "
-        command += f"-q {queue} "
-        if archive:
-            command += '-l archive=TRUE '
-        else:
-            command += '-l archive=FALSE '
-    elif os.environ['SGE_CLUSTER_NAME'] == 'prod':
-        command += f"-pe multi_slot {slots} "
-        command += f"-P {project} "
-    else:  # dev
-        command += f"-pe multi_slot {slots} "
+    command += "-l fthread=1 "
+    command += f"-l m_mem_free={memory}G "
+    command += f"-P {project} "
+    command += f"-q {queue} "
+    if archive:
+        command += '-l archive '
 
     command += f"-b y {python_context_path} "
 
