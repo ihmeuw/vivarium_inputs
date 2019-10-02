@@ -2,6 +2,8 @@ from typing import Union
 
 import pandas as pd
 
+import vivarium_inputs.gbd_service as gbds
+
 from vivarium_inputs.globals import (gbd, METRICS, MEASURES,
                                      DataAbnormalError, DataDoesNotExistError,
                                      EmptyDataFrameException, NoBestVersionError, InputsException, OTHER_MEID)
@@ -97,8 +99,7 @@ def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
 
 
 def extract_incidence(entity, location_id: int) -> pd.DataFrame:
-    data = gbd.get_incidence_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == MEASURES['Incidence']]
+    data = gbds.get_incidence_rate(gbd_id=entity.gbd_id, location_id=location_id, kind=entity.kind)
     return data
 
 
