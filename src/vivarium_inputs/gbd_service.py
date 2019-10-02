@@ -15,7 +15,6 @@ ENDPOINT_DRAWS = 'draws'
 ENDPOINT_SUMMARY = 'summary'
 ENDPOINT_METADATA = 'metadata'
 
-
 T = TypeVar('T')
 
 
@@ -57,13 +56,16 @@ def get_incidence_rate(gbd_id: int = None,
                        location_id: int = None,
                        location: str = None) -> pd.DataFrame:
     _validate_args(gbd_id, name, location_id, location, source)
-
     url = _build_url(ENDPOINT_DRAWS, "incidence_rate",
-                    urlencode({"gbd_id": gbd_id,
-                               "kind": kind,
-                               "name": name,
-                               "source": source,
-                               "location_id": location_id,
-                               "location": location}))
-    return _make_request(url, _dataframe_from_response)
+                     urlencode({"gbd_id": gbd_id,
+                                "kind": kind,
+                                "name": name,
+                                "source": source,
+                                "location_id": location_id,
+                                "location": location}))
+    resp = req.get(url)
+    if not resp.ok:
+        logger.error(f'GbdServiceError: http response code {resp}')
+        raise GbdServiceError
 
+    return _dataframe_from_response(resp)
