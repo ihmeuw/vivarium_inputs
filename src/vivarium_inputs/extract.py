@@ -92,14 +92,41 @@ def extract_data(entity, measure: str, location_id: int, validate: bool = True) 
     return data
 
 
+
+class UnsupportedKind(Exception):
+    """Error for converting Entity.kind to string."""
+    pass
+
+'''
+KIND_SEQUELA = 'sequela_id'
+KIND_CAUSE = 'cause_id'
+KIND_RISK_FACTOR = 'rei_id'
+KIND_MODELABLE_ENTITY = 'modelable_entity_id'
+'''
+def _map_kind_to_idtype(entity):
+    retval = ''
+    if 'cause' == entity.kind:
+        retval = 'cause_id'
+    elif 'covariate' == entity.kind:
+        retval = 'covariate_id'
+    elif 'risk_factor' == entity.kind:
+        retval = 'rei_id'
+    elif 'sequela' == entity.kind:
+        retval = 'sequela_id'
+    elif 'etiology' == entity.kind:
+        retval = 'rei_id'
+    else:
+        raise UnsupportedKind
+
+    return retval
+
 def extract_prevalence(entity, location_id: int) -> pd.DataFrame:
-    data = gbd.get_incidence_prevalence(entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind)
-    data = data[data.measure_id == MEASURES['Prevalence']]
+    data = gbds.get_prevalence(gbd_id=entity.gbd_id, location_id=location_id, kind=_map_kind_to_idtype(entity))
     return data
 
 
 def extract_incidence(entity, location_id: int) -> pd.DataFrame:
-    data = gbds.get_incidence_rate(gbd_id=entity.gbd_id, location_id=location_id, kind=entity.kind)
+    data = gbds.get_incidence_rate(gbd_id=entity.gbd_id, location_id=location_id, kind=_map_kind_to_idtype(entity))
     return data
 
 
