@@ -10,7 +10,6 @@ TIMEOUT_SERVICE = None
 
 SERVICE_VERSION = '1'
 BASE_URL = f'http://microsim-rancher-p01.hosts.ihme.washington.edu:5000/v{SERVICE_VERSION}'
-#ARTIFACT_FOLDER = Path('/share/costeffectiveness/artifacts/')
 
 
 class GbdServiceError(Exception):
@@ -20,10 +19,7 @@ class GbdServiceError(Exception):
 
 def dataframe_from_response(resp: req.Response) -> pd.DataFrame:
     if resp.ok:
-        # return pickle.loads(gzip.decompress(resp.content))
-        # return resp.content.decode("utf-8")
         return pd.read_csv(io.BytesIO(gzip.decompress(resp.content)), index_col=0)
-        # return pd.read_json(resp.content)
     else:
         logger.error(f'GbdServiceError: http response code {resp}')
         raise GbdServiceError

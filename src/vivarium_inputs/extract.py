@@ -145,7 +145,7 @@ def extract_remission_rate(entity: ModelableEntity, location_id: int) -> pd.Data
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
-                               "source": None,
+                               "source": 'epi',
                                "location_id": location_id,
                                "location": None}))
     resp = make_request(url)
@@ -213,7 +213,7 @@ def extract_exposure_distribution_weights(entity: ModelableEntity, location_id: 
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
-                               "source": None,
+                               "source": 'auxiliary_data',
                                "location_id": location_id,
                                "location": None}))
     resp = make_request(url)
@@ -223,7 +223,7 @@ def extract_exposure_distribution_weights(entity: ModelableEntity, location_id: 
 
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'relative_risk'
-    source = 'rr' if 'relative_risk' == entity.kind else None
+    source = 'rr' if 'relative_risk' == entity.kind else 'auxiliary_data'
     url = build_url(ENDPOINT_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
@@ -308,7 +308,7 @@ def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
-                               "source": None,
+                               "source": 'tmrel',
                                "location_id": location_id,
                                "location": None}))
     resp = make_request(url)
