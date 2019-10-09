@@ -1,13 +1,13 @@
 import pandas as pd
 from urllib.parse import urlencode
-from typing import Union
+from typing import Union, List
 
 import vivarium_inputs.validation.raw as validation
 
-from gbd_mapping import ModelableEntity
+from gbd_mapping import ModelableEntity, RiskFactor
 from vivarium_inputs.service_utilities import (build_url, dataframe_from_response, make_request, check_response)
 from vivarium_inputs.globals import (DataDoesNotExistError, EmptyDataFrameException, NoBestVersionError,
-                                     InputsException, OTHER_MEID)
+                                     InputsException, OTHER_MEID, SEXES, NON_MAX_TMREL)
 
 
 ENDPOINT_DRAWS = 'draws'
@@ -314,3 +314,104 @@ def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -
     resp = make_request(url)
     check_response(resp)
     return dataframe_from_response(resp)
+
+
+def get_estimation_years(*_, **__) -> pd.Series:
+    service_endpoint = 'estimation_year_ids'
+    url = build_url(ENDPOINT_METADATA, service_endpoint,
+                    urlencode({"gbd_id": None,
+                               "kind": None,
+                               "name": None,
+                               "source": None,
+                               "location_id": None,
+                               "location": None}))
+    resp = make_request(url)
+    check_response(resp)
+    return dataframe_from_response(resp)
+
+
+def get_year_block(*_, **__) -> pd.DataFrame:
+    estimation_years = get_estimation_years()
+    year_block = pd.DataFrame({'year_start': range(min(estimation_years), max(estimation_years) + 1)})
+    year_block['year_end'] = year_block['year_start'] + 1
+    return year_block
+
+
+def get_age_group_ids(*_, **__) -> List[int]:
+    service_endpoint = 'estimation_age_group_ids'
+    url = build_url(ENDPOINT_METADATA, service_endpoint,
+                    urlencode({"gbd_id": None,
+                               "kind": None,
+                               "name": None,
+                               "source": None,
+                               "location_id": None,
+                               "location": None}))
+    resp = make_request(url)
+    check_response(resp)
+    return dataframe_from_response(resp)
+
+
+def get_age_bins(*_, **__) -> pd.DataFrame:
+    service_endpoint = 'age_bins'
+    url = build_url(ENDPOINT_METADATA, service_endpoint,
+                    urlencode({"gbd_id": None,
+                               "kind": None,
+                               "name": None,
+                               "source": None,
+                               "location_id": None,
+                               "location": None}))
+    resp = make_request(url)
+    check_response(resp)
+    return dataframe_from_response(resp)
+
+
+def get_location_ids(*_, **__) -> pd.DataFrame:
+    service_endpoint = 'location_ids'
+    url = build_url(ENDPOINT_METADATA, service_endpoint,
+                    urlencode({"gbd_id": None,
+                               "kind": None,
+                               "name": None,
+                               "source": None,
+                               "location_id": None,
+                               "location": None}))
+    resp = make_request(url)
+    check_response(resp)
+    return dataframe_from_response(resp)
+
+
+def get_location_id(location_name):
+    return {r.location_name: r.location_id for _, r in get_location_ids().iterrows()}[location_name]
+
+
+def get_location_id_parents(location_id: int) -> List[int]:
+    # TODO
+    raise NotImplemented
+    # location_metadata = gbd.get_location_path_to_global().set_index('location_id')
+    # parent_ids = [int(loc) for loc in location_metadata.at[location_id, 'path_to_top_parent'].split(',')]
+    # return parent_ids
+
+
+def get_demographic_dimensions(location_id: int, draws: bool = False, value: float = None) -> pd.DataFrame:
+    ages = get_age_group_ids()
+    estimation_years = get_estimation_years()
+    years = range(min(estimation_years), max(estimation_years) + 1)
+    sexes = [SEXES['Male'], SEXES['Female']]
+    location = [location_id]
+    values = [location, sexes, ages, years]
+    names = ['location_id', 'sex_id', 'age_group_id', 'year_id']
+
+    data = (pd.MultiIndex
+            .from_product(values, names=names)
+            .to_frame(index=False))
+    if draws:
+        for i in range(1000):
+            data[f'draw_{i}'] = value
+    return data
+
+
+def get_tmrel_category(entity: RiskFactor) -> str:
+    if entity.name in NON_MAX_TMREL:
+        tmrel_cat = NON_MAX_TMREL[entity.name]
+    else:
+        tmrel_cat = sorted(list(entity.categories.to_dict()), key=lambda x: int(x[3:]))[-1]
+    return tmrel_cat
