@@ -327,7 +327,7 @@ def get_estimation_years(*_, **__) -> pd.Series:
                                "location": None}))
     resp = make_request(url)
     check_response(resp)
-    return dataframe_from_response(resp)
+    return dataframe_from_response(resp).iloc[:,0]
 
 
 def get_year_block(*_, **__) -> pd.DataFrame:
@@ -348,7 +348,7 @@ def get_age_group_ids(*_, **__) -> List[int]:
                                "location": None}))
     resp = make_request(url)
     check_response(resp)
-    return dataframe_from_response(resp)
+    return dataframe_from_response(resp).iloc[:,0].values
 
 
 def get_age_bins(*_, **__) -> pd.DataFrame:
@@ -384,7 +384,7 @@ def get_location_id(location_name):
 
 
 def get_location_id_parents(location_id: int) -> List[int]:
-    # TODO
+    # TODO -- is this needed?
     raise NotImplemented
     # location_metadata = gbd.get_location_path_to_global().set_index('location_id')
     # parent_ids = [int(loc) for loc in location_metadata.at[location_id, 'path_to_top_parent'].split(',')]
