@@ -1,13 +1,13 @@
 import pandas as pd
 from urllib.parse import urlencode
-from typing import Union
+from typing import Union, List
 
 import vivarium_inputs.validation.raw as validation
 
 from gbd_mapping import ModelableEntity
 from vivarium_inputs.service_utilities import (build_url, dataframe_from_response, make_request, check_response)
 from vivarium_inputs.globals import (DataDoesNotExistError, EmptyDataFrameException, NoBestVersionError,
-                                     InputsException, OTHER_MEID)
+                                     InputsException, OTHER_MEID,)
 
 
 ENDPOINT_DRAWS = 'draws'
@@ -310,6 +310,76 @@ def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -
                                "name": None,
                                "source": 'tmrel',
                                "location_id": location_id,
+                               "location": None}))
+    resp = make_request(url)
+    check_response(resp)
+    return dataframe_from_response(resp)
+
+
+def extract_estimation_years(*_, **__) -> pd.Series:
+    service_endpoint = 'estimation_year_ids'
+    url = build_url(ENDPOINT_METADATA, service_endpoint,
+                    urlencode({"gbd_id": None,
+                               "kind": None,
+                               "name": None,
+                               "source": None,
+                               "location_id": None,
+                               "location": None}))
+    resp = make_request(url)
+    check_response(resp)
+    return dataframe_from_response(resp).iloc[:,0]
+
+
+def extract_age_group_ids(*_, **__) -> List[int]:
+    service_endpoint = 'estimation_age_group_ids'
+    url = build_url(ENDPOINT_METADATA, service_endpoint,
+                    urlencode({"gbd_id": None,
+                               "kind": None,
+                               "name": None,
+                               "source": None,
+                               "location_id": None,
+                               "location": None}))
+    resp = make_request(url)
+    check_response(resp)
+    return dataframe_from_response(resp).iloc[:,0].values
+
+
+def extract_age_bins(*_, **__) -> pd.DataFrame:
+    service_endpoint = 'age_bins'
+    url = build_url(ENDPOINT_METADATA, service_endpoint,
+                    urlencode({"gbd_id": None,
+                               "kind": None,
+                               "name": None,
+                               "source": None,
+                               "location_id": None,
+                               "location": None}))
+    resp = make_request(url)
+    check_response(resp)
+    return dataframe_from_response(resp)
+
+
+def extract_locations_ids(*_, **__) -> pd.DataFrame:
+    service_endpoint = 'location_ids'
+    url = build_url(ENDPOINT_METADATA, service_endpoint,
+                    urlencode({"gbd_id": None,
+                               "kind": None,
+                               "name": None,
+                               "source": None,
+                               "location_id": None,
+                               "location": None}))
+    resp = make_request(url)
+    check_response(resp)
+    return dataframe_from_response(resp)
+
+
+def extract_location_path_to_global(*_, **__) -> pd.DataFrame:
+    service_endpoint = 'location_path_to_global'
+    url = build_url(ENDPOINT_METADATA, service_endpoint,
+                    urlencode({"gbd_id": None,
+                               "kind": None,
+                               "name": None,
+                               "source": None,
+                               "location_id": None,
                                "location": None}))
     resp = make_request(url)
     check_response(resp)
