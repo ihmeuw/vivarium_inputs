@@ -10,11 +10,6 @@ from vivarium_inputs.globals import (DataDoesNotExistError, EmptyDataFrameExcept
                                      InputsException, OTHER_MEID,)
 
 
-ENDPOINT_DRAWS = 'draws'
-ENDPOINT_SUMMARY = 'summary'
-ENDPOINT_METADATA = 'metadata'
-
-
 def extract_data(entity: ModelableEntity, measure: str, location_id: int,
                  validate: bool = True) -> Union[pd.Series, pd.DataFrame]:
     """Check metadata for the requested entity-measure pair. Pull raw data from
@@ -97,9 +92,98 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
     return data
 
 
+#
+# extraction_map = {
+#     'incidence_rate': {
+#         'kind_map': {
+#             'cause': ('como', ENDPOINT_DRAWS),
+#             'sequela': ('como', ENDPOINT_DRAWS),
+#         },
+#         'validation_data': [],
+#     },
+#     'prevalence': {...}
+#     ...
+# }
+#    source = 'rr' if 'relative_risk' == entity.kind else 'auxiliary_data'
+
+
+TYPE_DRAWS = 'draws'
+TYPE_SUMMARY = 'summary'
+TYPE_METADATA = 'metadata'
+
+SRC_AUXILIARY = 'auxiliary_data'
+SRC_BURDENATOR =  'burdenator'
+SRC_CODCORRECT = 'codcorrect'
+SRC_COMO = 'como'
+SRC_DB_QUERIES = 'db_queries'
+SRC_EPI = 'epi'
+SRC_EXPOSURE = 'exposure'
+SRC_EXPOSURE_SD = 'exposure_sd'
+SRC_RELATIVE_RISK = 'rr'
+SRC_TMREL = 'tmrel'
+
+
+def find_source_exposure_standard_deviation(entity: ModelableEntity) -> str:
+    if entity.kind == 'risk_factor' and entity.name in OTHER_MEID:
+        source = SRC_EPI
+    elif entity.kind == 'risk_factor':
+        source = SRC_EXPOSURE_SD
+    else:  # alternative_risk_factor
+        source = SRC_AUXILIARY
+    return source
+
+
+def extract_data_new(entity: ModelableEntity, measure: str, location_id: int,
+                 validate: bool = True) -> Union[pd.Series, pd.DataFrame]:
+    extractors = {
+        'incidence_rate': {
+            # simple case the source getter is a lambda that ignores the positional arg
+            'source': lambda _: SRC_COMO,
+            'type': TYPE_DRAWS,
+            # validation same as above original extract_data
+            'validation_data': {},
+        },
+        'extract_exposure_standard_deviation': {
+            # complicated case, function takes the entity as an arg and returns the correct source
+            'kind': find_source_exposure_standard_deviation,
+            'type': TYPE_DRAWS,
+            'validation_data': {},
+        },
+        # .
+        # .
+        # .
+    }
+
+    validation.check_metadata(entity, measure)
+
+    try:
+        call_info = extractors[measure]
+        # Always pass an entity, most of the time it is ignored
+        source = call_info['source'](entity)
+        # if we want to add override arguments -- kwargs source='my_special_source'
+        #  they would be patched in at this point
+        url = build_url(call_info['type'], measure, entity, source, location_id)
+        resp = make_request(url)
+        check_response(resp)
+        data = dataframe_from_response(resp)
+    except (ValueError, AssertionError, EmptyDataFrameException, NoBestVersionError, InputsException) as e:
+        # remove visual clutter for the moment
+        raise Exception
+
+    if validate:
+        additional_extractors = call_info['validation_data']
+        additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors.items()}
+        validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
+
+    return data
+
+
+# --------------- Everything below goes away --------------------
+
+
 def extract_prevalence(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'prevalence'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -113,7 +197,7 @@ def extract_prevalence(entity: ModelableEntity, location_id: int) -> pd.DataFram
 
 def extract_incidence_rate(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'incidence_rate'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -127,7 +211,7 @@ def extract_incidence_rate(entity: ModelableEntity, location_id: int) -> pd.Data
 
 def extract_birth_prevalence(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'birth_prevalence'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -141,7 +225,7 @@ def extract_birth_prevalence(entity: ModelableEntity, location_id: int) -> pd.Da
 
 def extract_remission_rate(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'remission_rate'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -159,7 +243,7 @@ def extract_disability_weight(entity, location_id: int) -> pd.DataFrame:
 
 def extract_deaths(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'deaths'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -173,7 +257,7 @@ def extract_deaths(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
 
 def extract_exposure(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'exposure'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -195,7 +279,7 @@ def extract_exposure_standard_deviation(entity: ModelableEntity, location_id: in
     else:  # alternative_risk_factor
         source = None
 
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -209,7 +293,7 @@ def extract_exposure_standard_deviation(entity: ModelableEntity, location_id: in
 
 def extract_exposure_distribution_weights(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'exposure_weights'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -224,7 +308,7 @@ def extract_exposure_distribution_weights(entity: ModelableEntity, location_id: 
 def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'relative_risk'
     source = 'rr' if 'relative_risk' == entity.kind else 'auxiliary_data'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -238,7 +322,7 @@ def extract_relative_risk(entity, location_id: int) -> pd.DataFrame:
 
 def extract_population_attributable_fraction(entity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'population_attributable_fraction'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -262,7 +346,7 @@ def extract_cost(entity, location_id: int) -> pd.DataFrame:
 
 def extract_utilization_rate(entity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'healthcare_utilization'
-    url = build_url(ENDPOINT_DRAWS, service_endpoint,
+    url = build_url(TYPE_DRAWS, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -276,7 +360,7 @@ def extract_utilization_rate(entity, location_id: int) -> pd.DataFrame:
 
 def extract_estimate(entity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'covariate'
-    url = build_url(ENDPOINT_SUMMARY, service_endpoint,
+    url = build_url(TYPE_SUMMARY, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -290,7 +374,7 @@ def extract_estimate(entity, location_id: int) -> pd.DataFrame:
 
 def extract_structure(entity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'population'
-    url = build_url(ENDPOINT_SUMMARY, service_endpoint,
+    url = build_url(TYPE_SUMMARY, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -304,7 +388,7 @@ def extract_structure(entity, location_id: int) -> pd.DataFrame:
 
 def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -> pd.DataFrame:
     service_endpoint = 'theoretical_minimum_risk_life_expectancy'
-    url = build_url(ENDPOINT_SUMMARY, service_endpoint,
+    url = build_url(TYPE_SUMMARY, service_endpoint,
                     urlencode({"gbd_id": entity.gbd_id,
                                "kind": entity.kind,
                                "name": None,
@@ -318,7 +402,7 @@ def extract_theoretical_minimum_risk_life_expectancy(entity, location_id: int) -
 
 def extract_estimation_years(*_, **__) -> pd.Series:
     service_endpoint = 'estimation_year_ids'
-    url = build_url(ENDPOINT_METADATA, service_endpoint,
+    url = build_url(TYPE_METADATA, service_endpoint,
                     urlencode({"gbd_id": None,
                                "kind": None,
                                "name": None,
@@ -332,7 +416,7 @@ def extract_estimation_years(*_, **__) -> pd.Series:
 
 def extract_age_group_ids(*_, **__) -> List[int]:
     service_endpoint = 'estimation_age_group_ids'
-    url = build_url(ENDPOINT_METADATA, service_endpoint,
+    url = build_url(TYPE_METADATA, service_endpoint,
                     urlencode({"gbd_id": None,
                                "kind": None,
                                "name": None,
@@ -346,7 +430,7 @@ def extract_age_group_ids(*_, **__) -> List[int]:
 
 def extract_age_bins(*_, **__) -> pd.DataFrame:
     service_endpoint = 'age_bins'
-    url = build_url(ENDPOINT_METADATA, service_endpoint,
+    url = build_url(TYPE_METADATA, service_endpoint,
                     urlencode({"gbd_id": None,
                                "kind": None,
                                "name": None,
@@ -360,7 +444,7 @@ def extract_age_bins(*_, **__) -> pd.DataFrame:
 
 def extract_locations_ids(*_, **__) -> pd.DataFrame:
     service_endpoint = 'location_ids'
-    url = build_url(ENDPOINT_METADATA, service_endpoint,
+    url = build_url(TYPE_METADATA, service_endpoint,
                     urlencode({"gbd_id": None,
                                "kind": None,
                                "name": None,
@@ -372,9 +456,13 @@ def extract_locations_ids(*_, **__) -> pd.DataFrame:
     return dataframe_from_response(resp)
 
 
+def location_name_from_id(location_id: int) -> str:
+    return extract_locations_ids()[location_id==location_id].location_name.iloc[0]
+
+
 def extract_location_path_to_global(*_, **__) -> pd.DataFrame:
     service_endpoint = 'location_path_to_global'
-    url = build_url(ENDPOINT_METADATA, service_endpoint,
+    url = build_url(TYPE_METADATA, service_endpoint,
                     urlencode({"gbd_id": None,
                                "kind": None,
                                "name": None,
