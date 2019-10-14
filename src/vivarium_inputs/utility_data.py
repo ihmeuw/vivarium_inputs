@@ -1,15 +1,17 @@
 from typing import List
 
 import pandas as pd
-
-from vivarium_inputs.globals import SEXES, NON_MAX_TMREL
-from vivarium_inputs.extract import (extract_estimation_years, extract_age_group_ids, extract_age_bins,
-                                     extract_locations_ids, extract_location_path_to_global)
 from gbd_mapping import RiskFactor
+
+import vivarium_inputs.extract as ex
+
+# from vivarium_inputs.extract import (extract_estimation_years, extract_age_group_ids, extract_age_bins,
+#                                      extract_locations_ids, extract_location_path_to_global)
+from vivarium_inputs.globals import SEXES, NON_MAX_TMREL
 
 
 def get_estimation_years(*_, **__) -> pd.Series:
-    data = extract_estimation_years()
+    data = ex.extract_estimation_years()
     return data
 
 
@@ -21,13 +23,13 @@ def get_year_block(*_, **__) -> pd.DataFrame:
 
 
 def get_age_group_ids(*_, **__) -> List[int]:
-    data = extract_age_group_ids()
+    data = ex.extract_age_group_ids()
     return data
 
 
 def get_age_bins(*_, **__) -> pd.DataFrame:
     age_bins = (
-        extract_age_bins()[['age_group_id', 'age_group_name', 'age_group_years_start', 'age_group_years_end']]
+        ex.extract_age_bins()[['age_group_id', 'age_group_name', 'age_group_years_start', 'age_group_years_end']]
             .rename(columns={'age_group_years_start': 'age_start',
                              'age_group_years_end': 'age_end'})
     )
@@ -35,11 +37,11 @@ def get_age_bins(*_, **__) -> pd.DataFrame:
 
 
 def get_location_id(location_name):
-    return {r.location_name: r.location_id for _, r in extract_locations_ids().iterrows()}[location_name]
+    return {r.location_name: r.location_id for _, r in ex.extract_locations_ids().iterrows()}[location_name]
 
 
 def get_location_id_parents(location_id: int) -> List[int]:
-    location_metadata = extract_location_path_to_global().set_index('location_id')
+    location_metadata = ex.extract_location_path_to_global().set_index('location_id')
     parent_ids = [int(loc) for loc in location_metadata.at[location_id, 'path_to_top_parent'].split(',')]
     return parent_ids
 

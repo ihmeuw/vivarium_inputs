@@ -2,12 +2,13 @@
 from numbers import Real
 from typing import Union, List
 
-from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 import numpy as np
 import pandas as pd
+from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 
-from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES
+from vivarium_inputs import utility_data
+
 
 INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter']
 

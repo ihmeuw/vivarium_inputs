@@ -1,19 +1,19 @@
-from typing import Union, List, Tuple, Set
 import operator
 import warnings
+from typing import Union, List, Tuple, Set
 
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, Covariate, CoverageGap, causes)
 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
                                      DataDoesNotExistError, Population, PROBLEMATIC_RISKS, PAF_OUTSIDE_AGE_RESTRICTIONS)
-
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
-from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
+#from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
+#import vivarium_inputs.utilities as utils
+from vivarium_inputs import utilities
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
 
@@ -723,8 +723,8 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap,
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         restrictions = entity.restrictions
-        age_start = get_restriction_age_boundary(entity, 'start')
-        age_end = get_restriction_age_boundary(entity, 'end')
+        age_start = utilities.get_restriction_age_boundary(entity, 'start')
+        age_end = utilities.get_restriction_age_boundary(entity, 'end')
         male_expected = not restrictions.female_only
         female_expected = not restrictions.male_only
 
@@ -1101,8 +1101,8 @@ def validate_etiology_population_attributable_fraction(data: pd.DataFrame, entit
     restrictions_entity = [c for c in causes if entity in c.etiologies][0]
 
     restrictions = restrictions_entity.restrictions
-    age_start = get_restriction_age_boundary(restrictions_entity, 'start')
-    age_end = get_restriction_age_boundary(restrictions_entity, 'end')
+    age_start = utilities.get_restriction_age_boundary(restrictions_entity, 'start')
+    age_end = utilities.get_restriction_age_boundary(restrictions_entity, 'end')
     male_expected = not restrictions.female_only
     female_expected = not restrictions.male_only
 
@@ -1642,7 +1642,7 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, context: RawValidationCo
         #  We may have paf outside of exposure/rr but inside of cause age restrictions, then warn it.
         #  If paf does not exist for the narrowest range of exposure/rr/cause, raise an error.
         cause_age_start, cause_age_end = age_restrictions[measure_id]
-        cause_restriction_ages = set(get_restriction_age_ids(cause_age_start, cause_age_end, age_group_ids))
+        cause_restriction_ages = set(utilities.get_restriction_age_ids(cause_age_start, cause_age_end, age_group_ids))
 
         age_groups_paf_should_exist = rr_age_groups.intersection(cause_restriction_ages)
 
@@ -1839,7 +1839,7 @@ def check_age_group_ids(data: pd.DataFrame, context: RawValidationContext,
 
     """
     all_ages = set(context['age_group_ids'])
-    restriction_ages = set(get_restriction_age_ids(restriction_start, restriction_end, context['age_group_ids']))
+    restriction_ages = set(utilities.get_restriction_age_ids(restriction_start, restriction_end, context['age_group_ids']))
     data_ages = set(data.age_group_id)
 
     invalid_ages = data_ages.difference(all_ages)
@@ -1936,7 +1936,7 @@ def check_age_restrictions(data: pd.DataFrame, context: RawValidationContext,
         the data.
 
     """
-    expected_gbd_age_ids = get_restriction_age_ids(age_group_id_start, age_group_id_end, context['age_group_ids'])
+    expected_gbd_age_ids = utilities.get_restriction_age_ids(age_group_id_start, age_group_id_end, context['age_group_ids'])
 
     # age groups we expected in data but that are not
     missing_age_groups = set(expected_gbd_age_ids).difference(set(data.age_group_id))
