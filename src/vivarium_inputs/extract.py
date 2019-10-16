@@ -254,7 +254,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
     check_response(resp)
     data = dataframe_from_response(resp)
 
-    if validate:
+    if validate and len(extractors[measure]['validation_data']):
         additional_extractors = extractors[measure]['validation_data']
         additional_data = {name: extractor(entity, location_id)
                            for name, extractor in additional_extractors.items()}
@@ -304,7 +304,7 @@ def extract_age_group_ids(*_, **__) -> List[int]:
     url = build_url(TYPE_METADATA, service_endpoint, empty_entity, '', None)
     resp = make_request(url)
     check_response(resp)
-    return dataframe_from_response(resp).iloc[:,0].values
+    return list(dataframe_from_response(resp).iloc[:,0].values)
 
 
 def extract_age_bins(*_, **__) -> pd.DataFrame:
