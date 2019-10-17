@@ -102,6 +102,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
         'remission_rate': validate_remission_rate,
         'cause_specific_mortality_rate': validate_cause_specific_mortality_rate,
         'excess_mortality_rate': validate_excess_mortality_rate,
+        'deaths': validate_deaths,
         # Risk-like measures
         'exposure': validate_exposure,
         'exposure_standard_deviation': validate_exposure_standard_deviation,
@@ -409,6 +410,11 @@ def validate_excess_mortality_rate(data: pd.DataFrame, entity: Cause, context: S
 
     check_age_restrictions(data, entity, rest_type='yll', fill_value=0.0, context=context)
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
+
+
+def validate_deaths(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+    # TODO - this was never implemented
+    pass
 
 
 def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],

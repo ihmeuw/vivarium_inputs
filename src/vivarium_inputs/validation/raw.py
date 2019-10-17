@@ -670,7 +670,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause, context: RawValidationCon
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
     idx_cols = ['age_group_id', 'year_id', 'sex_id']
-    population = context['population']
+    population = context['population_structure']
     population = population[(population.age_group_id.isin(data.age_group_id.unique()))
                             & (population.year_id.isin(data.year_id.unique()))
                             & (population.sex_id != context['sexes']['Combined'])

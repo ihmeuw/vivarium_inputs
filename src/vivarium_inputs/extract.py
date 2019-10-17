@@ -138,8 +138,8 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         },
         'disability_weight': {
             'kind_map': {
-                'cause': (SRC_AUXILIARY, TYPE_METADATA),   # TODO
-                'sequela': (SRC_AUXILIARY, TYPE_METADATA),  # TODO
+                'cause': (SRC_AUXILIARY, TYPE_SUMMARY),   # TODO
+                'sequela': (SRC_AUXILIARY, TYPE_SUMMARY),  # TODO
             },
             'validation_data': {}
         },
@@ -153,7 +153,8 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
             'kind_map': {
                 'cause': (SRC_CODCORRECT, TYPE_DRAWS),
             },
-            'validation_data': {'population': extract_population}
+            #'validation_data': {'population_structure': extract_population}
+            'validation_data': {}
         },
         # Risk-like measures
         'exposure': {
@@ -166,7 +167,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         },
         'exposure_standard_deviation': {
             'kind_map': {
-                'risk_factor': (SRC_EXPOSURE, TYPE_DRAWS),
+                'risk_factor': (SRC_EXPOSURE_SD, TYPE_DRAWS),
                 'alternative_risk_factor': (SRC_AUXILIARY, TYPE_METADATA)
             },
             'validation_data': {'exposure': extract_exposure}
@@ -180,7 +181,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         },
         'relative_risk': {
             'kind_map': {
-                'relative_risk': (SRC_RELATIVE_RISK, TYPE_DRAWS),
+                'risk_factor': (SRC_RELATIVE_RISK, TYPE_DRAWS),
                 'coverage_gap': (SRC_AUXILIARY, TYPE_METADATA),
             },
             'validation_data': {'exposure': extract_exposure}
@@ -189,6 +190,13 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
             'kind_map': {
                 'risk_factor': (SRC_BURDENATOR, TYPE_DRAWS),    # TODO - check
                 'etiology': (SRC_BURDENATOR, TYPE_DRAWS),
+            },
+            'validation_data':  {'exposure': extract_exposure, 'relative_risk': extract_relative_risk}
+        },
+        'theoretical_minimum_risk_exposure_level': {
+            'kind_map': {
+                'risk_factor': (SRC_BURDENATOR, TYPE_DRAWS),    # TODO - needs more infrastructure
+                'etiology': (SRC_TMREL, TYPE_DRAWS),
             },
             'validation_data':  {'exposure': extract_exposure, 'relative_risk': extract_relative_risk}
         },
@@ -221,14 +229,14 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         #     },
         #     'validation_data': {}
         # },
-        'healthcare_utilization': {
+        'utilization_rate': {
             'kind_map': {
                 'healthcare_entity': (SRC_EPI, TYPE_SUMMARY),
             },
             'validation_data': {}
         },
         # was structure
-        'population': {
+        'population_structure': {
             'kind_map': {
                 'population': (SRC_EPI, TYPE_SUMMARY),
             },
@@ -236,7 +244,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         },
         'theoretical_minimum_risk_life_expectancy': {
             'kind_map': {
-                'population': (SRC_EPI, TYPE_SUMMARY),  # TODO - check
+                'population': (SRC_DB_QUERIES, TYPE_SUMMARY),  # TODO - check
             },
             'validation_data': {}
         }
@@ -272,7 +280,7 @@ def extract_exposure(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
 
 
 def extract_population(entity: ModelableEntity, location_id: int) -> pd.DataFrame:
-    service_endpoint = 'population'
+    service_endpoint = 'population_structure'
     url = build_url(TYPE_SUMMARY, service_endpoint, entity, SRC_EPI, location_id)
     resp = make_request(url)
     check_response(resp)
