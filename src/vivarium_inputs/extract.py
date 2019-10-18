@@ -1,5 +1,6 @@
 import gzip
 import io
+import json
 from typing import Union, List
 from urllib.parse import urlencode
 
@@ -31,7 +32,8 @@ SRC_TMREL = 'tmrel'
 TIMEOUT_SERVICE = None
 
 SERVICE_VERSION = '1'
-BASE_URL = f'http://microsim-rancher-p01.hosts.ihme.washington.edu:5000/v{SERVICE_VERSION}'
+#BASE_URL = f'http://microsim-rancher-p01.hosts.ihme.washington.edu:5000/v{SERVICE_VERSION}'
+BASE_URL = f'http://127.0.0.1:5000/v{SERVICE_VERSION}'
 
 
 class GbdServiceError(Exception):
@@ -74,6 +76,8 @@ def make_request(url: str) -> req.Response:
 def check_response(resp: req.Response) -> None:
     if not resp.ok:
         logger.error(f'GbdServiceError: http response code {resp}')
+        msg = json.loads(resp.content)
+        logger.info(msg['message'].strip().split('\n')[-1])
         raise GbdServiceError
 
 
@@ -138,8 +142,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         },
         'disability_weight': {
             'kind_map': {
-                'cause': (SRC_AUXILIARY, TYPE_SUMMARY),   # TODO
-                'sequela': (SRC_AUXILIARY, TYPE_SUMMARY),  # TODO
+                'healthstate': (SRC_AUXILIARY, TYPE_SUMMARY),   # TODO
             },
             'validation_data': {}
         },
@@ -195,8 +198,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         },
         'theoretical_minimum_risk_exposure_level': {
             'kind_map': {
-                'risk_factor': (SRC_BURDENATOR, TYPE_DRAWS),    # TODO - needs more infrastructure
-                'etiology': (SRC_TMREL, TYPE_DRAWS),
+                'risk_factor': (SRC_TMREL, TYPE_DRAWS),    # TODO - needs more infrastructure
             },
             'validation_data':  {'exposure': extract_exposure, 'relative_risk': extract_relative_risk}
         },
@@ -231,7 +233,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         # },
         'utilization_rate': {
             'kind_map': {
-                'healthcare_entity': (SRC_EPI, TYPE_SUMMARY),
+                'healthcare_entity': (SRC_EPI, TYPE_DRAWS),
             },
             'validation_data': {}
         },
