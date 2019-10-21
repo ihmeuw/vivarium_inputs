@@ -116,7 +116,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
         'cost': validate_cost,
         'utilization_rate': validate_utilization_rate,
         # Population measures
-        'structure': validate_structure,
+        'population_structure': validate_population_structure,
         'theoretical_minimum_risk_life_expectancy': validate_theoretical_minimum_risk_life_expectancy,
         'age_bins': validate_age_bins,
         'demographic_dimensions': validate_demographic_dimensions,
@@ -834,7 +834,7 @@ def validate_utilization_rate(data: pd.DataFrame, entity: HealthcareEntity, cont
                                  error=DataTransformationError)
 
 
-def validate_structure(data: pd.DataFrame, entity: Population, context: SimulationValidationContext) -> None:
+def validate_population_structure(data: pd.DataFrame, entity: Population, context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped population
     structure data, skipping the check on the draw column since structure data
     isn't by draw.

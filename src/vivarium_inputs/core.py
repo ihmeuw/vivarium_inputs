@@ -44,7 +44,7 @@ def get_data(entity, measure: str, location: Union[str, int]):
         'cost': (get_cost, ('healthcare_entity', 'health_technology')),
         'utilization_rate': (get_utilization_rate, ('healthcare_entity',)),
         # Population measures
-        'structure': (get_structure, ('population',)),
+        'population_structure': (get_population_structure, ('population',)),
         'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
         'age_bins': (get_age_bins, ('population',)),
         'demographic_dimensions': (get_demographic_dimensions, ('population',))
@@ -62,7 +62,7 @@ def get_data(entity, measure: str, location: Union[str, int]):
     location_id = utility_data.get_location_id(location) if isinstance(location, str) else location
     data = handler(entity, location_id)
 
-    if measure in ['structure', 'theoretical_minimum_risk_life_expectancy',
+    if measure in ['population_structure', 'theoretical_minimum_risk_life_expectancy',
                    'estimate', 'exposure_distribution_weights']:
         value_cols = ['value']
     else:
@@ -402,8 +402,8 @@ def get_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataF
     return data
 
 
-def get_structure(entity: Population, location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, 'structure', location_id)
+def get_population_structure(entity: Population, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'population_structure', location_id)
     data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
     data = utilities.normalize(data)
     return data

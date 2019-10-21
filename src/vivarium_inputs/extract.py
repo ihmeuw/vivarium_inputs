@@ -209,13 +209,6 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         #     },
         #     'validation_data': {}
         # },
-        # this raises NotImplemented in core.py
-        # 'mediation_factors': {
-        #     'kind_map': {
-        #         'kind_1': (SRC_COMO, TYPE_DRAWS),
-        #     },
-        #     'validation_data': {}
-        # },
         # Covariate measures
         'estimate': {
             'kind_map': {
