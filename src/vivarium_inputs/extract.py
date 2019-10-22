@@ -32,8 +32,8 @@ SRC_TMREL = 'tmrel'
 TIMEOUT_SERVICE = None
 
 SERVICE_VERSION = '1'
-#BASE_URL = f'http://microsim-rancher-p01.hosts.ihme.washington.edu:5000/v{SERVICE_VERSION}'
-BASE_URL = f'http://127.0.0.1:5000/v{SERVICE_VERSION}'
+BASE_URL = f'http://microsim-rancher-p01.hosts.ihme.washington.edu:5000/v{SERVICE_VERSION}'
+#BASE_URL = f'http://127.0.0.1:5000/v{SERVICE_VERSION}'
 
 
 class GbdServiceError(Exception):
@@ -52,6 +52,12 @@ def dataframe_from_response(resp: req.Response) -> pd.DataFrame:
 
 def build_url(endpoint_category: str, endpoint: str, entity: ModelableEntity, source: str,
               location_id: Union[int, None]) -> str:
+    type_exceptions = {
+        'exposure': TYPE_DRAWS,
+        'exposure_distribution_weights': TYPE_DRAWS,
+    }
+    endpoint_category = type_exceptions.get(endpoint, endpoint_category)
+
     base_url = f'{BASE_URL}/{endpoint_category}/{endpoint}'
     url = f'{base_url}'
     if location_id:
@@ -177,7 +183,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         },
         'exposure_distribution_weights': {
             'kind_map': {
-                'risk_factor': (SRC_AUXILIARY, TYPE_DRAWS),
+                'risk_factor': (SRC_AUXILIARY, TYPE_METADATA),
                 'alternative_risk_factor': (SRC_AUXILIARY, TYPE_METADATA)
             },
             'validation_data': {}
