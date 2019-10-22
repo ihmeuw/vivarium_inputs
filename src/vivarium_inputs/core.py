@@ -30,6 +30,7 @@ def get_data(entity, measure: str, location: Union[str, int]):
         'excess_mortality_rate': (get_excess_mortality_rate, ('cause',)),
         'case_fatality_rate': (get_case_fatality_rate, ('cause',)),
         'deaths': (get_deaths, ('cause',)),
+        'theoretical_minimum_risk_exposure_level': (get_theoretical_minimum_risk_exposure_level, ('risk_factor',)),
         # Risk-like measures
         'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
@@ -43,7 +44,7 @@ def get_data(entity, measure: str, location: Union[str, int]):
         'cost': (get_cost, ('healthcare_entity', 'health_technology')),
         'utilization_rate': (get_utilization_rate, ('healthcare_entity',)),
         # Population measures
-        'structure': (get_structure, ('population',)),
+        'population_structure': (get_population_structure, ('population',)),
         'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
         'age_bins': (get_age_bins, ('population',)),
         'demographic_dimensions': (get_demographic_dimensions, ('population',))
@@ -61,7 +62,7 @@ def get_data(entity, measure: str, location: Union[str, int]):
     location_id = utility_data.get_location_id(location) if isinstance(location, str) else location
     data = handler(entity, location_id)
 
-    if measure in ['structure', 'theoretical_minimum_risk_life_expectancy',
+    if measure in ['population_structure', 'theoretical_minimum_risk_life_expectancy',
                    'estimate', 'exposure_distribution_weights']:
         value_cols = ['value']
     else:
@@ -183,6 +184,13 @@ def get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
                                                  'yll', utility_data.get_age_group_ids())
     data = utilities.normalize(data, fill_value=0)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
+    return data
+
+
+def get_theoretical_minimum_risk_exposure_level(entity: Etiology, location_id: int) -> pd.DataFrame:
+    # TODO - what needs to happen here???
+    data = extract.extract_data(entity, 'theoretical_minimum_risk_exposure_level', location_id)
+    data = utilities.normalize(data, fill_value=0)
     return data
 
 
@@ -394,8 +402,8 @@ def get_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataF
     return data
 
 
-def get_structure(entity: Population, location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, 'structure', location_id)
+def get_population_structure(entity: Population, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'population_structure', location_id)
     data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
     data = utilities.normalize(data)
     return data
