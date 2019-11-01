@@ -230,7 +230,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
         #     },
         #     'validation_data': {}
         # },
-        'utilization_rate': {
+        'healthcare_utilization': {
             'kind_map': {
                 'healthcare_entity': (SRC_EPI, TYPE_DRAWS),
             },
@@ -253,7 +253,7 @@ def extract_data(entity: ModelableEntity, measure: str, location_id: int,
 
     validation.check_metadata(entity, measure)
 
-    source_default, type_default  = extractors[measure]['kind_map'][entity.kind]
+    source_default, type_default = extractors[measure]['kind_map'][entity.kind]
     type_final = kwargs.get('type', type_default)
     source = kwargs.get('source', source_default)
     entity.gbd_id = kwargs.get('id', entity.gbd_id)

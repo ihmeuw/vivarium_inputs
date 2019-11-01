@@ -60,7 +60,8 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "population": {
             "mapping": {'': None},
             "getter": get_population_data,
-            "measures": ["structure", "age_bins", "theoretical_minimum_risk_life_expectancy", "demographic_dimensions"],
+            "measures": ["population_structure", "age_bins", "theoretical_minimum_risk_life_expectancy",
+                         "demographic_dimensions"],
         },
         "covariate": {
             "mapping": covariates,

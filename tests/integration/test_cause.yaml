@@ -42,7 +42,7 @@ components:
                         - DummyLoadComponent("sequela.mild_diarrheal_diseases.incidence_rate")
                         - DummyLoadComponent("sequela.mild_diarrheal_diseases.prevalence")
                         - DummyLoadComponent("sequela.mild_diarrheal_diseases.disability_weight")
-                        - DummyLoadComponent("sequela.acute_peptic_ulcer_disease_with_mild_anemia.disability_weight")
+                        - DummyLoadComponent("sequela.mild_angina_due_to_ischemic_heart_disease.healthstate")
                         - DummyLoadComponent("sequela.asymptomatic_acute_hepatitis_b.birth_prevalence")
 
 configuration:

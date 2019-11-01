@@ -8,7 +8,7 @@ components:
         vivarium_inputs:
                 testing:
                         # population
-                        - DummyLoadComponent("population.structure")
+                        - DummyLoadComponent("population.population_structure")
                         - DummyLoadComponent("population.theoretical_minimum_risk_life_expectancy")
                         - DummyLoadComponent("population.age_bins")
                         - DummyLoadComponent("population.demographic_dimensions")

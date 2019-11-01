@@ -396,7 +396,7 @@ def get_cost(entity: Union[HealthcareEntity, HealthTechnology], location_id: int
 
 
 def get_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, 'utilization_rate', location_id)
+    data = extract.extract_data(entity, 'healthcare_utilization', location_id)
     data = utilities.normalize(data, fill_value=0)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     return data
