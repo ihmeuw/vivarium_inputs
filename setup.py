@@ -26,11 +26,11 @@ if __name__ == "__main__":
         'vivarium>=0.8.18',
         'vivarium_public_health>=0.9.0',
         'gbd_mapping>=2.0.0',
-        'core-maths'
     ]
 
     data_requires = [
         'vivarium-gbd-access>=2.0.0',
+        'core-maths'
     ]
 
     test_requirements = [
