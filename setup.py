@@ -30,6 +30,7 @@ if __name__ == "__main__":
 
     data_requires = [
         'vivarium-gbd-access>=2.0.0',
+        'core-maths'
     ]
 
     test_requirements = [
