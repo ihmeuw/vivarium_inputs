@@ -1,7 +1,5 @@
 from datetime import datetime
 import logging
-import warnings
-from tables.exceptions import NoSuchNodeError
 from typing import Collection, Any
 import pandas as pd
 from pathlib import Path
