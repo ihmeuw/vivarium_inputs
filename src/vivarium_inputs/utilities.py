@@ -260,8 +260,10 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     For the given data and restrictions, it applies age/sex restrictions and
     filter out the data outside of the range. Age restrictions can be applied
     in 4 different ways:
-        - yld, yll, narrowest(inner) range of yll and yld,
-        broadest(outer) range of yll and yld.
+    - yld
+    - yll
+    - narrowest(inner) range of yll and yld
+    - broadest(outer) range of yll and yld.
 
     Parameters
     ----------
@@ -278,6 +280,7 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     -------
         DataFrame which is filtered out any data outside of age/sex
         restriction ranges.
+
     """
     restrictions = entity.restrictions
     if restrictions.male_only and not restrictions.female_only:
