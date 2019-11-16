@@ -1,8 +1,10 @@
 from pathlib import Path
 
 import pytest
+from tables import NoSuchNodeError
+from vivarium.framework.artifact import ArtifactException
 
-from vivarium_inputs.data_artifact import ArtifactBuilder, OutdatedArtifactWarning
+from vivarium_inputs.data_artifact import ArtifactBuilder, OutdatedArtifactError
 
 
 @pytest.fixture()
@@ -31,9 +33,8 @@ def test_initialize_artifact_append_keyspace(test_artifact):
     test_artifact.remove('metadata.keyspace')
     assert 'metadata.keyspace' not in test_artifact
 
-    with pytest.warns(OutdatedArtifactWarning):
+    with pytest.raises(NoSuchNodeError):
         artifact = ArtifactBuilder.initialize_artifact(test_artifact.path, True, draw, location)
-        assert 'metadata.keyspace' in artifact
 
 
 def test_initialize_artifact_append_locations(test_artifact):
@@ -44,17 +45,8 @@ def test_initialize_artifact_append_locations(test_artifact):
     test_artifact.remove('metadata.locations')
     assert 'metadata.locations' not in test_artifact
 
-    with pytest.warns(OutdatedArtifactWarning):
+    with pytest.raises(ArtifactException):
         artifact = ArtifactBuilder.initialize_artifact(test_artifact.path, True, draw, location)
-        assert 'metadata.locations' in artifact
-        assert artifact.load('metadata.locations') == [location]
-
-    # artifact with a different location
-    new_location = 'Canada'
-    assert artifact.load('metadata.locations') == [location]
-
-    with pytest.raises(ValueError):
-        ArtifactBuilder.initialize_artifact(test_artifact.path, True, draw, new_location)
 
 
 def test_initialize_artifact_append_versions(test_artifact):
@@ -65,19 +57,8 @@ def test_initialize_artifact_append_versions(test_artifact):
     test_artifact.remove('metadata.versions')
     assert 'metadata.versions' not in test_artifact
 
-    with pytest.warns(OutdatedArtifactWarning):
+    with pytest.raises(ArtifactException):
         artifact = ArtifactBuilder.initialize_artifact(test_artifact.path, True, draw, location)
-        assert 'metadata.versions' in artifact
-
-    current_versions = artifact.load('metadata.versions')
-    new_versions = {k: '0.1' for k in current_versions}
-    artifact.replace('metadata.versions', new_versions)
-
-    assert artifact.load('metadata.versions') == new_versions
-
-    with pytest.warns(OutdatedArtifactWarning):
-        artifact = ArtifactBuilder.initialize_artifact(test_artifact.path, True, draw, location)
-        assert artifact.load('metadata.versions') == current_versions
 
 
 def test_initialize_artifact_no_append_file(test_artifact):
