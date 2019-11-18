@@ -174,6 +174,19 @@ EXTRA_RESIDUAL_CATEGORY = {risk_factors.low_birth_weight_and_short_gestation.nam
 # LBWSG paf has data outside neonatal preterm birth age restrictions (but is all 1.0) - K.W. 4/2/19
 PAF_OUTSIDE_AGE_RESTRICTIONS = {risk_factors.low_birth_weight_and_short_gestation.name: [causes.neonatal_preterm_birth]}
 
+def EXCLUDE_ABNORMAL_DATA(entity, context):
+    # Add expressions to the list that evaluate to True if the subsequent validation
+    #  check should be excluded
+    ABNORMAL_CONDITIONS = [
+        # The data for sex is incorrect in this situation (location is Pakistan)
+        (entity.kind == 'sequela'
+            and entity.name == 'moderate_wasting_with_edema'
+            and context.context_data['location_id'] == 165),
+    ]
+    for condition in ABNORMAL_CONDITIONS:
+        if condition:
+            return True
+    return False
 
 # GBD uses modelable entity 10488, which is attached to anemia not iron deficiency, for iron deficiency SD
 OTHER_MEID = {risk_factors.iron_deficiency.name: 10488}
