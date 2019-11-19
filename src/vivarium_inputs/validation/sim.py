@@ -26,7 +26,8 @@ VALID_RELATIVE_RISK_RANGE = (1.0, {'continuous': 10.0, 'categorical': 2550.0})
 VALID_PAF_RANGE = (0.0, 1.0)
 VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
-VALID_UTILIZATION_RANGE = (0, 50)
+# FIXME: bumping for Mexico (max utilization ~422) 9/12/19 - K.W.
+VALID_UTILIZATION_RANGE = (0, 500)
 VALID_POPULATION_RANGE = (0, 75_000_000)
 VALID_LIFE_EXP_RANGE = (0, 90)
 
@@ -94,13 +95,13 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
     """
     validators = {
         # Cause-like measures
-        'incidence': validate_incidence,
+        'incidence_rate': validate_incidence_rate,
         'prevalence': validate_prevalence,
         'birth_prevalence': validate_birth_prevalence,
         'disability_weight': validate_disability_weight,
-        'remission': validate_remission,
-        'cause_specific_mortality': validate_cause_specific_mortality,
-        'excess_mortality': validate_excess_mortality,
+        'remission_rate': validate_remission_rate,
+        'cause_specific_mortality_rate': validate_cause_specific_mortality_rate,
+        'excess_mortality_rate': validate_excess_mortality_rate,
         # Risk-like measures
         'exposure': validate_exposure,
         'exposure_standard_deviation': validate_exposure_standard_deviation,
@@ -112,7 +113,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
         'estimate': validate_estimate,
         # Health system measures
         'cost': validate_cost,
-        'utilization': validate_utilization,
+        'utilization_rate': validate_utilization_rate,
         # Population measures
         'structure': validate_structure,
         'theoretical_minimum_risk_life_expectancy': validate_theoretical_minimum_risk_life_expectancy,
@@ -134,7 +135,7 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
 #########################################################
 
 
-def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext) -> None:
+def validate_incidence_rate(data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped incidence
     data.
 
@@ -295,7 +296,7 @@ def validate_disability_weight(data: pd.DataFrame, entity: Union[Cause, Sequela]
                            restrictions_entity.restrictions.female_only, fill_value=0.0)
 
 
-def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+def validate_remission_rate(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped remission
     data.
 
@@ -332,7 +333,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause, context: SimulationVal
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+def validate_cause_specific_mortality_rate(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped cause
     specific mortality data.
 
@@ -369,7 +370,7 @@ def validate_cause_specific_mortality(data: pd.DataFrame, entity: Cause, context
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
+def validate_excess_mortality_rate(data: pd.DataFrame, entity: Cause, context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped excess
     mortality data.
 
@@ -399,8 +400,8 @@ def validate_excess_mortality(data: pd.DataFrame, entity: Cause, context: Simula
                                  boundary_type='lower', value_columns=DRAW_COLUMNS,
                                  error=DataTransformationError)
 
-    if entity.name in BOUNDARY_SPECIAL_CASES['excess_mortality'].get(context['location'], {}):
-        max_val = BOUNDARY_SPECIAL_CASES['excess_mortality'][context['location']][entity.name]
+    if entity.name in BOUNDARY_SPECIAL_CASES['excess_mortality_rate'].get(context['location'], {}):
+        max_val = BOUNDARY_SPECIAL_CASES['excess_mortality_rate'][context['location']][entity.name]
     else:
         max_val = VALID_EXCESS_MORT_RANGE[1]
     check_value_columns_boundary(data, boundary_value=max_val, boundary_type='upper', value_columns=DRAW_COLUMNS,
@@ -794,7 +795,7 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthTechnology, Healthcare
                                  error=DataTransformationError)
 
 
-def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: SimulationValidationContext) -> None:
+def validate_utilization_rate(data: pd.DataFrame, entity: HealthcareEntity, context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped utilization
     data.
 
@@ -1098,11 +1099,11 @@ def validate_age_column(data: pd.DataFrame, context: SimulationValidationContext
         age bins supplied in `context`.
 
     """
-    expected_ages = [pd.Interval(row.age_group_start, row.age_group_end, closed='left') for _, row in context['age_bins'].iterrows()]
+    expected_ages = [pd.Interval(row.age_start, row.age_end, closed='left') for _, row in context['age_bins'].iterrows()]
     data_ages = data.index.levels[data.index.names.index('age')]
 
     if not sorted(data_ages) == sorted(expected_ages):
-        raise DataTransformationError('Age_group_start and age_group_end must contain all gbd age groups.')
+        raise DataTransformationError('Age_start and age_end must contain all gbd age groups.')
 
 
 def validate_year_column(data: pd.DataFrame, context: SimulationValidationContext) -> None:
@@ -1184,7 +1185,7 @@ def check_age_restrictions(data: pd.DataFrame, entity: ModelableEntity, rest_typ
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     age_bins = context['age_bins']
     in_range_ages = age_bins.loc[(age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)]
-    in_range_age_intervals = [pd.Interval(row.age_group_start, row.age_group_end, closed='left')
+    in_range_age_intervals = [pd.Interval(row.age_start, row.age_end, closed='left')
                               for _, row in in_range_ages.iterrows()]
     outside = data.loc[~data.index.isin(in_range_age_intervals, 'age')]
 

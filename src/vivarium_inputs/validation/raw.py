@@ -146,11 +146,11 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
     """
     validators = {
         # Cause-like measures
-        'incidence': validate_incidence,
+        'incidence_rate': validate_incidence_rate,
         'prevalence': validate_prevalence,
         'birth_prevalence': validate_birth_prevalence,
         'disability_weight': validate_disability_weight,
-        'remission': validate_remission,
+        'remission_rate': validate_remission_rate,
         'deaths': validate_deaths,
         # Risk-like measures
         'exposure': validate_exposure,
@@ -164,7 +164,7 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
         'estimate': validate_estimate,
         # Health system measures
         'cost': validate_cost,
-        'utilization': validate_utilization,
+        'utilization_rate': validate_utilization_rate,
         # Population measures
         'structure': validate_structure,
         'theoretical_minimum_risk_life_expectancy': validate_theoretical_minimum_risk_life_expectancy,
@@ -201,7 +201,7 @@ def check_sequela_metadata(entity: Sequela, measure: str) -> None:
         If the 'exists' metadata flag on `entity` for `measure` is None.
 
     """
-    if measure in ['incidence', 'prevalence', 'birth_prevalence']:
+    if measure in ['incidence_rate', 'prevalence', 'birth_prevalence']:
         check_exists_in_range(entity, measure)
     else:  # measure == 'disability_weight
         if not entity.healthstate[f'{measure}_exists']:
@@ -248,7 +248,7 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
 
     warn_violated_restrictions(entity, measure)
 
-    if measure != 'remission':
+    if measure != 'remission_rate':
         consistent = entity[f"{measure}_consistent"]
         children = "subcauses" if measure == "deaths" else "sequela"
 
@@ -400,7 +400,7 @@ def check_population_metadata(entity: Population, measure: str) -> None:
 #################################################
 
 
-def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], context: RawValidationContext) -> None:
+def validate_incidence_rate(data: pd.DataFrame, entity: Union[Cause, Sequela], context: RawValidationContext) -> None:
     """ Check the standard set of validations on raw incidence data for entity.
 
     Parameters
@@ -424,7 +424,7 @@ def validate_incidence(data: pd.DataFrame, entity: Union[Cause, Sequela], contex
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['Incidence'])
+    check_measure_id(data, ['Incidence rate'])
     check_metric_id(data, 'rate')
 
     check_years(data, context, 'annual')
@@ -523,7 +523,7 @@ def validate_birth_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela],
     expected_columns = ['measure_id', 'metric_id', f'{entity.kind}_id'] + DRAW_COLUMNS + DEMOGRAPHIC_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['Incidence'])
+    check_measure_id(data, ['Incidence rate'])
     check_metric_id(data, 'rate')
 
     check_years(data, context, 'annual')
@@ -583,7 +583,7 @@ def validate_disability_weight(data: pd.DataFrame, entity: Sequela, context: Raw
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_remission(data: pd.DataFrame, entity: Cause, context: RawValidationContext) -> None:
+def validate_remission_rate(data: pd.DataFrame, entity: Cause, context: RawValidationContext) -> None:
     """ Check the standard set of validations on raw remission data for entity.
 
     Parameters
@@ -608,7 +608,7 @@ def validate_remission(data: pd.DataFrame, entity: Cause, context: RawValidation
                         'modelable_entity_id'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
-    check_measure_id(data, ['Remission'])
+    check_measure_id(data, ['Remission rate'])
     check_metric_id(data, 'rate')
 
     check_years(data, context, 'binned')
@@ -1227,7 +1227,7 @@ def validate_cost(data: pd.DataFrame, entity: Union[HealthcareEntity, HealthTech
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
 
 
-def validate_utilization(data: pd.DataFrame, entity: HealthcareEntity, context: RawValidationContext) -> None:
+def validate_utilization_rate(data: pd.DataFrame, entity: HealthcareEntity, context: RawValidationContext) -> None:
     """ Check the standard set of validations on raw utilization data for
     entity, skipping all restrictions checks since HealthCareEntities do not
     have restrictions.

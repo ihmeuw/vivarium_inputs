@@ -44,8 +44,8 @@ def scrub_age(data):
     if 'age_group_id' in data.index.names:
         age_bins = utility_data.get_age_bins().set_index('age_group_id')
         id_levels = data.index.levels[data.index.names.index('age_group_id')]
-        interval_levels = [pd.Interval(age_bins.age_group_start[age_id],
-                                       age_bins.age_group_end[age_id], closed='left') for age_id in id_levels]
+        interval_levels = [pd.Interval(age_bins.age_start[age_id],
+                                       age_bins.age_end[age_id], closed='left') for age_id in id_levels]
         data.index = data.index.rename('age', 'age_group_id').set_levels(interval_levels, 'age')
     return data
 
@@ -68,10 +68,10 @@ def scrub_affected_entity(data):
 
 
 def set_age_interval(data):
-    if 'age_group_start' in data.index.names:
-        bins = zip(data.index.get_level_values('age_group_start'), data.index.get_level_values('age_group_end'))
+    if 'age_start' in data.index.names:
+        bins = zip(data.index.get_level_values('age_start'), data.index.get_level_values('age_end'))
         data = data.assign(age=[pd.Interval(x[0], x[1], closed='left') for x in bins]).set_index('age', append=True)
-        data.index = data.index.droplevel('age_group_start').droplevel('age_group_end')
+        data.index = data.index.droplevel('age_start').droplevel('age_end')
     return data
 
 
@@ -260,8 +260,10 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     For the given data and restrictions, it applies age/sex restrictions and
     filter out the data outside of the range. Age restrictions can be applied
     in 4 different ways:
-        - yld, yll, narrowest(inner) range of yll and yld,
-        broadest(outer) range of yll and yld.
+    - yld
+    - yll
+    - narrowest(inner) range of yll and yld
+    - broadest(outer) range of yll and yld.
 
     Parameters
     ----------
@@ -278,6 +280,7 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
     -------
         DataFrame which is filtered out any data outside of age/sex
         restriction ranges.
+
     """
     restrictions = entity.restrictions
     if restrictions.male_only and not restrictions.female_only:
