@@ -7,7 +7,7 @@
  - Consistent naming of rate data.
  - Get rid of old multi-build artifact code.
  - Add the core-maths package as a dependency.
- -
+
 **3.0.1 - 07/16/19**
 
  - Allow for wider YLL age ranges than YLD with warning instead of error.
