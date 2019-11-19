@@ -4,7 +4,7 @@ Vivarium Inputs
 .. image:: https://badge.fury.io/py/vivarium-inputs.svg
     :target: https://badge.fury.io/py/vivarium-inputs
 
-.. image:: https://travis-ci.org/ihmeuw/vivarium_inputs.svg?branch=develop
+.. image:: https://travis-ci.org/ihmeuw/vivarium_inputs.svg?branch=master
     :target: https://travis-ci.org/ihmeuw/vivarium_inputs
     :alt: Latest Version
 

@@ -1,3 +1,13 @@
+**3.1.0 - 11/18/19**
+
+ - Update information about pulling data from gbd.
+ - Move data artifact from vivarium public health to vivarium.
+ - Data exclusion for moderate wasting with edema.
+ - Change 'age_group_start' and 'age_group_end' to 'age_start' and 'age_end'.
+ - Consistent naming of rate data.
+ - Get rid of old multi-build artifact code.
+ - Add the core-maths package as a dependency.
+ -
 **3.0.1 - 07/16/19**
 
  - Allow for wider YLL age ranges than YLD with warning instead of error.
