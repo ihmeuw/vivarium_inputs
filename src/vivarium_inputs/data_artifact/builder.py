@@ -9,7 +9,7 @@ from vivarium.framework.artifact import Artifact, get_location_term, filter_data
 from vivarium_public_health.disease import DiseaseModel
 
 from vivarium_inputs.data_artifact.loaders import loader
-from vivarium_inputs.data_artifact.utilities import get_versions, split_interval, comparable_versions
+from vivarium_inputs.data_artifact.utilities import get_versions, comparable_versions
 
 
 _log = logging.getLogger(__name__)
@@ -87,10 +87,7 @@ class ArtifactBuilder:
 def _worker(entity_key: str, location: str, modeled_causes: Collection[str],
             artifact: Artifact) -> None:
     data = loader(EntityKey(entity_key), location, modeled_causes, all_measures=False)
-    # FIXME: This is a hack since hdf files can't handle pandas.Interval objects
     if data is not None:
-        data = split_interval(data, interval_column='age', split_column_prefix='age')
-        data = split_interval(data, interval_column='year', split_column_prefix='year')
         artifact.write(entity_key, data)
     else:
         _log.warning(f"None received when loading data for {entity_key}.")
