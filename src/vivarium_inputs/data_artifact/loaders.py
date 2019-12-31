@@ -1,12 +1,13 @@
 from typing import Set
 
 from gbd_mapping import causes, risk_factors, sequelae, covariates, etiologies, coverage_gaps
-from vivarium_public_health.dataset_manager import EntityKey
 
 from vivarium_inputs.globals import InvalidQueryError
 from vivarium_inputs.interface import (get_measure, get_population_structure, get_age_bins,
                                        get_theoretical_minimum_risk_life_expectancy, get_demographic_dimensions)
 from vivarium_inputs.mapping_extension import alternative_risk_factors, healthcare_entities, health_technologies
+from vivarium.framework.artifact import EntityKey
+
 from vivarium_inputs.data_artifact.utilities import handle_tables_versions
 
 
@@ -19,8 +20,8 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "cause": {
             "mapping": causes,
             "getter": get_cause_data,
-            "measures": ["prevalence", "incidence", "cause_specific_mortality", "disability_weight", "birth_prevalence",
-                         "excess_mortality", "remission", "sequelae", "etiologies", "restrictions",],
+            "measures": ["prevalence", "incidence_rate", "cause_specific_mortality_rate", "disability_weight", "birth_prevalence",
+                         "excess_mortality_rate", "remission_rate", "sequelae", "etiologies", "restrictions",],
         },
         "risk_factor": {
             "mapping": risk_factors,
@@ -39,12 +40,12 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
         "sequela": {
             "mapping": sequelae,
             "getter": get_sequela_data,
-            "measures": ["healthstate", "prevalence", "incidence", "disability_weight", "birth_prevalence"],
+            "measures": ["healthstate", "prevalence", "incidence_rate", "disability_weight", "birth_prevalence"],
         },
         "healthcare_entity": {
             "mapping": healthcare_entities,
             "getter": get_healthcare_entity_data,
-            "measures": ["cost", "utilization"],
+            "measures": ["cost", "utilization_rate"],
          },
         "health_technology": {
              "mapping": health_technologies,
@@ -73,6 +74,7 @@ def loader(entity_key: EntityKey, location: str, modeled_causes: Set[str], all_m
             "measures": ["estimate"],
         },
     }
+
     mapping, getter, measures = entity_data[entity_key.type].values()
 
     entity = mapping[entity_key.name]

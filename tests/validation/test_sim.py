@@ -13,8 +13,8 @@ def mock_validation_context():
                           'year_end': range(1991, 2018)})
     age_bins = pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5],
                              'age_group_name': ['youngest', 'young', 'middle', 'older', 'oldest'],
-                             'age_group_start': [0, 1, 15, 45, 60],
-                             'age_group_end': [1, 15, 45, 60, 100]})
+                             'age_start': [0, 1, 15, 45, 60],
+                             'age_end': [1, 15, 45, 60, 100]})
     context = sim.SimulationValidationContext(
         location='United States',
         years=years,
@@ -60,10 +60,10 @@ def test_validate_sex_column_fail(sexes):
 
 def test_validate_age_columns_pass(mock_validation_context):
     ages = (mock_validation_context['age_bins']
-            .filter(['age_group_start', 'age_group_end']))
+            .filter(['age_start', 'age_end']))
     # Shuffle the rows and set index
     ages = ages.sample(frac=1).reset_index(drop=True)
-    ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
+    ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_start, ages.age_end,
                                                        closed='left', name='age'),
                           append=True)
     sim.validate_age_column(ages, mock_validation_context)
@@ -71,9 +71,9 @@ def test_validate_age_columns_pass(mock_validation_context):
 
 def test_validate_age_columns_invalid_age(mock_validation_context):
     ages = (mock_validation_context['age_bins']
-            .filter(['age_group_start', 'age_group_end']).copy())
-    ages.loc[2, 'age_group_start'] = -1
-    ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
+            .filter(['age_start', 'age_end']).copy())
+    ages.loc[2, 'age_start'] = -1
+    ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_start, ages.age_end,
                                                        closed='left', name='age'),
                           append=True)
     with pytest.raises(DataTransformationError):
@@ -82,9 +82,9 @@ def test_validate_age_columns_invalid_age(mock_validation_context):
 
 def test_validate_age_columns_missing_group(mock_validation_context):
     ages = (mock_validation_context['age_bins']
-            .filter(['age_group_start', 'age_group_end']))
+            .filter(['age_start', 'age_end']))
     ages = ages.drop(2)
-    ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_group_start, ages.age_group_end,
+    ages = ages.set_index(pd.IntervalIndex.from_arrays(ages.age_start, ages.age_end,
                                                        closed='left', name='age'),
                           append=True)
     with pytest.raises(DataTransformationError):
@@ -149,7 +149,7 @@ def test_check_age_restrictions(mocker, mock_validation_context, values, ids, re
     entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
     entity.return_value = ids
     age_bins = mock_validation_context['age_bins']
-    idx = pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end, closed='left', name='age')
+    idx = pd.IntervalIndex.from_arrays(age_bins.age_start, age_bins.age_end, closed='left', name='age')
     df = pd.DataFrame({'value': values}, index=idx)
     sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)
 
@@ -164,7 +164,7 @@ def test_check_age_restrictions_fail(mocker, mock_validation_context, values, id
     entity = mocker.patch('vivarium_inputs.validation.sim.utilities.get_age_group_ids_by_restriction')
     entity.return_value = ids
     age_bins = mock_validation_context['age_bins']
-    idx = pd.IntervalIndex.from_arrays(age_bins.age_group_start, age_bins.age_group_end, closed='left', name='age')
+    idx = pd.IntervalIndex.from_arrays(age_bins.age_start, age_bins.age_end, closed='left', name='age')
     df = pd.DataFrame({'value': values}, index=idx)
     with pytest.raises(DataTransformationError):
         sim.check_age_restrictions(df, entity, restriction_type, fill, mock_validation_context)

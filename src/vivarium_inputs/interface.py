@@ -18,11 +18,11 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
     Available measures:
 
         For entity kind 'sequela':
-            incidence, prevalence, birth_prevalence, disability_weight
+            incidence_rate, prevalence, birth_prevalence, disability_weight
 
         For entity kind 'cause':
-            incidence, prevalence, birth_prevalence, disability_weight,
-            remission, cause_specific_mortality, excess_mortality
+            incidence_rate, prevalence, birth_prevalence, disability_weight,
+            remission_rate, cause_specific_mortality_rate, excess_mortality_rate
 
         For entity kind 'coverage_gap':
             exposure, exposure_standard_deviation, exposure_distribution_weights,
@@ -42,7 +42,7 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
             estimate
 
         For entity kind 'healthcare_entity':
-            cost, utilization
+            cost, utilization_rate
 
         For entity kind 'health_technology':
             cost
@@ -65,6 +65,8 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
     data = core.get_data(entity, measure, location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, entity, measure, location)
+    data = utilities.split_interval(data, interval_column='age', split_column_prefix='age')
+    data = utilities.split_interval(data, interval_column='year', split_column_prefix='year')
     return utilities.sort_hierarchical_data(data)
 
 
@@ -89,6 +91,8 @@ def get_population_structure(location: str) -> pd.DataFrame:
     data = core.get_data(pop, 'structure', location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'structure', location)
+    data = utilities.split_interval(data, interval_column='age', split_column_prefix='age')
+    data = utilities.split_interval(data, interval_column='year', split_column_prefix='year')
     return utilities.sort_hierarchical_data(data)
 
 
@@ -107,6 +111,8 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
     data = core.get_data(pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
     data = utilities.set_age_interval(data)
     validation.validate_for_simulation(data, pop, 'theoretical_minimum_risk_life_expectancy', 'Global')
+    data = utilities.split_interval(data, interval_column='age', split_column_prefix='age')
+    data = utilities.split_interval(data, interval_column='year', split_column_prefix='year')
     return utilities.sort_hierarchical_data(data)
 
 
@@ -124,6 +130,8 @@ def get_age_bins() -> pd.DataFrame:
     data = core.get_data(pop, 'age_bins', 'Global')
     data = utilities.set_age_interval(data)
     validation.validate_for_simulation(data, pop, 'age_bins', 'Global')
+    data = utilities.split_interval(data, interval_column='age', split_column_prefix='age')
+    data = utilities.split_interval(data, interval_column='year', split_column_prefix='year')
     return utilities.sort_hierarchical_data(data)
 
 
@@ -146,6 +154,8 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     data = core.get_data(pop, 'demographic_dimensions', location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, pop, 'demographic_dimensions', location)
+    data = utilities.split_interval(data, interval_column='age', split_column_prefix='age')
+    data = utilities.split_interval(data, interval_column='year', split_column_prefix='year')
     return utilities.sort_hierarchical_data(data)
 
 
@@ -158,11 +168,11 @@ def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[
     Available measures:
 
         For entity kind 'sequela':
-            incidence, prevalence, birth_prevalence, disability_weight
+            incidence_rate, prevalence, birth_prevalence, disability_weight
 
         For entity kind 'cause':
-            incidence, prevalence, birth_prevalence, disability_weight,
-            remission, deaths
+            incidence_rate, prevalence, birth_prevalence, disability_weight,
+            remission_rate, deaths
 
         For entity kind 'coverage_gap':
             exposure, exposure_standard_deviation, exposure_distribution_weights,
@@ -182,7 +192,7 @@ def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[
             estimate
 
         For entity kind 'healthcare_entity':
-            cost, utilization
+            cost, utilization_rate
 
         For entity kind 'health_technology':
             cost

@@ -23,13 +23,14 @@ if __name__ == "__main__":
         'click',
         'joblib',
         'tables<=3.4.0',
-        'vivarium>=0.8.18',
-        'vivarium_public_health>=0.9.0',
-        'gbd_mapping>=2.0.0',
+        'vivarium>=0.9.1',
+        'vivarium_public_health>=0.10.0',
+        'gbd_mapping>=2.1.0',
     ]
 
     data_requires = [
-        'vivarium-gbd-access>=2.0.0',
+        'vivarium-gbd-access>=2.0.4',
+        'core-maths'
     ]
 
     test_requirements = [

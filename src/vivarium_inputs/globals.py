@@ -78,8 +78,8 @@ MEASURES = {
     'YLDs': 3,
     'YLLs': 4,
     'Prevalence': 5,
-    'Incidence': 6,
-    'Remission': 7,
+    'Incidence rate': 6,
+    'Remission rate': 7,
     'Duration': 8,
     'Excess mortality rate': 9,
     'Prevalence * excess mortality rate': 10,
@@ -140,7 +140,7 @@ PROTECTIVE_CAUSE_RISK_PAIRS = {
 # Keep track of special cases for the sim validator boundary checks where the
 # standard boundary in sim validators won't cut it
 BOUNDARY_SPECIAL_CASES = {
-    'excess_mortality': {
+    'excess_mortality_rate': {
         'Ecuador': {
             'measles': 250_000_000
         },

@@ -20,15 +20,15 @@ COVARIATE_VALUE_COLUMNS = ['mean_value', 'upper_value', 'lower_value']
 def get_data(entity, measure: str, location: Union[str, int]):
     measure_handlers = {
         # Cause-like measures
-        'incidence': (get_incidence, ('cause', 'sequela')),
-        'raw_incidence': (get_raw_incidence, ('cause', 'sequela')),
+        'incidence_rate': (get_incidence_rate, ('cause', 'sequela')),
+        'raw_incidence_rate': (get_raw_incidence_rate, ('cause', 'sequela')),
         'prevalence': (get_prevalence, ('cause', 'sequela')),
         'birth_prevalence': (get_birth_prevalence, ('cause', 'sequela')),
         'disability_weight': (get_disability_weight, ('cause', 'sequela')),
-        'remission': (get_remission, ('cause',)),
-        'cause_specific_mortality': (get_cause_specific_mortality, ('cause',)),
-        'excess_mortality': (get_excess_mortality, ('cause',)),
-        'case_fatality': (get_case_fatality, ('cause',)),
+        'remission_rate': (get_remission_rate, ('cause',)),
+        'cause_specific_mortality_rate': (get_cause_specific_mortality_rate, ('cause',)),
+        'excess_mortality_rate': (get_excess_mortality_rate, ('cause',)),
+        'case_fatality_rate': (get_case_fatality_rate, ('cause',)),
         'deaths': (get_deaths, ('cause',)),
         # Risk-like measures
         'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
@@ -41,7 +41,7 @@ def get_data(entity, measure: str, location: Union[str, int]):
         'estimate': (get_estimate, ('covariate',)),
         # Health system measures
         'cost': (get_cost, ('healthcare_entity', 'health_technology')),
-        'utilization': (get_utilization, ('healthcare_entity',)),
+        'utilization_rate': (get_utilization_rate, ('healthcare_entity',)),
         # Population measures
         'structure': (get_structure, ('population',)),
         'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
@@ -72,8 +72,8 @@ def get_data(entity, measure: str, location: Union[str, int]):
     return data
 
 
-def get_raw_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, 'incidence', location_id)
+def get_raw_incidence_rate(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'incidence_rate', location_id)
     if entity.kind == 'cause':
         restrictions_entity = entity
     else:  # sequela
@@ -87,8 +87,8 @@ def get_raw_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.Dat
     return data
 
 
-def get_incidence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
-    data = get_data(entity, 'raw_incidence', location_id)
+def get_incidence_rate(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+    data = get_data(entity, 'raw_incidence_rate', location_id)
     prevalence = get_data(entity, 'prevalence', location_id)
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
@@ -147,8 +147,8 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
     return data
 
 
-def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, 'remission', location_id)
+def get_remission_rate(entity: Cause, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'remission_rate', location_id)
 
     data = utilities.filter_data_by_restrictions(data, entity,
                                                  'yld', utility_data.get_age_group_ids())
@@ -157,7 +157,7 @@ def get_remission(entity: Cause, location_id: int) -> pd.DataFrame:
     return data
 
 
-def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
+def get_cause_specific_mortality_rate(entity: Cause, location_id: int) -> pd.DataFrame:
     deaths = get_data(entity, 'deaths', location_id)  # population isn't by draws
     pop = get_data(Population(), 'structure', location_id)
     data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
@@ -165,15 +165,15 @@ def get_cause_specific_mortality(entity: Cause, location_id: int) -> pd.DataFram
     return data.drop(['value'], 'columns')
 
 
-def get_excess_mortality(entity: Cause, location_id: int) -> pd.DataFrame:
-    csmr = get_data(entity, 'cause_specific_mortality', location_id)
+def get_excess_mortality_rate(entity: Cause, location_id: int) -> pd.DataFrame:
+    csmr = get_data(entity, 'cause_specific_mortality_rate', location_id)
     prevalence = get_data(entity, 'prevalence', location_id)
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data
 
 
-def get_case_fatality(entity: Cause, location_id: int):
+def get_case_fatality_rate(entity: Cause, location_id: int):
     raise NotImplementedError()
 
 
@@ -254,7 +254,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     """ It applies age restrictions according to affected causes
     and affected measures. If affected measure is incidence_rate,
     it applies the yld_age_restrictions. If affected measure is
-    excess_mortality, it applies the yll_age_restrictions to filter
+    excess_mortality_rate, it applies the yll_age_restrictions to filter
     the relative_risk data"""
 
     causes_map = {c.name: c for c in causes}
@@ -264,7 +264,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     for cause, measure in product(affected_entities, affected_measures):
         df = data[(data.affected_entity == cause) & (data.affected_measure == measure)]
         cause = causes_map[cause]
-        if measure == 'excess_mortality':
+        if measure == 'excess_mortality_rate':
             start, end = utilities.get_age_group_ids_by_restriction(cause, 'yll')
         else:  # incidence_rate
             start, end = utilities.get_age_group_ids_by_restriction(cause, 'yld')
@@ -288,7 +288,7 @@ def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) 
         mortality = data.mortality == 1
         data.loc[morbidity & mortality, 'affected_measure'] = 'incidence_rate'
         data.loc[morbidity & ~mortality, 'affected_measure'] = 'incidence_rate'
-        data.loc[~morbidity & mortality, 'affected_measure'] = 'excess_mortality'
+        data.loc[~morbidity & mortality, 'affected_measure'] = 'excess_mortality_rate'
         data = filter_relative_risk_to_cause_restrictions(data)
     else:  # coverage_gap
         data = utilities.convert_affected_entity(data, 'rei_id')
@@ -352,7 +352,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
             data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()
 
     data = utilities.convert_affected_entity(data, 'cause_id')
-    data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality'
+    data.loc[data['measure_id'] == MEASURES['YLLs'], 'affected_measure'] = 'excess_mortality_rate'
     data.loc[data['measure_id'] == MEASURES['YLDs'], 'affected_measure'] = 'incidence_rate'
     data = (data.groupby(['affected_entity', 'affected_measure'])
             .apply(utilities.normalize, fill_value=0)
@@ -387,8 +387,8 @@ def get_cost(entity: Union[HealthcareEntity, HealthTechnology], location_id: int
     return data
 
 
-def get_utilization(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, 'utilization', location_id)
+def get_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
+    data = extract.extract_data(entity, 'utilization_rate', location_id)
     data = utilities.normalize(data, fill_value=0)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     return data
@@ -403,13 +403,13 @@ def get_structure(entity: Population, location_id: int) -> pd.DataFrame:
 
 def get_theoretical_minimum_risk_life_expectancy(entity: Population, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'theoretical_minimum_risk_life_expectancy', location_id)
-    data = data.rename(columns={'age': 'age_group_start', 'life_expectancy': 'value'})
-    data['age_group_end'] = data.age_group_start.shift(-1).fillna(125.)
+    data = data.rename(columns={'age': 'age_start', 'life_expectancy': 'value'})
+    data['age_end'] = data.age_start.shift(-1).fillna(125.)
     return data
 
 
 def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
-    age_bins = utility_data.get_age_bins()[['age_group_name', 'age_group_start', 'age_group_end']]
+    age_bins = utility_data.get_age_bins()[['age_group_name', 'age_start', 'age_end']]
     return age_bins
 
 
