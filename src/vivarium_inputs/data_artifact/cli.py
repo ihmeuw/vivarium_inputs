@@ -11,7 +11,7 @@ import yaml
 
 from vivarium.framework.engine import SimulationContext
 
-from vivarium_inputs import get_measure
+import vivarium_inputs
 from vivarium_inputs.data_artifact import utilities
 
 
@@ -146,7 +146,7 @@ def get_measure(entity_type, entity_name, measure, location, fname):
     object and passed to read_pickle on the other end.
     """
     entity = utilities.parse_entity(entity_type, entity_name)
-    data = get_measure(entity, measure, location)
+    data = vivarium_inputs.get_measure(entity, measure, location)
     if fname:
         with open(fname, mode='wb') as f:
             data.to_pickle(f, compression='gzip')
