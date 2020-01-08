@@ -197,7 +197,7 @@ def wide_to_long(data: pd.DataFrame, value_cols: List, var_name: str) -> pd.Data
 
 def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
     """Reorder index labels of a hierarchical index and sort in level order."""
-    sort_order = ['location', 'sex', 'age', 'year']
+    sort_order = ['location', 'sex', 'age_start', 'age_end', 'year_start', 'year_end']
     sorted_data_index = [n for n in sort_order if n in data.index.names]
     sorted_data_index.extend([n for n in data.index.names if n not in sorted_data_index])
 
