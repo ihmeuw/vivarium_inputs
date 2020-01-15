@@ -197,7 +197,7 @@ def wide_to_long(data: pd.DataFrame, value_cols: List, var_name: str) -> pd.Data
 
 def sort_hierarchical_data(data: pd.DataFrame) -> pd.DataFrame:
     """Reorder index labels of a hierarchical index and sort in level order."""
-    sort_order = ['location', 'sex', 'age', 'year']
+    sort_order = ['location', 'sex', 'age_start', 'age_end', 'year_start', 'year_end']
     sorted_data_index = [n for n in sort_order if n in data.index.names]
     sorted_data_index.extend([n for n in data.index.names if n not in sorted_data_index])
 
@@ -398,3 +398,17 @@ def get_exposure_and_restriction_ages(exposure: pd.DataFrame, entity: RiskFactor
     valid_age_groups = exposure_age_groups.intersection(restriction_age_groups)
 
     return valid_age_groups
+
+
+def split_interval(data, interval_column, split_column_prefix):
+    if isinstance(data, pd.DataFrame) and interval_column in data.index.names:
+        data[f'{split_column_prefix}_end'] = [x.right for x in data.index.get_level_values(interval_column)]
+        if not isinstance(data.index, pd.MultiIndex):
+            data[f'{split_column_prefix}_start'] = [x.left for x in data.index.get_level_values(interval_column)]
+            data = data.set_index([f'{split_column_prefix}_start', f'{split_column_prefix}_end'])
+        else:
+            interval_starts = [x.left for x in data.index.levels[data.index.names.index(interval_column)]]
+            data.index = (data.index.rename(f'{split_column_prefix}_start', interval_column)
+                          .set_levels(interval_starts, f'{split_column_prefix}_start'))
+            data = data.set_index(f'{split_column_prefix}_end', append=True)
+    return data
