@@ -1,3 +1,7 @@
+**3.1.1 - 01/14/20**
+
+ - Fix bug in hierarchical data sorting
+
 **3.1.0 - 11/18/19**
 
  - Update information about pulling data from gbd.
