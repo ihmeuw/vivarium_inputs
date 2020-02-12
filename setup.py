@@ -15,8 +15,7 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
-        # FIXME: Newer versions of numpy have conflicting dependencies
-        # with pytables.
+        # FIXME: Newer versions of numpy have conflicting dependencies with pytables.
         'numpy<=1.15.4',
         'scipy',
         'pandas<0.25',  # 0.25 requires tables >= 3.4.2
@@ -26,6 +25,7 @@ if __name__ == "__main__":
         'vivarium>=0.9.1',
         'vivarium_public_health>=0.10.0',
         'gbd_mapping>=2.1.0',
+        'loguru',
     ]
 
     data_requires = [

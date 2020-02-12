@@ -172,10 +172,10 @@ def test_check_age_group_ids_fail(mock_validation_context, test_age_ids, start, 
                           ([2, 3, 4], 2, 3, 'additional age groups'),
                           ([1, 2, 3, 4, 5], 1, 3, 'additional age groups'),
                           ([1, 2, 3], 1, 5, 'contain all age groups in restriction range')])
-def test_check_age_group_ids_warn(mock_validation_context, test_age_ids, start, end, match):
+def test_check_age_group_ids_warn(mock_validation_context, caplog, test_age_ids, start, end, match):
     df = pd.DataFrame({'age_group_id': test_age_ids})
-    with pytest.warns(Warning, match=match):
-        raw.check_age_group_ids(df, mock_validation_context, start, end)
+    raw.check_age_group_ids(df, mock_validation_context, start, end)
+    assert match in caplog.text
 
 
 @pytest.mark.parametrize('test_age_ids, start, end',
@@ -198,17 +198,15 @@ def test_check_sex_ids_fail(mock_validation_context, sex_ids, male, female, both
         raw.check_sex_ids(df, mock_validation_context, male, female, both)
 
 
-@pytest.mark.parametrize('sex_ids, male, female, both, match', [([1, 2, 1], True, True, True, ['missing']),
-                                                                ([1, 2, 3, 2], True, True, False, ['extra']),
-                                                                ([1], False, True, False, ['extra', 'missing'])])
-def test_check_sex_ids_warn(mock_validation_context, sex_ids, male, female, both, match):
+@pytest.mark.parametrize('sex_ids, male, female, both, warn_extra, warn_missing',
+                         [([1, 2, 1], True, True, True, False, True),
+                          ([1, 2, 3, 2], True, True, False, True, False),
+                          ([1], False, True, False, True, True)])
+def test_check_sex_ids_warn(mock_validation_context, caplog, sex_ids, male, female, both, warn_extra, warn_missing):
     df = pd.DataFrame({'sex_id': sex_ids})
-    with pytest.warns(None) as record:
-        raw.check_sex_ids(df, mock_validation_context, male, female, both)
-
-    assert len(record) == len(match), 'The expected number of warnings were not raised.'
-    for i, m in enumerate(match):
-        assert m in str(record[i].message), f'The expected warning message was not raised for warning {i+1}.'
+    raw.check_sex_ids(df, mock_validation_context, male, female, both)
+    assert warn_extra == ('extra' in caplog.text), 'The expected warning message was not raised for extra sex ids'
+    assert warn_missing == ('missing' in caplog.text), 'The expected warning message was not raised for missing sex ids'
 
 
 @pytest.mark.parametrize('sex_ids, male, female, both', [([1, 1, 1], True, False, False),
@@ -239,9 +237,9 @@ test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3, 4, 5], 'a': 1, 'b': 0}), 1
 
 
 @pytest.mark.parametrize('data, start, end, val_cols', test_data)
-def test_check_age_restrictions_warn(mock_validation_context, data, start, end, val_cols):
-    with pytest.warns(Warning, match='also included'):
-        raw.check_age_restrictions(data, mock_validation_context, start, end, value_columns=val_cols)
+def test_check_age_restrictions_warn(mock_validation_context, caplog, data, start, end, val_cols):
+    raw.check_age_restrictions(data, mock_validation_context, start, end, value_columns=val_cols)
+    assert 'also included' in caplog.text
 
 
 test_data = [(pd.DataFrame({'age_group_id': [1, 2, 3], 'a': 1, 'b': 0}), 1, 3, ['a', 'b']),
@@ -277,9 +275,9 @@ test_data = [(pd.DataFrame({'sex_id': [1, 2], 'a': 1, 'b': 0}), True, False,
 
 
 @pytest.mark.parametrize('data, male, female, val_cols, match', test_data)
-def test_check_sex_restrictions_warn(mock_validation_context, data, male, female, val_cols, match):
-    with pytest.warns(Warning, match=match):
-        raw.check_sex_restrictions(data, mock_validation_context, male, female, value_columns=val_cols)
+def test_check_sex_restrictions_warn(mock_validation_context, caplog, data, male, female, val_cols, match):
+    raw.check_sex_restrictions(data, mock_validation_context, male, female, value_columns=val_cols)
+    assert match in caplog.text
 
 
 test_data = [(pd.DataFrame({'sex_id': [1, 1], 'a': 1, 'b': 0, 'c': 0}), True, False, ['a', 'b']),

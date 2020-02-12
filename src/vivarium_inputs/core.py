@@ -1,10 +1,10 @@
 from typing import Union
 from itertools import product
-import warnings
 
 from gbd_mapping import Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
 import pandas as pd
 import numpy as np
+from loguru import logger
 
 from vivarium_inputs import utilities, extract, utility_data
 from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
@@ -346,7 +346,7 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
         cause = [c for c in causes if entity in c.etiologies][0]
         data = utilities.filter_data_by_restrictions(data, cause, 'inner', utility_data.get_age_group_ids())
         if np.any(data[DRAW_COLUMNS] < 0):
-            warnings.warn(f"{entity.name.capitalize()} has negative values for paf. These will be replaced with 0.")
+            logger.warning(f"{entity.name.capitalize()} has negative values for paf. These will be replaced with 0.")
             other_cols = [c for c in data.columns if c not in DRAW_COLUMNS]
             data.set_index(other_cols, inplace=True)
             data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()

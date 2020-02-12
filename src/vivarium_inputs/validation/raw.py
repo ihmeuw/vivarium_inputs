@@ -1,9 +1,9 @@
 from typing import Union, List, Tuple, Set
 import operator
-import warnings
 
 import pandas as pd
 import numpy as np
+from loguru import logger
 
 from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, Covariate, CoverageGap, causes)
 
@@ -206,7 +206,7 @@ def check_sequela_metadata(entity: Sequela, measure: str) -> None:
     else:  # measure == 'disability_weight
         if not entity.healthstate[f'{measure}_exists']:
             # warn instead of error so won't break if pulled for a cause where not all sequelae may be missing dws
-            warnings.warn(f'Sequela {entity.name} does not have {measure} data.')
+            logger.warning(f'Sequela {entity.name} does not have {measure} data.')
 
 
 def check_cause_metadata(entity: Cause, measure: str) -> None:
@@ -253,13 +253,16 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
         children = "subcauses" if measure == "deaths" else "sequela"
 
         if consistent is not None and not consistent:
-            warnings.warn(f"{measure.capitalize()} data for cause {entity.name} may not exist for {children} in all "
-                          f"locations. {children.capitalize()} models may not be consistent with models for this cause.")
-
+            logger.warning(
+                f"{measure.capitalize()} data for cause {entity.name} may not exist for {children} in all "
+                f"locations. {children.capitalize()} models may not be consistent with models for this cause."
+            )
         if consistent and not entity[f"{measure}_aggregates"]:
-            warnings.warn(f"{children.capitalize()} {measure} data for cause {entity.name} may not correctly "
-                          f"aggregate up to the cause level in all locations. {children.capitalize()} models may not "
-                          f"be consistent with models for this cause.")
+            logger.warning(
+                f"{children.capitalize()} {measure} data for cause {entity.name} may not correctly aggregate up to "
+                f"the cause level in all locations. {children.capitalize()} models may not be consistent with models "
+                f"for this cause."
+            )
 
 
 def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
@@ -302,8 +305,9 @@ def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
         check_exists_in_range(entity, measure)
 
         if measure == 'exposure' and entity.exposure_year_type in ('mix', 'incomplete'):
-            warnings.warn(f'{measure.capitalize()} data for risk factor {entity.name} may contain unexpected '
-                          f'or missing years.')
+            logger.warning(
+                f'{measure.capitalize()} data for risk factor {entity.name} may contain unexpected or missing years.'
+            )
 
     warn_violated_restrictions(entity, measure)
 
@@ -337,17 +341,19 @@ def check_covariate_metadata(entity: Covariate, measure: str) -> None:
 
     """
     if not entity.mean_value_exists:
-        warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain'
-                      f'mean values for all locations.')
+        logger.warning(
+            f'{measure.capitalize()} data for covariate {entity.name} may not contain mean values for all locations.'
+        )
 
     if not entity.uncertainty_exists:
-        warnings.warn(f'{measure.capitalize()} data for covariate {entity.name} may not contain '
-                      f'uncertainty values for all locations.')
+        logger.warning(f'{measure.capitalize()} data for covariate {entity.name} may not contain '
+                       f'uncertainty values for all locations.')
 
     violated_restrictions = [f'by {r}' for r in ['sex', 'age'] if entity[f'by_{r}_violated']]
     if violated_restrictions:
-        warnings.warn(f'Covariate {entity.name} may violate the following '
-                      f'restrictions: {", ".join(violated_restrictions)}.')
+        logger.warning(
+            f'Covariate {entity.name} may violate the following restrictions: {", ".join(violated_restrictions)}.'
+        )
 
 
 def check_coverage_gap_metadata(entity: CoverageGap, measure: str) -> None:
@@ -367,7 +373,7 @@ def check_health_technology_metadata(entity: HealthTechnology, measure: str) -> 
 
     """
     if measure == 'cost':
-        warnings.warn(f'Cost data for {entity.kind} {entity.name} does not vary by year.')
+        logger.warning(f'Cost data for {entity.kind} {entity.name} does not vary by year.')
 
 
 def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str) -> None:
@@ -385,8 +391,8 @@ def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str) -> 
 
     """
     if measure == 'cost':
-        warnings.warn(f'2017 cost data for {entity.kind} {entity.name} is duplicated from 2016 data, and all data '
-                      f'before 1995 is backfilled from 1995 data.')
+        logger.warning(f'2017 cost data for {entity.kind} {entity.name} is duplicated from 2016 data, and all data '
+                       f'before 1995 is backfilled from 1995 data.')
 
 
 def check_population_metadata(entity: Population, measure: str) -> None:
@@ -491,7 +497,9 @@ def validate_prevalence(data: pd.DataFrame, entity: Union[Cause, Sequela], conte
     if not EXCLUDE_ABNORMAL_DATA(entity, context):
         check_sex_restrictions(data, context, restrictions.male_only, restrictions.female_only)
     else:
-        warnings.warn(f'In validate_prevalence() -- skipping check_sex_restrictions() due to data issues for {entity.name}')
+        logger.warning(
+            f'In validate_prevalence() -- skipping check_sex_restrictions() due to data issues for {entity.name}'
+        )
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
     check_value_columns_boundary(data, 1, 'upper', value_columns=DRAW_COLUMNS, inclusive=True, error=DataAbnormalError)
@@ -1379,9 +1387,9 @@ def check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: st
         raise InvalidQueryError(f'{measure.capitalize()} data is not expected to exist '
                                 f'for {entity.kind} {entity.name}.')
     if not exists:
-        warnings.warn(f'{measure.capitalize()} data for {entity.kind} {entity.name} may not exist for all locations.')
+        logger.warning(f'{measure.capitalize()} data for {entity.kind} {entity.name} may not exist for all locations.')
     if f'{measure}_in_range' in entity.__slots__ and exists and not entity[f'{measure}_in_range']:
-        warnings.warn(f'{measure.capitalize()} for {entity.kind} {entity.name} may be outside the normal range.')
+        logger.warning(f'{measure.capitalize()} for {entity.kind} {entity.name} may be outside the normal range.')
 
 
 def warn_violated_restrictions(entity: Union[Cause, RiskFactor], measure: str) -> None:
@@ -1402,8 +1410,8 @@ def warn_violated_restrictions(entity: Union[Cause, RiskFactor], measure: str) -
     violated_restrictions = [r.replace(f'by_{measure}', '').replace(measure, '').replace('_', ' ').replace(' violated', '')
                              for r in entity.restrictions.violated if measure in r]
     if violated_restrictions:
-        warnings.warn(f'{entity.kind.capitalize()} {entity.name} {measure} data may violate the '
-                      f'following restrictions: {", ".join(violated_restrictions)}.')
+        logger.warning(f'{entity.kind.capitalize()} {entity.name} {measure} data may violate the '
+                       f'following restrictions: {", ".join(violated_restrictions)}.')
 
 
 def check_paf_types(entity: Union[Etiology, RiskFactor]) -> None:
@@ -1424,16 +1432,16 @@ def check_paf_types(entity: Union[Etiology, RiskFactor]) -> None:
     missing_pafs = paf_types[[not entity.population_attributable_fraction_yll_exists,
                               not entity.population_attributable_fraction_yld_exists]]
     if missing_pafs.size:
-        warnings.warn(f'Population attributable fraction data for {", ".join(missing_pafs)} for '
-                      f'{entity.kind} {entity.name} may not exist for all locations.')
+        logger.warning(f'Population attributable fraction data for {", ".join(missing_pafs)} for '
+                       f'{entity.kind} {entity.name} may not exist for all locations.')
 
     abnormal_range = paf_types[[entity.population_attributable_fraction_yll_exists
                                 and not entity.population_attributable_fraction_yll_in_range,
                                 entity.population_attributable_fraction_yld_exists
                                 and not entity.population_attributable_fraction_yld_in_range]]
     if abnormal_range.size:
-        warnings.warn(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
-                      f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
+        logger.warning(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
+                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
 
 
 def check_cause_age_restrictions_sets(entity: Cause) -> None:
@@ -1457,10 +1465,12 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
         yld_start, yld_end = entity.restrictions.yld_age_group_id_start, entity.restrictions.yld_age_group_id_end
 
         if yll_start < yld_start or yld_end < yll_end:
-            warnings.warn(f'{entity.name} has a broader yll age range than yld age range. This likely means there '
-                          f'are age groups for which there is no incidence or prevalence but there are deaths. Data '
-                          f'will be filtered by these age ranges. If you are putting this data into a simulation, '
-                          f'please ensure that you have thoroughly investigated this and verified your model.')
+            logger.warning(
+                f'{entity.name} has a broader yll age range than yld age range. This likely means there are age '
+                f'groups for which there is no incidence or prevalence but there are deaths. Data will be filtered '
+                f'by these age ranges. If you are putting this data into a simulation, please ensure that you have '
+                f'thoroughly investigated this and verified your model.'
+            )
 
 ############################
 # RAW VALIDATION UTILITIES #
@@ -1668,8 +1678,10 @@ def check_paf_rr_exposure_age_groups(paf: pd.DataFrame, context: RawValidationCo
             raise DataAbnormalError(f"Paf for {cause.name} and {entity.name} have missing data for "
                                     f"the age groups: {missing_pafs}.")
         if extra_paf:
-            warnings.warn(f"{measure} paf for {cause.name} and {entity.name} have data for "
-                          f"the age groups: {extra_paf}, which do not have either relative risk or exposure data.")
+            logger.warning(
+                f"{measure} paf for {cause.name} and {entity.name} have data for the age groups: {extra_paf}, "
+                f"which do not have either relative risk or exposure data."
+            )
 
 
 def check_years(data: pd.DataFrame, context: RawValidationContext, year_type: str) -> None:
@@ -1853,9 +1865,9 @@ def check_age_group_ids(data: pd.DataFrame, context: RawValidationContext,
     _check_continuity(data_ages, all_ages)
 
     if data_ages < restriction_ages:
-        warnings.warn('Data does not contain all age groups in restriction range.')
+        logger.warning('Data does not contain all age groups in restriction range.')
     elif restriction_ages and restriction_ages < data_ages:
-        warnings.warn('Data contains additional age groups beyond those specified by restriction range.')
+        logger.warning('Data contains additional age groups beyond those specified by restriction range.')
     else:  # data_ages == restriction_ages
         pass
 
@@ -1900,11 +1912,11 @@ def check_sex_ids(data: pd.DataFrame, context: RawValidationContext,
 
     extra_sex_ids = data_sex_ids.difference(gbd_sex_ids)
     if extra_sex_ids:
-        warnings.warn(f'Data contains the following extra sex ids {extra_sex_ids}.')
+        logger.warning(f'Data contains the following extra sex ids {extra_sex_ids}.')
 
     missing_sex_ids = set(gbd_sex_ids).difference(data_sex_ids)
     if missing_sex_ids:
-        warnings.warn(f'Data is missing the following expected sex ids: {missing_sex_ids}.')
+        logger.warning(f'Data is missing the following expected sex ids: {missing_sex_ids}.')
 
 
 def check_age_restrictions(data: pd.DataFrame, context: RawValidationContext,
@@ -1951,15 +1963,16 @@ def check_age_restrictions(data: pd.DataFrame, context: RawValidationContext,
                    f'and {age_group_id_end} but was missing the following: {missing_age_groups}.')
         if error:
             raise DataAbnormalError(message)
-        warnings.warn(message)
+        logger.warning(message)
 
     if extra_age_groups:
         # we treat all 0s as missing in accordance with gbd so if extra age groups have all 0 data, that's fine
         should_be_zero = data[data.age_group_id.isin(extra_age_groups)]
         if check_data_exist(should_be_zero, zeros_missing=True, value_columns=value_columns, error=False):
-            warnings.warn(f'Data was only expected to contain values for age groups between ids '
-                          f'{age_group_id_start} and {age_group_id_end} but also included values for '
-                          f'age groups {extra_age_groups}.')
+            logger.warning(
+                f'Data was only expected to contain values for age groups between ids {age_group_id_start} and '
+                f'{age_group_id_end} but also included values for age groups {extra_age_groups}.'
+            )
 
     # make sure we're not missing data for all ages in restrictions
     if not check_data_exist(data[data.age_group_id.isin(expected_gbd_age_ids)], zeros_missing=True,
@@ -1967,7 +1980,7 @@ def check_age_restrictions(data: pd.DataFrame, context: RawValidationContext,
         message = 'Data is missing for all age groups within restriction range.'
         if error:
             raise DataAbnormalError(message)
-        warnings.warn(message)
+        logger.warning(message)
 
 
 def check_sex_restrictions(data: pd.DataFrame, context: RawValidationContext, male_only: bool, female_only: bool,
@@ -2006,8 +2019,9 @@ def check_sex_restrictions(data: pd.DataFrame, context: RawValidationContext, ma
         if (set(data.sex_id) != {male} and
                 check_data_exist(data[data.sex_id != male], zeros_missing=True,
                                  value_columns=value_columns, error=False)):
-            warnings.warn('Data is restricted to male only, but contains '
-                          'non-male sex ids for which data values are not all 0.')
+            logger.warning(
+                'Data is restricted to male only, but contains non-male sex ids for which data values are not all 0.'
+            )
 
     if female_only:
         if not check_data_exist(data[data.sex_id == female], zeros_missing=True,
@@ -2017,8 +2031,8 @@ def check_sex_restrictions(data: pd.DataFrame, context: RawValidationContext, ma
         if (set(data.sex_id) != {female} and
                 check_data_exist(data[data.sex_id != female], zeros_missing=True,
                                  value_columns=value_columns, error=False)):
-            warnings.warn('Data is restricted to female only, but contains '
-                          'non-female sex ids for which data values are not all 0.')
+            logger.warning('Data is restricted to female only, but contains '
+                           'non-female sex ids for which data values are not all 0.')
 
     if not male_only and not female_only:
         if {male, female}.issubset(set(data.sex_id)):
