@@ -1,7 +1,7 @@
 from typing import Union
 from itertools import product
 
-from gbd_mapping import Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
+from gbd_mapping import Cause, Sequela, RiskFactor, Etiology, Covariate, causes
 import pandas as pd
 import numpy as np
 from loguru import logger
@@ -186,7 +186,7 @@ def get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
     return data
 
 
-def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
+def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'exposure', location_id)
     data = data.drop('modelable_entity_id', 'columns')
 
@@ -273,7 +273,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     return data
 
 
-def get_relative_risk(entity: Union[RiskFactor, CoverageGap], location_id: int) -> pd.DataFrame:
+def get_relative_risk(entity: Union[RiskFactor], location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'relative_risk', location_id)
 
     if entity.kind == 'risk_factor':

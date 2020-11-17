@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from loguru import logger
 
-from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, Covariate, CoverageGap, causes)
+from gbd_mapping import (ModelableEntity, Cause, Sequela, RiskFactor, Etiology, Covariate, causes)
 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
@@ -85,7 +85,6 @@ def check_metadata(entity: ModelableEntity, measure: str) -> None:
         'risk_factor': check_risk_factor_metadata,
         'etiology': check_etiology_metadata,
         'covariate': check_covariate_metadata,
-        'coverage_gap': check_coverage_gap_metadata,
         'health_technology': check_health_technology_metadata,
         'healthcare_entity': check_healthcare_entity_metadata,
         'population': check_population_metadata,
@@ -354,10 +353,6 @@ def check_covariate_metadata(entity: Covariate, measure: str) -> None:
         logger.warning(
             f'Covariate {entity.name} may violate the following restrictions: {", ".join(violated_restrictions)}.'
         )
-
-
-def check_coverage_gap_metadata(entity: CoverageGap, measure: str) -> None:
-    pass
 
 
 def check_health_technology_metadata(entity: HealthTechnology, measure: str) -> None:
@@ -691,7 +686,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause, context: RawValidationCon
                                  value_columns=DRAW_COLUMNS, inclusive=True, error=None)
 
 
-def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
+def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                       context: RawValidationContext) -> None:
     """Check the standard set of validations on raw exposure data for entity.
     Check age group and sex ids and restrictions for each category individually
@@ -881,7 +876,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
         raise DataAbnormalError(f'Distribution weights for {entity.kind} {entity.name} do not sum to 1.')
 
 
-def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap],
+def validate_relative_risk(data: pd.DataFrame, entity: RiskFactor,
                            context: RawValidationContext) -> None:
     """Check the standard set of validations on raw relative risk data for
     entity, replacing the age ids check with a custom check based on the age
