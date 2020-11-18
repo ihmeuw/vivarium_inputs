@@ -51,6 +51,10 @@ class RawValidationContext:
         self.context_data[key] = value
 
 
+def do_nothing(ignore_1, ignore_2):
+    pass
+
+
 def check_metadata(entity: ModelableEntity, measure: str) -> None:
     """ Check metadata associated with the given entity and measure for any
     relevant warnings or errors.
@@ -80,15 +84,15 @@ def check_metadata(entity: ModelableEntity, measure: str) -> None:
 
     """
     metadata_checkers = {
-        'sequela': check_sequela_metadata,
+        'sequela': do_nothing,
         'cause': check_cause_metadata,
-        'risk_factor': check_risk_factor_metadata,
-        'etiology': check_etiology_metadata,
-        'covariate': check_covariate_metadata,
+        'risk_factor': do_nothing,
+        'etiology': do_nothing,
+        'covariate': do_nothing,
         'health_technology': check_health_technology_metadata,
         'healthcare_entity': check_healthcare_entity_metadata,
-        'population': check_population_metadata,
-        'alternative_risk_factor': check_alternative_risk_factor_metadata,
+        'population': do_nothing,
+        'alternative_risk_factor': do_nothing,
     }
     if entity.kind not in metadata_checkers:
         raise InvalidQueryError(f'No metadata checker found for {entity.kind}.')
@@ -184,30 +188,6 @@ def validate_raw_data(data: pd.DataFrame, entity: ModelableEntity,
 ##############################################
 
 
-def check_sequela_metadata(entity: Sequela, measure: str) -> None:
-    """Check all relevant metadata flags for sequela pertaining to measure.
-
-    Parameters
-    ----------
-    entity
-        Sequela for which to check metadata.
-    measure
-        Measure for which to check metadata.
-
-    Raises
-    ------
-    InvalidQueryError
-        If the 'exists' metadata flag on `entity` for `measure` is None.
-
-    """
-    if measure in ['incidence_rate', 'prevalence', 'birth_prevalence']:
-        check_exists_in_range(entity, measure)
-    else:  # measure == 'disability_weight
-        if not entity.healthstate[f'{measure}_exists']:
-            # warn instead of error so won't break if pulled for a cause where not all sequelae may be missing dws
-            logger.warning(f'Sequela {entity.name} does not have {measure} data.')
-
-
 def check_cause_metadata(entity: Cause, measure: str) -> None:
     """Check all relevant metadata flags for cause pertaining to measure.
 
@@ -243,116 +223,6 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
                                   f" model to support such a cause.")
 
     check_cause_age_restrictions_sets(entity)
-    check_exists_in_range(entity, measure)
-
-    warn_violated_restrictions(entity, measure)
-
-    if measure != 'remission_rate':
-        consistent = entity[f"{measure}_consistent"]
-        children = "subcauses" if measure == "deaths" else "sequela"
-
-        if consistent is not None and not consistent:
-            logger.warning(
-                f"{measure.capitalize()} data for cause {entity.name} may not exist for {children} in all "
-                f"locations. {children.capitalize()} models may not be consistent with models for this cause."
-            )
-        if consistent and not entity[f"{measure}_aggregates"]:
-            logger.warning(
-                f"{children.capitalize()} {measure} data for cause {entity.name} may not correctly aggregate up to "
-                f"the cause level in all locations. {children.capitalize()} models may not be consistent with models "
-                f"for this cause."
-            )
-
-
-def check_risk_factor_metadata(entity: RiskFactor, measure: str) -> None:
-    """Check all relevant metadata flags for risk pertaining to measure.
-
-    For measure exposure, additionally check that the exposure_year_type flag
-    is not 'mix' or 'incomplete', which would indicate a non-standard set of
-    years in the data.
-
-    Parameters
-    ----------
-    entity
-        RiskFactor for which to check metadata.
-    measure
-        Measure for which to check metadata.
-
-    Raises
-    ------
-    NotImplementedError
-        If the `entity` has a 'custom' distribution.
-
-    InvalidQueryError
-        If the 'exists' metadata flag on `entity` for `measure` is None.
-
-    """
-    if entity.name in PROBLEMATIC_RISKS:
-        raise NotImplementedError(f"We don't currently support pulling data for risk factor {entity.name} because of "
-                                  f"significant issues with the data: {PROBLEMATIC_RISKS[entity.name]}.")
-
-    if measure in ('exposure_distribution_weights', 'mediation_factors'):
-        # we don't have any applicable metadata to check
-        return
-
-    if entity.distribution == 'custom':
-        raise NotImplementedError('We do not currently support risk factors with custom distributions.')
-
-    if measure == 'population_attributable_fraction':
-        check_paf_types(entity)
-    else:
-        check_exists_in_range(entity, measure)
-
-        if measure == 'exposure' and entity.exposure_year_type in ('mix', 'incomplete'):
-            logger.warning(
-                f'{measure.capitalize()} data for risk factor {entity.name} may contain unexpected or missing years.'
-            )
-
-    warn_violated_restrictions(entity, measure)
-
-
-def check_alternative_risk_factor_metadata(entity: AlternativeRiskFactor, measure: str) -> None:
-    pass
-
-
-def check_etiology_metadata(entity: Etiology, measure: str) -> None:
-    """Check all relevant metadata flags for etiology pertaining to measure.
-
-    Parameters
-    ----------
-    entity
-        Etiology for which to check metadata.
-    measure
-        Measure for which to check metadata.
-    """
-    check_paf_types(entity)
-
-
-def check_covariate_metadata(entity: Covariate, measure: str) -> None:
-    """Check all relevant metadata flags for covariate pertaining to measure.
-
-    Parameters
-    ----------
-    entity
-        RiskFactor for which to check metadata.
-    measure
-        Measure for which to check metadata.
-
-    """
-    if not entity.mean_value_exists:
-        logger.warning(
-            f'{measure.capitalize()} data for covariate {entity.name} may not contain mean values for all locations.'
-        )
-
-    if not entity.uncertainty_exists:
-        logger.warning(f'{measure.capitalize()} data for covariate {entity.name} may not contain '
-                       f'uncertainty values for all locations.')
-
-    violated_restrictions = [f'by {r}' for r in ['sex', 'age'] if entity[f'by_{r}_violated']]
-    if violated_restrictions:
-        logger.warning(
-            f'Covariate {entity.name} may violate the following restrictions: {", ".join(violated_restrictions)}.'
-        )
 
 
 def check_health_technology_metadata(entity: HealthTechnology, measure: str) -> None:
@@ -388,11 +258,6 @@ def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str) -> 
     if measure == 'cost':
         logger.warning(f'2017 cost data for {entity.kind} {entity.name} is duplicated from 2016 data, and all data '
                        f'before 1995 is backfilled from 1995 data.')
-
-
-def check_population_metadata(entity: Population, measure: str) -> None:
-    pass
-
 
 #################################################
 #   VALIDATE RAW DATA ENTITY SPECIFIC METHODS   #
@@ -1353,90 +1218,6 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
 ############################
 # CHECK METADATA UTILITIES #
 ############################
-
-def check_exists_in_range(entity: Union[Sequela, Cause, RiskFactor], measure: str) -> None:
-    """Check the exists and in_range flags for the given measure in the metadata
-    of the entity.
-
-    Throw an error only in the case of the exists flag being
-    None, which indicates that the measure is not expected to exist for the
-    entity and thus should not be checked. Warn in all other cases because
-    these flags are based on a survey done on data from a single location.
-
-    Parameters
-    ----------
-    entity
-        Entity for which to check metadata.
-    measure
-        Measure for which to check exists and in_range flags.
-
-    Raises
-    ------
-    InvalidQueryError
-        If the exists flag for the given measure in the entity's metadata is
-        None.
-
-    """
-    exists = entity[f'{measure}_exists']
-    if exists is None:
-        raise InvalidQueryError(f'{measure.capitalize()} data is not expected to exist '
-                                f'for {entity.kind} {entity.name}.')
-    if not exists:
-        logger.warning(f'{measure.capitalize()} data for {entity.kind} {entity.name} may not exist for all locations.')
-    if f'{measure}_in_range' in entity.__slots__ and exists and not entity[f'{measure}_in_range']:
-        logger.warning(f'{measure.capitalize()} for {entity.kind} {entity.name} may be outside the normal range.')
-
-
-def warn_violated_restrictions(entity: Union[Cause, RiskFactor], measure: str) -> None:
-    """Parse out any violated restrictions relevant to the passed measure in
-    the metadata of the given entity and warn if any found.
-
-    Warn instead of erroring because these flags are based on a survey done
-    on data from a single location.
-
-    Parameters
-    ----------
-    entity
-        Entity for which to check violated restrictions.
-    measure
-        Measure for which to look for restrictions violated.
-
-    """
-    violated_restrictions = [r.replace(f'by_{measure}', '').replace(measure, '').replace('_', ' ').replace(' violated', '')
-                             for r in entity.restrictions.violated if measure in r]
-    if violated_restrictions:
-        logger.warning(f'{entity.kind.capitalize()} {entity.name} {measure} data may violate the '
-                       f'following restrictions: {", ".join(violated_restrictions)}.')
-
-
-def check_paf_types(entity: Union[Etiology, RiskFactor]) -> None:
-    """Check metadata flags for population_attributable_fraction measure to
-    see if both types (yll and yld) exist and are in range. Warn if either or
-    both are missing or not in range.
-
-    Warn instead of erroring because these flags are based on a survey done
-    on data from a single location.
-
-    Parameters
-    ----------
-    entity
-        Entity for which to check PAF flags.
-
-    """
-    paf_types = np.array(['yll', 'yld'])
-    missing_pafs = paf_types[[not entity.population_attributable_fraction_yll_exists,
-                              not entity.population_attributable_fraction_yld_exists]]
-    if missing_pafs.size:
-        logger.warning(f'Population attributable fraction data for {", ".join(missing_pafs)} for '
-                       f'{entity.kind} {entity.name} may not exist for all locations.')
-
-    abnormal_range = paf_types[[entity.population_attributable_fraction_yll_exists
-                                and not entity.population_attributable_fraction_yll_in_range,
-                                entity.population_attributable_fraction_yld_exists
-                                and not entity.population_attributable_fraction_yld_in_range]]
-    if abnormal_range.size:
-        logger.warning(f'Population attributable fraction data for {", ".join(abnormal_range)} for '
-                       f'{entity.kind} {entity.name} may be outside expected range [0, 1].')
 
 
 def check_cause_age_restrictions_sets(entity: Cause) -> None:

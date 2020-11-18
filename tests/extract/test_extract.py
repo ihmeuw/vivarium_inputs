@@ -1,3 +1,4 @@
+import gbd_mapping
 import numpy as np
 import pandas as pd
 import pytest
@@ -120,4 +121,6 @@ def test_extract_healthsystem(measures):
     ['structure',
     'theoretical_minimum_risk_life_expectancy'])
 def test_extract_population(measures):
-    df = extract.extract_data(None, measures, utility_data.get_location_id('India'), validate=False)
+    from gbd_mapping import ModelableEntity
+    pop = ModelableEntity('ignored', 'population', None)
+    df = extract.extract_data(pop, measures, utility_data.get_location_id('India'), validate=False)
