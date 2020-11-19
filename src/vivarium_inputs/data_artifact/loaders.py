@@ -1,6 +1,6 @@
 from typing import Set
 
-from gbd_mapping import causes, risk_factors, sequelae, covariates, etiologies, coverage_gaps
+from gbd_mapping import causes, risk_factors, sequelae, covariates, etiologies
 
 from vivarium_inputs.globals import InvalidQueryError
 from vivarium_inputs.interface import (get_measure, get_population_structure, get_age_bins,

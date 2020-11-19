@@ -3,7 +3,7 @@ from typing import Union, Dict, List
 import numpy as np
 import pandas as pd
 
-from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, CoverageGap, Etiology, Covariate, causes
+from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, Etiology, Covariate, causes
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (DataTransformationError, Population,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES, DRAW_COLUMNS)
@@ -411,7 +411,7 @@ def validate_excess_mortality_rate(data: pd.DataFrame, entity: Cause, context: S
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap, AlternativeRiskFactor],
+def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
                       context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped exposure
     data, with the upper boundary of values determined by the distribution type.
@@ -579,7 +579,7 @@ def validate_exposure_distribution_weights(data: pd.DataFrame, entity: Union[Ris
     check_sex_restrictions(data, entity.restrictions.male_only, entity.restrictions.female_only, fill_value=0.0)
 
 
-def validate_relative_risk(data: pd.DataFrame, entity: Union[RiskFactor, CoverageGap],
+def validate_relative_risk(data: pd.DataFrame, entity: RiskFactor,
                            context: SimulationValidationContext) -> None:
     """Check the standard set of validations on simulation-prepped relative risk
     data, with the upper boundary of values determined by the distribution type.
