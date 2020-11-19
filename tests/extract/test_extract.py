@@ -5,9 +5,18 @@ import pytest
 from enum import IntFlag
 
 from gbd_mapping import causes, risk_factors, covariates
-
 from vivarium_inputs import extract, utility_data
-from vivarium_inputs.globals import DataAbnormalError, DataDoesNotExistError, SEXES
+
+
+def is_dummy():
+    try:
+        from vivarium_inputs.globals import GbdDummy
+        return True
+    except:
+        pass
+    return False
+
+pytestmark = pytest.mark.skipif(is_dummy(), reason="Don't run these tests on the CI server")
 
 
 def success_expected(entity_name, measure_name, location):
