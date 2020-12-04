@@ -782,7 +782,7 @@ def validate_relative_risk(data: pd.DataFrame, entity: RiskFactor,
     check_data_exist(data, zeros_missing=True)
 
     expected_columns = ['rei_id', 'modelable_entity_id', 'cause_id', 'mortality',
-                        'morbidity', 'metric_id', 'parameter'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+                        'morbidity', 'metric_id', 'parameter', 'exposure'] + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
     check_columns(expected_columns, data.columns)
 
     check_metric_id(data, 'rate')
@@ -1197,7 +1197,7 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
     DataAbnormalError
        If data does not exist, expected columns are not found in data, or
        any values in columns do not match the expected set of values, including
-       if the ages in the data don't span [0, 110].
+       if the ages in the data don't span [0, 105].
 
     """
     check_data_exist(data, zeros_missing=True, value_columns=['life_expectancy'])
@@ -1205,9 +1205,9 @@ def validate_theoretical_minimum_risk_life_expectancy(data: pd.DataFrame, entity
     expected_columns = ['age', 'life_expectancy']
     check_columns(expected_columns, data.columns)
 
-    min_age, max_age = 0, 110
-    if data.age.min() > min_age or data.age.max() < max_age:
-        raise DataAbnormalError('Data does not contain life expectancy values for ages [0, 110].')
+    min_age, max_age = 0, 105
+    if data.age.min() != min_age or data.age.max() != max_age:
+        raise DataAbnormalError(f'Data does not contain life expectancy values for ages [{min_age}, {max_age}].')
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=['life_expectancy'],
                                  inclusive=True, error=DataAbnormalError)
