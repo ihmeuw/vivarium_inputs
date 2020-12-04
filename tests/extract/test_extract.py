@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from enum import IntFlag
 
-from gbd_mapping import causes, risk_factors, covariates
+from gbd_mapping import causes, risk_factors, covariates, ModelableEntity
 from vivarium_inputs import extract, utility_data
 
 
@@ -18,15 +18,17 @@ def is_dummy():
 
 pytestmark = pytest.mark.skipif(is_dummy(), reason="Don't run these tests on the CI server")
 
+VALIDATE_FLAG = False
+
 
 def success_expected(entity_name, measure_name, location):
-    df = extract.extract_data(entity_name, measure_name, location, validate=False)
+    df = extract.extract_data(entity_name, measure_name, location, validate=VALIDATE_FLAG)
     return df
 
 
 def fail_expected(entity_name, measure_name, location):
     with pytest.raises(Exception):
-        df = extract.extract_data(entity_name, measure_name, location, validate=True)
+        df = extract.extract_data(entity_name, measure_name, location, validate=VALIDATE_FLAG)
 
 
 class MCFlag(IntFlag):
@@ -42,10 +44,14 @@ class MCFlag(IntFlag):
 entity = [
     (causes.measles, MCFlag.INCIDENCE_RATE
         | MCFlag.PREVALENCE
-        # TODO need to add folder and files for 2019
-        # | MCFlag.DISABILITY_WEIGHT
+        | MCFlag.BIRTH_PREVALENCE
+        | MCFlag.REMISSION_RATE
         | MCFlag.DEATHS),
-    (causes.diabetes_mellitus_type_2, MCFlag.INCIDENCE_RATE | MCFlag.PREVALENCE | MCFlag.DEATHS),
+    (causes.diabetes_mellitus_type_2,
+        MCFlag.INCIDENCE_RATE
+        | MCFlag.PREVALENCE
+        | MCFlag.BIRTH_PREVALENCE
+        | MCFlag.DEATHS),
     ]
 measures = [
     ('incidence_rate', MCFlag.INCIDENCE_RATE),
@@ -56,8 +62,8 @@ measures = [
     ('deaths', MCFlag.DEATHS)]
 locations = ['India']
 
-@pytest.mark.parametrize('entity', entity)
-@pytest.mark.parametrize('measure', measures)
+@pytest.mark.parametrize('entity', entity, ids=lambda x: x[0].name)
+@pytest.mark.parametrize('measure', measures, ids=lambda x: x[0])
 @pytest.mark.parametrize('location', locations)
 def test_extract_causelike(entity, measure, location):
     entity_name, entity_expected_field = entity
@@ -81,9 +87,9 @@ class MRFlag(IntFlag):
 entity_r = [
     (risk_factors.high_systolic_blood_pressure,
         MRFlag.EXPOSURE | MRFlag.EXPOSURE_SD | MRFlag.EXPOSURE_DIST_WEIGHTS
-        | MRFlag.RELATIVE_RISK | MRFlag.PAF | MRFlag.ETIOLOGY_PAF),
+        | MRFlag.RELATIVE_RISK | MRFlag.PAF | MRFlag.ETIOLOGY_PAF | MRFlag.MEDIATION_FACTORS),
     (risk_factors.low_birth_weight_and_short_gestation,
-        MRFlag.EXPOSURE | MRFlag.RELATIVE_RISK | MRFlag.PAF)]
+        MRFlag.EXPOSURE | MRFlag.RELATIVE_RISK | MRFlag.PAF | MRFlag.ETIOLOGY_PAF)]
 measures_r = [
     ('exposure', MRFlag.EXPOSURE),
     ('exposure_standard_deviation', MRFlag.EXPOSURE_SD),
@@ -93,8 +99,8 @@ measures_r = [
     ('etiology_population_attributable_fraction', MRFlag.ETIOLOGY_PAF),
     ('mediation_factors', MRFlag.MEDIATION_FACTORS)]
 locations_r = ['India']
-@pytest.mark.parametrize('entity', entity_r)
-@pytest.mark.parametrize('measure', measures_r)
+@pytest.mark.parametrize('entity', entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize('measure', measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize('location', locations_r)
 def test_extract_risklike(entity, measure, location):
     entity_name, entity_expected_field = entity
@@ -114,22 +120,12 @@ locations_cov = ['India']
 @pytest.mark.parametrize('measure', measures_cov)
 @pytest.mark.parametrize('location', locations_cov)
 def test_extract_covariatelike(entity, measure, location):
-    df = extract.extract_data(entity, measure, utility_data.get_location_id(location), validate=False)
-
-
-@pytest.mark.parametrize('measures',
-    [
-        # TODO auxiliary data, needs new 2019 folder
-        #'cost',
-        'utilization_rate'])
-def test_extract_healthsystem(measures):
-    df = extract.extract_data(covariates.medical_schools, measures, utility_data.get_location_id('India'), validate=False)
+    df = extract.extract_data(entity, measure, utility_data.get_location_id(location), validate=VALIDATE_FLAG)
 
 
 @pytest.mark.parametrize('measures',
     ['structure',
     'theoretical_minimum_risk_life_expectancy'])
 def test_extract_population(measures):
-    from gbd_mapping import ModelableEntity
     pop = ModelableEntity('ignored', 'population', None)
-    df = extract.extract_data(pop, measures, utility_data.get_location_id('India'), validate=False)
+    df = extract.extract_data(pop, measures, utility_data.get_location_id('India'), validate=VALIDATE_FLAG)
