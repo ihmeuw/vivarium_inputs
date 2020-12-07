@@ -69,11 +69,5 @@ if __name__ == "__main__":
             'dev': doc_requirements + test_requirements + data_requires,
         },
 
-        entry_points='''
-            [console_scripts]
-            build_artifact=vivarium_inputs.data_artifact.cli:build_artifact
-            multi_build_artifact=vivarium_inputs.data_artifact.cli:multi_build_artifact
-        ''',
-
         zip_safe=False,
     )
