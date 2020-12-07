@@ -1,11 +1,11 @@
 
-def _running_on_ci():
+def _no_gbd_access():
     try:
         from vivarium_inputs.globals import GbdDummy
         return True
-    except:
+    except ImportError:
         pass
     return False
 
 
-RUNNING_ON_CI = _running_on_ci()
+RUNNING_ON_CI = _no_gbd_access()

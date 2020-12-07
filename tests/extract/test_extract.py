@@ -26,6 +26,14 @@ def fail_expected(entity_name, measure_name, location):
 
 
 class MCFlag(IntFlag):
+    """
+        Use the idea of a bit field with support from python's enum type IntFlag
+        See here for general information on bit fields:
+        https://en.wikipedia.org/wiki/Bit_field
+
+        And here for python's enum type:
+        https://docs.python.org/3.6/library/enum.html
+    """
     INCIDENCE_RATE = 1
     PREVALENCE = 2
     BIRTH_PREVALENCE = 4
@@ -60,13 +68,21 @@ locations = ['India']
 @pytest.mark.parametrize('measure', measures, ids=lambda x: x[0])
 @pytest.mark.parametrize('location', locations)
 def test_extract_causelike(entity, measure, location):
-    entity_name, entity_expected_field = entity
+    entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_field & measure_id) else fail_expected
+    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 
 class MRFlag(IntFlag):
+    """
+        Use the idea of a bit field with support from python's enum type IntFlag
+        See here for general information on bit fields:
+        https://en.wikipedia.org/wiki/Bit_field
+
+        And here for python's enum type:
+        https://docs.python.org/3.6/library/enum.html
+    """
     EXPOSURE = 1
     EXPOSURE_SD = 2
     EXPOSURE_DIST_WEIGHTS = 4
@@ -97,9 +113,9 @@ locations_r = ['India']
 @pytest.mark.parametrize('measure', measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize('location', locations_r)
 def test_extract_risklike(entity, measure, location):
-    entity_name, entity_expected_field = entity
+    entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_field & measure_id) else fail_expected
+    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 

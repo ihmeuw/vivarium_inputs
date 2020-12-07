@@ -130,14 +130,16 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                 data += prevalence * disability
         cause_prevalence = get_data(entity, 'prevalence', location_id)
         data = (data / cause_prevalence).fillna(0).reset_index()
-    else:  # entity.kind == 'sequela'
-        data = extract.extract_data(entity, 'disability_weight', location_id)
-        data = utilities.normalize(data)
-        cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
-        data = utilities.clear_disability_weight_outside_restrictions(data, cause, 0.0,
-                                                                        utility_data.get_age_group_ids())
-        data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
-
+    else:  # entity.kind == 'sequela'  
+        try:
+            data = extract.extract_data(entity, 'disability_weight', location_id)
+            data = utilities.normalize(data)
+            cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
+            data = utilities.clear_disability_weight_outside_restrictions(data, cause, 0.0,
+                                                                            utility_data.get_age_group_ids())
+            data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
+        except (IndexError, DataDoesNotExistError):
+            data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
     return data
 
 
