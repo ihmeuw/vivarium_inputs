@@ -30,10 +30,10 @@ def get_data(entity, measure: str, location: Union[str, int]):
         'excess_mortality_rate': (get_excess_mortality_rate, ('cause',)),
         'deaths': (get_deaths, ('cause',)),
         # Risk-like measures
-        'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
+        'exposure': (get_exposure, ('risk_factor', 'alternative_risk_factor',)),
         'exposure_standard_deviation': (get_exposure_standard_deviation, ('risk_factor', 'alternative_risk_factor')),
         'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor', 'alternative_risk_factor')),
-        'relative_risk': (get_relative_risk, ('risk_factor', 'coverage_gap')),
+        'relative_risk': (get_relative_risk, ('risk_factor',)),
         'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'etiology')),
         # Covariate measures
         'estimate': (get_estimate, ('covariate',)),
@@ -269,23 +269,19 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
 def get_relative_risk(entity: RiskFactor, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'relative_risk', location_id)
 
-    if entity.kind == 'risk_factor':
-        # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
-        #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
-        #  2/8/19 K.W.
-        yll_only_causes = set([c.gbd_id for c in causes if c.restrictions.yll_only])
-        data = data[~data.cause_id.isin(yll_only_causes)]
+    # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
+    #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
+    #  2/8/19 K.W.
+    yll_only_causes = set([c.gbd_id for c in causes if c.restrictions.yll_only])
+    data = data[~data.cause_id.isin(yll_only_causes)]
 
-        data = utilities.convert_affected_entity(data, 'cause_id')
-        morbidity = data.morbidity == 1
-        mortality = data.mortality == 1
-        data.loc[morbidity & mortality, 'affected_measure'] = 'incidence_rate'
-        data.loc[morbidity & ~mortality, 'affected_measure'] = 'incidence_rate'
-        data.loc[~morbidity & mortality, 'affected_measure'] = 'excess_mortality_rate'
-        data = filter_relative_risk_to_cause_restrictions(data)
-    else:  # coverage_gap
-        data = utilities.convert_affected_entity(data, 'rei_id')
-        data['affected_measure'] = 'exposure_parameters'
+    data = utilities.convert_affected_entity(data, 'cause_id')
+    morbidity = data.morbidity == 1
+    mortality = data.mortality == 1
+    data.loc[morbidity & mortality, 'affected_measure'] = 'incidence_rate'
+    data.loc[morbidity & ~mortality, 'affected_measure'] = 'incidence_rate'
+    data.loc[~morbidity & mortality, 'affected_measure'] = 'excess_mortality_rate'
+    data = filter_relative_risk_to_cause_restrictions(data)
 
     data = data.filter(DEMOGRAPHIC_COLUMNS + ['affected_entity', 'affected_measure', 'parameter'] + DRAW_COLUMNS)
     data = data.groupby(['affected_entity', 'parameter']).apply(utilities.normalize, fill_value=1).reset_index(drop=True)
