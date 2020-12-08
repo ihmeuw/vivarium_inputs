@@ -28,7 +28,6 @@ def get_data(entity, measure: str, location: Union[str, int]):
         'remission_rate': (get_remission_rate, ('cause',)),
         'cause_specific_mortality_rate': (get_cause_specific_mortality_rate, ('cause',)),
         'excess_mortality_rate': (get_excess_mortality_rate, ('cause',)),
-        'case_fatality_rate': (get_case_fatality_rate, ('cause',)),
         'deaths': (get_deaths, ('cause',)),
         # Risk-like measures
         'exposure': (get_exposure, ('risk_factor', 'coverage_gap', 'alternative_risk_factor',)),
@@ -36,11 +35,9 @@ def get_data(entity, measure: str, location: Union[str, int]):
         'exposure_distribution_weights': (get_exposure_distribution_weights, ('risk_factor', 'alternative_risk_factor')),
         'relative_risk': (get_relative_risk, ('risk_factor', 'coverage_gap')),
         'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'etiology')),
-        'mediation_factors': (get_mediation_factors, ('risk_factor',)),
         # Covariate measures
         'estimate': (get_estimate, ('covariate',)),
         # Health system measures
-        'cost': (get_cost, ('healthcare_entity', 'health_technology')),
         'utilization_rate': (get_utilization_rate, ('healthcare_entity',)),
         # Population measures
         'structure': (get_structure, ('population',)),
@@ -133,17 +130,17 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                 data += prevalence * disability
         cause_prevalence = get_data(entity, 'prevalence', location_id)
         data = (data / cause_prevalence).fillna(0).reset_index()
-    else:  # entity.kind == 'sequela'
-        if not entity.healthstate.disability_weight_exists:
-            data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
-        else:
+    else:  # entity.kind == 'sequela'  
+        try:
             data = extract.extract_data(entity, 'disability_weight', location_id)
             data = utilities.normalize(data)
             cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
             data = utilities.clear_disability_weight_outside_restrictions(data, cause, 0.0,
-                                                                          utility_data.get_age_group_ids())
+                                                                            utility_data.get_age_group_ids())
             data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
-
+        except (IndexError, DataDoesNotExistError):
+            logger.warning(f"{entity.name.capitalize()} has no disability weight data. All values will be 0.")
+            data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
     return data
 
 
@@ -171,10 +168,6 @@ def get_excess_mortality_rate(entity: Cause, location_id: int) -> pd.DataFrame:
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data
-
-
-def get_case_fatality_rate(entity: Cause, location_id: int):
-    raise NotImplementedError()
 
 
 def get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
@@ -273,7 +266,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     return data
 
 
-def get_relative_risk(entity: Union[RiskFactor], location_id: int) -> pd.DataFrame:
+def get_relative_risk(entity: RiskFactor, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'relative_risk', location_id)
 
     if entity.kind == 'risk_factor':
@@ -361,10 +354,6 @@ def get_population_attributable_fraction(entity: Union[RiskFactor, Etiology], lo
     return data
 
 
-def get_mediation_factors(entity, location_id):
-    raise NotImplementedError()
-
-
 def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'estimate', location_id)
 
@@ -377,13 +366,6 @@ def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
     data = data.filter(key_columns + COVARIATE_VALUE_COLUMNS)
     data = utilities.normalize(data)
     data = utilities.wide_to_long(data, COVARIATE_VALUE_COLUMNS, var_name='parameter')
-    return data
-
-
-def get_cost(entity: Union[HealthcareEntity, HealthTechnology], location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, 'cost', location_id)
-    data = utilities.normalize(data, fill_value=0)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + [entity.kind] + DRAW_COLUMNS)
     return data
 
 
