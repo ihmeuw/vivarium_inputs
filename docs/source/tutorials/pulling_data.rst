@@ -52,7 +52,7 @@ Entity-Measure Data
 The interface provides :func:`vivarium_inputs.interface.get_measure` for pulling
 specific measure data for an entity for a single location.
 `entity` should be a :class:`gbd_mapping.base_template.ModelableEntity` (e.g.,
-a cause or coverage_gap from ``gbd_mapping``), while `measure` should be a string
+a cause from ``gbd_mapping``), while `measure` should be a string
 describing the measure for which you want to retrieve data (e.g., 'prevalence'
 or 'relative_risk'). A list of possible measures for each entity
 kind is included in the table below. Finally, `location` should be the string
@@ -103,11 +103,6 @@ The following table lists the measures available for each entity kind:
           | remission
           | cause_specific_mortality
           | excess_mortality
-    *   - coverage_gap
-        - | exposure
-          | exposure_standard_deviation
-          | exposure_distribution_weights
-          | relative_risk
     *   - risk_factor
         - | exposure
           | exposure_standard_deviation
@@ -245,7 +240,7 @@ specific raw measure data for an entity for a single location from GBD, without
 the prep work that occurs on data for a simulation.
 
 ``entity`` should be a :class:`gbd_mapping.base_template.ModelableEntity` (e.g.,
-a cause or coverage_gap from ``gbd_mapping``), while ``measure`` should be a string
+a cause from ``gbd_mapping``), while ``measure`` should be a string
 describing the measure for which you want to retrieve data (e.g., 'prevalence'
 or 'relative_risk'). A list of possible measures for each entity
 kind is included in the table below. Finally, ``location`` should be the string
@@ -293,11 +288,6 @@ The following table lists the measures available for each entity kind for pullin
           | disability_weight
           | remission
           | deaths
-    *   - coverage_gap
-        - | exposure
-          | exposure_standard_deviation
-          | exposure_distribution_weights
-          | relative_risk
     *   - risk_factor
         - | exposure
           | exposure_standard_deviation

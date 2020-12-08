@@ -142,7 +142,7 @@ def extract_exposure(entity: Union[RiskFactor, AlternativeRiskFactor], location_
         else:
             data = data[data.measure_id == proper_measure_id.pop()]
 
-    else:  # alternative_risk_factor or coverage_gap
+    else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data('exposure', entity.kind, entity.name, location_id)
     return data
 
@@ -162,12 +162,9 @@ def extract_exposure_distribution_weights(entity: Union[RiskFactor, AlternativeR
     return data
 
 
-def extract_relative_risk(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int) -> pd.DataFrame:
-    if entity.kind == 'risk_factor':
-        data = gbd.get_relative_risk(entity.gbd_id, location_id)
-        data = filter_to_most_detailed_causes(data)
-    else:  # coverage_gap
-        data = gbd.get_auxiliary_data('relative_risk', entity.kind, entity.name, location_id)
+def extract_relative_risk(entity: RiskFactor, location_id: int) -> pd.DataFrame:
+    data = gbd.get_relative_risk(entity.gbd_id, location_id)
+    data = filter_to_most_detailed_causes(data)
     return data
 
 
