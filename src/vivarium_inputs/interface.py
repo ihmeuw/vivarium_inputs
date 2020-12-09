@@ -37,12 +37,6 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
         For entity kind 'covariate':
             estimate
 
-        For entity kind 'healthcare_entity':
-            cost, utilization_rate
-
-        For entity kind 'health_technology':
-            cost
-
     Parameters
     ----------
     entity
@@ -182,12 +176,6 @@ def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[
 
         For entity kind 'covariate':
             estimate
-
-        For entity kind 'healthcare_entity':
-            cost, utilization_rate
-
-        For entity kind 'health_technology':
-            cost
 
         For entity kind 'population':
             structure, theoretical_minimum_risk_life_expectancy

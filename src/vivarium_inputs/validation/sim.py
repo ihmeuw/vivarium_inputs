@@ -111,9 +111,6 @@ def validate_for_simulation(data: pd.DataFrame, entity: ModelableEntity,
         'mediation_factors': validate_mediation_factors,
         # Covariate measures
         'estimate': validate_estimate,
-        # Health system measures
-        'cost': validate_cost,
-        'utilization_rate': validate_utilization_rate,
         # Population measures
         'structure': validate_structure,
         'theoretical_minimum_risk_life_expectancy': validate_theoretical_minimum_risk_life_expectancy,

@@ -37,8 +37,6 @@ def get_data(entity, measure: str, location: Union[str, int]):
         'population_attributable_fraction': (get_population_attributable_fraction, ('risk_factor', 'etiology')),
         # Covariate measures
         'estimate': (get_estimate, ('covariate',)),
-        # Health system measures
-        'utilization_rate': (get_utilization_rate, ('healthcare_entity',)),
         # Population measures
         'structure': (get_structure, ('population',)),
         'theoretical_minimum_risk_life_expectancy': (get_theoretical_minimum_risk_life_expectancy, ('population',)),
