@@ -6,6 +6,7 @@ from enum import IntFlag
 
 from gbd_mapping import causes, risk_factors, covariates, ModelableEntity
 from vivarium_inputs import core, utility_data
+from vivarium_inputs.mapping_extension import healthcare_entities
 from tests.extract.check import RUNNING_ON_CI
 
 
@@ -153,7 +154,26 @@ def test_core_covariatelike(entity, measure, location):
 
 @pytest.mark.parametrize('measures',
     ['structure',
+    'age_bins',
+    'demographic_dimensions',
     'theoretical_minimum_risk_life_expectancy'])
 def test_core_population(measures):
     pop = ModelableEntity('ignored', 'population', None)
     df = core.get_data(pop, measures, utility_data.get_location_id('India'))
+
+
+# TODO - Underlying problem with gbd access. Remove when corrected.
+entity_health_system = [
+    healthcare_entities.outpatient_visits,
+]   
+measures_health_system = [
+    'utilization_rate'
+]
+locations_health_system = ['India']
+@pytest.mark.skip(reason="Underlying problem with gbd access. Remove when corrected.")
+@pytest.mark.parametrize('entity', entity_health_system, ids=lambda x: x.name)
+@pytest.mark.parametrize('measure', measures_health_system, ids=lambda x: x)
+@pytest.mark.parametrize('location', locations_health_system)
+def test_core_healthsystem(entity, measure, location):
+    df = core.get_data(entity, measure, utility_data.get_location_id(location))
+
