@@ -1,4 +1,5 @@
 from typing import Union
+from loguru import logger
 
 import pandas as pd
 
@@ -8,7 +9,8 @@ from vivarium_inputs.globals import Population
 
 from vivarium_inputs.globals import (gbd, METRICS, MEASURES,
                                      DataAbnormalError, DataDoesNotExistError,
-                                     EmptyDataFrameException, NoBestVersionError, InputsException, OTHER_MEID)
+                                     EmptyDataFrameException, NoBestVersionError, InputsException, OTHER_MEID,
+                                     RISKS_WITH_NEGATIVE_PAF)
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 import vivarium_inputs.validation.raw as validation
@@ -90,7 +92,11 @@ def extract_data(entity, measure: str, location_id: int, validate: bool = True) 
 
     if validate:
         additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors.items()}
-        validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
+        try:
+            validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
+        except DataAbnormalError:
+            if entity in RISKS_WITH_NEGATIVE_PAF:
+                data = fix_negative_paf_values(data)
 
     return data
 
@@ -198,4 +204,12 @@ def extract_structure(entity: Population, location_id: int) -> pd.DataFrame:
 
 def extract_theoretical_minimum_risk_life_expectancy(entity: Population, location_id: int) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
+    return data
+
+
+def fix_negative_paf_values(data: pd.DataFrame) -> pd.DataFrame:
+    logger.warning('Data contains negative PAF values. These will be set to 0.0.')
+    neg = (data < 0).any()
+    cols = neg[neg].index
+    data.loc[:, cols] = 0
     return data
