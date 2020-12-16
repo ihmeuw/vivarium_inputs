@@ -6,7 +6,8 @@ import pandas as pd
 from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, Etiology, Covariate, causes
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (DataTransformationError, Population,
-                                     PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES, DRAW_COLUMNS)
+                                     PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES, DRAW_COLUMNS,
+                                     RISKS_WITH_NEGATIVE_PAF)
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
@@ -698,9 +699,10 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         check_value_columns_boundary(protective, boundary_value=VALID_PAF_RANGE[1], boundary_type='upper',
                                      value_columns=DRAW_COLUMNS, error=DataTransformationError)
     if not non_protective.empty:
+        error = None if entity.name in RISKS_WITH_NEGATIVE_PAF else DataTransformationError
         check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[0],
                                      boundary_type='lower', value_columns=DRAW_COLUMNS,
-                                     error=DataTransformationError)
+                                     error=error)
         check_value_columns_boundary(non_protective, boundary_value=VALID_PAF_RANGE[1],
                                      boundary_type='upper', value_columns=DRAW_COLUMNS,
                                      error=DataTransformationError)

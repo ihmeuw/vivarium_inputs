@@ -163,7 +163,7 @@ BOUNDARY_SPECIAL_CASES = {
 }
 
 RISKS_WITH_NEGATIVE_PAF = [
-    risk_factors.vitamin_a_deficiency,
+    risk_factors.vitamin_a_deficiency.name,
 ]
 
 PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:

@@ -92,11 +92,7 @@ def extract_data(entity, measure: str, location_id: int, validate: bool = True) 
 
     if validate:
         additional_data = {name: extractor(entity, location_id) for name, extractor in additional_extractors.items()}
-        try:
-            validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
-        except DataAbnormalError:
-            if entity in RISKS_WITH_NEGATIVE_PAF:
-                data = fix_negative_paf_values(data)
+        validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
     return data
 
@@ -204,12 +200,4 @@ def extract_structure(entity: Population, location_id: int) -> pd.DataFrame:
 
 def extract_theoretical_minimum_risk_life_expectancy(entity: Population, location_id: int) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
-    return data
-
-
-def fix_negative_paf_values(data: pd.DataFrame) -> pd.DataFrame:
-    logger.warning('Data contains negative PAF values. These will be set to 0.0.')
-    neg = (data < 0).any()
-    cols = neg[neg].index
-    data.loc[:, cols] = 0
     return data
