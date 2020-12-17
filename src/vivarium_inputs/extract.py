@@ -1,4 +1,5 @@
 from typing import Union
+from loguru import logger
 
 import pandas as pd
 
@@ -8,7 +9,8 @@ from vivarium_inputs.globals import Population
 
 from vivarium_inputs.globals import (gbd, METRICS, MEASURES,
                                      DataAbnormalError, DataDoesNotExistError,
-                                     EmptyDataFrameException, NoBestVersionError, InputsException, OTHER_MEID)
+                                     EmptyDataFrameException, NoBestVersionError, InputsException, OTHER_MEID,
+                                     RISKS_WITH_NEGATIVE_PAF)
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 import vivarium_inputs.validation.raw as validation

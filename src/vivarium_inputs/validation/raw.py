@@ -11,7 +11,7 @@ from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
                                      DataDoesNotExistError, Population, PROBLEMATIC_RISKS, PAF_OUTSIDE_AGE_RESTRICTIONS,
-                                     EXCLUDE_ABNORMAL_DATA)
+                                     EXCLUDE_ABNORMAL_DATA, RISKS_WITH_NEGATIVE_PAF)
 
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
@@ -924,8 +924,9 @@ def validate_population_attributable_fraction(data: pd.DataFrame, entity: Union[
         check_value_columns_boundary(protective, MAX_PAF, 'upper', value_columns=DRAW_COLUMNS, inclusive=True,
                                      error=DataAbnormalError)
     if not non_protective.empty:
+        error = None if entity.name in RISKS_WITH_NEGATIVE_PAF else DataAbnormalError
         check_value_columns_boundary(non_protective, MIN_PAF, 'lower', value_columns=DRAW_COLUMNS, inclusive=True,
-                                     error=DataAbnormalError)
+                                     error=error)
         check_value_columns_boundary(non_protective, MAX_PAF, 'upper', value_columns=DRAW_COLUMNS, inclusive=True,
                                      error=DataAbnormalError)
 
