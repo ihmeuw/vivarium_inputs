@@ -1,7 +1,7 @@
 import pytest
 
 import pandas as pd
-'''
+
 from vivarium_inputs import utilities
 
 
@@ -41,4 +41,4 @@ def test_normalize_sex_no_sex_id():
     df = pd.DataFrame({"ColumnA": [1, 2, 3], "ColumnB": [1, 2, 3]})
     normalized = utilities.normalize_sex(df, fill_value=0.0, cols_to_fill=['value'])
     pd.testing.assert_frame_equal(df, normalized)
-'''
+

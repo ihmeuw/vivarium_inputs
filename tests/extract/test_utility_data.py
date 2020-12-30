@@ -4,6 +4,10 @@ import pandas as pd
 import gbd_mapping as gm
 
 from vivarium_inputs import utility_data as ud
+from tests.extract.check import RUNNING_ON_CI
+
+
+pytestmark = pytest.mark.skipif(RUNNING_ON_CI, reason="Don't run these tests on the CI server")
 
 
 def test_get_estimation_years():
