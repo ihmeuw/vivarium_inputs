@@ -85,7 +85,7 @@ jobs:
           pip install .
           popd
       - name: Retrieve upstream gbd_mapping
-        if: env.gbd_mapping == 'true'
+        if: env.upstream_gbd_mapping_exist == 'true'
         run: |
           echo "Cloning upstream gbd_mapping branch: ${GITHUB_HEAD_REF}"
           git clone --branch=${GITHUB_HEAD_REF} https://github.com/ihmeuw/gbd_mapping.git
