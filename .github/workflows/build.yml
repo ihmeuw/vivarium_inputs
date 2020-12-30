@@ -38,7 +38,7 @@ jobs:
           conda list
           echo GITHUB_HEAD_REF = ${GITHUB_HEAD_REF}
 
-      - name: Install hdf5
+      - name: Install hdf5 libs
         run: |
           sudo apt-get install libhdf5-dev
 
