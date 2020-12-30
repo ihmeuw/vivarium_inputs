@@ -2,7 +2,7 @@
 #   Continuous Intergration for Vivarium Inputs
 #   - invoked on push and pull_request
 #   - test under 3 versions of python
-#   - look for upstream branches and use if they exists
+#   - look for upstream branches and use if they exist
 # -----------------------------------------------------------------------------
 name: build
 on:
