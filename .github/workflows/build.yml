@@ -38,6 +38,13 @@ jobs:
           conda list
           echo GITHUB_HEAD_REF = ${GITHUB_HEAD_REF}
 
+      - name: Access to Stash
+        run: |
+          mkdir -p ~/.pip
+          echo [global] > ~/.pip/pip.conf
+          echo extra-index-url = https://artifactory.ihme.washington.edu/artifactory/api/pypi/pypi-shared/simple >> ~/.pip/pip.conf
+          echo trusted-host = artifactory.ihme.washington.edu/artifactory/api/pypi/pypi-shared >> ~/.pip/pip.conf
+
       - name: check for upstream vivarium
         run: |
           if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium.git ${GITHUB_HEAD_REF} == "0"; then
