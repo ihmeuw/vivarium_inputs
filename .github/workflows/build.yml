@@ -40,7 +40,7 @@ jobs:
 
       - name: Install hdf5
         run: |
-          apt-get install libhdf5-dev
+          sudo apt-get install libhdf5-dev
 
       - name: check for upstream vivarium
         run: |
