@@ -24,10 +24,6 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
             incidence_rate, prevalence, birth_prevalence, disability_weight,
             remission_rate, cause_specific_mortality_rate, excess_mortality_rate
 
-        For entity kind 'coverage_gap':
-            exposure, exposure_standard_deviation, exposure_distribution_weights,
-            relative_risk
-
         For entity kind 'risk_factor':
             exposure, exposure_standard_deviation, exposure_distribution_weights,
             relative_risk, population_attributable_fraction, mediation_factors
@@ -40,12 +36,6 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
 
         For entity kind 'covariate':
             estimate
-
-        For entity kind 'healthcare_entity':
-            cost, utilization_rate
-
-        For entity kind 'health_technology':
-            cost
 
     Parameters
     ----------
@@ -174,10 +164,6 @@ def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[
             incidence_rate, prevalence, birth_prevalence, disability_weight,
             remission_rate, deaths
 
-        For entity kind 'coverage_gap':
-            exposure, exposure_standard_deviation, exposure_distribution_weights,
-            relative_risk
-
         For entity kind 'risk_factor':
             exposure, exposure_standard_deviation, exposure_distribution_weights,
             relative_risk, population_attributable_fraction, mediation_factors
@@ -190,12 +176,6 @@ def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[
 
         For entity kind 'covariate':
             estimate
-
-        For entity kind 'healthcare_entity':
-            cost, utilization_rate
-
-        For entity kind 'health_technology':
-            cost
 
         For entity kind 'population':
             structure, theoretical_minimum_risk_life_expectancy

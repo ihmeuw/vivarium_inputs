@@ -15,13 +15,12 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
-        # FIXME: Newer versions of numpy have conflicting dependencies with pytables.
-        'numpy<=1.15.4',
+        'numpy',
         'scipy',
-        'pandas<0.25',  # 0.25 requires tables >= 3.4.2
+        'pandas',
         'click',
         'joblib',
-        'tables<=3.4.0',
+        'tables',
         'vivarium>=0.9.1',
         'vivarium_public_health>=0.10.0',
         'gbd_mapping>=2.1.0',
@@ -68,12 +67,6 @@ if __name__ == "__main__":
             'data': data_requires,
             'dev': doc_requirements + test_requirements + data_requires,
         },
-
-        entry_points='''
-            [console_scripts]
-            build_artifact=vivarium_inputs.data_artifact.cli:build_artifact
-            multi_build_artifact=vivarium_inputs.data_artifact.cli:multi_build_artifact
-        ''',
 
         zip_safe=False,
     )
