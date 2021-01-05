@@ -1,3 +1,8 @@
+**4.0.0 - 01/5/21**
+
+ - Update for GBD 2019
+ - Added tests for GBD version changes (not run under CI)
+
 **3.1.1 - 01/14/20**
 
  - Fix bug in hierarchical data sorting
