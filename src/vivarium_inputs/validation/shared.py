@@ -1,9 +1,9 @@
 import operator
 from typing import Union
-import warnings
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 from vivarium_inputs.globals import DRAW_COLUMNS, VivariumInputsError
 
@@ -70,4 +70,4 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
         if error is not None:
             raise error(msg)
         else:
-            warnings.warn(msg)
+            logger.warning(msg)
