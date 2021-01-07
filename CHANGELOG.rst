@@ -1,3 +1,7 @@
+**4.0.1 - 01/6/21**
+
+ - Bugfix release, fix deployment
+
 **4.0.0 - 01/5/21**
 
  - Update for GBD 2019
