@@ -166,6 +166,10 @@ RISKS_WITH_NEGATIVE_PAF = [
     risk_factors.vitamin_a_deficiency.name,
 ]
 
+RISKS_REQUIRING_RESCALING = [
+    risk_factors.low_birth_weight_and_short_gestation,
+]
+
 PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
                          "zinc deficiency relative risk data breaks central comp interpolation."}
 

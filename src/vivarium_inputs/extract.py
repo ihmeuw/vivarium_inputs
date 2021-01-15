@@ -10,8 +10,8 @@ from vivarium_inputs.globals import Population
 from vivarium_inputs.globals import (gbd, METRICS, MEASURES,
                                      DataAbnormalError, DataDoesNotExistError,
                                      EmptyDataFrameException, NoBestVersionError, InputsException, OTHER_MEID,
-                                     RISKS_WITH_NEGATIVE_PAF)
-from vivarium_inputs.utilities import filter_to_most_detailed_causes
+                                     RISKS_WITH_NEGATIVE_PAF, RISKS_REQUIRING_RESCALING)
+from vivarium_inputs.utilities import filter_to_most_detailed_causes, rescale
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 import vivarium_inputs.validation.raw as validation
 
@@ -146,6 +146,12 @@ def extract_exposure(entity: Union[RiskFactor, AlternativeRiskFactor], location_
 
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data('exposure', entity.kind, entity.name, location_id)
+
+
+    if entity in RISKS_REQUIRING_RESCALING:
+        df_no125 = data.drop(labels=data.query('parameter == "cat125"').index)
+        data = df_no125.groupby(['year_id', 'age_group_id', 'sex_id']).apply(rescale)
+
     return data
 
 

@@ -412,3 +412,20 @@ def split_interval(data, interval_column, split_column_prefix):
                           .set_levels(interval_starts, f'{split_column_prefix}_start'))
             data = data.set_index(f'{split_column_prefix}_end', append=True)
     return data
+
+
+def rescale(g) -> pd.DataFrame:
+    """Rescale exposure data to sum to 1.
+
+    Parameters
+    ----------
+    g
+        Panda groupby object.
+
+    Returns
+    -------
+    Rescaled draw columns for the passed in group.
+    """
+    for draw in DRAW_COLUMNS:
+        g[draw] = g[draw] / g[draw].sum()
+    return g
