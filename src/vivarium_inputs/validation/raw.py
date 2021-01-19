@@ -628,8 +628,10 @@ def validate_exposure(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeR
 
         g = data.groupby(DEMOGRAPHIC_COLUMNS)[DRAW_COLUMNS].sum()
         if not np.allclose(g, 1.0):
-            raise DataAbnormalError(f'Exposure data for {entity.kind} {entity.name} '
-                                    f'does not sum to 1 across all categories.')
+            msg = (f'Exposure data for {entity.kind} {entity.name} '
+                    f'does not sum to 1 across all categories.')
+            logger.warning(msg)
+
 
 
 def validate_exposure_standard_deviation(data: pd.DataFrame, entity: Union[RiskFactor, AlternativeRiskFactor],
