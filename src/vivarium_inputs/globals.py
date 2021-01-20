@@ -170,6 +170,9 @@ RISKS_WITH_NEGATIVE_PAF = [
 # has to be removed
 EXTRA_RESIDUAL_CATEGORY = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat125'}
 
+# Some data contain very small (5.56e-311) values that produce floating point errors, clip them
+MINIMUM_EXPOSURE_VALUE = 1e-10
+
 PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
                          "zinc deficiency relative risk data breaks central comp interpolation."}
 
