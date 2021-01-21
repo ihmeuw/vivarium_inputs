@@ -1,3 +1,7 @@
+**4.0.2 - 01/21/21**
+
+ - Bugfix release, special case for LBWSG data
+
 **4.0.1 - 01/6/21**
 
  - Bugfix release, fix deployment
