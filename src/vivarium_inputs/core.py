@@ -8,8 +8,10 @@ from loguru import logger
 
 from vivarium_inputs import utilities, extract, utility_data
 from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
-                                     Population, DataDoesNotExistError, EXTRA_RESIDUAL_CATEGORY)
+                                     Population, DataDoesNotExistError, EXTRA_RESIDUAL_CATEGORY,
+                                     MINIMUM_EXPOSURE_VALUE)
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
+
 
 
 DISTRIBUTION_COLUMNS = ['exp', 'gamma', 'invgamma', 'llogis', 'gumbel', 'invweibull', 'weibull',
@@ -182,7 +184,9 @@ def get_exposure(entity: Union[RiskFactor, AlternativeRiskFactor], location_id: 
     data = data.drop('modelable_entity_id', 'columns')
 
     if entity.name in EXTRA_RESIDUAL_CATEGORY:
-        data = data[data.parameter != EXTRA_RESIDUAL_CATEGORY[entity.name]]
+        cat = EXTRA_RESIDUAL_CATEGORY[entity.name]
+        data = data.drop(labels=data.query('parameter == @cat').index)
+        data[DRAW_COLUMNS] = data[DRAW_COLUMNS].clip(lower=MINIMUM_EXPOSURE_VALUE)
 
     if entity.kind in ['risk_factor', 'alternative_risk_factor']:
         data = utilities.filter_data_by_restrictions(data, entity,

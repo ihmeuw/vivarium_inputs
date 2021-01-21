@@ -146,6 +146,7 @@ def extract_exposure(entity: Union[RiskFactor, AlternativeRiskFactor], location_
 
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data('exposure', entity.kind, entity.name, location_id)
+
     return data
 
 

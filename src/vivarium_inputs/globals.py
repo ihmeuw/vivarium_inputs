@@ -166,14 +166,17 @@ RISKS_WITH_NEGATIVE_PAF = [
     risk_factors.vitamin_a_deficiency.name,
 ]
 
+# residual cat is added by get_draws but all cats modeled for lbwsg so
+# has to be removed
+EXTRA_RESIDUAL_CATEGORY = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat125'}
+
+# Some data contain very small (5.56e-311) values that produce floating point errors, clip them
+MINIMUM_EXPOSURE_VALUE = 1e-10
+
 PROBLEMATIC_RISKS = {risk_factors.zinc_deficiency.name:
                          "zinc deficiency relative risk data breaks central comp interpolation."}
 
 NON_MAX_TMREL = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat56'}
-
-# residual cat is added by get_draws but all cats modeled for lbwsg so
-# has to be removed
-EXTRA_RESIDUAL_CATEGORY = {risk_factors.low_birth_weight_and_short_gestation.name: 'cat124'}
 
 # LBWSG paf has data outside neonatal preterm birth age restrictions (but is all 1.0) - K.W. 4/2/19
 PAF_OUTSIDE_AGE_RESTRICTIONS = {risk_factors.low_birth_weight_and_short_gestation.name: [causes.neonatal_preterm_birth]}
