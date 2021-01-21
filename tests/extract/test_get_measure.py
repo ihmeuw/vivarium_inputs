@@ -112,9 +112,7 @@ entity_r = [
         MRFlag.EXPOSURE | MRFlag.EXPOSURE_SD | MRFlag.EXPOSURE_DIST_WEIGHTS
         | MRFlag.RELATIVE_RISK | MRFlag.PAF),
     (risk_factors.low_birth_weight_and_short_gestation,
-        MRFlag.RELATIVE_RISK | MRFlag.PAF)]
-        # TODO - exposure fails in validation, separate task to fix data
-        # MRFlag.EXPOSURE | MRFlag.RELATIVE_RISK | MRFlag.PAF)]
+        MRFlag.EXPOSURE | MRFlag.RELATIVE_RISK | MRFlag.PAF)]
 measures_r = [
     ('exposure', MRFlag.EXPOSURE),
     ('exposure_standard_deviation', MRFlag.EXPOSURE_SD),
