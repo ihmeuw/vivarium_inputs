@@ -22,12 +22,12 @@ if __name__ == "__main__":
         'joblib',
         'tables',
         'vivarium>=0.10.1',
-        'gbd_mapping>=3.0.0, <4.0.0',
+        'gbd_mapping>=3.0.2, <4.0.0',
         'loguru',
     ]
 
     data_requires = [
-        'vivarium-gbd-access>=3.0.0, <4.0.0',
+        'vivarium-gbd-access>=3.0.2, <4.0.0',
         'core-maths'
     ]
 

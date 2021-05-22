@@ -1,3 +1,7 @@
+**4.0.3 - 06/18/21**
+
+ - Bugfix release update dependencies
+
 **4.0.2 - 01/21/21**
 
  - Bugfix release, special case for LBWSG data
