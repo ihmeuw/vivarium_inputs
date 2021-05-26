@@ -1,3 +1,7 @@
+**4.0.4 - 05/26/21**
+
+ - Add special case relaxing negative PAF restrictions for child wasting
+
 **4.0.3 - 06/18/21**
 
  - Bugfix release update dependencies
