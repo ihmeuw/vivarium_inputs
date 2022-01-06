@@ -27,7 +27,7 @@ def scrub_gbd_conventions(data, location):
 
 def scrub_location(data, location):
     if 'location_id' in data.index.names:
-        data.index = data.index.rename('location', 'location_id').set_levels([location], 'location')
+        data.index = data.index.rename('location', level='location_id').set_levels([location], level='location')
     else:
         data = pd.concat([data], keys=[location], names=['location'])
     return data
@@ -36,7 +36,7 @@ def scrub_location(data, location):
 def scrub_sex(data):
     if 'sex_id' in data.index.names:
         levels = list(data.index.levels[data.index.names.index('sex_id')].map(lambda x: {1: 'Male', 2: 'Female'}.get(x, x)))
-        data.index = data.index.rename('sex', 'sex_id').set_levels(levels, 'sex')
+        data.index = data.index.rename('sex', level='sex_id').set_levels(levels, level='sex')
     return data
 
 
@@ -46,7 +46,7 @@ def scrub_age(data):
         id_levels = data.index.levels[data.index.names.index('age_group_id')]
         interval_levels = [pd.Interval(age_bins.age_start[age_id],
                                        age_bins.age_end[age_id], closed='left') for age_id in id_levels]
-        data.index = data.index.rename('age', 'age_group_id').set_levels(interval_levels, 'age')
+        data.index = data.index.rename('age', level='age_group_id').set_levels(interval_levels, level='age')
     return data
 
 
@@ -54,7 +54,7 @@ def scrub_year(data):
     if 'year_id' in data.index.names:
         id_levels = data.index.levels[data.index.names.index('year_id')]
         interval_levels = [pd.Interval(year_id, year_id + 1, closed='left') for year_id in id_levels]
-        data.index = data.index.rename('year', 'year_id').set_levels(interval_levels, 'year')
+        data.index = data.index.rename('year', level='year_id').set_levels(interval_levels, level='year')
     return data
 
 
@@ -408,7 +408,7 @@ def split_interval(data, interval_column, split_column_prefix):
             data = data.set_index([f'{split_column_prefix}_start', f'{split_column_prefix}_end'])
         else:
             interval_starts = [x.left for x in data.index.levels[data.index.names.index(interval_column)]]
-            data.index = (data.index.rename(f'{split_column_prefix}_start', interval_column)
-                          .set_levels(interval_starts, f'{split_column_prefix}_start'))
+            data.index = (data.index.rename(f'{split_column_prefix}_start', level=interval_column)
+                          .set_levels(interval_starts, level=f'{split_column_prefix}_start'))
             data = data.set_index(f'{split_column_prefix}_end', append=True)
     return data
