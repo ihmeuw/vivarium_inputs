@@ -159,7 +159,7 @@ def get_cause_specific_mortality_rate(entity: Cause, location_id: int) -> pd.Dat
     pop = get_data(Population(), 'structure', location_id)
     data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
     data[DRAW_COLUMNS] = data[DRAW_COLUMNS].divide(data.value, axis=0)
-    return data.drop(['value'], 'columns')
+    return data.drop(['value'], axis='columns')
 
 
 def get_excess_mortality_rate(entity: Cause, location_id: int) -> pd.DataFrame:
@@ -376,7 +376,7 @@ def get_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataF
 
 def get_structure(entity: Population, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'structure', location_id)
-    data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
+    data = data.drop('run_id', axis='columns').rename(columns={'population': 'value'})
     data = utilities.normalize(data)
     return data
 
