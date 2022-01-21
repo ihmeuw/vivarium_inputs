@@ -11,7 +11,7 @@ from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (DRAW_COLUMNS, DEMOGRAPHIC_COLUMNS, SEXES, SPECIAL_AGES, METRICS, MEASURES,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, DataAbnormalError, InvalidQueryError,
                                      DataDoesNotExistError, Population, PROBLEMATIC_RISKS, PAF_OUTSIDE_AGE_RESTRICTIONS,
-                                     EXCLUDE_ABNORMAL_DATA, RISKS_WITH_NEGATIVE_PAF)
+                                     EXCLUDE_ABNORMAL_DATA, RISKS_WITH_NEGATIVE_PAF, WORLD_POP)
 
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
 from vivarium_inputs.utilities import get_restriction_age_ids, get_restriction_age_boundary
@@ -27,7 +27,6 @@ MIN_PAF = 0
 MIN_PROTECTIVE_PAF = -1
 MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
-MAX_POP = 145_000_000  # pop data includes both sexes combined at this point
 
 
 class RawValidationContext:
@@ -1173,7 +1172,7 @@ def validate_structure(data: pd.DataFrame, entity: Population, context: RawValid
 
     check_value_columns_boundary(data, 0, 'lower', value_columns=['population'],
                                  inclusive=True, error=DataAbnormalError)
-    check_value_columns_boundary(data, MAX_POP, 'upper', value_columns=['population'],
+    check_value_columns_boundary(data, WORLD_POP, 'upper', value_columns=['population'],
                                  inclusive=True, error=DataAbnormalError)
 
 
