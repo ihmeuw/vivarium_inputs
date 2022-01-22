@@ -203,6 +203,3 @@ class Population(ModelableEntity):
     """Entity wrapper for querying population measures."""
     def __init__(self):
         super().__init__(name='population', kind='population', gbd_id=None)
-
-
-WORLD_POP = 8_025_327_798  # Total world population pulled from GBD location 1 for all_ages (id 22)

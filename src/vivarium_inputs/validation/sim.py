@@ -7,7 +7,7 @@ from gbd_mapping import ModelableEntity, Cause, Sequela, RiskFactor, Etiology, C
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (DataTransformationError, Population,
                                      PROTECTIVE_CAUSE_RISK_PAIRS, BOUNDARY_SPECIAL_CASES, DRAW_COLUMNS,
-                                     RISKS_WITH_NEGATIVE_PAF, WORLD_POP)
+                                     RISKS_WITH_NEGATIVE_PAF)
 from vivarium_inputs.mapping_extension import HealthcareEntity, HealthTechnology, AlternativeRiskFactor
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
@@ -29,7 +29,7 @@ VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 # FIXME: bumping for Mexico (max utilization ~422) 9/12/19 - K.W.
 VALID_UTILIZATION_RANGE = (0, 500)
-VALID_POPULATION_RANGE = (0, WORLD_POP)
+VALID_POPULATION_RANGE = (0, 345_000_000)  # Upper bound pulled from GBD global population largest sex-age bin.
 VALID_LIFE_EXP_RANGE = (0, 90)
 
 SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age', 'year']
