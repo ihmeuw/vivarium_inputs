@@ -126,7 +126,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
                 disability = get_data(sequela, 'disability_weight', location_id)
-                disability.index = disability.index.set_levels([location_id], 'location_id')
+                disability.index = disability.index.set_levels([location_id], level='location_id')
                 data += prevalence * disability
         cause_prevalence = get_data(entity, 'prevalence', location_id)
         data = (data / cause_prevalence).fillna(0).reset_index()
@@ -376,7 +376,7 @@ def get_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataF
 
 def get_structure(entity: Population, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'structure', location_id)
-    data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
+    data = data.drop('run_id', axis='columns').rename(columns={'population': 'value'})
     data = utilities.normalize(data)
     return data
 
