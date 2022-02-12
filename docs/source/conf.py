@@ -198,8 +198,8 @@ intersphinx_mapping = {
     "tables": ("https://www.pytables.org/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
-    'vivarium': ('https://vivarium.readthedocs.io/en/latest/', None),
-    'gbd_mapping': ('https://gbd_mapping.readthedocs.io/en/latest/', None),
+    "vivarium": ("https://vivarium.readthedocs.io/en/latest/", None),
+    "gbd_mapping": ("https://gbd_mapping.readthedocs.io/en/latest/", None),
 }
 
 
