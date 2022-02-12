@@ -1,3 +1,13 @@
+**4.0.5 - 02/12/22**
+
+ - Adjust max population upper bounds to allow non-national outputs.
+ - Squash some future warnings.
+ - Modernize CI.
+ - Add PR template.
+ - Update to BSD 3-clause license.
+ - Squash warnings in doc building
+ - Fix remote doc builds.
+
 **4.0.4 - 05/26/21**
 
  - Add special case relaxing negative PAF restrictions for child wasting
