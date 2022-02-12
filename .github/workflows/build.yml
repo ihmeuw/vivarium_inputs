@@ -5,19 +5,7 @@
 #   - look for upstream branches and use if they exist
 # -----------------------------------------------------------------------------
 name: build
-on:
-  push:
-    branches:
-      - '*'
-    tags-ignore:
-      - v*
-  pull_request:
-    branches:
-      - '*'
-    tags-ignore:
-      - v*
-  # Run this workflow manually from the Actions tab.
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
@@ -99,7 +87,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip        
-          pip install .[test]
+          pip install .[docs,test]
       - name: Test
         run: |
           pytest ./tests
+      - name: Doc build
+        run: |
+          make html -C docs/ SPHINXOPTS="-W --keep-going -n"
+      - name: Doctest
+        run: |
+          make doctest -C docs/

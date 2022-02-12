@@ -7,10 +7,10 @@ import numpy as np
 from loguru import logger
 
 from vivarium_inputs import utilities, extract, utility_data
-from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
+from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, DRAW_COLUMNS,
                                      Population, DataDoesNotExistError, EXTRA_RESIDUAL_CATEGORY,
                                      MINIMUM_EXPOSURE_VALUE)
-from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
+from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 
 
 
@@ -126,7 +126,7 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int) -> pd
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
                 disability = get_data(sequela, 'disability_weight', location_id)
-                disability.index = disability.index.set_levels([location_id], 'location_id')
+                disability.index = disability.index.set_levels([location_id], level='location_id')
                 data += prevalence * disability
         cause_prevalence = get_data(entity, 'prevalence', location_id)
         data = (data / cause_prevalence).fillna(0).reset_index()
@@ -159,7 +159,7 @@ def get_cause_specific_mortality_rate(entity: Cause, location_id: int) -> pd.Dat
     pop = get_data(Population(), 'structure', location_id)
     data = deaths.join(pop, lsuffix='_deaths', rsuffix='_pop')
     data[DRAW_COLUMNS] = data[DRAW_COLUMNS].divide(data.value, axis=0)
-    return data.drop(['value'], 'columns')
+    return data.drop(['value'], axis='columns')
 
 
 def get_excess_mortality_rate(entity: Cause, location_id: int) -> pd.DataFrame:
@@ -376,7 +376,7 @@ def get_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataF
 
 def get_structure(entity: Population, location_id: int) -> pd.DataFrame:
     data = extract.extract_data(entity, 'structure', location_id)
-    data = data.drop('run_id', 'columns').rename(columns={'population': 'value'})
+    data = data.drop('run_id', axis='columns').rename(columns={'population': 'value'})
     data = utilities.normalize(data)
     return data
 

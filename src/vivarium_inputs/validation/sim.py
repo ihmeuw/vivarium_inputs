@@ -29,7 +29,7 @@ VALID_PROTECTIVE_PAF_MIN = -1.0
 VALID_COST_RANGE = (0, {'healthcare_entity': 30_000, 'health_technology': 50})
 # FIXME: bumping for Mexico (max utilization ~422) 9/12/19 - K.W.
 VALID_UTILIZATION_RANGE = (0, 500)
-VALID_POPULATION_RANGE = (0, 75_000_000)
+VALID_POPULATION_RANGE = (0, 345_000_000)  # Upper bound pulled from GBD global population largest sex-age bin.
 VALID_LIFE_EXP_RANGE = (0, 90)
 
 SCRUBBED_DEMOGRAPHIC_COLUMNS = ['location', 'sex', 'age', 'year']

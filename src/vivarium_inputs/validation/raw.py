@@ -24,10 +24,10 @@ MAX_CATEG_REL_RISK = 20
 MAX_CONT_REL_RISK = 10
 MAX_PAF = 1
 MIN_PAF = 0
+MAX_POP = 663_000_000  # Number pulled from GBD global population largest 5 year age bin.
 MIN_PROTECTIVE_PAF = -1
 MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
-MAX_POP = 145_000_000  # pop data includes both sexes combined at this point
 
 
 class RawValidationContext:

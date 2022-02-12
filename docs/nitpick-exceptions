@@ -1,0 +1,5 @@
+# vivarium-inputs
+py:class vivarium_inputs.mapping_extension.alternative_risk_factor_template.AlternativeRiskFactor
+py:class vivarium_inputs.mapping_extension.healthcare_entity_template.HealthcareEntity
+py:class vivarium_inputs.globals.Population
+py:class vivarium.framework.time.Timedelta
