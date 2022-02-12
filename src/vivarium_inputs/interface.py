@@ -49,7 +49,8 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
 
     Returns
     -------
-    Dataframe standardized to the format expected by `vivarium` simulations.
+    pandas.DataFrame
+        Dataframe standardized to the format expected by `vivarium` simulations.
 
     """
     data = core.get_data(entity, measure, location)
@@ -73,8 +74,9 @@ def get_population_structure(location: str) -> pd.DataFrame:
 
     Returns
     -------
-    Dataframe of population data for `location`, standardized to the format
-    expected by `vivarium` simulations.
+    pandas.DataFrame
+        Dataframe of population data for `location`, standardized to the format
+        expected by `vivarium` simulations.
 
     """
     pop = Population()
@@ -93,8 +95,9 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
 
     Returns
     -------
-    Dataframe of theoretical minimum risk life expectancy data, standardized
-    to the format expected by `vivarium` simulations with binned age parameters.
+    pandas.DataFrame
+        Dataframe of theoretical minimum risk life expectancy data, standardized
+        to the format expected by `vivarium` simulations with binned age parameters.
 
     """
     pop = Population()
@@ -112,8 +115,9 @@ def get_age_bins() -> pd.DataFrame:
 
     Returns
     -------
-    Dataframe of age bin data, with bin start and end values as well as bin
-    names.
+    pandas.DataFrame
+        Dataframe of age bin data, with bin start and end values as well as bin
+        names.
 
     """
     pop = Population()
@@ -137,7 +141,8 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
 
     Returns
     -------
-    Dataframe with age and year bins from GBD, sexes, and the given location.
+    pandas.DataFrame
+        Dataframe with age and year bins from GBD, sexes, and the given location.
 
     """
     pop = Population()
@@ -191,8 +196,9 @@ def get_raw_data(entity: ModelableEntity, measure: str, location: str) -> Union[
 
     Returns
     -------
-    Data for the entity-measure pair and specific location requested, with no
-    formatting or reshaping.
+    Union[pandas.Series, pandas.DataFrame]
+        Data for the entity-measure pair and specific location requested, with no
+        formatting or reshaping.
     """
     location_id = utility_data.get_location_id(location)
     data = extract.extract_data(entity, measure, location_id, validate=False)
