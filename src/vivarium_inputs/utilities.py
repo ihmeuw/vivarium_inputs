@@ -1,6 +1,6 @@
 """Errors and utility functions for input processing."""
 from numbers import Real
-from typing import Union, List
+from typing import Union, List, Tuple
 
 from gbd_mapping import causes, risk_factors, Cause, RiskFactor
 import numpy as np
@@ -238,7 +238,7 @@ def compute_categorical_paf(rr_data: pd.DataFrame, e: pd.DataFrame, affected_ent
     return paf
 
 
-def get_age_group_ids_by_restriction(entity: Union[RiskFactor, Cause], which_age: str) -> (float,float):
+def get_age_group_ids_by_restriction(entity: Union[RiskFactor, Cause], which_age: str) -> Tuple[float, float]:
     if which_age == 'yll':
         start, end = entity.restrictions.yll_age_group_id_start, entity.restrictions.yll_age_group_id_end
     elif which_age == 'yld':
@@ -278,6 +278,7 @@ def filter_data_by_restrictions(data: pd.DataFrame, entity: Union[RiskFactor, Ca
 
     Returns
     -------
+    pandas.DataFrame
         DataFrame which is filtered out any data outside of age/sex
         restriction ranges.
 

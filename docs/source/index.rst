@@ -9,5 +9,5 @@ Vivarium Inputs
    :maxdepth: 2
    :caption: Contents:
 
-   api_reference
+   api_reference/index
    tutorials/index

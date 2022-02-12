@@ -7,10 +7,10 @@ import numpy as np
 from loguru import logger
 
 from vivarium_inputs import utilities, extract, utility_data
-from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, SEXES, DRAW_COLUMNS,
+from vivarium_inputs.globals import (InvalidQueryError, DEMOGRAPHIC_COLUMNS, MEASURES, DRAW_COLUMNS,
                                      Population, DataDoesNotExistError, EXTRA_RESIDUAL_CATEGORY,
                                      MINIMUM_EXPOSURE_VALUE)
-from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity, HealthTechnology
+from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 
 
 
