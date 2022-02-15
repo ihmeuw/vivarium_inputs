@@ -15,7 +15,7 @@ __summary__ = (
 )
 __uri__ = "https://github.com/ihmeuw/vivarium_inputs"
 
-__version__ = "4.0.5"
+__version__ = "4.0.6"
 
 __author__ = "The vivarium developers"
 __email__ = "vivarium.dev@gmail.com"
