@@ -1,3 +1,9 @@
+**4.0.6 - 02/15/22**
+
+ - Fix bug in covariate id parsing to int.
+ - Autoformat code with black and isort.
+ - Add black and isort checks to CI.
+
 **4.0.5 - 02/12/22**
 
  - Adjust max population upper bounds to allow non-national outputs.
