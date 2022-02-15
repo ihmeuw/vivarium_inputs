@@ -1,0 +1,14 @@
+[tool.black]
+line_length = 94
+exclude = '''
+/(
+   vivarium
+   | vivarium_public_health
+   | gbd_mapping
+)/
+
+'''
+
+[tool.isort]
+profile = "black"
+skip = ["vivarium", "vivarium_public_health", "gbd_mapping"]

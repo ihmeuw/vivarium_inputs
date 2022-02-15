@@ -12,9 +12,14 @@ from vivarium_inputs.globals import DRAW_COLUMNS, VivariumInputsError
 ###############################
 
 
-def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float, pd.Series], boundary_type: str,
-                                 value_columns: list = DRAW_COLUMNS, inclusive: bool = True,
-                                 error: type(VivariumInputsError) = None):
+def check_value_columns_boundary(
+    data: pd.DataFrame,
+    boundary_value: Union[float, pd.Series],
+    boundary_type: str,
+    value_columns: list = DRAW_COLUMNS,
+    inclusive: bool = True,
+    error: type(VivariumInputsError) = None,
+):
     """Check that all values in DRAW_COLUMNS in data are above or below given
     boundary_value.
 
@@ -45,9 +50,11 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
         If any values in `value_columns` are above/below `boundary_value`,
         depending on `boundary_type`, raise the passed error if there is one.
     """
-    msg = (f'Data contains values {"below" if boundary_type == "lower" else "above"} '
-           f'{"or equal to " if not inclusive else ""}the expected boundary '
-           f'value{"s" if isinstance(boundary_value, pd.Series) else f" ({boundary_value})"}.')
+    msg = (
+        f'Data contains values {"below" if boundary_type == "lower" else "above"} '
+        f'{"or equal to " if not inclusive else ""}the expected boundary '
+        f'value{"s" if isinstance(boundary_value, pd.Series) else f" ({boundary_value})"}.'
+    )
 
     if boundary_type == "lower":
         op = operator.gt
@@ -56,7 +63,9 @@ def check_value_columns_boundary(data: pd.DataFrame, boundary_value: Union[float
         op = operator.lt
         data_values = data[value_columns].max(axis=1)
     else:
-        raise ValueError(f'Boundary type must be either "lower" or "upper". You specified {boundary_type}.')
+        raise ValueError(
+            f'Boundary type must be either "lower" or "upper". You specified {boundary_type}.'
+        )
 
     if isinstance(boundary_value, pd.Series):
         data_values = data_values.sort_index()
