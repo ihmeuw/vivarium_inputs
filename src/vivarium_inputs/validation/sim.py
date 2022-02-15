@@ -1729,4 +1729,3 @@ def check_covariate_values(data: pd.DataFrame) -> None:
             "estimates for lower, mean, and upper values are not all 0 "
             "and it is not the case that lower <= mean <= upper. "
         )
-        
