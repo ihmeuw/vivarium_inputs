@@ -1,3 +1,8 @@
+**4.0.7 - 05/05/22**
+
+ - Update internal dependencies.
+ - Fix black/click version discrepancy.
+
 **4.0.6 - 02/15/22**
 
  - Fix bug in covariate id parsing to int.
