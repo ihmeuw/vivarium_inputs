@@ -26,7 +26,7 @@ if __name__ == "__main__":
         "loguru",
     ]
 
-    data_requires = ["vivarium-gbd-access>=3.0.2, <4.0.0", "core-maths"]
+    data_requires = ["vivarium-gbd-access>=3.0.4, <4.0.0", "core-maths"]
 
     test_requirements = [
         "pytest",
