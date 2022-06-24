@@ -234,7 +234,7 @@ def extract_relative_risk(entity: RiskFactor, location_id: int) -> pd.DataFrame:
 
 
 def extract_population_attributable_fraction(entity: Union[RiskFactor, Etiology], location_id: int) -> pd.DataFrame:
-    data = gbd.get_paf(entity.gbd_id, location_id).drop('version_id')
+    data = gbd.get_paf(entity.gbd_id, location_id).drop(columns=['version_id'])
     data = data[data.metric_id == METRICS['Percent']]
     data = data[data.measure_id.isin([MEASURES['YLDs'], MEASURES['YLLs']])]
     data = filter_to_most_detailed_causes(data)
