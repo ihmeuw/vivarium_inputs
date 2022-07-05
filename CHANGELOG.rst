@@ -1,3 +1,8 @@
+**4.0.8 - 07/05/22**
+
+ - Remove unneeded column when loading PAFs
+ - Add CODEOWNERS
+
 **4.0.7 - 05/05/22**
 
  - Update internal dependencies.
