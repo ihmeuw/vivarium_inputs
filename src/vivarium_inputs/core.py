@@ -8,7 +8,9 @@ from loguru import logger
 
 from vivarium_inputs import extract, utilities, utility_data
 from vivarium_inputs.globals import (
+    COVARIATE_VALUE_COLUMNS, 
     DEMOGRAPHIC_COLUMNS,
+    DISTRIBUTION_COLUMNS,
     DRAW_COLUMNS,
     EXTRA_RESIDUAL_CATEGORY,
     MEASURES,
@@ -18,23 +20,6 @@ from vivarium_inputs.globals import (
     Population,
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
-
-DISTRIBUTION_COLUMNS = [
-    "exp",
-    "gamma",
-    "invgamma",
-    "llogis",
-    "gumbel",
-    "invweibull",
-    "weibull",
-    "lnorm",
-    "norm",
-    "glnorm",
-    "betasr",
-    "mgamma",
-    "mgumbel",
-]
-COVARIATE_VALUE_COLUMNS = ["mean_value", "upper_value", "lower_value"]
 
 
 def get_data(entity, measure: str, location: Union[str, int]):
@@ -306,9 +291,7 @@ def get_exposure_distribution_weights(
         df.append(copied)
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
-    data = data.filter(
-        ["location_id", "sex_id", "age_group_id", "year_id"] + DISTRIBUTION_COLUMNS
-    )
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
     return data
 

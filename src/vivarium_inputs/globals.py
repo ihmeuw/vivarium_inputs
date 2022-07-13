@@ -130,6 +130,24 @@ MEASURES = {
     "Fertility": 45,
 }
 
+# List of standard distribution columns
+DISTRIBUTION_COLUMNS = [
+    "exp",
+    "gamma",
+    "invgamma",
+    "llogis",
+    "gumbel",
+    "invweibull",
+    "weibull",
+    "lnorm",
+    "norm",
+    "glnorm",
+    "betasr",
+    "mgamma",
+    "mgumbel",
+]
+# List of standard covariate values
+COVARIATE_VALUE_COLUMNS = ["mean_value", "upper_value", "lower_value"]
 # List of standard demographic id column names.
 DEMOGRAPHIC_COLUMNS = ["location_id", "sex_id", "age_group_id", "year_id"]
 # List of standard GBD draw column names.
