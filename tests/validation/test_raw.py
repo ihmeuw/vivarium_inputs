@@ -133,12 +133,6 @@ def test_check_columns_pass(columns):
     raw.check_columns(columns, columns)
 
 
-@pytest.mark.parametrize("columns", [["a", "b"], ["c", "d", "e"], ["a"], []])
-def test_check_columns_extra_fail(columns):
-    with pytest.raises(DataAbnormalError, match="extra columns"):
-        raw.check_columns(columns, columns + ["extra"])
-
-
 @pytest.mark.parametrize("columns", [["a", "b"], ["c", "d", "e"], ["a"]])
 def test_check_columns_missing_fail(columns):
     with pytest.raises(DataAbnormalError, match="missing columns"):
