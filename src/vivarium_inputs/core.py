@@ -8,7 +8,7 @@ from loguru import logger
 
 from vivarium_inputs import extract, utilities, utility_data
 from vivarium_inputs.globals import (
-    COVARIATE_VALUE_COLUMNS, 
+    COVARIATE_VALUE_COLUMNS,
     DEMOGRAPHIC_COLUMNS,
     DISTRIBUTION_COLUMNS,
     DRAW_COLUMNS,
