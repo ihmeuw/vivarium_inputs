@@ -134,9 +134,9 @@ def test_check_columns_pass(columns):
 
 
 @pytest.mark.parametrize("columns", [["a", "b"], ["c", "d", "e"], ["a"], []])
-def test_check_columns_extra_fail(columns):
-    with pytest.raises(DataAbnormalError, match="extra columns"):
-        raw.check_columns(columns, columns + ["extra"])
+def test_check_columns_extra_warn(columns, caplog, match="Data returned extra columns"):
+    raw.check_columns(columns, columns + ["extra"])
+    assert match in caplog.text
 
 
 @pytest.mark.parametrize("columns", [["a", "b"], ["c", "d", "e"], ["a"]])

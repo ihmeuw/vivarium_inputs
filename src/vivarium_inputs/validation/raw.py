@@ -1983,6 +1983,10 @@ def check_columns(expected_cols: List, existing_cols: List) -> None:
     DataAbnormalError
         If any `expected_cols` are missing from `existing_cols`.
 
+    Warns
+    ------
+    - If `existing_colums` contains column names not found in `expected_columns`
+
     """
     if set(existing_cols) < set(expected_cols):
         raise DataAbnormalError(
