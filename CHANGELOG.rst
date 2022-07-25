@@ -1,3 +1,9 @@
+**4.0.8 - 07/25/22**
+
+ - Remove unneeded column when loading PAFs
+ - Add CODEOWNERS
+ - Warn instead of fail with extra columns when validating
+
 **4.0.7 - 05/05/22**
 
  - Update internal dependencies.

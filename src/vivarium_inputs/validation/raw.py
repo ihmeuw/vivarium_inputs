@@ -1981,7 +1981,11 @@ def check_columns(expected_cols: List, existing_cols: List) -> None:
     Raises
     ------
     DataAbnormalError
-        If `expected_cols` does not match `existing_cols`.
+        If any `expected_cols` are missing from `existing_cols`.
+
+    Warns
+    ------
+    - If `existing_colums` contains column names not found in `expected_columns`
 
     """
     if set(existing_cols) < set(expected_cols):
@@ -1989,7 +1993,7 @@ def check_columns(expected_cols: List, existing_cols: List) -> None:
             f"Data is missing columns: {set(expected_cols).difference(set(existing_cols))}."
         )
     elif set(existing_cols) > set(expected_cols):
-        raise DataAbnormalError(
+        logger.warning(
             f"Data returned extra columns: {set(existing_cols).difference(set(expected_cols))}."
         )
 
