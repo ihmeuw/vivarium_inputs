@@ -220,7 +220,7 @@ def get_exposure(
     entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
 ) -> pd.DataFrame:
     data = extract.extract_data(entity, "exposure", location_id)
-    data = data.drop("modelable_entity_id", "columns")
+    data = data.drop(["modelable_entity_id", "model_version_id"], "columns")
 
     if entity.name in EXTRA_RESIDUAL_CATEGORY:
         cat = EXTRA_RESIDUAL_CATEGORY[entity.name]
