@@ -215,6 +215,7 @@ def get_exposure(
 ) -> pd.DataFrame:
     data = extract.extract_data(entity, "exposure", location_id)
     data = data.drop("modelable_entity_id", "columns")
+
     # Fixme: why are different level locations carrying this column along?
     if "model_version_id" in data.columns:
         data = data.drop("model_version_id", "columns")
