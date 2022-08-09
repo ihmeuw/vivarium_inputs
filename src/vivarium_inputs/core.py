@@ -223,7 +223,7 @@ def get_exposure(
     data = data.drop("modelable_entity_id", "columns")
     # Fixme: why are different level locations carrying this column along?
     if "model_version_id" in data.columns:
-        data.drop("model_version_id", "columns")
+        data = data.drop("model_version_id", "columns")
 
     if entity.name in EXTRA_RESIDUAL_CATEGORY:
         cat = EXTRA_RESIDUAL_CATEGORY[entity.name]
