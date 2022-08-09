@@ -35,13 +35,7 @@ def get_data(entity, measure: str, location: Union[str, int]):
         "excess_mortality_rate": (get_excess_mortality_rate, ("cause",)),
         "deaths": (get_deaths, ("cause",)),
         # Risk-like measures
-        "exposure": (
-            get_exposure,
-            (
-                "risk_factor",
-                "alternative_risk_factor",
-            ),
-        ),
+        "exposure": (get_exposure, ("risk_factor", "alternative_risk_factor")),
         "exposure_standard_deviation": (
             get_exposure_standard_deviation,
             ("risk_factor", "alternative_risk_factor"),
