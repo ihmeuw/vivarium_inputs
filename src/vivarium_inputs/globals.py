@@ -182,6 +182,7 @@ BOUNDARY_SPECIAL_CASES = {
 RISKS_WITH_NEGATIVE_PAF = [
     risk_factors.vitamin_a_deficiency.name,
     risk_factors.child_wasting.name,
+    risk_factors.high_body_mass_index_in_adults.name,
 ]
 
 # residual cat is added by get_draws but all cats modeled for lbwsg so
