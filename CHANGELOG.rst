@@ -1,3 +1,7 @@
+**4.0.9 - 11/28/22**
+
+ - Add BMI in adults to list of known risk factors with negative PAFs
+
 **4.0.8 - 07/25/22**
 
  - Remove unneeded column when loading PAFs
