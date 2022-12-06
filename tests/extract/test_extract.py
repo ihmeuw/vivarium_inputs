@@ -24,7 +24,7 @@ def success_expected(entity_name, measure_name, location):
 
 def fail_expected(entity_name, measure_name, location):
     with pytest.raises(Exception):
-        df = extract.extract_data(entity_name, measure_name, location, validate=VALIDATE_FLAG)
+        df = extract.extract_data(entity_name, measure_name, location, validate=True)
 
 
 class MCFlag(IntFlag):

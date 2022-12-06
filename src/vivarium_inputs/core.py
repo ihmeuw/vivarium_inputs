@@ -251,7 +251,8 @@ def get_exposure(
         sums = data.groupby(cols)[DRAW_COLUMNS].sum()
         data = (
             data.groupby("parameter")
-            .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))
+            .apply(lambda df: df.set_index(cols)[DRAW_COLUMNS].divide(sums.replace(0, 1)))
+            .dropna(axis=0, how="all")
             .reset_index()
         )
     else:
