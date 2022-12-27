@@ -1,3 +1,8 @@
+**4.0.10 - 12/27/22**
+
+ - Update CI to build with python 3.8-3.10
+ - Update codeowners
+
 **4.0.9 - 11/28/22**
 
  - Add BMI in adults to list of known risk factors with negative PAFs
