@@ -1,3 +1,9 @@
+**4.0.11 - 06/01/23**
+
+ - Update pins
+ - Bugfix PAF validation
+ - Support Python 3.8-3.11
+
 **4.0.10 - 12/27/22**
 
  - Update CI to build with python 3.8-3.10

@@ -21,12 +21,12 @@ if __name__ == "__main__":
         "click",
         "joblib",
         "tables",
-        "vivarium>=1.0.2",
-        "gbd_mapping>=3.0.6, <4.0.0",
+        "vivarium>=1.1.1",
+        "gbd_mapping>=3.0.7, <4.0.0",
         "loguru",
     ]
 
-    data_requires = ["vivarium-gbd-access>=3.0.6, <4.0.0", "core-maths"]
+    data_requires = ["vivarium-gbd-access>=3.0.7, <4.0.0", "core-maths"]
 
     test_requirements = [
         "pytest",
