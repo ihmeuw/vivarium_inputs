@@ -21,8 +21,8 @@ if __name__ == "__main__":
         "click",
         "joblib",
         "tables",
-        "vivarium>=1.1.1",
-        "gbd_mapping>=3.0.7, <4.0.0",
+        "vivarium>=1.2.0",
+        "gbd_mapping>=3.1.0, <4.0.0",
         "loguru",
     ]
 
