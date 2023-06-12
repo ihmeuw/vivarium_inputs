@@ -121,6 +121,7 @@ def validate_for_simulation(
     """
     validators = {
         # Cause-like measures
+        "raw_incidence_rate": validate_incidence_rate,
         "incidence_rate": validate_incidence_rate,
         "prevalence": validate_prevalence,
         "birth_prevalence": validate_birth_prevalence,

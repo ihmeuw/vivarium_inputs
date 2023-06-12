@@ -170,7 +170,7 @@ def get_raw_data(
             incidence_rate, prevalence, birth_prevalence, disability_weight
 
         For entity kind 'cause':
-            incidence_rate, prevalence, birth_prevalence, disability_weight,
+            raw_incidence_rate, incidence_rate, prevalence, birth_prevalence, disability_weight,
             remission_rate, deaths
 
         For entity kind 'risk_factor':
