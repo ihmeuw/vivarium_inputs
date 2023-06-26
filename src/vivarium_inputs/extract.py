@@ -1,4 +1,4 @@
-from typing import Union, Any
+from typing import Any, Union
 
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
