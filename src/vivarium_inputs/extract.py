@@ -1,15 +1,13 @@
-from typing import Any, Union
+from typing import Union
 
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
-from loguru import logger
 
 import vivarium_inputs.validation.raw as validation
 from vivarium_inputs.globals import (
     MEASURES,
     METRICS,
     OTHER_MEID,
-    RISKS_WITH_NEGATIVE_PAF,
     DataAbnormalError,
     DataDoesNotExistError,
     EmptyDataFrameException,
