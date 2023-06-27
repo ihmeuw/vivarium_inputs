@@ -1225,7 +1225,6 @@ def validate_population_attributable_fraction(
 def validate_etiology_population_attributable_fraction(
     data: pd.DataFrame, entity: Etiology, context: RawValidationContext
 ) -> None:
-
     """Check the standard set of validations on raw etiology population
     attributable fraction data for entity. Check age group and sex ids
     and restrictions.
@@ -1616,7 +1615,6 @@ def check_cause_age_restrictions_sets(entity: Cause) -> None:
     if entity.restrictions.yld_only or entity.restrictions.yll_only:
         pass
     else:
-
         yll_start, yll_end = (
             entity.restrictions.yll_age_group_id_start,
             entity.restrictions.yll_age_group_id_end,
