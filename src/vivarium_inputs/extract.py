@@ -2,14 +2,12 @@ from typing import Union
 
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
-from loguru import logger
 
 import vivarium_inputs.validation.raw as validation
 from vivarium_inputs.globals import (
     MEASURES,
     METRICS,
     OTHER_MEID,
-    RISKS_WITH_NEGATIVE_PAF,
     DataAbnormalError,
     DataDoesNotExistError,
     EmptyDataFrameException,
@@ -23,7 +21,7 @@ from vivarium_inputs.utilities import filter_to_most_detailed_causes
 
 
 def extract_data(
-    entity, measure: str, location_id: int, validate: bool = True
+    entity, measure: str, location_id: int, validate: bool = True, **get_draws_kwargs
 ) -> Union[pd.Series, pd.DataFrame]:
     """Check metadata for the requested entity-measure pair. Pull raw data from
     GBD. The only filtering that occurs is by applicable measure id, metric id,
@@ -96,7 +94,7 @@ def extract_data(
 
     try:
         main_extractor, additional_extractors = extractors[measure]
-        data = main_extractor(entity, location_id)
+        data = main_extractor(entity, location_id, **get_draws_kwargs)
     except (
         ValueError,
         AssertionError,
@@ -178,10 +176,10 @@ def extract_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def extract_exposure(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
+    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, **get_draws_kwargs
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
-        data = gbd.get_exposure(entity.gbd_id, location_id)
+        data = gbd.get_exposure(entity.gbd_id, location_id, **get_draws_kwargs)
         allowable_measures = [
             MEASURES["Proportion"],
             MEASURES["Continuous"],

@@ -28,7 +28,6 @@ class HealthcareEntities(GbdRecord):
     def __init__(
         self, outpatient_visits: HealthcareEntity, inpatient_visits: HealthcareEntity
     ):
-
         super().__init__()
         self.outpatient_visits = outpatient_visits
         self.inpatient_visits = inpatient_visits
