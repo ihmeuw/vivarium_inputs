@@ -6,8 +6,8 @@ from vivarium_inputs.__about__ import (
     __summary__,
     __title__,
     __uri__,
-    __version__,
 )
+from vivarium_inputs._version import __version__
 from vivarium_inputs.interface import (
     get_age_bins,
     get_demographic_dimensions,
