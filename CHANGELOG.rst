@@ -1,3 +1,9 @@
+**4.1.1 - 07/13/23**
+
+ - Update pins
+ - Changes version metadata to use setuptools_scm
+ - Adds custom get_draws kwargs to pass through to vivarium_gbd_access
+
 **4.1.0 - 06/01/23**
 
  - Update pins
