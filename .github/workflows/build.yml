@@ -23,33 +23,40 @@ jobs:
           activate-environment: test_env_python${{ matrix.python-version }}
           python-version: ${{ matrix.python-version }}
           auto-activate-base: false
-      - name: Conda info
-        run: |
-          conda info
-          conda list
-          echo GITHUB_HEAD_REF = ${GITHUB_HEAD_REF}
 
       - name: Install hdf5 libs
         run: |
           sudo apt-get install libhdf5-dev
-
+      
+      - name: get upstream branch name
+        run: |
+          if "${{ github.event_name == 'pull_request' }}" ; then
+            echo "branch_name=${GITHUB_HEAD_REF}" >> $GITHUB_ENV
+          else
+            echo "branch_name=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          fi
+      - name: Conda info
+        run: |
+          conda info
+          conda list
+          echo branch_name = ${branch_name}
       - name: check for upstream vivarium
         run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium.git ${GITHUB_HEAD_REF} == "0"; then
+          if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium.git ${branch_name} == "0"; then
             echo "upstream_vivarium_exist=true" >> $GITHUB_ENV
           else
             echo "upstream_vivarium_exist=false" >> $GITHUB_ENV
           fi
       - name: check for upstream vivarium_public_health
         run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium_public_health.git ${GITHUB_HEAD_REF} == "0"; then
+          if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium_public_health.git ${branch_name} == "0"; then
             echo "upstream_vivarium_public_health_exist=true" >> $GITHUB_ENV
           else
             echo "upstream_vivarium_public_health_exist=false" >> $GITHUB_ENV
           fi
       - name: check for upstream gbd_mapping
         run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/gbd_mapping.git ${GITHUB_HEAD_REF} == "0"; then
+          if git ls-remote --exit-code --heads https://github.com/ihmeuw/gbd_mapping.git ${branch_name} == "0"; then
             echo "upstream_gbd_mapping_exist=true" >> $GITHUB_ENV
           else
             echo "upstream_gbd_mapping_exist=false" >> $GITHUB_ENV
@@ -62,24 +69,24 @@ jobs:
       - name: Retrieve upstream vivarium
         if: env.upstream_vivarium_exist == 'true'
         run: |
-          echo "Cloning vivarium upstream branch: ${GITHUB_HEAD_REF}"
-          git clone --branch=${GITHUB_HEAD_REF} https://github.com/ihmeuw/vivarium.git
+          echo "Cloning vivarium upstream branch: ${branch_name}"
+          git clone --branch=${branch_name} https://github.com/ihmeuw/vivarium.git
           pushd vivarium
           pip install .
           popd
       - name: Retrieve upstream vivarium_public_health
         if: env.upstream_vivarium_public_health_exist == 'true'
         run: |
-          echo "Cloning vivarium_public_health upstream branch: ${GITHUB_HEAD_REF}"
-          git clone --branch=${GITHUB_HEAD_REF} https://github.com/ihmeuw/vivarium_public_health.git
+          echo "Cloning vivarium_public_health upstream branch: ${branch_name}"
+          git clone --branch=${branch_name} https://github.com/ihmeuw/vivarium_public_health.git
           pushd vivarium_public_health
           pip install .
           popd
       - name: Retrieve upstream gbd_mapping
         if: env.upstream_gbd_mapping_exist == 'true'
         run: |
-          echo "Cloning upstream gbd_mapping branch: ${GITHUB_HEAD_REF}"
-          git clone --branch=${GITHUB_HEAD_REF} https://github.com/ihmeuw/gbd_mapping.git
+          echo "Cloning upstream gbd_mapping branch: ${branch_name}"
+          git clone --branch=${branch_name} https://github.com/ihmeuw/gbd_mapping.git
           pushd gbd_mapping
           pip install .
           popd
