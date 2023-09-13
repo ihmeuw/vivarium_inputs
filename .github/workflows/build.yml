@@ -103,10 +103,9 @@ jobs:
       - name: Test
         run: |
           pytest ./tests
-#      Commenting out docs build due to upstream failures: MIC-4180
-#      - name: Doc build
-#        run: |
-#          make html -C docs/ SPHINXOPTS="-W --keep-going -n"
-#      - name: Doctest
-#        run: |
-#          make doctest -C docs/
+      - name: Doc build
+        run: |
+          make html -C docs/ SPHINXOPTS="-W --keep-going -n"
+      - name: Doctest
+        run: |
+          make doctest -C docs/
