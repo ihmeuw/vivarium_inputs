@@ -376,7 +376,12 @@ To use:
     from gbd_mapping import ModelableEntity
 
     funcs = {get_measure: {
-                'parameters': {'entity': ModelableEntity, 'measure': str, 'location': str},
+                'parameters': {
+                    'entity': ModelableEntity, 
+                    'measure': str, 
+                    'location': str, 
+                    'get_draws_kwargs': inspect._empty,
+                        },
                 'return': pd.DataFrame, },
              get_population_structure: {
                  'parameters': {'location': str},
