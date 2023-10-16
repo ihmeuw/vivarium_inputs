@@ -1,3 +1,6 @@
+**4.1.2 - 10/16/23**
+ - Drop support for python 3.8
+
 **4.1.1 - 07/13/23**
 
  - Update pins
