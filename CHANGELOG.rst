@@ -1,3 +1,7 @@
+**4.1.4 - 01/11/24**
+
+ - Remove erroneously merged get_draws_kwargs argument
+
 **4.1.3 - 01/09/24**
 
  - Update PyPI to 2FA with trusted publisher
