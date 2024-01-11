@@ -22,7 +22,7 @@ from vivarium_inputs.globals import (
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 
 
-def get_data(entity, measure: str, location: Union[str, int], **get_draws_kwargs):
+def get_data(entity, measure: str, location: Union[str, int]):
     measure_handlers = {
         # Cause-like measures
         "incidence_rate": (get_incidence_rate, ("cause", "sequela")),
@@ -78,7 +78,7 @@ def get_data(entity, measure: str, location: Union[str, int], **get_draws_kwargs
     location_id = (
         utility_data.get_location_id(location) if isinstance(location, str) else location
     )
-    data = handler(entity, location_id, **get_draws_kwargs)
+    data = handler(entity, location_id)
 
     if measure in [
         "structure",
@@ -217,9 +217,9 @@ def get_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
 
 
 def get_exposure(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, **get_draws_kwargs
+    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
 ) -> pd.DataFrame:
-    data = extract.extract_data(entity, "exposure", location_id, **get_draws_kwargs)
+    data = extract.extract_data(entity, "exposure", location_id)
     data = data.drop("modelable_entity_id", "columns")
 
     if entity.name in EXTRA_RESIDUAL_CATEGORY:

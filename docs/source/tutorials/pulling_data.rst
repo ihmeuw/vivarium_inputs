@@ -379,8 +379,7 @@ To use:
                 'parameters': {
                     'entity': ModelableEntity, 
                     'measure': str, 
-                    'location': str, 
-                    'get_draws_kwargs': inspect._empty,
+                    'location': str,
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
