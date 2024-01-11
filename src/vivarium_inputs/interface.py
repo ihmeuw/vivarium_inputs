@@ -10,7 +10,7 @@ from vivarium_inputs.globals import Population
 
 
 def get_measure(
-    entity: ModelableEntity, measure: str, location: str, **get_draws_kwargs
+    entity: ModelableEntity, measure: str, location: str
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
@@ -55,7 +55,7 @@ def get_measure(
         Dataframe standardized to the format expected by `vivarium` simulations.
 
     """
-    data = core.get_data(entity, measure, location, **get_draws_kwargs)
+    data = core.get_data(entity, measure, location)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, entity, measure, location)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
