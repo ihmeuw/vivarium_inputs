@@ -9,7 +9,7 @@ from vivarium_inputs import core, extract, utilities, utility_data
 from vivarium_inputs.globals import Population
 
 
-def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.DataFrame:
+def get_measure(entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
     values or ranges and expanding over all demographic dimensions. To pull data
@@ -46,6 +46,9 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
         kind of entity which `entity` is.
     location
         Location for which to pull data.
+    get_all_years
+        Flag indicating whether to get all years. Otherwise, get most recent year.
+        Defaults to False.
 
     Returns
     -------
@@ -53,7 +56,7 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
         Dataframe standardized to the format expected by `vivarium` simulations.
 
     """
-    data = core.get_data(entity, measure, location)
+    data = core.get_data(entity, measure, location, get_all_years)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, entity, measure, location)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
