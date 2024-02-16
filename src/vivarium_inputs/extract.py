@@ -3,6 +3,7 @@ from typing import Union
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
 
+from vivarium_gbd_access.constants import MOST_RECENT_YEAR
 import vivarium_inputs.validation.raw as validation
 from vivarium_inputs.globals import (
     MEASURES,
@@ -125,7 +126,7 @@ def extract_data(
             for name, extractor in additional_extractors.items()
         }
         if not get_all_years:
-            additional_data['estimation_years'] = [2022]
+            additional_data['estimation_years'] = [MOST_RECENT_YEAR]
         validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
     return data
@@ -178,10 +179,10 @@ def extract_deaths(entity: Cause, location_id: int, get_all_years: bool = False)
 
 
 def extract_exposure(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
-        data = gbd.get_exposure(entity.gbd_id, location_id, get_all_years=get_all_years)
+        data = gbd.get_exposure(entity.gbd_id, location_id)
         allowable_measures = [
             MEASURES["Proportion"],
             MEASURES["Continuous"],
@@ -203,12 +204,12 @@ def extract_exposure(
 
 
 def extract_exposure_standard_deviation(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor" and entity.name in OTHER_MEID:
-        data = gbd.get_modelable_entity_draws(OTHER_MEID[entity.name], location_id, get_all_years=get_all_years)
+        data = gbd.get_modelable_entity_draws(OTHER_MEID[entity.name], location_id)
     elif entity.kind == "risk_factor":
-        data = gbd.get_exposure_standard_deviation(entity.gbd_id, location_id, get_all_years=get_all_years)
+        data = gbd.get_exposure_standard_deviation(entity.gbd_id, location_id)
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data(
             "exposure_standard_deviation", entity.kind, entity.name, location_id
@@ -217,7 +218,7 @@ def extract_exposure_standard_deviation(
 
 
 def extract_exposure_distribution_weights(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
 ) -> pd.DataFrame:
     data = gbd.get_auxiliary_data(
         "exposure_distribution_weights", entity.kind, entity.name, location_id
@@ -225,44 +226,44 @@ def extract_exposure_distribution_weights(
     return data
 
 
-def extract_relative_risk(entity: RiskFactor, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
-    data = gbd.get_relative_risk(entity.gbd_id, location_id, get_all_years=get_all_years)
+def extract_relative_risk(entity: RiskFactor, location_id: int) -> pd.DataFrame:
+    data = gbd.get_relative_risk(entity.gbd_id, location_id)
     data = filter_to_most_detailed_causes(data)
     return data
 
 
 def extract_population_attributable_fraction(
-    entity: Union[RiskFactor, Etiology], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, Etiology], location_id: int
 ) -> pd.DataFrame:
-    data = gbd.get_paf(entity.gbd_id, location_id, get_all_years=get_all_years)
+    data = gbd.get_paf(entity.gbd_id, location_id)
     data = data[data.metric_id == METRICS["Percent"]]
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
     return data
 
 
-def extract_mediation_factors(entity: RiskFactor, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
+def extract_mediation_factors(entity: RiskFactor, location_id: int) -> pd.DataFrame:
     data = gbd.get_auxiliary_data("mediation_factor", entity.kind, entity.name, location_id)
     return data
 
 
-def extract_estimate(entity: Covariate, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
-    data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id, get_all_years=get_all_years)
+def extract_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
+    data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id)
     return data
 
 
-def extract_utilization_rate(entity: HealthcareEntity, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
-    data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id, get_all_years=get_all_years)
+def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
+    data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
     return data
 
 
-def extract_structure(entity: Population, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
-    data = gbd.get_population(location_id, get_all_years)
+def extract_structure(entity: Population, location_id: int) -> pd.DataFrame:
+    data = gbd.get_population(location_id)
     return data
 
 
 def extract_theoretical_minimum_risk_life_expectancy(
-    entity: Population, location_id: int, get_all_years: bool = False
+    entity: Population, location_id: int
 ) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
     return data
