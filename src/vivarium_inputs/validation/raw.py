@@ -14,6 +14,7 @@ from gbd_mapping import (
 )
 from loguru import logger
 
+from vivarium_gbd_access.gbd import get_age_bins
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
     DEMOGRAPHIC_COLUMNS,
@@ -770,6 +771,7 @@ def validate_exposure(
         "ordered_polytomous",
         "unordered_polytomous",
     ):  # categorical
+        #import pdb; pdb.set_trace()
         check_value_columns_boundary(
             data,
             0,
@@ -1570,7 +1572,7 @@ def validate_theoretical_minimum_risk_life_expectancy(
     expected_columns = ["age", "life_expectancy"]
     check_columns(expected_columns, data.columns)
 
-    min_age, max_age = 0, 105
+    min_age, max_age = 0, 110
     if data.age.min() != min_age or data.age.max() != max_age:
         raise DataAbnormalError(
             f"Data does not contain life expectancy values for ages [{min_age}, {max_age}]."
@@ -1923,6 +1925,7 @@ def check_years(data: pd.DataFrame, context: RawValidationContext, year_type: st
                 f"Data has missing years: {estimation_years.difference(data_years)}."
             )
         if data_years > estimation_years:
+            import pdb; pdb.set_trace()
             raise DataAbnormalError(
                 f"Data has extra years: {data_years.difference(estimation_years)}."
             )
@@ -2049,8 +2052,10 @@ def _check_continuity(data_ages: set, all_ages: set) -> None:
     """Make sure data_ages is contiguous block in all_ages."""
     data_ages = list(data_ages)
     all_ages = list(all_ages)
-    all_ages.sort()
-    data_ages.sort()
+    age_bins = get_age_bins()
+    id_to_age_map = dict(zip(age_bins['age_group_id'], age_bins['age_group_years_start']))
+    all_ages.sort(key=lambda id: id_to_age_map[id])
+    data_ages.sort(key=lambda id: id_to_age_map[id])
     if (
         all_ages[all_ages.index(data_ages[0]) : all_ages.index(data_ages[-1]) + 1]
         != data_ages

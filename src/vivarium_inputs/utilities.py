@@ -356,6 +356,7 @@ def filter_data_by_restrictions(
 
     start, end = get_age_group_ids_by_restriction(entity, which_age)
     ages = get_restriction_age_ids(start, end, age_group_ids)
+    ages = ages + [238, 388, 389]
     data = data[data.age_group_id.isin(ages)]
     return data
 
@@ -402,6 +403,8 @@ def get_restriction_age_ids(
     if start_id is None or end_id is None:
         data = []
     else:
+        start_id = 2 if start_id == 4 else start_id
+        end_id = 34 if end_id == 5 else end_id
         start_index = age_group_ids.index(start_id)
         end_index = age_group_ids.index(end_id)
         data = age_group_ids[start_index : end_index + 1]

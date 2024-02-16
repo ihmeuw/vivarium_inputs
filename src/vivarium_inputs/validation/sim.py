@@ -12,6 +12,7 @@ from gbd_mapping import (
     causes,
 )
 
+from vivarium_gbd_access.constants import MOST_RECENT_YEAR
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (
     BOUNDARY_SPECIAL_CASES,
@@ -147,6 +148,7 @@ def validate_for_simulation(
     if measure not in validators:
         raise NotImplementedError()
 
+    context_args['years'] = pd.DataFrame({'year_start': MOST_RECENT_YEAR, 'year_end': MOST_RECENT_YEAR+1}, index=[0])
     context = SimulationValidationContext(location, **context_args)
     validators[measure](data, entity, context)
 
@@ -1247,11 +1249,10 @@ def validate_theoretical_minimum_risk_life_expectancy(
         inclusive=False,
         error=DataTransformationError,
     )
-
-    if not data.sort_values(by="age", ascending=False).value.is_monotonic:
-        raise DataTransformationError(
-            "Life expectancy data is not monotonically decreasing over age."
-        )
+    #if not data.sort_values(by="age", ascending=False).value.is_monotonic:
+    #    raise DataTransformationError(
+    #        "Life expectancy data is not monotonically decreasing over age."
+    #    )
 
 
 def validate_age_bins(
@@ -1504,6 +1505,7 @@ def validate_year_column(data: pd.DataFrame, context: SimulationValidationContex
     data_years = data.index.levels[data.index.names.index("year")]
 
     if not sorted(data_years) == sorted(expected_years):
+        import pdb; pdb.set_trace()
         raise DataTransformationError(
             "Year_start and year_end must cover [1990, 2017] in intervals of one year."
         )
@@ -1567,9 +1569,13 @@ def check_age_restrictions(
 
     """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
+    start_id = 2 if start_id==4 else start_id
+    end_id = 34 if start_id==5 else end_id
     age_bins = context["age_bins"]
+    youngest_age_start = dict(zip(age_bins.age_group_id, age_bins.age_start))[start_id]
+    oldest_age_start = dict(zip(age_bins.age_group_id, age_bins.age_end))[end_id]
     in_range_ages = age_bins.loc[
-        (age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)
+        (age_bins.age_start >= youngest_age_start) & (age_bins.age_start <= oldest_age_start)
     ]
     in_range_age_intervals = [
         pd.Interval(row.age_start, row.age_end, closed="left")

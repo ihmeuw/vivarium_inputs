@@ -151,7 +151,7 @@ COVARIATE_VALUE_COLUMNS = ["mean_value", "upper_value", "lower_value"]
 # List of standard demographic id column names.
 DEMOGRAPHIC_COLUMNS = ["location_id", "sex_id", "age_group_id", "year_id"]
 # List of standard GBD draw column names.
-DRAW_COLUMNS = [f"draw_{i}" for i in range(1000)]
+DRAW_COLUMNS = [f"draw_{i}" for i in range(500)]
 # Mapping of GBD sex ids
 SEXES = {"Male": 1, "Female": 2, "Combined": 3}
 # Mapping of non-standard age group ids sometimes found in GBD data

@@ -124,6 +124,8 @@ def extract_data(
             name: extractor(entity, location_id)
             for name, extractor in additional_extractors.items()
         }
+        if not get_all_years:
+            additional_data['estimation_years'] = [2022]
         validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
     return data

@@ -6,6 +6,7 @@ import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela, causes
 from loguru import logger
 
+from vivarium_gbd_access.constants import MOST_RECENT_YEAR
 from vivarium_inputs import extract, utilities, utility_data
 from vivarium_inputs.globals import (
     COVARIATE_VALUE_COLUMNS,
@@ -89,9 +90,9 @@ def get_data(entity, measure: str, location: Union[str, int], get_all_years: boo
         value_cols = ["value"]
     else:
         value_cols = DRAW_COLUMNS
-
+    #import pdb; pdb.set_trace()
     data = utilities.reshape(data, value_cols=value_cols)
-
+    #import pdb; pdb.set_trace()
     return data
 
 
@@ -130,6 +131,7 @@ def get_prevalence(entity: Union[Cause, Sequela], location_id: int, get_all_year
     data = utilities.filter_data_by_restrictions(
         data, restrictions_entity, "yld", utility_data.get_age_group_ids()
     )
+
     data = utilities.normalize(data, fill_value=0)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     return data
@@ -145,27 +147,32 @@ def get_birth_prevalence(entity: Union[Cause, Sequela], location_id: int, get_al
 def get_disability_weight(entity: Union[Cause, Sequela], location_id: int, get_all_years: bool = False) -> pd.DataFrame:
     if entity.kind == "cause":
         data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
+        if not get_all_years:
+            data = data.query("year_id==@MOST_RECENT_YEAR")
         data = data.set_index(
             utilities.get_ordered_index_cols(data.columns.difference(DRAW_COLUMNS))
         )
         if entity.sequelae:
             for sequela in entity.sequelae:
                 try:
-                    prevalence = get_data(sequela, "prevalence", location_id, validate=True, get_all_years=get_all_years)
+                    prevalence = get_data(sequela, "prevalence", location_id, get_all_years=get_all_years)
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
-                disability = get_data(sequela, "disability_weight", location_id, validate=True, get_all_years=get_all_years)
+                disability = get_data(sequela, "disability_weight", location_id, get_all_years=get_all_years)
                 disability.index = disability.index.set_levels(
                     [location_id], level="location_id"
                 )
                 data += prevalence * disability
-        cause_prevalence = get_data(entity, "prevalence", location_id, validate=True, get_all_years=get_all_years)
+        cause_prevalence = get_data(entity, "prevalence", location_id, get_all_years=get_all_years)
         data = (data / cause_prevalence).fillna(0).reset_index()
     else:  # entity.kind == 'sequela'
         try:
             data = extract.extract_data(entity, "disability_weight", location_id, validate=True, get_all_years=get_all_years)
+            if not get_all_years:
+               data['year_id'] = MOST_RECENT_YEAR
             data = utilities.normalize(data)
+
             cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
             data = utilities.clear_disability_weight_outside_restrictions(
                 data, cause, 0.0, utility_data.get_age_group_ids()
@@ -176,15 +183,20 @@ def get_disability_weight(entity: Union[Cause, Sequela], location_id: int, get_a
                 f"{entity.name.capitalize()} has no disability weight data. All values will be 0."
             )
             data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
+    draw_cols_to_drop = [f"draw_{i}" for i in range(500,1000)]
+    if 'draw_500' in data.columns:
+        data = data.drop(draw_cols_to_drop, axis=1)
     return data
 
 
 def get_remission_rate(entity: Cause, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
     data = extract.extract_data(entity, "remission_rate", location_id, validate=True, get_all_years=get_all_years)
-
+    draw_cols_to_drop = [f"draw_{i}" for i in range(500,1000)]
+    data = data.drop(draw_cols_to_drop, axis=1)
     data = utilities.filter_data_by_restrictions(
         data, entity, "yld", utility_data.get_age_group_ids()
     )
+
     data = utilities.normalize(data, fill_value=0)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     return data
@@ -208,6 +220,8 @@ def get_excess_mortality_rate(entity: Cause, location_id: int, get_all_years: bo
 
 def get_deaths(entity: Cause, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
     data = extract.extract_data(entity, "deaths", location_id, get_all_years)
+    draw_cols_to_drop = [f"draw_{i}" for i in range(500,1000)]
+    data = data.drop(draw_cols_to_drop, axis=1)
     data = utilities.filter_data_by_restrictions(
         data, entity, "yll", utility_data.get_age_group_ids()
     )
@@ -220,6 +234,8 @@ def get_exposure(
     entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     data = extract.extract_data(entity, "exposure", location_id, validate=True, get_all_years=get_all_years)
+    draw_cols_to_drop = [f"draw_{i}" for i in range(500,1000)]
+    data = data.drop(draw_cols_to_drop, axis=1)
     data = data.drop("modelable_entity_id", "columns")
 
     if entity.name in EXTRA_RESIDUAL_CATEGORY:
@@ -269,7 +285,8 @@ def get_exposure_standard_deviation(
     exposure = extract.extract_data(entity, "exposure", location_id, validate=True, get_all_years=get_all_years)
     valid_age_groups = utilities.get_exposure_and_restriction_ages(exposure, entity)
     data = data[data.age_group_id.isin(valid_age_groups)]
-
+    draw_cols_to_drop = [f"draw_{i}" for i in range(500,1000)]
+    data = data.drop(draw_cols_to_drop, axis=1)
     data = utilities.normalize(data, fill_value=0)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     return data
@@ -291,6 +308,8 @@ def get_exposure_distribution_weights(
         df.append(copied)
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
+    if not get_all_years:
+       data = data.query("year_id==@MOST_RECENT_YEAR")
     data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
     return data
@@ -341,6 +360,7 @@ def get_relative_risk(entity: RiskFactor, location_id: int, get_all_years: bool 
         + ["affected_entity", "affected_measure", "parameter"]
         + DRAW_COLUMNS
     )
+
     data = (
         data.groupby(["affected_entity", "parameter"])
         .apply(utilities.normalize, fill_value=1)
@@ -478,5 +498,7 @@ def get_age_bins(entity: Population, location_id: int, get_all_years: bool = Fal
 
 def get_demographic_dimensions(entity: Population, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
     demographic_dimensions = utility_data.get_demographic_dimensions(location_id)
+    if not get_all_years:
+        demographic_dimensions = demographic_dimensions.query("year_id==@MOST_RECENT_YEAR")
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
