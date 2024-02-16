@@ -222,7 +222,6 @@ def get_deaths(entity: Cause, location_id: int, get_all_years: bool = False) -> 
     return data
 
 
-
 def get_exposure(
     entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
 ) -> pd.DataFrame:

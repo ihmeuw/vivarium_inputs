@@ -72,7 +72,6 @@ def check_value_columns_boundary(
         boundary_value = boundary_value.sort_index()
 
     within_boundary = op(data_values, boundary_value)
-
     if inclusive:
         within_boundary |= np.isclose(data_values, boundary_value)
 

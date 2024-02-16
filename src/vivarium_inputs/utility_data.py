@@ -3,7 +3,7 @@ from typing import List
 import pandas as pd
 from gbd_mapping import RiskFactor
 
-from vivarium_inputs.globals import NON_MAX_TMREL, SEXES, gbd
+from vivarium_inputs.globals import NON_MAX_TMREL, NUM_DRAWS, SEXES, gbd
 
 
 def get_estimation_years(*_, **__) -> pd.Series:
@@ -60,7 +60,7 @@ def get_demographic_dimensions(
 
     data = pd.MultiIndex.from_product(values, names=names).to_frame(index=False)
     if draws:
-        for i in range(500):
+        for i in range(NUM_DRAWS):
             data[f"draw_{i}"] = value
     return data
 
