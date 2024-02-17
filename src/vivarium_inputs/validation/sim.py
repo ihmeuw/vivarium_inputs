@@ -11,8 +11,8 @@ from gbd_mapping import (
     Sequela,
     causes,
 )
-
 from vivarium_gbd_access.constants import MOST_RECENT_YEAR
+
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (
     BOUNDARY_SPECIAL_CASES,
@@ -148,7 +148,9 @@ def validate_for_simulation(
     if measure not in validators:
         raise NotImplementedError()
 
-    context_args['years'] = pd.DataFrame({'year_start': MOST_RECENT_YEAR, 'year_end': MOST_RECENT_YEAR+1}, index=[0])
+    context_args["years"] = pd.DataFrame(
+        {"year_start": MOST_RECENT_YEAR, "year_end": MOST_RECENT_YEAR + 1}, index=[0]
+    )
     context = SimulationValidationContext(location, **context_args)
     validators[measure](data, entity, context)
 
@@ -1250,9 +1252,9 @@ def validate_theoretical_minimum_risk_life_expectancy(
         error=DataTransformationError,
     )
     if not data.sort_values(by="age", ascending=False).value.is_monotonic:
-       raise DataTransformationError(
-           "Life expectancy data is not monotonically decreasing over age."
-       )
+        raise DataTransformationError(
+            "Life expectancy data is not monotonically decreasing over age."
+        )
 
 
 def validate_age_bins(

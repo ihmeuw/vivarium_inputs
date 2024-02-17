@@ -29,7 +29,7 @@ def get_age_bins(*_, **__) -> pd.DataFrame:
     age_bins = gbd.get_age_bins()[
         ["age_group_id", "age_group_name", "age_group_years_start", "age_group_years_end"]
     ].rename(columns={"age_group_years_start": "age_start", "age_group_years_end": "age_end"})
-    age_bins = age_bins.sort_values('age_start')
+    age_bins = age_bins.sort_values("age_start")
     return age_bins
 
 

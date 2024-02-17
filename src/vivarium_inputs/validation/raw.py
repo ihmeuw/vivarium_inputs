@@ -13,8 +13,8 @@ from gbd_mapping import (
     causes,
 )
 from loguru import logger
-
 from vivarium_gbd_access.gbd import get_age_bins
+
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
     DEMOGRAPHIC_COLUMNS,

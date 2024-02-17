@@ -9,7 +9,9 @@ from vivarium_inputs import core, extract, utilities, utility_data
 from vivarium_inputs.globals import Population
 
 
-def get_measure(entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False) -> pd.DataFrame:
+def get_measure(
+    entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False
+) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
     values or ranges and expanding over all demographic dimensions. To pull data

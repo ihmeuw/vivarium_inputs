@@ -356,7 +356,7 @@ def filter_data_by_restrictions(
 
     start, end = get_age_group_ids_by_restriction(entity, which_age)
     ages = get_restriction_age_ids(start, end, age_group_ids)
-    #ages = ages + [238, 388, 389]
+    # ages = ages + [238, 388, 389]
     data = data[data.age_group_id.isin(ages)]
     return data
 
