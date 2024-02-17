@@ -1571,7 +1571,7 @@ def check_age_restrictions(
     age_bins = context["age_bins"]
     in_range_ages = age_bins.loc[
         (age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)
-        ]
+    ]
     in_range_age_intervals = [
         pd.Interval(row.age_start, row.age_end, closed="left")
         for _, row in in_range_ages.iterrows()
