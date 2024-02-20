@@ -34,6 +34,7 @@ if __name__ == "__main__":
         "pytest",
         "pytest-mock",
         "hypothesis",
+        "vivarium-gbd-access>=3.0.7, <4.0.0",
     ]
 
     doc_requirements = [
