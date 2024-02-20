@@ -13,7 +13,6 @@ from gbd_mapping import (
     causes,
 )
 from loguru import logger
-from vivarium_gbd_access.gbd import get_age_bins
 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
@@ -2050,8 +2049,8 @@ def _check_continuity(data_ages: set, all_ages: set) -> None:
     """Make sure data_ages is contiguous block in all_ages."""
     data_ages = list(data_ages)
     all_ages = list(all_ages)
-    data_ages.sort()
     all_ages.sort()
+    data_ages.sort()
 
     if (
         all_ages[all_ages.index(data_ages[0]) : all_ages.index(data_ages[-1]) + 1]
