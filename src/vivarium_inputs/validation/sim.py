@@ -147,10 +147,6 @@ def validate_for_simulation(
     if measure not in validators:
         raise NotImplementedError()
 
-    most_recent_year = utility_data.get_most_recent_year()
-    context_args["years"] = pd.DataFrame(
-        {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
-    )
     context = SimulationValidationContext(location, **context_args)
     validators[measure](data, entity, context)
 

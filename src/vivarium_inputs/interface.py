@@ -60,7 +60,13 @@ def get_measure(
     """
     data = core.get_data(entity, measure, location, get_all_years)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, entity, measure, location)
+    context_args = {}
+    if not get_all_years:
+        most_recent_year = utility_data.get_most_recent_year()
+        context_args["years"] = pd.DataFrame(
+            {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
+        )
+    validation.validate_for_simulation(data, entity, measure, location, **context_args)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
