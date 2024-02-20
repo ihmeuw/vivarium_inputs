@@ -2051,7 +2051,6 @@ def _check_continuity(data_ages: set, all_ages: set) -> None:
     all_ages = list(all_ages)
     all_ages.sort()
     data_ages.sort()
-
     if (
         all_ages[all_ages.index(data_ages[0]) : all_ages.index(data_ages[-1]) + 1]
         != data_ages
