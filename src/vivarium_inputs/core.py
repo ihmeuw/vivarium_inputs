@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela, causes
 from loguru import logger
-from vivarium_gbd_access.constants import MOST_RECENT_YEAR
 
 from vivarium_inputs import extract, utilities, utility_data
 from vivarium_inputs.globals import (
@@ -163,7 +162,8 @@ def get_disability_weight(
     if entity.kind == "cause":
         data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
         if not get_all_years:
-            data = data.query("year_id==@MOST_RECENT_YEAR")
+            most_recent_year = utility_data.get_most_recent_year()
+            data = data.query("year_id==@most_recent_year")
         data = data.set_index(
             utilities.get_ordered_index_cols(data.columns.difference(DRAW_COLUMNS))
         )
@@ -198,7 +198,7 @@ def get_disability_weight(
             )
             # add year id with single year so normalization doesn't fill in all years
             if not get_all_years:
-                data["year_id"] = MOST_RECENT_YEAR
+                data["year_id"] = utility_data.get_most_recent_year()
             data = utilities.normalize(data)
 
             cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]

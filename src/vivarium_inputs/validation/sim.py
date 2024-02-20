@@ -11,7 +11,6 @@ from gbd_mapping import (
     Sequela,
     causes,
 )
-from vivarium_gbd_access.constants import MOST_RECENT_YEAR
 
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (
@@ -148,8 +147,9 @@ def validate_for_simulation(
     if measure not in validators:
         raise NotImplementedError()
 
+    most_recent_year = utility_data.get_most_recent_year()
     context_args["years"] = pd.DataFrame(
-        {"year_start": MOST_RECENT_YEAR, "year_end": MOST_RECENT_YEAR + 1}, index=[0]
+        {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
     )
     context = SimulationValidationContext(location, **context_args)
     validators[measure](data, entity, context)

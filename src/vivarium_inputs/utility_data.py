@@ -11,6 +11,10 @@ def get_estimation_years(*_, **__) -> pd.Series:
     return data
 
 
+def get_most_recent_year() -> int:
+    return get_estimation_years().max()
+
+
 def get_year_block(*_, **__) -> pd.DataFrame:
     estimation_years = get_estimation_years()
     year_block = pd.DataFrame(
