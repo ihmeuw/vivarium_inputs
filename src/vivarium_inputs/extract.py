@@ -196,6 +196,8 @@ def extract_disability_weight(
     data = disability_weights.loc[
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
     ]
+    if not get_all_years:
+        data["year_id"] = get_most_recent_year()
     return data
 
 

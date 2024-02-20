@@ -196,9 +196,6 @@ def get_disability_weight(
                 validate=True,
                 get_all_years=get_all_years,
             )
-            # add year id with single year so normalization doesn't fill in all years
-            if not get_all_years:
-                data["year_id"] = utility_data.get_most_recent_year()
             data = utilities.normalize(data)
 
             cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
