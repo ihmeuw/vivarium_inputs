@@ -286,8 +286,8 @@ def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.D
     return data
 
 
-def extract_structure(entity: Population, location_id: int) -> pd.DataFrame:
-    data = gbd.get_population(location_id)
+def extract_structure(entity: Population, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
+    data = gbd.get_population(location_id, get_all_years)
     return data
 
 
