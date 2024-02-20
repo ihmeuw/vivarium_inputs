@@ -12,7 +12,7 @@ def get_estimation_years(*_, **__) -> pd.Series:
 
 
 def get_most_recent_year() -> int:
-    return get_estimation_years().max()
+    return max(get_estimation_years())
 
 
 def get_year_block(*_, **__) -> pd.DataFrame:
@@ -33,7 +33,7 @@ def get_age_bins(*_, **__) -> pd.DataFrame:
     age_bins = gbd.get_age_bins()[
         ["age_group_id", "age_group_name", "age_group_years_start", "age_group_years_end"]
     ].rename(columns={"age_group_years_start": "age_start", "age_group_years_end": "age_end"})
-    age_bins = age_bins.sort_values("age_start")
+    age_bins = age_bins.sort_values("age_start").reset_index(drop=True)
     return age_bins
 
 
