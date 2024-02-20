@@ -2,7 +2,6 @@ from typing import Union
 
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
-from vivarium_gbd_access.constants import MOST_RECENT_YEAR
 
 import vivarium_inputs.validation.raw as validation
 from vivarium_inputs.globals import (
@@ -20,6 +19,7 @@ from vivarium_inputs.globals import (
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
+from vivarium_inputs.utility_data import get_most_recent_year
 
 
 def extract_data(
@@ -132,7 +132,7 @@ def extract_data(
             for name, extractor in additional_extractors.items()
         }
         if not get_all_years:
-            additional_data["estimation_years"] = [MOST_RECENT_YEAR]
+            additional_data["estimation_years"] = [get_most_recent_year()]
         validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
     return data
