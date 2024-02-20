@@ -496,8 +496,12 @@ def get_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataF
     return data
 
 
-def get_structure(entity: Population, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
-    data = extract.extract_data(entity, "structure", location_id, validate=True, get_all_years=get_all_years)
+def get_structure(
+    entity: Population, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
+    data = extract.extract_data(
+        entity, "structure", location_id, validate=True, get_all_years=get_all_years
+    )
     data = data.drop("run_id", axis="columns").rename(columns={"population": "value"})
     data = utilities.normalize(data)
     return data
