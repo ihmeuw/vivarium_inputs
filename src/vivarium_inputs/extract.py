@@ -6,6 +6,7 @@ from vivarium_gbd_access.constants import MOST_RECENT_YEAR
 
 import vivarium_inputs.validation.raw as validation
 from vivarium_inputs.globals import (
+    DRAW_COLUMNS,
     MEASURES,
     METRICS,
     OTHER_MEID,
@@ -119,6 +120,11 @@ def extract_data(
             raise DataDoesNotExistError(
                 f"{measure.capitalize()} data for {entity.name} does not exist."
             )
+
+    # drop extra draw columns
+    existing_draw_cols = [col for col in data if col.startswith("draw_")]
+    extra_draw_cols = [col for col in existing_draw_cols if col not in DRAW_COLUMNS]
+    data = data.drop(columns=extra_draw_cols, errors="ignore")
 
     if validate:
         additional_data = {
