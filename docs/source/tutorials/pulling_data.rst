@@ -387,10 +387,10 @@ To use:
                  'parameters': {'location': str, 'get_all_years': bool},
                  'return': pd.DataFrame, },
              get_theoretical_minimum_risk_life_expectancy: {
-                 'parameters': {'get_all_years': bool},
+                 'parameters': {},
                  'return': pd.DataFrame, },
              get_age_bins: {
-                 'parameters': {'get_all_years': bool},
+                 'parameters': {},
                  'return': pd.DataFrame, },
              get_demographic_dimensions: {
                  'parameters': {'location': str, 'get_all_years': bool},
