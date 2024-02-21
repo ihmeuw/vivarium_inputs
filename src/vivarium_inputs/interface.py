@@ -155,7 +155,9 @@ def get_demographic_dimensions(location: str, get_all_years: bool = False) -> pd
     pop = Population()
     data = core.get_data(pop, "demographic_dimensions", location)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, pop, "demographic_dimensions", location, get_all_years)
+    validation.validate_for_simulation(
+        data, pop, "demographic_dimensions", location, get_all_years
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)

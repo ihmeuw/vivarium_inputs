@@ -78,7 +78,12 @@ class SimulationValidationContext:
 
 
 def validate_for_simulation(
-    data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False, **context_args
+    data: pd.DataFrame,
+    entity: ModelableEntity,
+    measure: str,
+    location: str,
+    get_all_years: bool = False,
+    **context_args,
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation
     and conforms to normal expectations for a measure.
