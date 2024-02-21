@@ -1247,7 +1247,6 @@ def validate_theoretical_minimum_risk_life_expectancy(
         inclusive=False,
         error=DataTransformationError,
     )
-
     if not data.sort_values(by="age", ascending=False).value.is_monotonic:
         raise DataTransformationError(
             "Life expectancy data is not monotonically decreasing over age."
@@ -1567,9 +1566,15 @@ def check_age_restrictions(
 
     """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
+    # TODO: remove after MIC-4519 is done
+    start_id = 238 if start_id == 4 else start_id
+
     age_bins = context["age_bins"]
+    id_to_age_start_map = dict(zip(age_bins.age_group_id, age_bins.age_start))
+    age_range_start = id_to_age_start_map[start_id]
+    age_range_end = id_to_age_start_map[end_id]
     in_range_ages = age_bins.loc[
-        (age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)
+        (age_bins.age_start >= age_range_start) & (age_bins.age_start <= age_range_end)
     ]
     in_range_age_intervals = [
         pd.Interval(row.age_start, row.age_end, closed="left")

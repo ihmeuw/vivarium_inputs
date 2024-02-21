@@ -5,6 +5,7 @@ from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
 
 import vivarium_inputs.validation.raw as validation
 from vivarium_inputs.globals import (
+    DRAW_COLUMNS,
     MEASURES,
     METRICS,
     OTHER_MEID,
@@ -18,10 +19,11 @@ from vivarium_inputs.globals import (
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
+from vivarium_inputs.utility_data import get_most_recent_year
 
 
 def extract_data(
-    entity, measure: str, location_id: int, validate: bool = True
+    entity, measure: str, location_id: int, validate: bool = True, get_all_years: bool = False
 ) -> Union[pd.Series, pd.DataFrame]:
     """Check metadata for the requested entity-measure pair. Pull raw data from
     GBD. The only filtering that occurs is by applicable measure id, metric id,
@@ -94,7 +96,7 @@ def extract_data(
 
     try:
         main_extractor, additional_extractors = extractors[measure]
-        data = main_extractor(entity, location_id)
+        data = main_extractor(entity, location_id, get_all_years)
     except (
         ValueError,
         AssertionError,
@@ -119,58 +121,90 @@ def extract_data(
                 f"{measure.capitalize()} data for {entity.name} does not exist."
             )
 
+    # drop extra draw columns
+    existing_draw_cols = [col for col in data if col.startswith("draw_")]
+    extra_draw_cols = [col for col in existing_draw_cols if col not in DRAW_COLUMNS]
+    data = data.drop(columns=extra_draw_cols, errors="ignore")
+
     if validate:
         additional_data = {
             name: extractor(entity, location_id)
             for name, extractor in additional_extractors.items()
         }
+        if not get_all_years:
+            additional_data["estimation_years"] = [get_most_recent_year()]
         validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
     return data
 
 
-def extract_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+def extract_prevalence(
+    entity: Union[Cause, Sequela], location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
     data = gbd.get_incidence_prevalence(
-        entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind
+        entity_id=entity.gbd_id,
+        location_id=location_id,
+        entity_type=entity.kind,
+        get_all_years=get_all_years,
     )
     data = data[data.measure_id == MEASURES["Prevalence"]]
     return data
 
 
-def extract_incidence_rate(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+def extract_incidence_rate(
+    entity: Union[Cause, Sequela], location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
     data = gbd.get_incidence_prevalence(
-        entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind
+        entity_id=entity.gbd_id,
+        location_id=location_id,
+        entity_type=entity.kind,
+        get_all_years=get_all_years,
     )
     data = data[data.measure_id == MEASURES["Incidence rate"]]
     return data
 
 
-def extract_birth_prevalence(entity: Union[Cause, Sequela], location_id: int) -> pd.DataFrame:
+def extract_birth_prevalence(
+    entity: Union[Cause, Sequela], location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
     data = gbd.get_birth_prevalence(
-        entity_id=entity.gbd_id, location_id=location_id, entity_type=entity.kind
+        entity_id=entity.gbd_id,
+        location_id=location_id,
+        entity_type=entity.kind,
+        get_all_years=get_all_years,
     )
     data = data[data.measure_id == MEASURES["Incidence rate"]]
     return data
 
 
-def extract_remission_rate(entity: Cause, location_id: int) -> pd.DataFrame:
-    data = gbd.get_modelable_entity_draws(entity.me_id, location_id)
+def extract_remission_rate(
+    entity: Cause, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
+    data = gbd.get_modelable_entity_draws(
+        entity.me_id, location_id, get_all_years=get_all_years
+    )
     data = data[data.measure_id == MEASURES["Remission rate"]]
     return data
 
 
-def extract_disability_weight(entity: Sequela, location_id: int) -> pd.DataFrame:
+def extract_disability_weight(
+    entity: Sequela, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
     disability_weights = gbd.get_auxiliary_data(
         "disability_weight", entity.kind, "all", location_id
     )
     data = disability_weights.loc[
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
     ]
+    if not get_all_years:
+        data["year_id"] = get_most_recent_year()
     return data
 
 
-def extract_deaths(entity: Cause, location_id: int) -> pd.DataFrame:
-    data = gbd.get_codcorrect_draws(entity.gbd_id, location_id)
+def extract_deaths(
+    entity: Cause, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
+    data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, get_all_years=get_all_years)
     data = data[data.measure_id == MEASURES["Deaths"]]
     return data
 
@@ -254,8 +288,10 @@ def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.D
     return data
 
 
-def extract_structure(entity: Population, location_id: int) -> pd.DataFrame:
-    data = gbd.get_population(location_id)
+def extract_structure(
+    entity: Population, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
+    data = gbd.get_population(location_id, get_all_years)
     return data
 
 

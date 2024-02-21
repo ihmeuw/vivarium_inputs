@@ -399,6 +399,9 @@ def get_restriction_age_ids(
     """Get the start/end age group id and return the list of GBD age_group_ids
     in-between.
     """
+    # TODO: remove after MIC-4519 is done
+    start_id = 238 if start_id == 4 else start_id
+
     if start_id is None or end_id is None:
         data = []
     else:
