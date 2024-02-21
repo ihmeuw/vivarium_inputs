@@ -164,7 +164,7 @@ def get_demographic_dimensions(location: str, get_all_years: bool = False) -> pd
 
 
 def get_raw_data(
-    entity: ModelableEntity, measure: str, location: str
+    entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False
 ) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
     Skip standard raw validation checks in order to return data that can be
@@ -212,5 +212,5 @@ def get_raw_data(
         formatting or reshaping.
     """
     location_id = utility_data.get_location_id(location)
-    data = extract.extract_data(entity, measure, location_id, validate=False)
+    data = extract.extract_data(entity, measure, location_id, validate=False, get_all_years=get_all_years)
     return data
