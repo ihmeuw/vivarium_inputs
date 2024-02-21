@@ -396,7 +396,13 @@ To use:
                  'parameters': {'location': str, 'get_all_years': bool},
                  'return': pd.DataFrame, },
              get_raw_data: {
-                 'parameters': {'entity': ModelableEntity, 'measure': str, 'location': str},
+                 'parameters': {
+                    'entity': ModelableEntity,
+                    'measure': str,
+                    'location': str,
+                    'get_all_years': bool,
+                        },
+             },
                 'return': Union[pd.DataFrame, pd.Series], },
              }
     for func, spec in funcs.items():
