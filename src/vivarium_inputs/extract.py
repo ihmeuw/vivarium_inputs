@@ -281,8 +281,12 @@ def extract_mediation_factors(entity: RiskFactor, location_id: int) -> pd.DataFr
     return data
 
 
-def extract_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
-    data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id)
+def extract_estimate(
+    entity: Covariate, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
+    data = gbd.get_covariate_estimate(
+        int(entity.gbd_id), location_id, get_all_years=get_all_years
+    )
     return data
 
 

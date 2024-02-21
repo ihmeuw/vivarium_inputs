@@ -471,8 +471,12 @@ def get_population_attributable_fraction(
     return data
 
 
-def get_estimate(entity: Covariate, location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, "estimate", location_id)
+def get_estimate(
+    entity: Covariate, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
+    data = extract.extract_data(
+        entity, "estimate", location_id, validate=True, get_all_years=get_all_years
+    )
 
     key_columns = ["location_id", "year_id"]
     if entity.by_age:
