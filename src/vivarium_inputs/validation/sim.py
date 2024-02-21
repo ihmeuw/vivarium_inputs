@@ -1203,8 +1203,7 @@ def validate_theoretical_minimum_risk_life_expectancy(
     groups, this validator doesn't use the standard column checks. Instead, it
     verifies that the data has the correct age columns and that ages range from
     0 to 110 years. It checks that all life expectancy values are within the
-    expected range and ensures that life expectancy is monotonically decreasing
-    by age.
+    expected range.
 
     Parameters
     ----------
@@ -1219,8 +1218,7 @@ def validate_theoretical_minimum_risk_life_expectancy(
     ------
     DataTransformationError
         If age columns are incorrectly named or contain invalid values or if
-        any life expectancy values are outside the expected range or not
-        monotonically decreasing over age.
+        any life expectancy values are outside the expected range.
 
     """
     expected_index_names = ["age"]
@@ -1253,10 +1251,6 @@ def validate_theoretical_minimum_risk_life_expectancy(
         inclusive=False,
         error=DataTransformationError,
     )
-    if not data.sort_values(by="age", ascending=False).value.is_monotonic:
-        raise DataTransformationError(
-            "Life expectancy data is not monotonically decreasing over age."
-        )
 
 
 def validate_age_bins(
