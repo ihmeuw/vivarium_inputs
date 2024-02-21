@@ -76,6 +76,9 @@ def get_population_structure(location: str, get_all_years: bool = False) -> pd.D
     ----------
     location
         Location for which to pull population data.
+    get_all_years
+        Flag indicating whether to get all years. Otherwise, get most recent year.
+        Defaults to False.
 
     Returns
     -------
@@ -145,6 +148,9 @@ def get_demographic_dimensions(location: str, get_all_years: bool = False) -> pd
     ----------
     location
         Location for which to pull demographic dimension data.
+    get_all_years
+        Flag indicating whether to get all years. Otherwise, get most recent year.
+        Defaults to False.
 
     Returns
     -------
@@ -204,6 +210,9 @@ def get_raw_data(
         Measure for which to extract data.
     location
         Location for which to extract data.
+    get_all_years
+        Flag indicating whether to get all years. Otherwise, get most recent year.
+        Defaults to False.
 
     Returns
     -------
