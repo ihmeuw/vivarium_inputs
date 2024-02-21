@@ -384,16 +384,16 @@ To use:
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
-                 'parameters': {'location': str},
+                 'parameters': {'location': str, 'get_all_years': bool},
                  'return': pd.DataFrame, },
              get_theoretical_minimum_risk_life_expectancy: {
-                 'parameters': {},
+                 'parameters': {'get_all_years': bool},
                  'return': pd.DataFrame, },
              get_age_bins: {
-                 'parameters': {},
+                 'parameters': {'get_all_years': bool},
                  'return': pd.DataFrame, },
              get_demographic_dimensions: {
-                 'parameters': {'location': str},
+                 'parameters': {'location': str, 'get_all_years': bool},
                  'return': pd.DataFrame, },
              get_raw_data: {
                  'parameters': {'entity': ModelableEntity, 'measure': str, 'location': str},

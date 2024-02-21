@@ -116,7 +116,7 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
     return utilities.sort_hierarchical_data(data)
 
 
-def get_age_bins(get_all_years: bool = False) -> pd.DataFrame:
+def get_age_bins() -> pd.DataFrame:
     """Pull GBD age bin data and standardize to the expected simulation input
     format.
 
@@ -130,7 +130,7 @@ def get_age_bins(get_all_years: bool = False) -> pd.DataFrame:
     pop = Population()
     data = core.get_data(pop, "age_bins", "Global")
     data = utilities.set_age_interval(data)
-    validation.validate_for_simulation(data, pop, "age_bins", "Global", get_all_years)
+    validation.validate_for_simulation(data, pop, "age_bins", "Global")
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
