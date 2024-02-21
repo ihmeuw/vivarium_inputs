@@ -296,7 +296,7 @@ def extract_structure(
 
 
 def extract_theoretical_minimum_risk_life_expectancy(
-    entity: Population, location_id: int
+    entity: Population, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
     return data
