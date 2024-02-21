@@ -258,9 +258,9 @@ def get_deaths(entity: Cause, location_id: int, get_all_years: bool = False) -> 
 
 
 def get_exposure(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
+    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    data = extract.extract_data(entity, "exposure", location_id)
+    data = extract.extract_data(entity, "exposure", location_id, validate=True, get_all_years=get_all_years)
     data = data.drop("modelable_entity_id", "columns")
 
     if entity.name in EXTRA_RESIDUAL_CATEGORY:
@@ -302,12 +302,12 @@ def get_exposure(
 
 
 def get_exposure_standard_deviation(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
+    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    data = extract.extract_data(entity, "exposure_standard_deviation", location_id)
+    data = extract.extract_data(entity, "exposure_standard_deviation", location_id, validate=True, get_all_years=get_all_years)
     data = data.drop("modelable_entity_id", "columns")
 
-    exposure = extract.extract_data(entity, "exposure", location_id)
+    exposure = extract.extract_data(entity, "exposure", location_id, validate=True, get_all_years=get_all_years)
     valid_age_groups = utilities.get_exposure_and_restriction_ages(exposure, entity)
     data = data[data.age_group_id.isin(valid_age_groups)]
 
@@ -317,11 +317,11 @@ def get_exposure_standard_deviation(
 
 
 def get_exposure_distribution_weights(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int
+    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    data = extract.extract_data(entity, "exposure_distribution_weights", location_id)
+    data = extract.extract_data(entity, "exposure_distribution_weights", location_id, validate=True, get_all_years=get_all_years)
 
-    exposure = extract.extract_data(entity, "exposure", location_id)
+    exposure = extract.extract_data(entity, "exposure", location_id, validate=True, get_all_years=get_all_years)
     valid_ages = utilities.get_exposure_and_restriction_ages(exposure, entity)
 
     data.drop("age_group_id", axis=1, inplace=True)
@@ -332,6 +332,8 @@ def get_exposure_distribution_weights(
         df.append(copied)
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
+    if not get_all_years:
+       data = data.query("year_id==@MOST_RECENT_YEAR")
     data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
     return data
@@ -360,8 +362,8 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     return data
 
 
-def get_relative_risk(entity: RiskFactor, location_id: int) -> pd.DataFrame:
-    data = extract.extract_data(entity, "relative_risk", location_id)
+def get_relative_risk(entity: RiskFactor, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
+    data = extract.extract_data(entity, "relative_risk", location_id, validate=True, get_all_years=get_all_years)
 
     # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
     #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
@@ -408,12 +410,12 @@ def filter_by_relative_risk(df: pd.DataFrame, relative_risk: pd.DataFrame) -> pd
 
 
 def get_population_attributable_fraction(
-    entity: Union[RiskFactor, Etiology], location_id: int
+    entity: Union[RiskFactor, Etiology], location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     causes_map = {c.gbd_id: c for c in causes}
     if entity.kind == "risk_factor":
-        data = extract.extract_data(entity, "population_attributable_fraction", location_id)
-        relative_risk = extract.extract_data(entity, "relative_risk", location_id)
+        data = extract.extract_data(entity, "population_attributable_fraction", location_id, validate=True, get_all_years=get_all_years)
+        relative_risk = extract.extract_data(entity, "relative_risk", validate=True, get_all_years=get_all_years)
 
         # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
         #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
@@ -441,7 +443,7 @@ def get_population_attributable_fraction(
 
     else:  # etiology
         data = extract.extract_data(
-            entity, "etiology_population_attributable_fraction", location_id
+            entity, "etiology_population_attributable_fraction", location_id, validate=True, get_all_years=get_all_years
         )
         cause = [c for c in causes if entity in c.etiologies][0]
         data = utilities.filter_data_by_restrictions(
