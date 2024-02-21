@@ -402,7 +402,6 @@ To use:
                     'location': str,
                     'get_all_years': bool,
                         },
-             },
                 'return': Union[pd.DataFrame, pd.Series], },
              }
     for func, spec in funcs.items():
