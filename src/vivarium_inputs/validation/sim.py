@@ -78,7 +78,7 @@ class SimulationValidationContext:
 
 
 def validate_for_simulation(
-    data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str, **context_args
+    data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False, **context_args
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation
     and conforms to normal expectations for a measure.
@@ -146,6 +146,12 @@ def validate_for_simulation(
 
     if measure not in validators:
         raise NotImplementedError()
+
+    if not get_all_years:
+        most_recent_year = utility_data.get_most_recent_year()
+        context_args["years"] = pd.DataFrame(
+            {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
+        )
 
     context = SimulationValidationContext(location, **context_args)
     validators[measure](data, entity, context)
