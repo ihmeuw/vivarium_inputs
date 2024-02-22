@@ -1578,7 +1578,7 @@ def check_age_restrictions(
     """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
     # TODO: remove after MIC-4519 is done
-    start_id = 238 if start_id == 4 else start_id
+    start_id = 388 if start_id == 4 else start_id
 
     age_bins = context["age_bins"]
     id_to_age_start_map = dict(zip(age_bins.age_group_id, age_bins.age_start))
