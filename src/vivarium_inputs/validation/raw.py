@@ -1570,7 +1570,7 @@ def validate_theoretical_minimum_risk_life_expectancy(
     expected_columns = ["age", "life_expectancy"]
     check_columns(expected_columns, data.columns)
 
-    min_age, max_age = 0, 105
+    min_age, max_age = 0, 110
     if data.age.min() != min_age or data.age.max() != max_age:
         raise DataAbnormalError(
             f"Data does not contain life expectancy values for ages [{min_age}, {max_age}]."

@@ -44,6 +44,9 @@ def extract_data(
         should be extracted and whether raw validation should be performed.
         Should only be set to False if data is being extracted for
         investigation. Never extract data for a simulation without validation.
+    get_all_years
+        Flag indicating whether to get all years. Otherwise, get most recent year.
+        Defaults to False.
 
     Returns
     -------
@@ -296,7 +299,7 @@ def extract_structure(
 
 
 def extract_theoretical_minimum_risk_life_expectancy(
-    entity: Population, location_id: int
+    entity: Population, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
     return data

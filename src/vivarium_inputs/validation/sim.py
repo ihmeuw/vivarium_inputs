@@ -82,7 +82,7 @@ def validate_for_simulation(
     entity: ModelableEntity,
     measure: str,
     location: str,
-    get_all_years: bool = False,
+    check_all_years: bool = False,
     **context_args,
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation
@@ -114,6 +114,10 @@ def validate_for_simulation(
         The measure to which the data pertain.
     location
         The location to which the data pertain.
+    check_all_years
+        Flag indicating whether to validate that we have all years.
+        Otherwise, validate that data has most recent year.
+        Defaults to False.
     context_args
         Any data or information needed to construct the SimulationContext used
         by the individual entity-measure validator functions.
@@ -152,7 +156,7 @@ def validate_for_simulation(
     if measure not in validators:
         raise NotImplementedError()
 
-    if not get_all_years:
+    if not check_all_years:
         most_recent_year = utility_data.get_most_recent_year()
         context_args["years"] = pd.DataFrame(
             {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
@@ -1208,8 +1212,7 @@ def validate_theoretical_minimum_risk_life_expectancy(
     groups, this validator doesn't use the standard column checks. Instead, it
     verifies that the data has the correct age columns and that ages range from
     0 to 110 years. It checks that all life expectancy values are within the
-    expected range and ensures that life expectancy is monotonically decreasing
-    by age.
+    expected range.
 
     Parameters
     ----------
@@ -1224,8 +1227,7 @@ def validate_theoretical_minimum_risk_life_expectancy(
     ------
     DataTransformationError
         If age columns are incorrectly named or contain invalid values or if
-        any life expectancy values are outside the expected range or not
-        monotonically decreasing over age.
+        any life expectancy values are outside the expected range.
 
     """
     expected_index_names = ["age"]
@@ -1258,10 +1260,6 @@ def validate_theoretical_minimum_risk_life_expectancy(
         inclusive=False,
         error=DataTransformationError,
     )
-    if not data.sort_values(by="age", ascending=False).value.is_monotonic:
-        raise DataTransformationError(
-            "Life expectancy data is not monotonically decreasing over age."
-        )
 
 
 def validate_age_bins(

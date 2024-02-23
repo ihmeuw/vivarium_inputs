@@ -66,7 +66,7 @@ def get_measure(
     return utilities.sort_hierarchical_data(data)
 
 
-def get_population_structure(location: str) -> pd.DataFrame:
+def get_population_structure(location: str, get_all_years: bool = False) -> pd.DataFrame:
     """Pull GBD population data for the given location and standardize to the
     expected simulation input format, including scrubbing all GBD conventions
     to replace IDs with meaningful values or ranges and expanding over all
@@ -76,6 +76,9 @@ def get_population_structure(location: str) -> pd.DataFrame:
     ----------
     location
         Location for which to pull population data.
+    get_all_years
+        Flag indicating whether to get all years. Otherwise, get most recent year.
+        Defaults to False.
 
     Returns
     -------
@@ -87,7 +90,7 @@ def get_population_structure(location: str) -> pd.DataFrame:
     pop = Population()
     data = core.get_data(pop, "structure", location)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, pop, "structure", location)
+    validation.validate_for_simulation(data, pop, "structure", location, get_all_years)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -136,7 +139,7 @@ def get_age_bins() -> pd.DataFrame:
     return utilities.sort_hierarchical_data(data)
 
 
-def get_demographic_dimensions(location: str) -> pd.DataFrame:
+def get_demographic_dimensions(location: str, get_all_years: bool = False) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
     to replace IDs with with meaningful values or ranges.
@@ -145,6 +148,9 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     ----------
     location
         Location for which to pull demographic dimension data.
+    get_all_years
+        Flag indicating whether to get all years. Otherwise, get most recent year.
+        Defaults to False.
 
     Returns
     -------
@@ -155,14 +161,16 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
     pop = Population()
     data = core.get_data(pop, "demographic_dimensions", location)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, pop, "demographic_dimensions", location)
+    validation.validate_for_simulation(
+        data, pop, "demographic_dimensions", location, get_all_years
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
 
 
 def get_raw_data(
-    entity: ModelableEntity, measure: str, location: str
+    entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False
 ) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
     Skip standard raw validation checks in order to return data that can be
@@ -202,6 +210,9 @@ def get_raw_data(
         Measure for which to extract data.
     location
         Location for which to extract data.
+    get_all_years
+        Flag indicating whether to get all years. Otherwise, get most recent year.
+        Defaults to False.
 
     Returns
     -------
@@ -210,5 +221,7 @@ def get_raw_data(
         formatting or reshaping.
     """
     location_id = utility_data.get_location_id(location)
-    data = extract.extract_data(entity, measure, location_id, validate=False)
+    data = extract.extract_data(
+        entity, measure, location_id, validate=False, get_all_years=get_all_years
+    )
     return data

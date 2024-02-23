@@ -506,17 +506,23 @@ def get_structure(
 
 
 def get_theoretical_minimum_risk_life_expectancy(
-    entity: Population, location_id: int
+    entity: Population, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     data = extract.extract_data(
-        entity, "theoretical_minimum_risk_life_expectancy", location_id
+        entity,
+        "theoretical_minimum_risk_life_expectancy",
+        location_id,
+        validate=True,
+        get_all_years=get_all_years,
     )
     data = data.rename(columns={"age": "age_start", "life_expectancy": "value"})
     data["age_end"] = data.age_start.shift(-1).fillna(125.0)
     return data
 
 
-def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
+def get_age_bins(
+    entity: Population, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
     age_bins = utility_data.get_age_bins()[["age_group_name", "age_start", "age_end"]]
     return age_bins
 
