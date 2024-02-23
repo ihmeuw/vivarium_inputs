@@ -380,6 +380,7 @@ To use:
                     'entity': ModelableEntity, 
                     'measure': str, 
                     'location': str,
+                    'get_all_years': bool,
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {

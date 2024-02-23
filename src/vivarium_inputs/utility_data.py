@@ -3,12 +3,16 @@ from typing import List
 import pandas as pd
 from gbd_mapping import RiskFactor
 
-from vivarium_inputs.globals import NON_MAX_TMREL, SEXES, gbd
+from vivarium_inputs.globals import NON_MAX_TMREL, NUM_DRAWS, SEXES, gbd
 
 
 def get_estimation_years(*_, **__) -> pd.Series:
     data = gbd.get_estimation_years()
     return data
+
+
+def get_most_recent_year() -> int:
+    return max(get_estimation_years())
 
 
 def get_year_block(*_, **__) -> pd.DataFrame:
@@ -29,6 +33,7 @@ def get_age_bins(*_, **__) -> pd.DataFrame:
     age_bins = gbd.get_age_bins()[
         ["age_group_id", "age_group_name", "age_group_years_start", "age_group_years_end"]
     ].rename(columns={"age_group_years_start": "age_start", "age_group_years_end": "age_end"})
+    age_bins = age_bins.sort_values("age_start").reset_index(drop=True)
     return age_bins
 
 
@@ -47,11 +52,14 @@ def get_location_id_parents(location_id: int) -> List[int]:
 
 
 def get_demographic_dimensions(
-    location_id: int, draws: bool = False, value: float = None
+    location_id: int, get_all_years: bool = False, draws: bool = False, value: float = None
 ) -> pd.DataFrame:
     ages = get_age_group_ids()
-    estimation_years = get_estimation_years()
-    years = range(min(estimation_years), max(estimation_years) + 1)
+    if get_all_years:
+        estimation_years = get_estimation_years()
+        years = range(min(estimation_years), max(estimation_years) + 1)
+    else:
+        years = [get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
     location = [location_id]
     values = [location, sexes, ages, years]
@@ -59,7 +67,7 @@ def get_demographic_dimensions(
 
     data = pd.MultiIndex.from_product(values, names=names).to_frame(index=False)
     if draws:
-        for i in range(1000):
+        for i in range(NUM_DRAWS):
             data[f"draw_{i}"] = value
     return data
 

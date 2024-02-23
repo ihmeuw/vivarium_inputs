@@ -399,6 +399,10 @@ def get_restriction_age_ids(
     """Get the start/end age group id and return the list of GBD age_group_ids
     in-between.
     """
+    # TODO: remove after MIC-4519 is done
+    # replace GBD 2019 age group 4 (1 month-1 year) with GBD 2021 age group 388 (1-5 months)
+    start_id = 388 if start_id == 4 else start_id
+
     if start_id is None or end_id is None:
         data = []
     else:

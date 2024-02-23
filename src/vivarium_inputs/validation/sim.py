@@ -78,7 +78,12 @@ class SimulationValidationContext:
 
 
 def validate_for_simulation(
-    data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str, **context_args
+    data: pd.DataFrame,
+    entity: ModelableEntity,
+    measure: str,
+    location: str,
+    get_all_years: bool = False,
+    **context_args,
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation
     and conforms to normal expectations for a measure.
@@ -146,6 +151,12 @@ def validate_for_simulation(
 
     if measure not in validators:
         raise NotImplementedError()
+
+    if not get_all_years:
+        most_recent_year = utility_data.get_most_recent_year()
+        context_args["years"] = pd.DataFrame(
+            {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
+        )
 
     context = SimulationValidationContext(location, **context_args)
     validators[measure](data, entity, context)
@@ -1247,7 +1258,6 @@ def validate_theoretical_minimum_risk_life_expectancy(
         inclusive=False,
         error=DataTransformationError,
     )
-
     if not data.sort_values(by="age", ascending=False).value.is_monotonic:
         raise DataTransformationError(
             "Life expectancy data is not monotonically decreasing over age."
@@ -1567,9 +1577,16 @@ def check_age_restrictions(
 
     """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
+    # TODO: remove after MIC-4519 is done
+    # replace GBD 2019 age group 4 (1 month-1 year) with GBD 2021 age group 388 (1-5 months)
+    start_id = 388 if start_id == 4 else start_id
+
     age_bins = context["age_bins"]
+    id_to_age_start_map = dict(zip(age_bins.age_group_id, age_bins.age_start))
+    age_range_start = id_to_age_start_map[start_id]
+    age_range_end = id_to_age_start_map[end_id]
     in_range_ages = age_bins.loc[
-        (age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)
+        (age_bins.age_start >= age_range_start) & (age_bins.age_start <= age_range_end)
     ]
     in_range_age_intervals = [
         pd.Interval(row.age_start, row.age_end, closed="left")
