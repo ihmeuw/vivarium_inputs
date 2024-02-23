@@ -160,7 +160,9 @@ def get_disability_weight(
     entity: Union[Cause, Sequela], location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     if entity.kind == "cause":
-        data = utility_data.get_demographic_dimensions(location_id, get_all_years, draws=True, value=0.0)
+        data = utility_data.get_demographic_dimensions(
+            location_id, get_all_years, draws=True, value=0.0
+        )
         data = data.set_index(
             utilities.get_ordered_index_cols(data.columns.difference(DRAW_COLUMNS))
         )
@@ -204,7 +206,9 @@ def get_disability_weight(
             logger.warning(
                 f"{entity.name.capitalize()} has no disability weight data. All values will be 0."
             )
-            data = utility_data.get_demographic_dimensions(location_id, get_all_years, draws=True, value=0.0)
+            data = utility_data.get_demographic_dimensions(
+                location_id, get_all_years, draws=True, value=0.0
+            )
     return data
 
 
@@ -517,7 +521,11 @@ def get_age_bins(entity: Population, location_id: int) -> pd.DataFrame:
     return age_bins
 
 
-def get_demographic_dimensions(entity: Population, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
-    demographic_dimensions = utility_data.get_demographic_dimensions(location_id, get_all_years)
+def get_demographic_dimensions(
+    entity: Population, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
+    demographic_dimensions = utility_data.get_demographic_dimensions(
+        location_id, get_all_years
+    )
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions

@@ -4,7 +4,6 @@ import pandas as pd
 from gbd_mapping import RiskFactor
 
 from vivarium_inputs.globals import NON_MAX_TMREL, NUM_DRAWS, SEXES, gbd
-from vivarium_inputs.utility_data import get_most_recent_year
 
 
 def get_estimation_years(*_, **__) -> pd.Series:
@@ -60,7 +59,7 @@ def get_demographic_dimensions(
         estimation_years = get_estimation_years()
         years = range(min(estimation_years), max(estimation_years) + 1)
     else:
-        years = get_most_recent_year()
+        years = [get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
     location = [location_id]
     values = [location, sexes, ages, years]
