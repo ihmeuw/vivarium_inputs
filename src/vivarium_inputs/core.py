@@ -160,7 +160,9 @@ def get_disability_weight(
     entity: Union[Cause, Sequela], location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     if entity.kind == "cause":
-        data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
+        data = utility_data.get_demographic_dimensions(
+            location_id, get_all_years, draws=True, value=0.0
+        )
         if not get_all_years:
             most_recent_year = utility_data.get_most_recent_year()
             data = data.query("year_id==@most_recent_year")
@@ -260,9 +262,13 @@ def get_deaths(entity: Cause, location_id: int, get_all_years: bool = False) -> 
 
 
 def get_exposure(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, AlternativeRiskFactor],
+    location_id: int,
+    get_all_years: bool = False,
 ) -> pd.DataFrame:
-    data = extract.extract_data(entity, "exposure", location_id, validate=True, get_all_years=get_all_years)
+    data = extract.extract_data(
+        entity, "exposure", location_id, validate=True, get_all_years=get_all_years
+    )
     data = data.drop("modelable_entity_id", "columns")
 
     if entity.name in EXTRA_RESIDUAL_CATEGORY:
@@ -304,12 +310,22 @@ def get_exposure(
 
 
 def get_exposure_standard_deviation(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, AlternativeRiskFactor],
+    location_id: int,
+    get_all_years: bool = False,
 ) -> pd.DataFrame:
-    data = extract.extract_data(entity, "exposure_standard_deviation", location_id, validate=True, get_all_years=get_all_years)
+    data = extract.extract_data(
+        entity,
+        "exposure_standard_deviation",
+        location_id,
+        validate=True,
+        get_all_years=get_all_years,
+    )
     data = data.drop("modelable_entity_id", "columns")
 
-    exposure = extract.extract_data(entity, "exposure", location_id, validate=True, get_all_years=get_all_years)
+    exposure = extract.extract_data(
+        entity, "exposure", location_id, validate=True, get_all_years=get_all_years
+    )
     valid_age_groups = utilities.get_exposure_and_restriction_ages(exposure, entity)
     data = data[data.age_group_id.isin(valid_age_groups)]
 
@@ -319,11 +335,21 @@ def get_exposure_standard_deviation(
 
 
 def get_exposure_distribution_weights(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, AlternativeRiskFactor],
+    location_id: int,
+    get_all_years: bool = False,
 ) -> pd.DataFrame:
-    data = extract.extract_data(entity, "exposure_distribution_weights", location_id, validate=True, get_all_years=get_all_years)
+    data = extract.extract_data(
+        entity,
+        "exposure_distribution_weights",
+        location_id,
+        validate=True,
+        get_all_years=get_all_years,
+    )
 
-    exposure = extract.extract_data(entity, "exposure", location_id, validate=True, get_all_years=get_all_years)
+    exposure = extract.extract_data(
+        entity, "exposure", location_id, validate=True, get_all_years=get_all_years
+    )
     valid_ages = utilities.get_exposure_and_restriction_ages(exposure, entity)
 
     data.drop("age_group_id", axis=1, inplace=True)
@@ -335,8 +361,8 @@ def get_exposure_distribution_weights(
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     if not get_all_years:
-       most_recent_year = utility_data.get_most_recent_year()
-       data = data.query("year_id==@most_recent_year")
+        most_recent_year = utility_data.get_most_recent_year()
+        data = data.query("year_id==@most_recent_year")
     data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
     return data
@@ -365,8 +391,12 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     return data
 
 
-def get_relative_risk(entity: RiskFactor, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
-    data = extract.extract_data(entity, "relative_risk", location_id, validate=True, get_all_years=get_all_years)
+def get_relative_risk(
+    entity: RiskFactor, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
+    data = extract.extract_data(
+        entity, "relative_risk", location_id, validate=True, get_all_years=get_all_years
+    )
 
     # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
     #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
@@ -415,8 +445,16 @@ def get_population_attributable_fraction(
 ) -> pd.DataFrame:
     causes_map = {c.gbd_id: c for c in causes}
     if entity.kind == "risk_factor":
-        data = extract.extract_data(entity, "population_attributable_fraction", location_id, validate=True, get_all_years=get_all_years)
-        relative_risk = extract.extract_data(entity, "relative_risk", location_id, validate=True, get_all_years=get_all_years)
+        data = extract.extract_data(
+            entity,
+            "population_attributable_fraction",
+            location_id,
+            validate=True,
+            get_all_years=get_all_years,
+        )
+        relative_risk = extract.extract_data(
+            entity, "relative_risk", location_id, validate=True, get_all_years=get_all_years
+        )
 
         # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
         #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
@@ -444,7 +482,11 @@ def get_population_attributable_fraction(
 
     else:  # etiology
         data = extract.extract_data(
-            entity, "etiology_population_attributable_fraction", location_id, validate=True, get_all_years=get_all_years
+            entity,
+            "etiology_population_attributable_fraction",
+            location_id,
+            validate=True,
+            get_all_years=get_all_years,
         )
         cause = [c for c in causes if entity in c.etiologies][0]
         data = utilities.filter_data_by_restrictions(
@@ -536,7 +578,9 @@ def get_age_bins(
 def get_demographic_dimensions(
     entity: Population, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    demographic_dimensions = utility_data.get_demographic_dimensions(location_id)
+    demographic_dimensions = utility_data.get_demographic_dimensions(
+        location_id, get_all_years
+    )
     if not get_all_years:
         most_recent_year = utility_data.get_most_recent_year()
         demographic_dimensions = demographic_dimensions.query("year_id==@most_recent_year")
