@@ -578,8 +578,5 @@ def get_demographic_dimensions(
     demographic_dimensions = utility_data.get_demographic_dimensions(
         location_id, get_all_years
     )
-    if not get_all_years:
-        most_recent_year = utility_data.get_most_recent_year()
-        demographic_dimensions = demographic_dimensions.query("year_id==@most_recent_year")
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
