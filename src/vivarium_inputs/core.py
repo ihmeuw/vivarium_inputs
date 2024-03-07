@@ -163,9 +163,6 @@ def get_disability_weight(
         data = utility_data.get_demographic_dimensions(
             location_id, get_all_years, draws=True, value=0.0
         )
-        if not get_all_years:
-            most_recent_year = utility_data.get_most_recent_year()
-            data = data.query("year_id==@most_recent_year")
         data = data.set_index(
             utilities.get_ordered_index_cols(data.columns.difference(DRAW_COLUMNS))
         )
