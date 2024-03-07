@@ -52,11 +52,14 @@ def get_location_id_parents(location_id: int) -> List[int]:
 
 
 def get_demographic_dimensions(
-    location_id: int, draws: bool = False, value: float = None
+    location_id: int, get_all_years: bool = False, draws: bool = False, value: float = None
 ) -> pd.DataFrame:
     ages = get_age_group_ids()
-    estimation_years = get_estimation_years()
-    years = range(min(estimation_years), max(estimation_years) + 1)
+    if get_all_years:
+        estimation_years = get_estimation_years()
+        years = range(min(estimation_years), max(estimation_years) + 1)
+    else:
+        years = [get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
     location = [location_id]
     values = [location, sexes, ages, years]

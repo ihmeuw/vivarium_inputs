@@ -207,7 +207,9 @@ def get_disability_weight(
             logger.warning(
                 f"{entity.name.capitalize()} has no disability weight data. All values will be 0."
             )
-            data = utility_data.get_demographic_dimensions(location_id, draws=True, value=0.0)
+            data = utility_data.get_demographic_dimensions(
+                location_id, get_all_years, draws=True, value=0.0
+            )
     return data
 
 
