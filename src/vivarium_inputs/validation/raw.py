@@ -13,8 +13,8 @@ from gbd_mapping import (
     causes,
 )
 from loguru import logger
-
 from vivarium_gbd_access.gbd import get_age_bins
+
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
     DEMOGRAPHIC_COLUMNS,
@@ -2052,8 +2052,8 @@ def _check_continuity(data_ages: set, all_ages: set) -> None:
     all_ages = list(all_ages)
     age_bins = get_age_bins()
     id_to_age_map = dict(zip(age_bins.age_group_id, age_bins.age_group_years_start))
-    all_ages.sort(key = lambda id: id_to_age_map[id])
-    data_ages.sort(key = lambda id: id_to_age_map[id])
+    all_ages.sort(key=lambda id: id_to_age_map[id])
+    data_ages.sort(key=lambda id: id_to_age_map[id])
     if (
         all_ages[all_ages.index(data_ages[0]) : all_ages.index(data_ages[-1]) + 1]
         != data_ages

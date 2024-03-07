@@ -213,7 +213,9 @@ def extract_deaths(
 
 
 def extract_exposure(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, AlternativeRiskFactor],
+    location_id: int,
+    get_all_years: bool = False,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
         data = gbd.get_exposure(entity.gbd_id, location_id, get_all_years=get_all_years)
@@ -238,12 +240,18 @@ def extract_exposure(
 
 
 def extract_exposure_standard_deviation(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, AlternativeRiskFactor],
+    location_id: int,
+    get_all_years: bool = False,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor" and entity.name in OTHER_MEID:
-        data = gbd.get_modelable_entity_draws(OTHER_MEID[entity.name], location_id, get_all_years=get_all_years)
+        data = gbd.get_modelable_entity_draws(
+            OTHER_MEID[entity.name], location_id, get_all_years=get_all_years
+        )
     elif entity.kind == "risk_factor":
-        data = gbd.get_exposure_standard_deviation(entity.gbd_id, location_id, get_all_years=get_all_years)
+        data = gbd.get_exposure_standard_deviation(
+            entity.gbd_id, location_id, get_all_years=get_all_years
+        )
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data(
             "exposure_standard_deviation", entity.kind, entity.name, location_id
@@ -252,7 +260,9 @@ def extract_exposure_standard_deviation(
 
 
 def extract_exposure_distribution_weights(
-    entity: Union[RiskFactor, AlternativeRiskFactor], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, AlternativeRiskFactor],
+    location_id: int,
+    get_all_years: bool = False,
 ) -> pd.DataFrame:
     data = gbd.get_auxiliary_data(
         "exposure_distribution_weights", entity.kind, entity.name, location_id
@@ -260,12 +270,16 @@ def extract_exposure_distribution_weights(
     return data
 
 
-def extract_relative_risk(entity: RiskFactor, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
+def extract_relative_risk(
+    entity: RiskFactor, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
     data = gbd.get_relative_risk(entity.gbd_id, location_id, get_all_years)
     # TODO: [MIC-4891] Process new relative risk data format properly
-    if not data['exposure'].isna().all():
-        raise DataAbnormalError("Relative risk data in new format with 1000 exposure values. Our processing is not "
-                                "currently able to process data in this format.")
+    if not data["exposure"].isna().all():
+        raise DataAbnormalError(
+            "Relative risk data in new format with 1000 exposure values. Our processing is not "
+            "currently able to process data in this format."
+        )
     data = filter_to_most_detailed_causes(data)
     return data
 
