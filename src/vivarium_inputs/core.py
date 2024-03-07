@@ -333,7 +333,8 @@ def get_exposure_distribution_weights(
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     if not get_all_years:
-       data = data.query("year_id==@MOST_RECENT_YEAR")
+       most_recent_year = utility_data.get_most_recent_year()
+       data = data.query("year_id==@most_recent_year")
     data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
     return data
@@ -378,7 +379,6 @@ def get_relative_risk(entity: RiskFactor, location_id: int, get_all_years: bool 
     data.loc[morbidity & ~mortality, "affected_measure"] = "incidence_rate"
     data.loc[~morbidity & mortality, "affected_measure"] = "excess_mortality_rate"
     data = filter_relative_risk_to_cause_restrictions(data)
-
     data = data.filter(
         DEMOGRAPHIC_COLUMNS
         + ["affected_entity", "affected_measure", "parameter"]
@@ -389,7 +389,6 @@ def get_relative_risk(entity: RiskFactor, location_id: int, get_all_years: bool 
         .apply(utilities.normalize, fill_value=1)
         .reset_index(drop=True)
     )
-
     if entity.distribution in ["dichotomous", "ordered_polytomous", "unordered_polytomous"]:
         tmrel_cat = utility_data.get_tmrel_category(entity)
         tmrel_mask = data.parameter == tmrel_cat
@@ -415,7 +414,7 @@ def get_population_attributable_fraction(
     causes_map = {c.gbd_id: c for c in causes}
     if entity.kind == "risk_factor":
         data = extract.extract_data(entity, "population_attributable_fraction", location_id, validate=True, get_all_years=get_all_years)
-        relative_risk = extract.extract_data(entity, "relative_risk", validate=True, get_all_years=get_all_years)
+        relative_risk = extract.extract_data(entity, "relative_risk", location_id, validate=True, get_all_years=get_all_years)
 
         # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
         #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -

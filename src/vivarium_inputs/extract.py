@@ -262,6 +262,9 @@ def extract_exposure_distribution_weights(
 
 def extract_relative_risk(entity: RiskFactor, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
     data = gbd.get_relative_risk(entity.gbd_id, location_id, get_all_years)
+    if not data['exposure'].isna().all():
+        raise DataAbnormalError("Relative risk data in new format with 1000 exposure values. Our processing is not "
+                                "currently able to process data in this format.")
     data = filter_to_most_detailed_causes(data)
     return data
 
@@ -273,6 +276,10 @@ def extract_population_attributable_fraction(
     data = data[data.metric_id == METRICS["Percent"]]
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
+    # test updating limits
+    draw_cols = [col for col in data.columns if col.startswith('draw_')]
+    data.loc[:,draw_cols] = data[draw_cols].clip(lower=0)
+    data.loc[:,draw_cols] = data[draw_cols].clip(upper=1)
     return data
 
 

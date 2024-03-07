@@ -401,6 +401,7 @@ def get_restriction_age_ids(
     """
     # TODO: remove after MIC-4519 is done
     start_id = 388 if start_id == 4 else start_id
+    end_id = 34 if end_id == 5 else end_id
 
     if start_id is None or end_id is None:
         data = []
