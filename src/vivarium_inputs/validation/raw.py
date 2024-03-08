@@ -13,7 +13,6 @@ from gbd_mapping import (
     causes,
 )
 from loguru import logger
-from vivarium_inputs.globals import gbd
 
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
@@ -32,6 +31,7 @@ from vivarium_inputs.globals import (
     DataDoesNotExistError,
     InvalidQueryError,
     Population,
+    gbd,
 )
 from vivarium_inputs.mapping_extension import (
     AlternativeRiskFactor,
