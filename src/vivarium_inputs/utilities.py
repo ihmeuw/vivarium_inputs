@@ -405,8 +405,6 @@ def get_restriction_age_ids(
     start_id = 388 if start_id == 4 else start_id
     end_id = 34 if end_id == 5 else end_id
 
-    start_id = 388 if start_id == 4 else start_id
-
     if start_id is None or end_id is None:
         data = []
     else:
