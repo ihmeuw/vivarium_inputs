@@ -32,9 +32,19 @@ def scrub_gbd_conventions(data, location):
 
 
 def scrub_location(data, location):
-    # TODO: get location names
+    # Coerce location to a list of strings
     if not isinstance(location, list):
-        location = [location]
+        location = [
+            location
+            if isinstance(location, str)
+            else utility_data.get_location_name(location)
+        ]
+    else:
+        location = [
+            loc if isinstance(loc, str) else utility_data.get_location_name(loc)
+            for loc in location
+        ]
+
     if "location_id" in data.index.names:
         data.index = data.index.rename("location", level="location_id").set_levels(
             location, level="location"

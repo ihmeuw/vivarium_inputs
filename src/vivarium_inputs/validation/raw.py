@@ -1955,16 +1955,7 @@ def check_location(data: pd.DataFrame, context: RawValidationContext) -> None:
         global or requested location id.
 
     """
-    # if len(data["location_id"].unique()) > 1:
-    #     raise DataAbnormalError(f"Data contains multiple location ids.")
 
-    # data_location_id = data["location_id"].unique()[0]
-
-    # if data_location_id not in context["parent_locations"] + [context["location_id"]]:
-    #     raise DataAbnormalError(
-    #         f'Data pulled for {context["location_id"]} actually has location '
-    #         f"id {data_location_id}, which is not in its hierarchy."
-    #     )
     data_location_ids = data["location_id"].unique()
     for location_id in data_location_ids:
         if location_id not in context["parent_locations"].keys():

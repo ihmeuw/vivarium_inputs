@@ -39,6 +39,12 @@ def get_location_id(location_name):
     ]
 
 
+def get_location_name(location_id):
+    return {r.location_id: r.location_name for _, r in gbd.get_location_ids().iterrows()}[
+        location_id
+    ]
+
+
 def get_location_id_parents(location_id: Union[int, List]) -> Dict[int, List]:
     if isinstance(location_id, int):
         location_id = [location_id]
