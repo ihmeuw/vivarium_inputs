@@ -1434,9 +1434,11 @@ def validate_location_column(
 
     """
     data_locations = data.index.unique("location")
-    if set(data_locations) != context["location"]:
+    missing_locations = set(data_locations).difference(set(context["location"]))
+    if missing_locations:
         raise DataTransformationError(
-            "Location must contain a single value that matches specified location."
+            "Location(s) msut match between data and SimulationValidationContext. "
+            f"Locations not found in both include '{missing_locations}'. "
         )
 
 
