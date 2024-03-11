@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List, Union
 
 import pandas as pd
 from gbd_mapping import RiskFactor
@@ -39,11 +39,16 @@ def get_location_id(location_name):
     ]
 
 
-def get_location_id_parents(location_id: int) -> List[int]:
-    location_metadata = gbd.get_location_path_to_global().set_index("location_id")
-    parent_ids = [
-        int(loc) for loc in location_metadata.at[location_id, "path_to_top_parent"].split(",")
-    ]
+def get_location_id_parents(location_id: Union[int, List]) -> Dict[int, List]:
+    if isinstance(location_id, int):
+        location_id = [location_id]
+    location_metadata = gbd.get_location_path_to_global()
+    parent_ids = (
+        location_metadata.loc[location_metadata.location_id.isin(location_id)]
+        .set_index("location_id")["path_to_top_parent"]
+        .str.split(",")
+        .to_dict()
+    )
     return parent_ids
 
 
