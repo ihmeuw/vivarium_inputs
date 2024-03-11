@@ -1434,7 +1434,7 @@ def validate_location_column(
 
     """
     data_locations = data.index.unique("location")
-    if len(data_locations) != 1 or data_locations[0] != context["location"]:
+    if set(data_locations) != context["location"]:
         raise DataTransformationError(
             "Location must contain a single value that matches specified location."
         )
