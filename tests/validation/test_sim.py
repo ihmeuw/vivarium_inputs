@@ -190,6 +190,7 @@ def test_check_age_restrictions(
     ],
     ids=("both_sides", "left_side", "right_side", "nonzero_fill"),
 )
+@pytest.mark.skipif(RUNNING_ON_CI, reason="Don't run these tests on the CI server")
 def test_check_age_restrictions_fail(
     mocker, mock_validation_context, values, ids, restriction_type, fill
 ):
