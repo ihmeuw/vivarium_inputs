@@ -76,9 +76,15 @@ def get_data(entity, measure: str, location: Union[str, int], get_all_years: boo
     if entity.kind not in entity_types:
         raise InvalidQueryError(f"{measure.capitalize()} not available for {entity.kind}.")
 
-    location_id = (
-        utility_data.get_location_id(location) if isinstance(location, str) else location
-    )
+    if isinstance(location, list):
+        location_id = []
+        for loc in location:
+            loc_id = utility_data.get_location_id(loc) if isinstance(loc, str) else location
+            location_id.append(loc_id)
+    else:
+        location_id = (
+            utility_data.get_location_id(location) if isinstance(location, str) else location
+        )
     data = handler(entity, location_id, get_all_years)
 
     if measure in [

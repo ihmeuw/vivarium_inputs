@@ -32,9 +32,12 @@ def scrub_gbd_conventions(data, location):
 
 
 def scrub_location(data, location):
+    # TODO: get location names
+    if not isinstance(location, list):
+        location = [location]
     if "location_id" in data.index.names:
         data.index = data.index.rename("location", level="location_id").set_levels(
-            [location], level="location"
+            location, level="location"
         )
     else:
         data = pd.concat([data], keys=[location], names=["location"])
