@@ -1434,7 +1434,11 @@ def validate_location_column(
 
     """
     data_locations = data.index.unique("location")
-    missing_locations = set(data_locations).difference(set(context["location"]))
+    if not isinstance(context["location"], list):
+        contest_locations = [context["location"]]
+    else:
+        contest_locations = context["location"]
+    missing_locations = set(data_locations).difference(set(contest_locations))
     if missing_locations:
         raise DataTransformationError(
             "Location(s) msut match between data and SimulationValidationContext. "
