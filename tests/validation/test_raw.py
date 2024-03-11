@@ -4,6 +4,7 @@ import pytest
 
 from vivarium_inputs.globals import SEXES, DataAbnormalError, DataDoesNotExistError
 from vivarium_inputs.validation import raw
+from tests.extract.check import RUNNING_ON_CI
 
 LOCATION_ID = 100
 ESTIMATION_YEARS = tuple(list(range(1990, 2015, 5)) + [2017])
@@ -224,6 +225,9 @@ def test_check_data_exist_pass(data):
         ([1, 2, 3, 5], 1, 3, "non-contiguous"),
     ],
 )
+@pytest.mark.skipif(
+    RUNNING_ON_CI, reason="Don't run these tests on the CI server"
+)
 def test_check_age_group_ids_fail(mock_validation_context, test_age_ids, start, end, match):
     df = pd.DataFrame({"age_group_id": test_age_ids})
     with pytest.raises(DataAbnormalError, match=match):
@@ -239,6 +243,9 @@ def test_check_age_group_ids_fail(mock_validation_context, test_age_ids, start, 
         ([1, 2, 3], 1, 5, "contain all age groups in restriction range"),
     ],
 )
+@pytest.mark.skipif(
+    RUNNING_ON_CI, reason="Don't run these tests on the CI server"
+)
 def test_check_age_group_ids_warn(
     mock_validation_context, caplog, test_age_ids, start, end, match
 ):
@@ -250,6 +257,9 @@ def test_check_age_group_ids_warn(
 @pytest.mark.parametrize(
     "test_age_ids, start, end",
     [([2, 3, 4], 2, 4), ([2, 3, 4], None, None), ([1, 2, 3, 4, 5], 1, 5)],
+)
+@pytest.mark.skipif(
+    RUNNING_ON_CI, reason="Don't run these tests on the CI server"
 )
 def test_check_age_group_ids_pass(mock_validation_context, test_age_ids, start, end, recwarn):
     df = pd.DataFrame({"age_group_id": test_age_ids})
