@@ -79,7 +79,7 @@ def get_data(entity, measure: str, location: Union[str, int], get_all_years: boo
     if isinstance(location, list):
         location_id = []
         for loc in location:
-            loc_id = utility_data.get_location_id(loc) if isinstance(loc, str) else location
+            loc_id = utility_data.get_location_id(loc) if isinstance(loc, str) else loc
             location_id.append(loc_id)
     else:
         location_id = (
