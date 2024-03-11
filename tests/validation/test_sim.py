@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from tests.extract.check import RUNNING_ON_CI
 from vivarium_inputs.globals import DataTransformationError
 from vivarium_inputs.validation import sim
-from tests.extract.check import RUNNING_ON_CI
 
 
 @pytest.fixture
@@ -164,9 +164,7 @@ def test_validate_value_column_fail(values):
     ],
     ids=("no_restr", "left_restr", "outer_restr", "right_restr", "nonzero_fill"),
 )
-@pytest.mark.skipif(
-    RUNNING_ON_CI, reason="Don't run these tests on the CI server"
-)
+@pytest.mark.skipif(RUNNING_ON_CI, reason="Don't run these tests on the CI server")
 def test_check_age_restrictions(
     mocker, mock_validation_context, values, ids, restriction_type, fill
 ):
