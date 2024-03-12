@@ -24,7 +24,7 @@ from vivarium_inputs.utilities import filter_to_most_detailed_causes
 def extract_data(
     entity,
     measure: str,
-    location_id: Union[int, List[int]],
+    location_id: Union[int, List[Union[int, str]]],
     validate: bool = True,
     get_all_years: bool = False,
 ) -> Union[pd.Series, pd.DataFrame]:

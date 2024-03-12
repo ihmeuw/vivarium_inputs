@@ -231,7 +231,11 @@ def get_raw_data(
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
-    location_id = utility_data.get_location_id(location)
+    if not isinstance(location, list):
+        location = [location]
+    location_id = [
+        utility_data.get_location_id(loc) if isinstance(loc, str) else loc for loc in location
+    ]
     data = extract.extract_data(
         entity, measure, location_id, validate=False, get_all_years=get_all_years
     )
