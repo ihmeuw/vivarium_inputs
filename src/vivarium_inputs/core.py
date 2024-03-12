@@ -26,7 +26,7 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 def get_data(
     entity,
     measure: str,
-    location: Union[str, int, List[str, int]],
+    location: Union[str, int, List[Union[str, int]]],
     get_all_years: bool = False,
 ):
     measure_handlers = {
