@@ -366,7 +366,7 @@ To use:
     :hide:
 
     import inspect
-    from typing import Union
+    from typing import List, Union
 
     import pandas as pd
 
@@ -379,12 +379,12 @@ To use:
                 'parameters': {
                     'entity': ModelableEntity, 
                     'measure': str, 
-                    'location': str,
+                    'location': Union[int, str, List[Union[int, str]]]
                     'get_all_years': bool,
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
-                 'parameters': {'location': str, 'get_all_years': bool},
+                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool},
                  'return': pd.DataFrame, },
              get_theoretical_minimum_risk_life_expectancy: {
                  'parameters': {},
@@ -393,13 +393,13 @@ To use:
                  'parameters': {},
                  'return': pd.DataFrame, },
              get_demographic_dimensions: {
-                 'parameters': {'location': str, 'get_all_years': bool},
+                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool},
                  'return': pd.DataFrame, },
              get_raw_data: {
                  'parameters': {
                     'entity': ModelableEntity,
                     'measure': str,
-                    'location': str,
+                    'location': Union[int, str, List[Union[int, str]]],
                     'get_all_years': bool,
                         },
                 'return': Union[pd.DataFrame, pd.Series], },

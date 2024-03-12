@@ -70,7 +70,9 @@ def get_measure(
     return utilities.sort_hierarchical_data(data)
 
 
-def get_population_structure(location: str, get_all_years: bool = False) -> pd.DataFrame:
+def get_population_structure(
+    location: Union[int, str, List[Union[int, str]]], get_all_years: bool = False
+) -> pd.DataFrame:
     """Pull GBD population data for the given location and standardize to the
     expected simulation input format, including scrubbing all GBD conventions
     to replace IDs with meaningful values or ranges and expanding over all
@@ -143,7 +145,9 @@ def get_age_bins() -> pd.DataFrame:
     return utilities.sort_hierarchical_data(data)
 
 
-def get_demographic_dimensions(location: str, get_all_years: bool = False) -> pd.DataFrame:
+def get_demographic_dimensions(
+    location: Union[int, str, List[Union[int, str]]], get_all_years: bool = False
+) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
     to replace IDs with with meaningful values or ranges.
@@ -174,7 +178,10 @@ def get_demographic_dimensions(location: str, get_all_years: bool = False) -> pd
 
 
 def get_raw_data(
-    entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False
+    entity: ModelableEntity,
+    measure: str,
+    location: Union[int, str, List[Union[int, str]]],
+    get_all_years: bool = False,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
     Skip standard raw validation checks in order to return data that can be
