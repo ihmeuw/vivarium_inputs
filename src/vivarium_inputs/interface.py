@@ -12,7 +12,7 @@ from vivarium_inputs.globals import Population
 def get_measure(
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[int, str]],
+    location: Union[int, str, List[Union[int, str]]],
     get_all_years: bool = False,
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,

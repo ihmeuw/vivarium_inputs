@@ -82,7 +82,7 @@ def validate_for_simulation(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[int, str]],
+    location: Union[int, str, List[Union[int, str]]],
     check_all_years: bool = False,
     **context_args,
 ) -> None:
@@ -114,7 +114,7 @@ def validate_for_simulation(
     measure
         The measure to which the data pertain.
     location
-        The location to which the data pertain.
+        The location(s) to which the data pertain.
     check_all_years
         Flag indicating whether to validate that we have all years.
         Otherwise, validate that data has most recent year.
