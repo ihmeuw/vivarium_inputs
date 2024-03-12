@@ -379,7 +379,7 @@ To use:
                 'parameters': {
                     'entity': ModelableEntity, 
                     'measure': str, 
-                    'location': Union[int, str, List[Union[int, str]]]
+                    'location': Union[int, str, List[Union[int, str]]],
                     'get_all_years': bool,
                         },
                 'return': pd.DataFrame, },
