@@ -82,7 +82,7 @@ def validate_for_simulation(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location: str,
+    location: Union[int, str, List[int, str]],
     check_all_years: bool = False,
     **context_args,
 ) -> None:
@@ -163,6 +163,13 @@ def validate_for_simulation(
             {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
         )
 
+    # Coerce to location names
+    if not isinstance(location, list):
+        location = [location]
+    location = [
+        utility_data.get_location_name(loc) if isinstance(loc, int) else loc
+        for loc in location
+    ]
     context = SimulationValidationContext(location, **context_args)
     validators[measure](data, entity, context)
 
@@ -1434,11 +1441,7 @@ def validate_location_column(
 
     """
     data_locations = data.index.unique("location")
-    if not isinstance(context["location"], list):
-        contest_locations = [context["location"]]
-    else:
-        contest_locations = context["location"]
-    missing_locations = set(data_locations).difference(set(contest_locations))
+    missing_locations = set(data_locations).difference(set(context["location"]))
     if missing_locations:
         raise DataTransformationError(
             "Location(s) msut match between data and SimulationValidationContext. "

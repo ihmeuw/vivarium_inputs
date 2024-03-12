@@ -1,6 +1,5 @@
 """Access to vivarium simulation input data."""
-
-from typing import Union
+from typing import List, Union
 
 import pandas as pd
 from gbd_mapping import ModelableEntity
@@ -11,7 +10,10 @@ from vivarium_inputs.globals import Population
 
 
 def get_measure(
-    entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False
+    entity: ModelableEntity,
+    measure: str,
+    location: Union[int, str, List[int, str]],
+    get_all_years: bool = False,
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
@@ -48,7 +50,8 @@ def get_measure(
         Measure for which to pull data, should be a measure available for the
         kind of entity which `entity` is.
     location
-        Location for which to pull data.
+        Location for which to pull data. This can be a location id as an int, the location name
+        as a string, or a list of these two data types.
     get_all_years
         Flag indicating whether to get all years. Otherwise, get most recent year.
         Defaults to False.

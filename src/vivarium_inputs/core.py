@@ -1,5 +1,5 @@
 from itertools import product
-from typing import Union
+from typing import List, Union
 
 import numpy as np
 import pandas as pd
@@ -23,7 +23,12 @@ from vivarium_inputs.globals import (
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 
 
-def get_data(entity, measure: str, location: Union[str, int], get_all_years: bool = False):
+def get_data(
+    entity,
+    measure: str,
+    location: Union[str, int, List[str, int]],
+    get_all_years: bool = False,
+):
     measure_handlers = {
         # Cause-like measures
         "incidence_rate": (get_incidence_rate, ("cause", "sequela")),
