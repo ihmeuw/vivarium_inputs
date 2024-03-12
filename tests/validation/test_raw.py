@@ -15,11 +15,11 @@ PARENT_LOCATIONS = (1, 5, 10)
 @pytest.fixture
 def mock_validation_context():
     context = raw.RawValidationContext(
-        location_id=LOCATION_ID,
+        location_id=[LOCATION_ID],
         estimation_years=list(ESTIMATION_YEARS),
         age_group_ids=list(AGE_GROUP_IDS),
         sexes=SEXES,
-        parent_locations=list(PARENT_LOCATIONS),
+        parent_locations={LOCATION_ID: list(PARENT_LOCATIONS)},
     )
     return context
 
@@ -107,7 +107,7 @@ def test_check_years_fail(mock_validation_context, years, bin_type, match):
 
 @pytest.mark.parametrize("location_id", list(range(2, 10)))
 def test_check_location_pass(mock_validation_context, location_id):
-    mock_validation_context["location_id"] = location_id
+    mock_validation_context["location_id"] = [location_id]
     df = pd.DataFrame({"location_id": [location_id] * 5})
     raw.check_location(df, mock_validation_context)
 
@@ -118,14 +118,10 @@ def test_check_location_parent_pass(mock_validation_context, location_id):
     raw.check_location(df, mock_validation_context)
 
 
-@pytest.mark.parametrize(
-    "location_ids, match",
-    [([1, 2], "multiple"), ([2, 2], "actually has location id")],
-    ids=["multiple locations", "wrong location"],
-)
-def test_check_location_fail(mock_validation_context, location_ids, match):
-    df = pd.DataFrame({"location_id": location_ids})
-    with pytest.raises(DataAbnormalError, match=match):
+@pytest.mark.parametrize("location_id", list(range(20, 25)))
+def test_check_location_fail(mock_validation_context, location_id):
+    df = pd.DataFrame({"location_id": [location_id]})
+    with pytest.raises(DataAbnormalError, match="Data pulled for "):
         raw.check_location(df, mock_validation_context)
 
 

@@ -27,7 +27,7 @@ def mock_validation_context():
 
 @pytest.mark.parametrize("location", ("Kenya", "Papua New Guinea"))
 def test__validate_location_column_pass(mock_validation_context, location):
-    mock_validation_context["location"] = location
+    mock_validation_context["location"] = [location]
     df = pd.DataFrame({"location": [location], "other": [0]}).set_index(["location", "other"])
     sim.validate_location_column(df, mock_validation_context)
 
