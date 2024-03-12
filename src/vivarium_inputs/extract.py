@@ -1,4 +1,4 @@
-from typing import Union
+from typing import List, Union
 
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
@@ -22,7 +22,11 @@ from vivarium_inputs.utilities import filter_to_most_detailed_causes
 
 
 def extract_data(
-    entity, measure: str, location_id: int, validate: bool = True, get_all_years: bool = False
+    entity,
+    measure: str,
+    location_id: Union[int, List[int]],
+    validate: bool = True,
+    get_all_years: bool = False,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Check metadata for the requested entity-measure pair. Pull raw data from
     GBD. The only filtering that occurs is by applicable measure id, metric id,

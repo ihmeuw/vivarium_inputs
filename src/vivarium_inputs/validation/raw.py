@@ -132,7 +132,7 @@ def validate_raw_data(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location_id: int,
+    location_id: Union[int, List[int]],
     **additional_data,
 ) -> None:
     """Validate data conforms to the format expected from raw GBD data, that all
@@ -209,6 +209,9 @@ def validate_raw_data(
     if measure not in validators:
         raise InvalidQueryError(f"No raw validator found for {measure}.")
 
+    # Make location_id a list if not already
+    if not isinstance(location_id, list):
+        location_id = [location_id]
     context = RawValidationContext(location_id, **additional_data)
 
     validators[measure](data, entity, context)
@@ -1958,7 +1961,7 @@ def check_location(data: pd.DataFrame, context: RawValidationContext) -> None:
 
     data_location_ids = data["location_id"].unique()
     for location_id in data_location_ids:
-        if location_id not in context["parent_locations"].keys():
+        if location_id not in context["location_id"].keys():
             raise DataAbnormalError(
                 f"Data pulled for '{data_location_ids}' actually has location "
                 f"id {location_id}, which is not in its hierarchy."
