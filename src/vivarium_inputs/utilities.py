@@ -307,6 +307,7 @@ def get_age_group_ids_by_restriction(
     else:
         raise NotImplementedError(
             "The second argument of this function should be one of [yll, yld, inner, outer]."
+        )
 
     # TODO: remove after MIC-4519 is done
     # replace starting GBD 2019 age group 4 (1 month-1 year) with GBD 2021 age group 388 (1-5 months)
