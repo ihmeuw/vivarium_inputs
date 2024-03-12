@@ -373,7 +373,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     the relative_risk data"""
 
     age_bins = utility_data.get_age_bins()
-    ordered_age_ids = age_bins['age_group_id'].values
+    ordered_age_ids = age_bins["age_group_id"].values
     causes_map = {c.name: c for c in causes}
     temp = []
     affected_entities = set(data.affected_entity)
@@ -387,7 +387,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yld")
         start_index = list(ordered_age_ids).index(start)
         end_index = list(ordered_age_ids).index(end)
-        allowed_ids = ordered_age_ids[start_index:(end_index+1)]
+        allowed_ids = ordered_age_ids[start_index : (end_index + 1)]
         temp.append(df[df.age_group_id.isin(allowed_ids)])
     data = pd.concat(temp)
     return data
