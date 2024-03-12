@@ -1961,7 +1961,7 @@ def check_location(data: pd.DataFrame, context: RawValidationContext) -> None:
 
     data_location_ids = data["location_id"].unique()
     for location_id in data_location_ids:
-        if location_id not in context["location_id"].keys():
+        if location_id not in context["parent_locations"].keys():
             raise DataAbnormalError(
                 f"Data pulled for '{data_location_ids}' actually has location "
                 f"id {location_id}, which is not in its hierarchy."
