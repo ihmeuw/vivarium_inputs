@@ -221,5 +221,7 @@ def test_relative_risk(entity, location):
         [164, "Nigeria"],
     ],
 )
-def test_pulling_multiple_locations(locations, entity, measure):
-    df = core.get_data(entity, measure, locations)
+def test_pulling_multiple_locations(locations):
+    df = core.get_data(
+        healthcare_entities.outpatient_visits, measures_health_system, locations
+    )
