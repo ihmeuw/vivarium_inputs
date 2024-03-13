@@ -59,7 +59,7 @@ def get_location_id_parents(location_id: Union[int, List]) -> Dict[int, List]:
 
 
 def get_demographic_dimensions(
-    location_id: List[int],
+    location_id: Union[int, List[int]],
     get_all_years: bool = False,
     draws: bool = False,
     value: float = None,
@@ -71,7 +71,7 @@ def get_demographic_dimensions(
     else:
         years = [gbd.get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
-    location = location_id
+    location = [location_id] if isinstance(location_id, int) else location_id
     values = [location, sexes, ages, years]
     names = ["location_id", "sex_id", "age_group_id", "year_id"]
 
