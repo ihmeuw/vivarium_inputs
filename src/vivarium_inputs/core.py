@@ -116,7 +116,7 @@ def get_data(
 
 
 def get_raw_incidence_rate(
-    entity: Union[Cause, Sequela], location_id: int, get_all_years: bool = False
+    entity: Union[Cause, Sequela], location_id: List[int], get_all_years: bool = False
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity, "incidence_rate", location_id, validate=True, get_all_years=get_all_years
@@ -284,7 +284,7 @@ def get_deaths(
 
 def get_exposure(
     entity: Union[RiskFactor, AlternativeRiskFactor],
-    location_id: int,
+    location_id: List[int],
     get_all_years: bool = False,
 ) -> pd.DataFrame:
     data = extract.extract_data(
@@ -332,7 +332,7 @@ def get_exposure(
 
 def get_exposure_standard_deviation(
     entity: Union[RiskFactor, AlternativeRiskFactor],
-    location_id: int,
+    location_id: List[int],
     get_all_years: bool = False,
 ) -> pd.DataFrame:
     data = extract.extract_data(
@@ -357,7 +357,7 @@ def get_exposure_standard_deviation(
 
 def get_exposure_distribution_weights(
     entity: Union[RiskFactor, AlternativeRiskFactor],
-    location_id: int,
+    location_id: List[int],
     get_all_years: bool = False,
 ) -> pd.DataFrame:
     data = extract.extract_data(
@@ -418,7 +418,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
 
 
 def get_relative_risk(
-    entity: RiskFactor, location_id: int, get_all_years: bool = False
+    entity: RiskFactor, location_id: List[int], get_all_years: bool = False
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity, "relative_risk", location_id, validate=True, get_all_years=get_all_years
@@ -467,7 +467,7 @@ def filter_by_relative_risk(df: pd.DataFrame, relative_risk: pd.DataFrame) -> pd
 
 
 def get_population_attributable_fraction(
-    entity: Union[RiskFactor, Etiology], location_id: int, get_all_years: bool = False
+    entity: Union[RiskFactor, Etiology], location_id: List[int], get_all_years: bool = False
 ) -> pd.DataFrame:
     causes_map = {c.gbd_id: c for c in causes}
     if entity.kind == "risk_factor":
