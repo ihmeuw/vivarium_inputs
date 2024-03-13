@@ -308,6 +308,13 @@ def get_age_group_ids_by_restriction(
         raise NotImplementedError(
             "The second argument of this function should be one of [yll, yld, inner, outer]."
         )
+
+    # TODO: remove after MIC-4519 is done
+    # replace starting GBD 2019 age group 4 (1 month-1 year) with GBD 2021 age group 388 (1-5 months)
+    # and ending GBD 2019 age group 5 (1 to 4 years) with GBD 2021 age group 34 (2 to 4 years)
+    start = 388 if start == 4 else start
+    end = 34 if end == 5 else end
+
     return start, end
 
 
@@ -400,8 +407,10 @@ def get_restriction_age_ids(
     in-between.
     """
     # TODO: remove after MIC-4519 is done
-    # replace GBD 2019 age group 4 (1 month-1 year) with GBD 2021 age group 388 (1-5 months)
+    # replace starting GBD 2019 age group 4 (1 month-1 year) with GBD 2021 age group 388 (1-5 months)
+    # and ending GBD 2019 age group 5 (1 to 4 years) with GBD 2021 age group 34 (2 to 4 years)
     start_id = 388 if start_id == 4 else start_id
+    end_id = 34 if end_id == 5 else end_id
 
     if start_id is None or end_id is None:
         data = []
