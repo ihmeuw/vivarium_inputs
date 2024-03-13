@@ -213,6 +213,7 @@ def test_relative_risk(entity, location):
     df = core.get_data(entity_name, measure_name, location)
 
 
+@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
 @pytest.mark.parametrize(
     "locations",
     [
@@ -221,5 +222,5 @@ def test_relative_risk(entity, location):
         [164, "Nigeria"],
     ],
 )
-def test_pulling_multiple_locations(locations):
-    df = core.get_data(healthcare_entities.outpatient_visits, "utilization_rate", locations)
+def test_pulling_multiple_locations(entity, locations):
+    df = core.get_data(entity, "cause_specific_mortality_rate", locations)
