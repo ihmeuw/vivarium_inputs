@@ -222,6 +222,4 @@ def test_relative_risk(entity, location):
     ],
 )
 def test_pulling_multiple_locations(locations):
-    df = core.get_data(
-        healthcare_entities.outpatient_visits, measures_health_system, locations
-    )
+    df = core.get_data(healthcare_entities.outpatient_visits, "utilization_rate", locations)
