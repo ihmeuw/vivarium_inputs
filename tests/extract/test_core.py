@@ -214,6 +214,7 @@ def test_relative_risk(entity, location):
 
 
 @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("entity", entity, ids=lambda x: x.name)
 @pytest.mark.parametrize(
     "locations",
     [
