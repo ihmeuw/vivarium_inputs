@@ -71,6 +71,7 @@ def get_demographic_dimensions(
     else:
         years = [gbd.get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
+    location = location_id
     values = [location, sexes, ages, years]
     names = ["location_id", "sex_id", "age_group_id", "year_id"]
 
