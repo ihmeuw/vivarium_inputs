@@ -211,3 +211,15 @@ def test_relative_risk(entity, location):
     measure_id = MRFlag.RELATIVE_RISK
     entity_name, entity_expected_measure_ids = entity
     df = core.get_data(entity_name, measure_name, location)
+
+
+@pytest.mark.parametrize(
+    "locations",
+    [
+        [164, 165, 175],
+        ["Ethiopia", "Nigeria"],
+        [164, "Nigeria"],
+    ],
+)
+def test_pulling_multiple_locations(locations, entity, measure):
+    df = core.get_data(entity, measure, locations)

@@ -1960,7 +1960,9 @@ def check_location(data: pd.DataFrame, context: RawValidationContext) -> None:
     """
 
     data_location_ids = data["location_id"].unique()
-    parent_locations = [i for value in context["parent_locations"].values() for i in value]
+    parent_locations = [
+        loc for value in context["parent_locations"].values() for loc in value
+    ]
     for location_id in data_location_ids:
         if location_id not in context["location_id"] + parent_locations:
             raise DataAbnormalError(

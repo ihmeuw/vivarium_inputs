@@ -3,7 +3,15 @@ from typing import List, Union
 
 import numpy as np
 import pandas as pd
-from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela, causes
+from gbd_mapping import (
+    Cause,
+    Covariate,
+    Etiology,
+    ModelableEntity,
+    RiskFactor,
+    Sequela,
+    causes,
+)
 from loguru import logger
 
 from vivarium_inputs import extract, utilities, utility_data
@@ -24,7 +32,7 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 
 
 def get_data(
-    entity,
+    entity: ModelableEntity,
     measure: str,
     location: Union[str, int, List[Union[str, int]]],
     get_all_years: bool = False,
@@ -82,14 +90,14 @@ def get_data(
         raise InvalidQueryError(f"{measure.capitalize()} not available for {entity.kind}.")
 
     if isinstance(location, list):
-        location_id = []
-        for loc in location:
-            loc_id = utility_data.get_location_id(loc) if isinstance(loc, str) else loc
-            location_id.append(loc_id)
+        location_id = [
+            utility_data.get_location_id(loc) if isinstance(loc, str) else loc
+            for loc in location
+        ]
     else:
-        location_id = (
+        location_id = [
             utility_data.get_location_id(location) if isinstance(location, str) else location
-        )
+        ]
     data = handler(entity, location_id, get_all_years)
 
     if measure in [
