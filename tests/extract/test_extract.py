@@ -178,3 +178,13 @@ def test_extract_population(measures):
     df = extract.extract_data(
         pop, measures, utility_data.get_location_id("India"), validate=VALIDATE_FLAG
     )
+
+
+@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("location", locations_r)
+@pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
+def test_extract_relative_risk(entity, location):
+    measure_name = "relative_risk"
+    measure_id = MRFlag.RELATIVE_RISK
+    entity_name, entity_expected_measure_ids = entity
+    df = extract.extract_data(entity_name, measure_name, location)
