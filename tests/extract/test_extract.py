@@ -70,7 +70,6 @@ entity = [
 measures = [
     ("incidence_rate", MCFlag.INCIDENCE_RATE),
     ("prevalence", MCFlag.PREVALENCE),
-    ("birth_prevalence", MCFlag.BIRTH_PREVALENCE),
     ("disability_weight", MCFlag.DISABILITY_WEIGHT),
     ("remission_rate", MCFlag.REMISSION_RATE),
     ("deaths", MCFlag.DEATHS),
