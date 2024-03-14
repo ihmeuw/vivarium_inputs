@@ -55,7 +55,7 @@ class MCFlag(IntFlag):
 
 entity = [
     (
-        causes.measles,
+        causes.hiv_aids,
         MCFlag.INCIDENCE_RATE
         | MCFlag.PREVALENCE
         | MCFlag.BIRTH_PREVALENCE
@@ -63,13 +63,14 @@ entity = [
         | MCFlag.DEATHS,
     ),
     (
-        causes.diabetes_mellitus_type_2,
+        causes.neural_tube_defects,
         MCFlag.INCIDENCE_RATE | MCFlag.PREVALENCE | MCFlag.BIRTH_PREVALENCE | MCFlag.DEATHS,
     ),
 ]
 measures = [
     ("incidence_rate", MCFlag.INCIDENCE_RATE),
     ("prevalence", MCFlag.PREVALENCE),
+    ("birth_prevalence", MCFlag.BIRTH_PREVALENCE),
     ("disability_weight", MCFlag.DISABILITY_WEIGHT),
     ("remission_rate", MCFlag.REMISSION_RATE),
     ("deaths", MCFlag.DEATHS),
