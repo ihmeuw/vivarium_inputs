@@ -199,3 +199,13 @@ locations_health_system = ["India"]
 @pytest.mark.parametrize("location", locations_health_system)
 def test_core_healthsystem(entity, measure, location):
     df = core.get_data(entity, measure, utility_data.get_location_id(location))
+
+
+@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("location", locations_r)
+@pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
+def test_relative_risk(entity, location):
+    measure_name = "relative_risk"
+    measure_id = MRFlag.RELATIVE_RISK
+    entity_name, entity_expected_measure_ids = entity
+    df = core.get_data(entity_name, measure_name, location)
