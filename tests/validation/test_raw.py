@@ -80,7 +80,7 @@ def test_check_mort_morb_flags_pass(mort, morb, yld_only, yll_only):
     "years, bin_type",
     [
         (range(1950, 2023), "annual"),
-        (range(1990, 2021), "annual"),
+        (range(1990, 2022), "annual"),
         (list(range(1990, 2015, 5)) + list(range(2019, 2022)), "binned"),
     ],
     ids=["annual with extra", "annual", "binned"],
@@ -95,7 +95,7 @@ def test_check_years_pass(mock_validation_context, years, bin_type):
     [
         ([1990, 1992], "annual", "missing"),
         ([1990, 1995], "binned", "missing"),
-        (list(range(1990, 2015, 5)) + [2019, 2023], "binned", "extra"),
+        (list(range(1990, 2015, 5)) + list(range(2019, 2023)), "binned", "extra"),
     ],
     ids=["annual with gap", "binned with gap", "binned with extra"],
 )
