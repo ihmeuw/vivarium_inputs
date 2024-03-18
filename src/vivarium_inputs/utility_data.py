@@ -12,7 +12,10 @@ def get_estimation_years(*_, **__) -> pd.Series:
 
 
 def get_most_recent_year() -> int:
-    return max(get_estimation_years())
+    most_recent_year = max(get_estimation_years())
+    # GBD 2021 returns 2022 data but it is unpublished so we use 2021
+    most_recent_year = 2021 if most_recent_year == 2022 else most_recent_year
+    return most_recent_year
 
 
 def get_year_block(*_, **__) -> pd.DataFrame:
