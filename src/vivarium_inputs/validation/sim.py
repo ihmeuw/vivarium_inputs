@@ -11,7 +11,6 @@ from gbd_mapping import (
     Sequela,
     causes,
 )
-from vivarium_gbd_access import gbd
 
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (
@@ -21,6 +20,7 @@ from vivarium_inputs.globals import (
     RISKS_WITH_NEGATIVE_PAF,
     DataTransformationError,
     Population,
+    gbd,
 )
 from vivarium_inputs.mapping_extension import (
     AlternativeRiskFactor,

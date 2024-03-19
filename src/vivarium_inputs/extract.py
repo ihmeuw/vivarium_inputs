@@ -2,7 +2,6 @@ from typing import Union
 
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
-from vivarium_gbd_access import gbd
 
 import vivarium_inputs.validation.raw as validation
 from vivarium_inputs.globals import (
