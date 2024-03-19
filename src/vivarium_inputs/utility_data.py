@@ -11,11 +11,11 @@ def get_estimation_years(*_, **__) -> pd.Series:
     return data
 
 
-def get_most_recent_year() -> int:
-    most_recent_year = max(get_estimation_years())
-    # GBD 2021 returns 2022 data but it is unpublished so we use 2021
-    most_recent_year = 2021 if most_recent_year == 2022 else most_recent_year
-    return most_recent_year
+# def get_most_recent_year() -> int:
+#     most_recent_year = max(get_estimation_years())
+#     # GBD 2021 returns 2022 data but it is unpublished so we use 2021
+#     most_recent_year = 2021 if most_recent_year == 2022 else most_recent_year
+#     return most_recent_year
 
 
 def get_year_block(*_, **__) -> pd.DataFrame:
@@ -62,7 +62,7 @@ def get_demographic_dimensions(
         estimation_years = get_estimation_years()
         years = range(min(estimation_years), max(estimation_years) + 1)
     else:
-        years = [get_most_recent_year()]
+        years = [gbd.get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
     location = [location_id]
     values = [location, sexes, ages, years]

@@ -6,6 +6,7 @@ import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela, causes
 from loguru import logger
 
+from vivarium_gbd_access import gbd
 from vivarium_inputs import extract, utilities, utility_data
 from vivarium_inputs.globals import (
     COVARIATE_VALUE_COLUMNS,
@@ -358,7 +359,7 @@ def get_exposure_distribution_weights(
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     if not get_all_years:
-        most_recent_year = utility_data.get_most_recent_year()
+        most_recent_year = gbd.get_most_recent_year()
         data = data.query("year_id==@most_recent_year")
     data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
