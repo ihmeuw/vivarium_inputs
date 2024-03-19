@@ -12,6 +12,7 @@ from gbd_mapping import (
     causes,
 )
 
+from vivarium_gbd_access import gbd
 from vivarium_inputs import utilities, utility_data
 from vivarium_inputs.globals import (
     BOUNDARY_SPECIAL_CASES,
@@ -157,7 +158,7 @@ def validate_for_simulation(
         raise NotImplementedError()
 
     if not check_all_years:
-        most_recent_year = utility_data.get_most_recent_year()
+        most_recent_year = gbd.get_most_recent_year()
         context_args["years"] = pd.DataFrame(
             {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
         )

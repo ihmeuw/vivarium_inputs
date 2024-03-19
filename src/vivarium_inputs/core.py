@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela, causes
 from loguru import logger
-
 from vivarium_gbd_access import gbd
+
 from vivarium_inputs import extract, utilities, utility_data
 from vivarium_inputs.globals import (
     COVARIATE_VALUE_COLUMNS,
