@@ -19,7 +19,6 @@ from vivarium_inputs.globals import (
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 from vivarium_inputs.utilities import filter_to_most_detailed_causes
-from vivarium_inputs.utility_data import get_most_recent_year
 
 
 def extract_data(
@@ -135,7 +134,7 @@ def extract_data(
             for name, extractor in additional_extractors.items()
         }
         if not get_all_years:
-            additional_data["estimation_years"] = [get_most_recent_year()]
+            additional_data["estimation_years"] = [gbd.get_most_recent_year()]
         validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
     return data
@@ -200,7 +199,7 @@ def extract_disability_weight(
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
     ]
     if not get_all_years:
-        data["year_id"] = get_most_recent_year()
+        data["year_id"] = gbd.get_most_recent_year()
     return data
 
 

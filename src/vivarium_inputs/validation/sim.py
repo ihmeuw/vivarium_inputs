@@ -20,6 +20,7 @@ from vivarium_inputs.globals import (
     RISKS_WITH_NEGATIVE_PAF,
     DataTransformationError,
     Population,
+    gbd,
 )
 from vivarium_inputs.mapping_extension import (
     AlternativeRiskFactor,
@@ -157,7 +158,7 @@ def validate_for_simulation(
         raise NotImplementedError()
 
     if not check_all_years:
-        most_recent_year = utility_data.get_most_recent_year()
+        most_recent_year = gbd.get_most_recent_year()
         context_args["years"] = pd.DataFrame(
             {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
         )

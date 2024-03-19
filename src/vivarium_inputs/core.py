@@ -18,6 +18,7 @@ from vivarium_inputs.globals import (
     DataDoesNotExistError,
     InvalidQueryError,
     Population,
+    gbd,
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 
@@ -358,7 +359,7 @@ def get_exposure_distribution_weights(
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     if not get_all_years:
-        most_recent_year = utility_data.get_most_recent_year()
+        most_recent_year = gbd.get_most_recent_year()
         data = data.query("year_id==@most_recent_year")
     data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
