@@ -8,6 +8,7 @@ from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
 
 from tests.extract.check import RUNNING_ON_CI
 from vivarium_inputs import utility_data
+from vivarium_inputs.globals import DataAbnormalError
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.mapping_extension import healthcare_entities
 
@@ -175,9 +176,9 @@ measures_r = [
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
-@pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
+#@pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
 def test_get_measure_risklike(entity, measure, location):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
-    df = tester(entity_name, measure_name, utility_data.get_location_id(location))
+    with pytest.raises(DataAbnormalError):
+        df = get_measure(entity_name, measure_name, location)
