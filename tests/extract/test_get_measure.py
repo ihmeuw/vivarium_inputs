@@ -121,7 +121,7 @@ entity_r = [
         MRFlag.EXPOSURE
         | MRFlag.EXPOSURE_SD
         | MRFlag.EXPOSURE_DIST_WEIGHTS
-        | MRFlag.RELATIVE_RISK
+#        | MRFlag.RELATIVE_RISK
         | MRFlag.PAF,
     ),
     (
@@ -133,7 +133,7 @@ measures_r = [
     ("exposure", MRFlag.EXPOSURE),
     ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
     ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
-    ("relative_risk", MRFlag.RELATIVE_RISK),
+#    ("relative_risk", MRFlag.RELATIVE_RISK),
     ("population_attributable_fraction", MRFlag.PAF),
 ]
 locations_r = ["India"]
@@ -182,8 +182,20 @@ def test_get_failing_relative_risk(entity, measure, location):
     with pytest.raises(DataAbnormalError):
         df = get_measure(entity_name, measure_name, location)
 
-# test working RR
+
+entity_r = [
+    (
+        risk_factors.iron_deficiency,
+        MRFlag.RELATIVE_RISK,
+    ),
+]
+measures_r = [
+    ("relative_risk", MRFlag.RELATIVE_RISK),
+]
+@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
-def test_get_working_relative_risk(location):
+def test_get_working_relative_risk(entity, measure, location):
+    entity_name, entity_expected_measure_ids = entity
+    measure_name, measure_id = measure
     df = get_measure(risk_factors.iron_deficiency, MRFlag.RELATIVE_RISK, location)
-    return df
