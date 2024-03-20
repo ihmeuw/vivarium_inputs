@@ -381,7 +381,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     for cause, measure in product(affected_entities, affected_measures):
         df = data[(data.affected_entity == cause) & (data.affected_measure == measure)]
         cause = causes_map[cause]
-        if measure == "excess_mortality_rate":
+        if measure == "cause_specific_mortality_rate":
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yll")
         else:  # incidence_rate
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yld")
@@ -411,7 +411,7 @@ def get_relative_risk(
     mortality = data.mortality == 1
     data.loc[morbidity & mortality, "affected_measure"] = "incidence_rate"
     data.loc[morbidity & ~mortality, "affected_measure"] = "incidence_rate"
-    data.loc[~morbidity & mortality, "affected_measure"] = "excess_mortality_rate"
+    data.loc[~morbidity & mortality, "affected_measure"] = "cause_specific_mortality_rate"
     data = filter_relative_risk_to_cause_restrictions(data)
     data = data.filter(
         DEMOGRAPHIC_COLUMNS
