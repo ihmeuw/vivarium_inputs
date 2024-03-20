@@ -176,9 +176,14 @@ measures_r = [
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
-#@pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
 def test_get_measure_risklike(entity, measure, location):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
     with pytest.raises(DataAbnormalError):
         df = get_measure(entity_name, measure_name, location)
+
+# test working RR
+@pytest.mark.parametrize("location", locations_r)
+def test_get_measure_risklike(entity, measure, location):
+    df = get_measure(risk_factors.iron_deficiency, MRFlag.RELATIVE_RISK, location)
+    return df
