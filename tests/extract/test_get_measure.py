@@ -160,3 +160,24 @@ locations_cov = ["India"]
 @pytest.mark.parametrize("location", locations_cov)
 def test_get_measure_covariatelike(entity, measure, location):
     df = get_measure(entity, measure, utility_data.get_location_id(location))
+
+
+# TODO: Remove with Mic-4936
+entity_r = [
+    (
+        risk_factors.high_systolic_blood_pressure,
+        MRFlag.RELATIVE_RISK,
+    ),
+]
+measures_r = [
+    ("relative_risk", MRFlag.RELATIVE_RISK),
+]
+@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", locations_r)
+@pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
+def test_get_measure_risklike(entity, measure, location):
+    entity_name, entity_expected_measure_ids = entity
+    measure_name, measure_id = measure
+    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
+    df = tester(entity_name, measure_name, utility_data.get_location_id(location))
