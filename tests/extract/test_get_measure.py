@@ -198,4 +198,4 @@ measures_r = [
 def test_get_working_relative_risk(entity, measure, location):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
-    df = get_measure(risk_factors.iron_deficiency, MRFlag.RELATIVE_RISK, location)
+    df = get_measure(entity_name, measure_name, location)
