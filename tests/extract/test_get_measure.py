@@ -119,6 +119,7 @@ entity_r = [
     (
         risk_factors.high_systolic_blood_pressure,
         MRFlag.EXPOSURE | MRFlag.EXPOSURE_SD | MRFlag.EXPOSURE_DIST_WEIGHTS
+        # TODO: Add back in once Mic-4936 is resolved
         #        | MRFlag.RELATIVE_RISK
         | MRFlag.PAF,
     ),
@@ -131,6 +132,7 @@ measures_r = [
     ("exposure", MRFlag.EXPOSURE),
     ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
     ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
+    # TODO: Add back in once Mic-4936 is resolved
     #    ("relative_risk", MRFlag.RELATIVE_RISK),
     ("population_attributable_fraction", MRFlag.PAF),
 ]
@@ -171,6 +173,7 @@ entity_r = [
 measures_r = [
     ("relative_risk", MRFlag.RELATIVE_RISK),
 ]
+locations_r = ["India"]
 
 
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
@@ -192,6 +195,7 @@ entity_r = [
 measures_r = [
     ("relative_risk", MRFlag.RELATIVE_RISK),
 ]
+locations_r = ["India"]
 
 
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
@@ -200,4 +204,4 @@ measures_r = [
 def test_get_working_relative_risk(entity, measure, location):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
-    df = get_measure(entity_name, measure_name, location)
+    df = success_expected(entity_name, measure_name, utility_data.get_location_id(location))
