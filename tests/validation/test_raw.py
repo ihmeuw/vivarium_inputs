@@ -314,7 +314,13 @@ def test_check_sex_ids_pass(mock_validation_context, sex_ids, male, female, both
 
 
 test_data = [
-    (pd.DataFrame({"age_group_id": [2, 3, 388], "a": 1, "b": 0}), 2, 389, ["a", "b"], "missing"),
+    (
+        pd.DataFrame({"age_group_id": [2, 3, 388], "a": 1, "b": 0}),
+        2,
+        389,
+        ["a", "b"],
+        "missing",
+    ),
     (
         pd.DataFrame({"age_group_id": [2, 3], "a": [0, 0], "b": [0, 0]}),
         2,
@@ -336,7 +342,12 @@ def test_check_age_restrictions_fail(
 
 
 test_data = [
-    (pd.DataFrame({"age_group_id": [2, 3, 388, 389, 238], "a": 1, "b": 0}), 2, 389, ["a", "b"]),
+    (
+        pd.DataFrame({"age_group_id": [2, 3, 388, 389, 238], "a": 1, "b": 0}),
+        2,
+        389,
+        ["a", "b"],
+    ),
     (pd.DataFrame({"age_group_id": [2, 3, 4], "a": [1, 1, 1], "b": [2, 3, 0]}), 2, 3, ["a"]),
 ]
 
@@ -354,7 +365,12 @@ def test_check_age_restrictions_warn(
 test_data = [
     (pd.DataFrame({"age_group_id": [2, 3, 388], "a": 1, "b": 0}), 2, 388, ["a", "b"]),
     (pd.DataFrame({"age_group_id": [2, 3], "a": [1, 0], "b": [1, 0.1]}), 2, 3, ["a", "b"]),
-    (pd.DataFrame({"age_group_id": [2, 3, 388], "a": [1, 1, 0], "b": [2, 3, 0]}), 2, 388, ["a"]),
+    (
+        pd.DataFrame({"age_group_id": [2, 3, 388], "a": [1, 1, 0], "b": [2, 3, 0]}),
+        2,
+        388,
+        ["a"],
+    ),
 ]
 
 

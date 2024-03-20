@@ -118,10 +118,8 @@ class MRFlag(IntFlag):
 entity_r = [
     (
         risk_factors.high_systolic_blood_pressure,
-        MRFlag.EXPOSURE
-        | MRFlag.EXPOSURE_SD
-        | MRFlag.EXPOSURE_DIST_WEIGHTS
-#        | MRFlag.RELATIVE_RISK
+        MRFlag.EXPOSURE | MRFlag.EXPOSURE_SD | MRFlag.EXPOSURE_DIST_WEIGHTS
+        #        | MRFlag.RELATIVE_RISK
         | MRFlag.PAF,
     ),
     (
@@ -133,7 +131,7 @@ measures_r = [
     ("exposure", MRFlag.EXPOSURE),
     ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
     ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
-#    ("relative_risk", MRFlag.RELATIVE_RISK),
+    #    ("relative_risk", MRFlag.RELATIVE_RISK),
     ("population_attributable_fraction", MRFlag.PAF),
 ]
 locations_r = ["India"]
@@ -173,6 +171,8 @@ entity_r = [
 measures_r = [
     ("relative_risk", MRFlag.RELATIVE_RISK),
 ]
+
+
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
@@ -192,6 +192,8 @@ entity_r = [
 measures_r = [
     ("relative_risk", MRFlag.RELATIVE_RISK),
 ]
+
+
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
