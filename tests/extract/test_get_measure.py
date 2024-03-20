@@ -116,11 +116,11 @@ class MRFlag(IntFlag):
 
 entity_r = [
     (
-        risk_factors.iron_deficiency,
+        risk_factors.high_systolic_blood_pressure,
         MRFlag.EXPOSURE
         | MRFlag.EXPOSURE_SD
         | MRFlag.EXPOSURE_DIST_WEIGHTS
-        | MRFlag.RELATIVE_RISK
+#        | MRFlag.RELATIVE_RISK
         | MRFlag.PAF,
     ),
     (
