@@ -8,6 +8,7 @@ from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
 
 from tests.extract.check import RUNNING_ON_CI
 from vivarium_inputs import utility_data
+from vivarium_inputs.globals import DataAbnormalError
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.mapping_extension import healthcare_entities
 
@@ -117,10 +118,9 @@ class MRFlag(IntFlag):
 entity_r = [
     (
         risk_factors.high_systolic_blood_pressure,
-        MRFlag.EXPOSURE
-        | MRFlag.EXPOSURE_SD
-        | MRFlag.EXPOSURE_DIST_WEIGHTS
-        | MRFlag.RELATIVE_RISK
+        MRFlag.EXPOSURE | MRFlag.EXPOSURE_SD | MRFlag.EXPOSURE_DIST_WEIGHTS
+        # TODO: Add back in once Mic-4936 is resolved
+        #        | MRFlag.RELATIVE_RISK
         | MRFlag.PAF,
     ),
     (
@@ -132,7 +132,8 @@ measures_r = [
     ("exposure", MRFlag.EXPOSURE),
     ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
     ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
-    ("relative_risk", MRFlag.RELATIVE_RISK),
+    # TODO: Add back in once Mic-4936 is resolved
+    #    ("relative_risk", MRFlag.RELATIVE_RISK),
     ("population_attributable_fraction", MRFlag.PAF),
 ]
 locations_r = ["India"]
@@ -160,3 +161,47 @@ locations_cov = ["India"]
 @pytest.mark.parametrize("location", locations_cov)
 def test_get_measure_covariatelike(entity, measure, location):
     df = get_measure(entity, measure, utility_data.get_location_id(location))
+
+
+# TODO: Remove with Mic-4936
+entity_r = [
+    (
+        risk_factors.high_systolic_blood_pressure,
+        MRFlag.RELATIVE_RISK,
+    ),
+]
+measures_r = [
+    ("relative_risk", MRFlag.RELATIVE_RISK),
+]
+locations_r = ["India"]
+
+
+@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", locations_r)
+def test_get_failing_relative_risk(entity, measure, location):
+    entity_name, entity_expected_measure_ids = entity
+    measure_name, measure_id = measure
+    with pytest.raises(DataAbnormalError):
+        df = get_measure(entity_name, measure_name, location)
+
+
+entity_r = [
+    (
+        risk_factors.iron_deficiency,
+        MRFlag.RELATIVE_RISK,
+    ),
+]
+measures_r = [
+    ("relative_risk", MRFlag.RELATIVE_RISK),
+]
+locations_r = ["India"]
+
+
+@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", locations_r)
+def test_get_working_relative_risk(entity, measure, location):
+    entity_name, entity_expected_measure_ids = entity
+    measure_name, measure_id = measure
+    df = success_expected(entity_name, measure_name, utility_data.get_location_id(location))

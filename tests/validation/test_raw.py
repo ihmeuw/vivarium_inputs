@@ -7,8 +7,8 @@ from vivarium_inputs.globals import SEXES, DataAbnormalError, DataDoesNotExistEr
 from vivarium_inputs.validation import raw
 
 LOCATION_ID = 100
-ESTIMATION_YEARS = tuple(list(range(1990, 2015, 5)) + [2017])
-AGE_GROUP_IDS = tuple(range(1, 6))
+ESTIMATION_YEARS = tuple(list(range(1990, 2015, 5)) + list(range(2019, 2022)))
+AGE_GROUP_IDS = tuple([2, 3, 388, 389, 238, 34])
 PARENT_LOCATIONS = (1, 5, 10)
 
 
@@ -79,9 +79,9 @@ def test_check_mort_morb_flags_pass(mort, morb, yld_only, yll_only):
 @pytest.mark.parametrize(
     "years, bin_type",
     [
-        (range(1950, 2020), "annual"),
-        (range(1990, 2018), "annual"),
-        (list(range(1990, 2015, 5)) + [2017], "binned"),
+        (range(1950, 2023), "annual"),
+        (range(1990, 2022), "annual"),
+        (list(range(1990, 2015, 5)) + list(range(2019, 2022)), "binned"),
     ],
     ids=["annual with extra", "annual", "binned"],
 )
@@ -95,7 +95,7 @@ def test_check_years_pass(mock_validation_context, years, bin_type):
     [
         ([1990, 1992], "annual", "missing"),
         ([1990, 1995], "binned", "missing"),
-        (list(range(1990, 2015, 5)) + [2017, 2020], "binned", "extra"),
+        (list(range(1990, 2015, 5)) + list(range(2019, 2023)), "binned", "extra"),
     ],
     ids=["annual with gap", "binned with gap", "binned with extra"],
 )
@@ -219,10 +219,10 @@ def test_check_data_exist_pass(data):
 @pytest.mark.parametrize(
     "test_age_ids, start, end, match",
     [
-        ([1, 2, 3, 100], None, None, "invalid"),
-        ([1, 3, 4, 5], None, None, "non-contiguous"),
-        ([1, 2, 3, 100], 1, 3, "invalid"),
-        ([1, 2, 3, 5], 1, 3, "non-contiguous"),
+        ([2, 3, 388, 100], None, None, "invalid"),
+        ([2, 3, 388, 238], None, None, "non-contiguous"),
+        ([2, 3, 388, 100], 2, 388, "invalid"),
+        ([2, 3, 388, 238], 2, 388, "non-contiguous"),
     ],
 )
 @pytest.mark.skipif(RUNNING_ON_CI, reason="Don't run these tests on the CI server")
@@ -235,10 +235,10 @@ def test_check_age_group_ids_fail(mock_validation_context, test_age_ids, start, 
 @pytest.mark.parametrize(
     "test_age_ids, start, end, match",
     [
-        ([2, 3], 2, 4, "contain all age groups in restriction range"),
-        ([2, 3, 4], 2, 3, "additional age groups"),
-        ([1, 2, 3, 4, 5], 1, 3, "additional age groups"),
-        ([1, 2, 3], 1, 5, "contain all age groups in restriction range"),
+        ([2, 3], 2, 388, "contain all age groups in restriction range"),
+        ([2, 3, 388], 2, 3, "additional age groups"),
+        ([2, 3, 388, 389, 238], 2, 388, "additional age groups"),
+        ([2, 3, 388], 2, 238, "contain all age groups in restriction range"),
     ],
 )
 @pytest.mark.skipif(RUNNING_ON_CI, reason="Don't run these tests on the CI server")
@@ -252,7 +252,7 @@ def test_check_age_group_ids_warn(
 
 @pytest.mark.parametrize(
     "test_age_ids, start, end",
-    [([2, 3, 4], 2, 4), ([2, 3, 4], None, None), ([1, 2, 3, 4, 5], 1, 5)],
+    [([2, 3, 388], 2, 388), ([2, 3, 388], None, None), ([2, 3, 388, 389, 238], 2, 238)],
 )
 @pytest.mark.skipif(RUNNING_ON_CI, reason="Don't run these tests on the CI server")
 def test_check_age_group_ids_pass(mock_validation_context, test_age_ids, start, end, recwarn):
@@ -314,11 +314,17 @@ def test_check_sex_ids_pass(mock_validation_context, sex_ids, male, female, both
 
 
 test_data = [
-    (pd.DataFrame({"age_group_id": [1, 2, 3], "a": 1, "b": 0}), 1, 4, ["a", "b"], "missing"),
     (
-        pd.DataFrame({"age_group_id": [1, 2], "a": [0, 0], "b": [0, 0]}),
-        1,
+        pd.DataFrame({"age_group_id": [2, 3, 388], "a": 1, "b": 0}),
         2,
+        389,
+        ["a", "b"],
+        "missing",
+    ),
+    (
+        pd.DataFrame({"age_group_id": [2, 3], "a": [0, 0], "b": [0, 0]}),
+        2,
+        3,
         ["a", "b"],
         "missing for all age groups",
     ),
@@ -336,8 +342,13 @@ def test_check_age_restrictions_fail(
 
 
 test_data = [
-    (pd.DataFrame({"age_group_id": [1, 2, 3, 4, 5], "a": 1, "b": 0}), 1, 4, ["a", "b"]),
-    (pd.DataFrame({"age_group_id": [1, 2, 3], "a": [1, 1, 1], "b": [2, 3, 0]}), 1, 2, ["a"]),
+    (
+        pd.DataFrame({"age_group_id": [2, 3, 388, 389, 238], "a": 1, "b": 0}),
+        2,
+        389,
+        ["a", "b"],
+    ),
+    (pd.DataFrame({"age_group_id": [2, 3, 4], "a": [1, 1, 1], "b": [2, 3, 0]}), 2, 3, ["a"]),
 ]
 
 
@@ -352,9 +363,14 @@ def test_check_age_restrictions_warn(
 
 
 test_data = [
-    (pd.DataFrame({"age_group_id": [1, 2, 3], "a": 1, "b": 0}), 1, 3, ["a", "b"]),
-    (pd.DataFrame({"age_group_id": [1, 2], "a": [1, 0], "b": [1, 0.1]}), 1, 2, ["a", "b"]),
-    (pd.DataFrame({"age_group_id": [1, 2, 3], "a": [1, 1, 0], "b": [2, 3, 0]}), 1, 3, ["a"]),
+    (pd.DataFrame({"age_group_id": [2, 3, 388], "a": 1, "b": 0}), 2, 388, ["a", "b"]),
+    (pd.DataFrame({"age_group_id": [2, 3], "a": [1, 0], "b": [1, 0.1]}), 2, 3, ["a", "b"]),
+    (
+        pd.DataFrame({"age_group_id": [2, 3, 388], "a": [1, 1, 0], "b": [2, 3, 0]}),
+        2,
+        388,
+        ["a"],
+    ),
 ]
 
 
