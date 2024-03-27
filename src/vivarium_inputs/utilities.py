@@ -1,4 +1,5 @@
 """Errors and utility functions for input processing."""
+
 from numbers import Real
 from typing import List, Tuple, Union
 

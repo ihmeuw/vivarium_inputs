@@ -1,4 +1,5 @@
 """Access to vivarium simulation input data."""
+
 from typing import Union
 
 import pandas as pd

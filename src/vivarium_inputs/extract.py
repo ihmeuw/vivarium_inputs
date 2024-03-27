@@ -293,7 +293,9 @@ def extract_population_attributable_fraction(
     return data
 
 
-def extract_mediation_factors(entity: RiskFactor, location_id: int) -> pd.DataFrame:
+def extract_mediation_factors(
+    entity: RiskFactor, location_id: int, get_all_years: bool = False
+) -> pd.DataFrame:
     data = gbd.get_auxiliary_data("mediation_factor", entity.kind, entity.name, location_id)
     return data
 

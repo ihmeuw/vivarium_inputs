@@ -1,4 +1,5 @@
 """Global constants, errors, and module imports for inputs processing."""
+
 from gbd_mapping import ModelableEntity, causes, risk_factors
 
 # The purpose of this import block is to mask the dependency on internal
