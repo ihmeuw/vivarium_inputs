@@ -193,7 +193,7 @@ def extract_disability_weight(
     entity: Sequela, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     disability_weights = gbd.get_auxiliary_data(
-        "disability_weight", entity.kind, "all", location_id
+        "disability_weight", entity.kind, "all", location_id,
     )
     data = disability_weights.loc[
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
@@ -272,7 +272,7 @@ def extract_exposure_distribution_weights(
 def extract_relative_risk(
     entity: RiskFactor, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    data = gbd.get_relative_risk(entity.gbd_id, location_id, get_all_years)
+    data = gbd.get_relative_risk(entity.gbd_id, location_id, get_all_years=get_all_years)
     # TODO: [MIC-4891] Process new relative risk data format properly
     if not data["exposure"].isna().all():
         raise DataAbnormalError(
@@ -286,7 +286,7 @@ def extract_relative_risk(
 def extract_population_attributable_fraction(
     entity: Union[RiskFactor, Etiology], location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    data = gbd.get_paf(entity.gbd_id, location_id, get_all_years)
+    data = gbd.get_paf(entity.gbd_id, location_id, get_all_years=get_all_years)
     data = data[data.metric_id == METRICS["Percent"]]
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
@@ -317,7 +317,7 @@ def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.D
 def extract_structure(
     entity: Population, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    data = gbd.get_population(location_id, get_all_years)
+    data = gbd.get_population(location_id, get_all_years=get_all_years)
     return data
 
 
