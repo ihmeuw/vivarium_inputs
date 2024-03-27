@@ -13,7 +13,8 @@ from vivarium_inputs.globals import (
     DataDoesNotExistError,
     EmptyDataFrameException,
     InputsException,
-    NoBestVersionError,
+    # TODO: see if GBD has a replacement for these exceptions
+    #NoBestVersionError,
     Population,
     gbd,
 )
@@ -103,7 +104,8 @@ def extract_data(
         ValueError,
         AssertionError,
         EmptyDataFrameException,
-        NoBestVersionError,
+        # TODO: see if GBD has a replacement for these exceptions
+        #NoBestVersionError,
         InputsException,
     ) as e:
         if isinstance(
