@@ -4,7 +4,7 @@ import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
 
 import vivarium_inputs.validation.raw as validation
-from vivarium_inputs.globals import (
+from vivarium_inputs.globals import (  # TODO: see if GBD has a replacement for these exceptions; NoBestVersionError,
     DRAW_COLUMNS,
     MEASURES,
     METRICS,
@@ -13,7 +13,6 @@ from vivarium_inputs.globals import (
     DataDoesNotExistError,
     EmptyDataFrameException,
     InputsException,
-    NoBestVersionError,
     Population,
     gbd,
 )
@@ -103,7 +102,8 @@ def extract_data(
         ValueError,
         AssertionError,
         EmptyDataFrameException,
-        NoBestVersionError,
+        # TODO: see if GBD has a replacement for these exceptions
+        # NoBestVersionError,
         InputsException,
     ) as e:
         if isinstance(
