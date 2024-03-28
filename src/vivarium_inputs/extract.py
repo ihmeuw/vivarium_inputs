@@ -130,7 +130,7 @@ def extract_data(
 
     if validate:
         additional_data = {
-            name: extractor(entity, location_id)
+            name: extractor(entity, location_id, get_all_years=get_all_years)
             for name, extractor in additional_extractors.items()
         }
         if not get_all_years:
