@@ -8,8 +8,8 @@ try:
     from vivarium_gbd_access import gbd
 
     try:
-        from get_draws.base.exceptions import NoBestVersionsException
         from get_draws.api import EmptyDataFrameException, InputsException
+        from get_draws.base.exceptions import NoBestVersionsException
     except ModuleNotFoundError:
         raise RuntimeError("Problem importing get_draws.base.exceptions or get_draws.api.")
 

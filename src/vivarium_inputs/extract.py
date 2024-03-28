@@ -12,8 +12,8 @@ from vivarium_inputs.globals import (
     DataAbnormalError,
     DataDoesNotExistError,
     EmptyDataFrameException,
-    NoBestVersionsException,
     InputsException,
+    NoBestVersionsException,
     Population,
     gbd,
 )
