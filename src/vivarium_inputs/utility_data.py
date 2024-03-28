@@ -55,6 +55,9 @@ def get_location_id_parents(location_id: Union[int, List]) -> Dict[int, List]:
         .str.split(",")
         .to_dict()
     )
+    # Coerce list of parent ids to integers
+    parent_ids = {loc_id: list(map(int, parents)) for loc_id, parents in parent_ids.items()}
+
     return parent_ids
 
 
