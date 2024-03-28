@@ -564,13 +564,13 @@ def validate_excess_mortality_rate(
             ]
         else:
             max_val = VALID_EXCESS_MORT_RANGE[1]
-    check_value_columns_boundary(
-        data,
-        boundary_value=max_val,
-        boundary_type="upper",
-        value_columns=DRAW_COLUMNS,
-        error=DataTransformationError,
-    )
+        check_value_columns_boundary(
+            data,
+            boundary_value=max_val,
+            boundary_type="upper",
+            value_columns=DRAW_COLUMNS,
+            error=DataTransformationError,
+        )
 
     check_age_restrictions(data, entity, rest_type="yll", fill_value=0.0, context=context)
     check_sex_restrictions(
