@@ -23,7 +23,7 @@ except ModuleNotFoundError:
 
     gbd = GbdDummy()
 
-    class NoBestVersionError(Exception):
+    class NoBestVersionsException(Exception):
         """Mock class for gbd exception"""
 
         pass
