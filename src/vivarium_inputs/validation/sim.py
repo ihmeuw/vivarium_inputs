@@ -557,14 +557,13 @@ def validate_excess_mortality_rate(
         error=DataTransformationError,
     )
 
-    if entity.name in BOUNDARY_SPECIAL_CASES["excess_mortality_rate"].get(
-        context["location"], {}
-    ):
-        max_val = BOUNDARY_SPECIAL_CASES["excess_mortality_rate"][context["location"]][
-            entity.name
-        ]
-    else:
-        max_val = VALID_EXCESS_MORT_RANGE[1]
+    for location in context["location"]:
+        if entity.name in BOUNDARY_SPECIAL_CASES["excess_mortality_rate"].get(location, {}):
+            max_val = BOUNDARY_SPECIAL_CASES["excess_mortality_rate"][context["location"]][
+                entity.name
+            ]
+        else:
+            max_val = VALID_EXCESS_MORT_RANGE[1]
     check_value_columns_boundary(
         data,
         boundary_value=max_val,
