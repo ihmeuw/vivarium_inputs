@@ -202,9 +202,18 @@ def extract_disability_weight(
         "all",
         location_id,
     )
-    data = disability_weights.loc[
+    disability_data = disability_weights.loc[
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
     ]
+    # Update location_id to match original location id
+    # Note: The flat file we read data from in gbd.get_auxiliary_data only has location_id 1
+    # because disability weights are the same for all locations
+    data = []
+    for loc_id in location_id:
+        loc_data = disability_data.copy()
+        loc_data["location_id"] = loc_id
+        data.append(loc_data)
+    data = pd.concat(data)
     if not get_all_years:
         data["year_id"] = gbd.get_most_recent_year()
     return data
