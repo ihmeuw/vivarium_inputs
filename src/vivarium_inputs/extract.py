@@ -4,7 +4,7 @@ import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, RiskFactor, Sequela
 
 import vivarium_inputs.validation.raw as validation
-from vivarium_inputs.globals import (  # TODO: see if GBD has a replacement for these exceptions; NoBestVersionError,
+from vivarium_inputs.globals import (
     DRAW_COLUMNS,
     MEASURES,
     METRICS,
@@ -13,6 +13,7 @@ from vivarium_inputs.globals import (  # TODO: see if GBD has a replacement for 
     DataDoesNotExistError,
     EmptyDataFrameException,
     InputsException,
+    NoBestVersionsException,
     Population,
     gbd,
 )
@@ -102,8 +103,7 @@ def extract_data(
         ValueError,
         AssertionError,
         EmptyDataFrameException,
-        # TODO: see if GBD has a replacement for these exceptions
-        # NoBestVersionError,
+        NoBestVersionsException,
         InputsException,
     ) as e:
         if isinstance(
@@ -193,7 +193,10 @@ def extract_disability_weight(
     entity: Sequela, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     disability_weights = gbd.get_auxiliary_data(
-        "disability_weight", entity.kind, "all", location_id,
+        "disability_weight",
+        entity.kind,
+        "all",
+        location_id,
     )
     data = disability_weights.loc[
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
