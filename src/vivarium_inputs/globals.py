@@ -8,11 +8,10 @@ try:
     from vivarium_gbd_access import gbd
 
     try:
-        # TODO: see if GBD has a replacement for these exceptions
-        # from gbd_artifacts.exceptions import NoBestVersionError
         from get_draws.api import EmptyDataFrameException, InputsException
+        from get_draws.base.exceptions import NoBestVersionsException
     except ModuleNotFoundError:
-        raise RuntimeError("Problem importing gbd_artifacts.exceptions or get_draws.api.")
+        raise RuntimeError("Problem importing get_draws.base.exceptions or get_draws.api.")
 
 except ModuleNotFoundError:
 
@@ -24,7 +23,7 @@ except ModuleNotFoundError:
 
     gbd = GbdDummy()
 
-    class NoBestVersionError(Exception):
+    class NoBestVersionsException(Exception):
         """Mock class for gbd exception"""
 
         pass
