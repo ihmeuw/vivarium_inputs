@@ -1514,7 +1514,7 @@ def validate_year_column(data: pd.DataFrame, context: SimulationValidationContex
 
     if not sorted(data_years) == sorted(expected_years):
         raise DataTransformationError(
-            "Year_start and year_end must cover [1990, 2019] in intervals of one year or only be most recent year."
+            "Year_start and year_end must cover [1990, 2021] in intervals of one year or only be most recent year."
         )
 
 
