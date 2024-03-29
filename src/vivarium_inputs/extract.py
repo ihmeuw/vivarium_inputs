@@ -193,7 +193,10 @@ def extract_disability_weight(
     entity: Sequela, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     disability_weights = gbd.get_auxiliary_data(
-        "disability_weight", entity.kind, "all", location_id,
+        "disability_weight",
+        entity.kind,
+        "all",
+        location_id,
     )
     data = disability_weights.loc[
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :

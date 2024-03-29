@@ -242,7 +242,9 @@ def get_cause_specific_mortality_rate(
 def get_excess_mortality_rate(
     entity: Cause, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    csmr = get_data(entity, "cause_specific_mortality_rate", location_id, get_all_years=get_all_years)
+    csmr = get_data(
+        entity, "cause_specific_mortality_rate", location_id, get_all_years=get_all_years
+    )
     prevalence = get_data(entity, "prevalence", location_id, get_all_years=get_all_years)
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
