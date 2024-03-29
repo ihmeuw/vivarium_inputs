@@ -119,8 +119,8 @@ def get_raw_incidence_rate(
 def get_incidence_rate(
     entity: Union[Cause, Sequela], location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    data = get_data(entity, "raw_incidence_rate", location_id, get_all_years)
-    prevalence = get_data(entity, "prevalence", location_id)
+    data = get_data(entity, "raw_incidence_rate", location_id, get_all_years=get_all_years)
+    prevalence = get_data(entity, "prevalence", location_id, get_all_years=get_all_years)
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0)
@@ -231,9 +231,9 @@ def get_cause_specific_mortality_rate(
     entity: Cause, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
     deaths = get_data(
-        entity, "deaths", location_id, get_all_years
+        entity, "deaths", location_id, get_all_years=get_all_years
     )  # population isn't by draws
-    pop = get_data(Population(), "structure", location_id, get_all_years)
+    pop = get_data(Population(), "structure", location_id, get_all_years=get_all_years)
     data = deaths.join(pop, lsuffix="_deaths", rsuffix="_pop")
     data[DRAW_COLUMNS] = data[DRAW_COLUMNS].divide(data.value, axis=0)
     return data.drop(["value"], axis="columns")
@@ -242,15 +242,17 @@ def get_cause_specific_mortality_rate(
 def get_excess_mortality_rate(
     entity: Cause, location_id: int, get_all_years: bool = False
 ) -> pd.DataFrame:
-    csmr = get_data(entity, "cause_specific_mortality_rate", location_id, get_all_years)
-    prevalence = get_data(entity, "prevalence", location_id, get_all_years)
+    csmr = get_data(
+        entity, "cause_specific_mortality_rate", location_id, get_all_years=get_all_years
+    )
+    prevalence = get_data(entity, "prevalence", location_id, get_all_years=get_all_years)
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data
 
 
 def get_deaths(entity: Cause, location_id: int, get_all_years: bool = False) -> pd.DataFrame:
-    data = extract.extract_data(entity, "deaths", location_id, get_all_years)
+    data = extract.extract_data(entity, "deaths", location_id, get_all_years=get_all_years)
     data = utilities.filter_data_by_restrictions(
         data, entity, "yll", utility_data.get_age_group_ids()
     )
