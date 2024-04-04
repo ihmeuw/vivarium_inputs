@@ -198,9 +198,9 @@ def get_disability_weight(
                 disability = get_data(
                     sequela, "disability_weight", location_id, get_all_years=get_all_years
                 )
-                disability.index = disability.index.set_levels(
-                    [location_id], level="location_id"
-                )
+                # disability.index = disability.index.set_levels(
+                #     [location_id], level="location_id"
+                # )
                 data += prevalence * disability
         cause_prevalence = get_data(
             entity, "prevalence", location_id, get_all_years=get_all_years
