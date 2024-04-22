@@ -1775,15 +1775,19 @@ def _get_valid_rr_and_age_groups(
     valid_rr = rr[(rr.cause_id == cause.gbd_id) & rr_measures[measure]]
 
     if entity.distribution in ["ensemble", "lognormal", "normal"]:
-        tmrel = (entity.tmred.max + entity.tmred.min) / 2
+        if entity.tmred.distribution == 'draws':
+            pass
+        else:
+            tmrel = (entity.tmred.max + entity.tmred.min) / 2
 
-        #  Non-trivial rr for continuous risk factors is where exposure is bigger(smaller) than tmrel.
-        e_othercols = [c for c in exposure.columns if c not in DRAW_COLUMNS]
-        df = exposure.set_index(e_othercols)
-        op = operator.lt if entity.tmred.inverted else operator.gt
-        exposed_age_groups = set(df[op(df, tmrel)].reset_index().age_group_id)
+            #  Non-trivial rr for continuous risk factors is where exposure is bigger(smaller) than tmrel.
+            e_othercols = [c for c in exposure.columns if c not in DRAW_COLUMNS]
+            df = exposure.set_index(e_othercols)
+            op = operator.lt if entity.tmred.inverted else operator.gt
+            exposed_age_groups = set(df[op(df, tmrel)].reset_index().age_group_id)
 
-        valid_rr = valid_rr[valid_rr.age_group_id.isin(exposed_age_groups)]
+            valid_rr = valid_rr[valid_rr.age_group_id.isin(exposed_age_groups)]
+
         rr_age_groups = set(valid_rr.age_group_id)
 
     else:  # categorical distribution

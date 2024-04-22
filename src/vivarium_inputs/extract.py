@@ -293,6 +293,10 @@ def extract_population_attributable_fraction(
     data = data[data.metric_id == METRICS["Percent"]]
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
+    # clip PAFs between 0 and 1 (expected from GBD)
+    draw_cols = [col for col in data.columns if col.startswith('draw_')]
+    data.loc[:,draw_cols] = data[draw_cols].clip(lower=0)
+    data.loc[:,draw_cols] = data[draw_cols].clip(upper=1)
     return data
 
 
