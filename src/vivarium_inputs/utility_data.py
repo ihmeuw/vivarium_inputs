@@ -45,7 +45,7 @@ def get_location_name(location_id) -> str:
     }[location_id]
 
 
-def get_location_id_parents(location_id: Union[int, List]) -> Dict[int, List]:
+def get_location_id_parents(location_id: Union[int, List[int]]) -> Dict[int, List]:
     if isinstance(location_id, int):
         location_id = [location_id]
     location_metadata = gbd.get_location_path_to_global()

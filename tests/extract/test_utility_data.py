@@ -34,8 +34,10 @@ def test_get_location_id():
 
 @pytest.mark.parametrize(
     "location_id, expected",
-    (163, {163: [1, 158, 159, 163]}),
-    ([163, 175], {163: [1, 158, 159, 163], 175: [1, 158, 159, 175]}),
+    [
+        (163, {163: [1, 158, 159, 163]}),
+        ([163, 175], {163: [1, 158, 159, 163], 175: [1, 158, 159, 175]}),
+    ],
 )
 def test_get_location_id_parents(location_id, expected):
     assert expected == ud.get_location_id_parents(location_id)
