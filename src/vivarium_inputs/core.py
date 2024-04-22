@@ -273,7 +273,7 @@ def get_excess_mortality_rate(
 def get_deaths(
     entity: Cause, location_id: List[int], get_all_years: bool = False
 ) -> pd.DataFrame:
-    data = extract.extract_data(entity, "deaths", location_id, get_all_years)
+    data = extract.extract_data(entity, "deaths", location_id, validate=True, get_all_years)
     data = utilities.filter_data_by_restrictions(
         data, entity, "yll", utility_data.get_age_group_ids()
     )
