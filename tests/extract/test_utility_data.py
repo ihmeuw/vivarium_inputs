@@ -36,7 +36,7 @@ def test_get_location_id():
     "location_id, expected",
     [
         (163, {163: [1, 158, 159, 163]}),
-        ([163, 175], {163: [1, 158, 159, 163], 175: [1, 158, 159, 175]}),
+        ([163, 175], {163: [1, 158, 159, 163], 175: [1, 166, 174, 175]}),
     ],
 )
 def test_get_location_id_parents(location_id, expected):
