@@ -23,7 +23,7 @@ def test_get_year_block():
 
 def test_get_age_group_ids():
     result = ud.get_age_group_ids()
-    truth = [2, 3, 388, 389, 238, 34] + list(range(7, 20)) + [30, 31, 32, 235]
+    truth = [2, 3, 388, 389, 238, 34] + list(range(6, 21)) + [30, 31, 32, 235]
     assert result == truth
 
 
