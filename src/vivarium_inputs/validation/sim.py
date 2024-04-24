@@ -62,7 +62,7 @@ SCRUBBED_DEMOGRAPHIC_COLUMNS = ["location", "sex", "age", "year"]
 
 
 class SimulationValidationContext:
-    def __init__(self, location, **additional_data):
+    def __init__(self, location: List[str], **additional_data):
         self.context_data = {"location": location}
         self.context_data.update(additional_data)
 
@@ -1440,11 +1440,16 @@ def validate_location_column(
 
     """
     data_locations = data.index.unique("location")
-    missing_locations = set(data_locations).difference(set(context["location"]))
-    if missing_locations:
+    equal_location_sets = set(data_locations) != (set(context["location"]))
+    if not equal_location_sets:
+        # Locations requested for extraction not found in data
+        missing_locations_in_data = set(context["location"]).difference(data_locations)
+        # Locations found in data but not requested for extraction
+        extra_locations_in_data = set(data_locations).difference(context["location"])
+        problem_locations = missing_locations_in_data.union(extra_locations_in_data)
         raise DataTransformationError(
             "Location(s) msut match between data and SimulationValidationContext. "
-            f"Locations not found in both include '{missing_locations}'. "
+            f"Locations not found in both include '{problem_locations}'. "
         )
 
 

@@ -33,13 +33,13 @@ def get_age_bins(*_, **__) -> pd.DataFrame:
     return age_bins
 
 
-def get_location_id(location_name) -> int:
+def get_location_id(location_name: str) -> int:
     return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[
         location_name
     ]
 
 
-def get_location_name(location_id) -> str:
+def get_location_name(location_id: int) -> str:
     return {
         row.location_id: row.location_name for _, row in gbd.get_location_ids().iterrows()
     }[location_id]

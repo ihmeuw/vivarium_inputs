@@ -31,7 +31,7 @@ def scrub_gbd_conventions(data, location):
     return data
 
 
-def scrub_location(data, location):
+def scrub_location(data: pd.DataFrame, location: Union[int, List[str]]) -> pd.DataFrame:
     # Coerce location names
     if not isinstance(location, list):
         location = [location]
