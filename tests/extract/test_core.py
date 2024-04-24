@@ -203,14 +203,14 @@ def test_core_healthsystem(entity, measure, location):
 
 
 # TODO: Remove with Mic-4936
-@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("location", locations_r)
-@pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
-def test_relative_risk(entity, location):
-    measure_name = "relative_risk"
-    measure_id = MRFlag.RELATIVE_RISK
-    entity_name, entity_expected_measure_ids = entity
-    df = core.get_data(entity_name, measure_name, location)
+# @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+# @pytest.mark.parametrize("location", locations_r)
+# @pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
+# def test_relative_risk(entity, location):
+#     measure_name = "relative_risk"
+#     measure_id = MRFlag.RELATIVE_RISK
+#     entity_name, entity_expected_measure_ids = entity
+#     df = core.get_data(entity_name, measure_name, location)
 
 
 @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
