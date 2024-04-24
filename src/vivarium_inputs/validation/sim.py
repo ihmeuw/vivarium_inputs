@@ -1440,7 +1440,7 @@ def validate_location_column(
 
     """
     data_locations = data.index.unique("location")
-    equal_location_sets = set(data_locations) != (set(context["location"]))
+    equal_location_sets = set(data_locations) == (set(context["location"]))
     if not equal_location_sets:
         # Locations requested for extraction not found in data
         missing_locations_in_data = set(context["location"]).difference(data_locations)
