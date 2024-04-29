@@ -1,3 +1,7 @@
+**4.2.0 - 03/13/24**
+
+ - Add functionality to pull multiple locationals at once
+
 **4.1.4 - 01/11/24**
 
  - Remove erroneously merged get_draws_kwargs argument

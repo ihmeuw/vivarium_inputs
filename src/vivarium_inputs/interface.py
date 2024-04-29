@@ -1,6 +1,5 @@
 """Access to vivarium simulation input data."""
-
-from typing import Union
+from typing import List, Union
 
 import pandas as pd
 from gbd_mapping import ModelableEntity
@@ -11,7 +10,10 @@ from vivarium_inputs.globals import Population
 
 
 def get_measure(
-    entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False
+    entity: ModelableEntity,
+    measure: str,
+    location: Union[int, str, List[Union[int, str]]],
+    get_all_years: bool = False,
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
@@ -48,7 +50,8 @@ def get_measure(
         Measure for which to pull data, should be a measure available for the
         kind of entity which `entity` is.
     location
-        Location for which to pull data.
+        Location for which to pull data. This can be a location id as an int, the location name
+        as a string, or a list of these two data types.
     get_all_years
         Flag indicating whether to get all years. Otherwise, get most recent year.
         Defaults to False.
@@ -67,7 +70,9 @@ def get_measure(
     return utilities.sort_hierarchical_data(data)
 
 
-def get_population_structure(location: str, get_all_years: bool = False) -> pd.DataFrame:
+def get_population_structure(
+    location: Union[int, str, List[Union[int, str]]], get_all_years: bool = False
+) -> pd.DataFrame:
     """Pull GBD population data for the given location and standardize to the
     expected simulation input format, including scrubbing all GBD conventions
     to replace IDs with meaningful values or ranges and expanding over all
@@ -140,7 +145,9 @@ def get_age_bins() -> pd.DataFrame:
     return utilities.sort_hierarchical_data(data)
 
 
-def get_demographic_dimensions(location: str, get_all_years: bool = False) -> pd.DataFrame:
+def get_demographic_dimensions(
+    location: Union[int, str, List[Union[int, str]]], get_all_years: bool = False
+) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
     to replace IDs with with meaningful values or ranges.
@@ -171,7 +178,10 @@ def get_demographic_dimensions(location: str, get_all_years: bool = False) -> pd
 
 
 def get_raw_data(
-    entity: ModelableEntity, measure: str, location: str, get_all_years: bool = False
+    entity: ModelableEntity,
+    measure: str,
+    location: Union[int, str, List[Union[int, str]]],
+    get_all_years: bool = False,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
     Skip standard raw validation checks in order to return data that can be
@@ -221,7 +231,11 @@ def get_raw_data(
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
-    location_id = utility_data.get_location_id(location)
+    if not isinstance(location, list):
+        location = [location]
+    location_id = [
+        utility_data.get_location_id(loc) if isinstance(loc, str) else loc for loc in location
+    ]
     data = extract.extract_data(
         entity, measure, location_id, validate=False, get_all_years=get_all_years
     )

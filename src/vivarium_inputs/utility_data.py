@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List, Union
 
 import pandas as pd
 from gbd_mapping import RiskFactor
@@ -33,22 +33,39 @@ def get_age_bins(*_, **__) -> pd.DataFrame:
     return age_bins
 
 
-def get_location_id(location_name):
+def get_location_id(location_name: str) -> int:
     return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[
         location_name
     ]
 
 
-def get_location_id_parents(location_id: int) -> List[int]:
-    location_metadata = gbd.get_location_path_to_global().set_index("location_id")
-    parent_ids = [
-        int(loc) for loc in location_metadata.at[location_id, "path_to_top_parent"].split(",")
-    ]
+def get_location_name(location_id: int) -> str:
+    return {
+        row.location_id: row.location_name for _, row in gbd.get_location_ids().iterrows()
+    }[location_id]
+
+
+def get_location_id_parents(location_id: Union[int, List[int]]) -> Dict[int, List]:
+    if isinstance(location_id, int):
+        location_id = [location_id]
+    location_metadata = gbd.get_location_path_to_global()
+    parent_ids = (
+        location_metadata.loc[location_metadata.location_id.isin(location_id)]
+        .set_index("location_id")["path_to_top_parent"]
+        .str.split(",")
+        .to_dict()
+    )
+    # Coerce list of parent ids to integers
+    parent_ids = {loc_id: list(map(int, parents)) for loc_id, parents in parent_ids.items()}
+
     return parent_ids
 
 
 def get_demographic_dimensions(
-    location_id: int, get_all_years: bool = False, draws: bool = False, value: float = None
+    location_id: Union[int, List[int]],
+    get_all_years: bool = False,
+    draws: bool = False,
+    value: float = None,
 ) -> pd.DataFrame:
     ages = get_age_group_ids()
     if get_all_years:
@@ -57,7 +74,7 @@ def get_demographic_dimensions(
     else:
         years = [gbd.get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
-    location = [location_id]
+    location = [location_id] if isinstance(location_id, int) else location_id
     values = [location, sexes, ages, years]
     names = ["location_id", "sex_id", "age_group_id", "year_id"]
 

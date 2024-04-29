@@ -31,13 +31,21 @@ def scrub_gbd_conventions(data, location):
     return data
 
 
-def scrub_location(data, location):
+def scrub_location(data: pd.DataFrame, location: Union[int, List[str]]) -> pd.DataFrame:
+    # Coerce location names
+    if not isinstance(location, list):
+        location = [location]
+    location = [
+        utility_data.get_location_name(loc) if isinstance(loc, int) else loc
+        for loc in location
+    ]
+
     if "location_id" in data.index.names:
         data.index = data.index.rename("location", level="location_id").set_levels(
-            [location], level="location"
+            location, level="location"
         )
     else:
-        data = pd.concat([data], keys=[location], names=["location"])
+        data = pd.concat([data], keys=location, names=["location"])
     return data
 
 

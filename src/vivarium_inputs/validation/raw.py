@@ -132,7 +132,7 @@ def validate_raw_data(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location_id: int,
+    location_id: Union[int, List[int]],
     **additional_data,
 ) -> None:
     """Validate data conforms to the format expected from raw GBD data, that all
@@ -209,6 +209,9 @@ def validate_raw_data(
     if measure not in validators:
         raise InvalidQueryError(f"No raw validator found for {measure}.")
 
+    # Make location_id a list if not already
+    if not isinstance(location_id, list):
+        location_id = [location_id]
     context = RawValidationContext(location_id, **additional_data)
 
     validators[measure](data, entity, context)
@@ -1955,16 +1958,17 @@ def check_location(data: pd.DataFrame, context: RawValidationContext) -> None:
         global or requested location id.
 
     """
-    if len(data["location_id"].unique()) > 1:
-        raise DataAbnormalError(f"Data contains multiple location ids.")
 
-    data_location_id = data["location_id"].unique()[0]
-
-    if data_location_id not in context["parent_locations"] + [context["location_id"]]:
-        raise DataAbnormalError(
-            f'Data pulled for {context["location_id"]} actually has location '
-            f"id {data_location_id}, which is not in its hierarchy."
-        )
+    data_location_ids = data["location_id"].unique()
+    parent_locations = [
+        loc for value in context["parent_locations"].values() for loc in value
+    ]
+    for location_id in data_location_ids:
+        if location_id not in context["location_id"] + parent_locations:
+            raise DataAbnormalError(
+                f"Data pulled for '{data_location_ids}' actually has location "
+                f"id {location_id}, which is not in its hierarchy."
+            )
 
 
 def check_columns(expected_cols: List, existing_cols: List) -> None:

@@ -62,7 +62,7 @@ SCRUBBED_DEMOGRAPHIC_COLUMNS = ["location", "sex", "age", "year"]
 
 
 class SimulationValidationContext:
-    def __init__(self, location, **additional_data):
+    def __init__(self, location: List[str], **additional_data):
         self.context_data = {"location": location}
         self.context_data.update(additional_data)
 
@@ -82,7 +82,7 @@ def validate_for_simulation(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location: str,
+    location: Union[int, str, List[Union[int, str]]],
     check_all_years: bool = False,
     **context_args,
 ) -> None:
@@ -114,7 +114,7 @@ def validate_for_simulation(
     measure
         The measure to which the data pertain.
     location
-        The location to which the data pertain.
+        The location(s) to which the data pertain.
     check_all_years
         Flag indicating whether to validate that we have all years.
         Otherwise, validate that data has most recent year.
@@ -163,6 +163,13 @@ def validate_for_simulation(
             {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
         )
 
+    # Coerce to location names
+    if not isinstance(location, list):
+        location = [location]
+    location = [
+        utility_data.get_location_name(loc) if isinstance(loc, int) else loc
+        for loc in location
+    ]
     context = SimulationValidationContext(location, **context_args)
     validators[measure](data, entity, context)
 
@@ -550,21 +557,20 @@ def validate_excess_mortality_rate(
         error=DataTransformationError,
     )
 
-    if entity.name in BOUNDARY_SPECIAL_CASES["excess_mortality_rate"].get(
-        context["location"], {}
-    ):
-        max_val = BOUNDARY_SPECIAL_CASES["excess_mortality_rate"][context["location"]][
-            entity.name
-        ]
-    else:
-        max_val = VALID_EXCESS_MORT_RANGE[1]
-    check_value_columns_boundary(
-        data,
-        boundary_value=max_val,
-        boundary_type="upper",
-        value_columns=DRAW_COLUMNS,
-        error=DataTransformationError,
-    )
+    for location in context["location"]:
+        if entity.name in BOUNDARY_SPECIAL_CASES["excess_mortality_rate"].get(location, {}):
+            max_val = BOUNDARY_SPECIAL_CASES["excess_mortality_rate"][context["location"]][
+                entity.name
+            ]
+        else:
+            max_val = VALID_EXCESS_MORT_RANGE[1]
+        check_value_columns_boundary(
+            data,
+            boundary_value=max_val,
+            boundary_type="upper",
+            value_columns=DRAW_COLUMNS,
+            error=DataTransformationError,
+        )
 
     check_age_restrictions(data, entity, rest_type="yll", fill_value=0.0, context=context)
     check_sex_restrictions(
@@ -1434,9 +1440,12 @@ def validate_location_column(
 
     """
     data_locations = data.index.unique("location")
-    if len(data_locations) != 1 or data_locations[0] != context["location"]:
+    if not set(data_locations) == (set(context["location"])):
+        # Locations requested for extraction not found in data
+        missing_locations_in_data = set(context["location"]).difference(data_locations)
         raise DataTransformationError(
-            "Location must contain a single value that matches specified location."
+            "Location(s) msut match between data and SimulationValidationContext. "
+            f"Locations not found in both include '{missing_locations_in_data}'. "
         )
 
 
