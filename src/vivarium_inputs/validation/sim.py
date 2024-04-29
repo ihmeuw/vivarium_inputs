@@ -1444,9 +1444,7 @@ def validate_location_column(
         # Locations requested for extraction not found in data
         missing_locations_in_data = set(context["location"]).difference(data_locations)
         if missing_locations_in_data:
-            missing_error_message = (
-                f"Locations not found in both include '{missing_locations_in_data}'. "
-            )
+            missing_error_message = f"Locations '{missing_locations_in_data}'. "
         # Locations found in data but not requested for extraction
         extra_locations_in_data = set(data_locations).difference(context["location"])
         if extra_locations_in_data:
@@ -1454,7 +1452,7 @@ def validate_location_column(
                 f"Extra locations found in data include '{extra_locations_in_data}'. "
             )
         raise DataTransformationError(
-            "Location(s) msut match between data and SimulationValidationContext. "
+            "Location(s) must match between data and SimulationValidationContext. "
             f"{missing_error_message} + {extra_error_message}"
         )
 
