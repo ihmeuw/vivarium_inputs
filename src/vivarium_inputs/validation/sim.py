@@ -1440,16 +1440,12 @@ def validate_location_column(
 
     """
     data_locations = data.index.unique("location")
-    equal_location_sets = set(data_locations) == (set(context["location"]))
-    if not equal_location_sets:
+    if not set(data_locations) == (set(context["location"])):
         # Locations requested for extraction not found in data
         missing_locations_in_data = set(context["location"]).difference(data_locations)
-        # Locations found in data but not requested for extraction
-        extra_locations_in_data = set(data_locations).difference(context["location"])
-        problem_locations = missing_locations_in_data.union(extra_locations_in_data)
         raise DataTransformationError(
             "Location(s) msut match between data and SimulationValidationContext. "
-            f"Locations not found in both include '{problem_locations}'. "
+            f"Locations not found in both include '{missing_locations_in_data}'. "
         )
 
 
