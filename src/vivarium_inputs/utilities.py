@@ -448,7 +448,7 @@ def get_restriction_age_boundary(
         restrictions exist. Otherwise, returns whichever restriction exists.
     """
     yld_age = entity.restrictions[f"yld_age_group_id_{boundary}"]
-    yll_age = entity.restrictions[f"yld_age_group_id_{boundary}"]
+    yll_age = entity.restrictions[f"yll_age_group_id_{boundary}"]
     if yld_age is None:
         age = yll_age
     elif yll_age is None:
