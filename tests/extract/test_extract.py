@@ -125,7 +125,6 @@ entity_r = [
         | MRFlag.RELATIVE_RISK
         | MRFlag.PAF
         | MRFlag.ETIOLOGY_PAF
-        | MRFlag.MEDIATION_FACTORS,
     ),
     (
         risk_factors.low_birth_weight_and_short_gestation,
@@ -140,7 +139,6 @@ measures_r = [
     # ("relative_risk", MRFlag.RELATIVE_RISK),
     ("population_attributable_fraction", MRFlag.PAF),
     ("etiology_population_attributable_fraction", MRFlag.ETIOLOGY_PAF),
-    ("mediation_factors", MRFlag.MEDIATION_FACTORS),
 ]
 locations_r = ["India"]
 
@@ -190,3 +188,10 @@ def test_extract_relative_risk(entity, location):
     measure_id = MRFlag.RELATIVE_RISK
     entity_name, entity_expected_measure_ids = entity
     df = extract.extract_data(entity_name, measure_name, location)
+
+
+entity_m = [risk_factors.high_fasting_plasma_glucose, risk_factors.smoking]
+@pytest.mark.parametrize("entity", entity_m, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("location", locations_r)
+def test_extract_mediation_factors(entity_name, location):
+    df = extract.extract_data(entity_name, "mediation_factors", location)
