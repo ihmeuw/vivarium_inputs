@@ -18,7 +18,7 @@ from vivarium_inputs.globals import (
     gbd,
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
-from vivarium_inputs.utilities import filter_to_most_detailed_causes
+from vivarium_inputs.utilities import filter_to_most_detailed_causes, process_kidney_dysfunction_exposure
 
 
 def extract_data(
@@ -221,6 +221,8 @@ def extract_exposure(
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
         data = gbd.get_exposure(entity.gbd_id, location_id, get_all_years=get_all_years)
+        if entity.gbd_id == 341:
+            process_kidney_dysfunction_exposure(data)
         allowable_measures = [
             MEASURES["Proportion"],
             MEASURES["Continuous"],
