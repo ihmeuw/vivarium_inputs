@@ -225,7 +225,7 @@ def extract_exposure(
     if entity.kind == "risk_factor":
         data = gbd.get_exposure(entity.gbd_id, location_id, get_all_years=get_all_years)
         if entity.gbd_id == 341:
-            process_kidney_dysfunction_exposure(data)
+            data = process_kidney_dysfunction_exposure(data)
         allowable_measures = [
             MEASURES["Proportion"],
             MEASURES["Continuous"],
