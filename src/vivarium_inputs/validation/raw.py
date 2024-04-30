@@ -1775,7 +1775,7 @@ def _get_valid_rr_and_age_groups(
     valid_rr = rr[(rr.cause_id == cause.gbd_id) & rr_measures[measure]]
 
     if entity.distribution in ["ensemble", "lognormal", "normal"]:
-        if entity.tmred.distribution == 'draws':
+        if entity.tmred.distribution == "draws":
             pass
         else:
             tmrel = (entity.tmred.max + entity.tmred.min) / 2

@@ -18,7 +18,10 @@ from vivarium_inputs.globals import (
     gbd,
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
-from vivarium_inputs.utilities import filter_to_most_detailed_causes, process_kidney_dysfunction_exposure
+from vivarium_inputs.utilities import (
+    filter_to_most_detailed_causes,
+    process_kidney_dysfunction_exposure,
+)
 
 
 def extract_data(
@@ -296,9 +299,9 @@ def extract_population_attributable_fraction(
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
     # clip PAFs between 0 and 1 (expected from GBD)
-    draw_cols = [col for col in data.columns if col.startswith('draw_')]
-    data.loc[:,draw_cols] = data[draw_cols].clip(lower=0)
-    data.loc[:,draw_cols] = data[draw_cols].clip(upper=1)
+    draw_cols = [col for col in data.columns if col.startswith("draw_")]
+    data.loc[:, draw_cols] = data[draw_cols].clip(lower=0)
+    data.loc[:, draw_cols] = data[draw_cols].clip(upper=1)
     return data
 
 
