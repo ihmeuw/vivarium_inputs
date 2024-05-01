@@ -288,10 +288,10 @@ def extract_relative_risk(
             "currently able to process data in this format."
         )
     data = filter_to_most_detailed_causes(data)
-    if entity.gbd_id == 136: # non-exclusive breastfeeding
-        data = data.loc[data['age_group_id'].isin(3, 388)]
-    elif entity.gbd_id == 137: # discontinued breastfeeding
-        data = data.loc[data['age_group_id'].isin(238, 389)]
+    if entity.gbd_id == 136:  # non-exclusive breastfeeding
+        data = data.loc[data["age_group_id"].isin([3, 388])]
+    elif entity.gbd_id == 137:  # discontinued breastfeeding
+        data = data.loc[data["age_group_id"].isin([238, 389])]
     return data
 
 
