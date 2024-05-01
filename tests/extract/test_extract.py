@@ -125,6 +125,7 @@ entity_r = [
         | MRFlag.RELATIVE_RISK
         | MRFlag.PAF
         | MRFlag.ETIOLOGY_PAF
+        | MRFlag.MEDIATION_FACTORS,
     ),
     (
         risk_factors.low_birth_weight_and_short_gestation,
@@ -139,6 +140,7 @@ measures_r = [
     # ("relative_risk", MRFlag.RELATIVE_RISK),
     ("population_attributable_fraction", MRFlag.PAF),
     ("etiology_population_attributable_fraction", MRFlag.ETIOLOGY_PAF),
+    ("mediation_factors", MRFlag.MEDIATION_FACTORS),
 ]
 locations_r = ["India"]
 
