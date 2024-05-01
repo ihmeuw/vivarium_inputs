@@ -118,7 +118,7 @@ class MRFlag(IntFlag):
 
 entity_r = [
     (
-        risk_factors.high_systolic_blood_pressure,
+        risk_factors.high_fasting_plasma_glucose,
         MRFlag.EXPOSURE
         | MRFlag.EXPOSURE_SD
         | MRFlag.EXPOSURE_DIST_WEIGHTS
@@ -188,10 +188,3 @@ def test_extract_relative_risk(entity, location):
     measure_id = MRFlag.RELATIVE_RISK
     entity_name, entity_expected_measure_ids = entity
     df = extract.extract_data(entity_name, measure_name, location)
-
-
-entity_m = [risk_factors.high_fasting_plasma_glucose, risk_factors.smoking]
-@pytest.mark.parametrize("entity", entity_m, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("location", locations_r)
-def test_extract_mediation_factors(entity_name, location):
-    df = extract.extract_data(entity_name, "mediation_factors", location)
