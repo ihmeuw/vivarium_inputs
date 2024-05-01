@@ -18,7 +18,10 @@ from vivarium_inputs.globals import (
     gbd,
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
-from vivarium_inputs.utilities import filter_to_most_detailed_causes
+from vivarium_inputs.utilities import (
+    filter_to_most_detailed_causes,
+    process_kidney_dysfunction_exposure,
+)
 
 
 def extract_data(
@@ -234,6 +237,8 @@ def extract_exposure(
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
         data = gbd.get_exposure(entity.gbd_id, location_id, get_all_years=get_all_years)
+        if entity.gbd_id == 341:
+            data = process_kidney_dysfunction_exposure(data)
         allowable_measures = [
             MEASURES["Proportion"],
             MEASURES["Continuous"],
@@ -296,6 +301,10 @@ def extract_relative_risk(
             "currently able to process data in this format."
         )
     data = filter_to_most_detailed_causes(data)
+    if entity.gbd_id == 136:  # non-exclusive breastfeeding
+        data = data.loc[data["age_group_id"].isin([3, 388])]
+    elif entity.gbd_id == 137:  # discontinued breastfeeding
+        data = data.loc[data["age_group_id"].isin([238, 389])]
     return data
 
 
@@ -306,6 +315,10 @@ def extract_population_attributable_fraction(
     data = data[data.metric_id == METRICS["Percent"]]
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
+    # clip PAFs between 0 and 1 (expected from GBD)
+    draw_cols = [col for col in data.columns if col.startswith("draw_")]
+    data.loc[:, draw_cols] = data[draw_cols].clip(lower=0)
+    data.loc[:, draw_cols] = data[draw_cols].clip(upper=1)
     return data
 
 

@@ -318,13 +318,6 @@ def get_age_group_ids_by_restriction(
             "The second argument of this function should be one of [yll, yld, inner, outer]."
         )
 
-    # TODO: remove after MIC-4519 is done
-    # replace GBD 2019 age group 4 (1 month-1 year) with GBD 2021 age group 388 (1-5 months)
-    # and GBD 2019 age group 5 (1 to 4 years) with GBD 2021 age group 34 (2 to 4 years)
-    start = 388 if start == 4 else start
-    end = 388 if end == 4 else end
-    end = 34 if end == 5 else end
-
     return start, end
 
 
@@ -416,13 +409,6 @@ def get_restriction_age_ids(
     """Get the start/end age group id and return the list of GBD age_group_ids
     in-between.
     """
-    # TODO: remove after MIC-4519 is done
-    # replace GBD 2019 age group 4 (1 month-1 year) with GBD 2021 age group 388 (1-5 months)
-    # and GBD 2019 age group 5 (1 to 4 years) with GBD 2021 age group 34 (2 to 4 years)
-    start_id = 388 if start_id == 4 else start_id
-    end_id = 388 if end_id == 4 else end_id
-    end_id = 34 if end_id == 5 else end_id
-
     if start_id is None or end_id is None:
         data = []
     else:
@@ -456,7 +442,7 @@ def get_restriction_age_boundary(
         restrictions exist. Otherwise, returns whichever restriction exists.
     """
     yld_age = entity.restrictions[f"yld_age_group_id_{boundary}"]
-    yll_age = entity.restrictions[f"yld_age_group_id_{boundary}"]
+    yll_age = entity.restrictions[f"yll_age_group_id_{boundary}"]
     if yld_age is None:
         age = yll_age
     elif yll_age is None:
@@ -516,4 +502,33 @@ def split_interval(data, interval_column, split_column_prefix):
                 f"{split_column_prefix}_start", level=interval_column
             ).set_levels(interval_starts, level=f"{split_column_prefix}_start")
             data = data.set_index(f"{split_column_prefix}_end", append=True)
+    return data
+
+
+def process_kidney_dysfunction_exposure(
+    data: pd.DataFrame,
+) -> pd.DataFrame:
+    """Process kidney dysfunction exposure (rei ID 341) given GBD data. GBD data gives two measures
+    and an inaccurate cat5 category. cat1, cat2, and cat3 are defined for measure 5 and cat4 for
+    measure 18, but we will say they are all from measure 5 (this only makes a difference in validation
+    and not within a simulation). There are cat5 values (the residual category) but they are calculated
+    separately for each measure and so are not accurate. We will drop these values and recalculate cat5."""
+    # drop cat5 data
+    data = data.loc[data["parameter"] != "cat5"]
+    # re-define remaining data as measure ID 5
+    data["measure_id"] = 5
+    # recalculate cat5
+    draw_cols = [col for col in data.columns if col.startswith("draw_")]
+    groupby_cols = [
+        col
+        for col in data.columns
+        if col not in draw_cols + ["parameter", "modelable_entity_id"]
+    ]
+    # calculate residual values with 1-(sum of other categories)
+    cat5_data = 1 - data.groupby(groupby_cols).sum()
+    cat5_data = cat5_data.reset_index()
+    cat5_data["parameter"] = "cat5"
+    cat5_data["modelable_entity_id"] = np.nan
+    cat5_data = cat5_data[data.columns]
+    data = pd.concat([data, cat5_data])
     return data
