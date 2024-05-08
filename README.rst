@@ -17,3 +17,7 @@ This package is used to transform Global Burden of Disease data and package it i
 used as inputs into vivarium simulations.
 
 It requires access to the IHME cluster for use (but not for testing).
+
+
+`Check out the docs! <https://vivarium.readthedocs.io/projects/vivarium-inputs/en/latest/>`_
+--------------------------------------------------------------------------------------------
