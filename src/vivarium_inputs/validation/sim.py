@@ -54,7 +54,7 @@ VALID_COST_RANGE = (0, {"healthcare_entity": 30_000, "health_technology": 50})
 VALID_UTILIZATION_RANGE = (0, 500)
 VALID_POPULATION_RANGE = (
     0,
-    345_000_000,
+    360_000_000_000,
 )  # Upper bound pulled from GBD global population largest sex-age bin.
 VALID_LIFE_EXP_RANGE = (0, 90)
 

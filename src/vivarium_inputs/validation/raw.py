@@ -50,7 +50,7 @@ MAX_CATEG_REL_RISK = 20
 MAX_CONT_REL_RISK = 10
 MAX_PAF = 1
 MIN_PAF = 0
-MAX_POP = 663_000_000  # Number pulled from GBD global population largest 5 year age bin.
+MAX_POP = 695_000_000  # Number pulled from GBD global population largest 5 year age bin.
 MIN_PROTECTIVE_PAF = -1
 MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
@@ -1778,8 +1778,8 @@ def _get_valid_rr_and_age_groups(
     valid_rr = rr[(rr.cause_id == cause.gbd_id) & rr_measures[measure]]
 
     if entity.distribution in ["ensemble", "lognormal", "normal"]:
-        # TODO: [MIC-5032] Possibly update after learning details of iron deficiency TMRED distribution
         if entity.tmred.distribution == "draws":
+            ## TODO: [MIC-5049] handle iron deficiency TMREL in VPH
             pass
         else:
             tmrel = (entity.tmred.max + entity.tmred.min) / 2
