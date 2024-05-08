@@ -1,9 +1,6 @@
 **5.0.0 - 05/08/24**
 
  - Pull GBD 2021 data
-
-**4.2.0 - 03/13/24**
-
  - Add functionality to pull multiple locationals at once
 
 **4.1.4 - 01/11/24**
