@@ -1779,8 +1779,7 @@ def _get_valid_rr_and_age_groups(
 
     if entity.distribution in ["ensemble", "lognormal", "normal"]:
         if entity.tmred.distribution == "draws":
-            # this only happens for iron deficiency, but exposures outside of
-            # TMREL threshold get converted to 1 by VPH so no need to restrict here
+            ## TODO: [MIC-5049] handle iron deficiency TMREL in VPH
             pass
         else:
             tmrel = (entity.tmred.max + entity.tmred.min) / 2
