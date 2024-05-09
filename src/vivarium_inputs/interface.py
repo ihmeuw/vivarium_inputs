@@ -14,6 +14,7 @@ def get_measure(
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
     get_all_years: bool = False,
+    year_id: int = None,
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
@@ -62,7 +63,7 @@ def get_measure(
         Dataframe standardized to the format expected by `vivarium` simulations.
 
     """
-    data = core.get_data(entity, measure, location, get_all_years)
+    data = core.get_data(entity, measure, location, get_all_years, year_id)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(data, entity, measure, location, get_all_years)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
