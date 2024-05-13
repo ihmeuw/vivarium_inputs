@@ -138,7 +138,7 @@ def extract_data(
 
     if validate:
         additional_data = {
-            name: extractor(entity, location_id, get_all_years=get_all_years)
+            name: extractor(entity, location_id, get_all_years=get_all_years, year_id=year_id)
             for name, extractor in additional_extractors.items()
         }
         if not get_all_years:
@@ -224,11 +224,10 @@ def extract_disability_weight(
         loc_data["location_id"] = loc_id
         data.append(loc_data)
     data = pd.concat(data)
-    if not get_all_years:
-        if year_id:
-            data["year_id"] = year_id
-        else:
-            data["year_id"] = gbd.get_most_recent_year()
+    if year_id:
+        data["year_id"] = year_id
+    else:
+        data["year_id"] = gbd.get_most_recent_year()
     return data
 
 

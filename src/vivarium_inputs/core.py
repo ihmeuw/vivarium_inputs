@@ -186,6 +186,8 @@ def get_disability_weight(
         data = utility_data.get_demographic_dimensions(
             location_id, get_all_years, draws=True, value=0.0
         )
+        if year_id:
+            data['year_id'] = year_id
         data = data.set_index(
             utilities.get_ordered_index_cols(data.columns.difference(DRAW_COLUMNS))
         )
@@ -193,13 +195,13 @@ def get_disability_weight(
             for sequela in entity.sequelae:
                 try:
                     prevalence = get_data(
-                        sequela, "prevalence", location_id, get_all_years=get_all_years
+                        sequela, "prevalence", location_id, get_all_years=get_all_years, year_id=year_id
                     )
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
                     continue
                 disability = get_data(
-                    sequela, "disability_weight", location_id, get_all_years=get_all_years
+                    sequela, "disability_weight", location_id, get_all_years=get_all_years, year_id=year_id
                 )
                 data += prevalence * disability
         cause_prevalence = get_data(
@@ -390,8 +392,11 @@ def get_exposure_distribution_weights(
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     if not get_all_years:
-        most_recent_year = gbd.get_most_recent_year()
-        data = data.query("year_id==@most_recent_year")
+        if year_id:
+            data = data.query("year_id==@year_id")
+        else:
+            most_recent_year = gbd.get_most_recent_year()
+            data = data.query("year_id==@most_recent_year")
     data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
     return data

@@ -84,6 +84,7 @@ def validate_for_simulation(
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
     check_all_years: bool = False,
+    year_id: int = None,
     **context_args,
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation
@@ -158,10 +159,13 @@ def validate_for_simulation(
         raise NotImplementedError()
 
     if not check_all_years:
-        most_recent_year = gbd.get_most_recent_year()
-        context_args["years"] = pd.DataFrame(
-            {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
-        )
+        if year_id:
+            context_args["years"] = pd.DataFrame({"year_start": year_id, "year_end": year_id + 1}, index=[0])
+        else:
+            most_recent_year = gbd.get_most_recent_year()
+            context_args["years"] = pd.DataFrame(
+                {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
+            )
 
     # Coerce to location names
     if not isinstance(location, list):
