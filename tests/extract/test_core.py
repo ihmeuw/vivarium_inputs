@@ -110,15 +110,16 @@ def test_core_causelike(entity, measure, location):
 def test_core_years_causelike(entity, measure, location, year_id):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
-    if (entity_expected_measure_ids & measure_id & year_id!=1900):
-        df = core.get_data(entity_name, measure_name, location, year_id=year_id)
-        if year_id == None:
-            assert set(df['year_id']) == set(utility_data.get_estimation_years())
-        elif year_id == 2019:
-            assert set(df['year_id']) == set([2019])
-    elif year_id == 1900:
-        with pytest.raises(Exception):
+    if (entity_expected_measure_ids & measure_id):
+        if year_id != 1900:
             df = core.get_data(entity_name, measure_name, location, year_id=year_id)
+            if year_id == None:
+                assert set(df.reset_index()['year_id']) == set([2021])
+            elif year_id == 2019:
+                assert set(df.reset_index()['year_id']) == set([2019])
+        else:
+            with pytest.raises(ValueError):
+                df = core.get_data(entity_name, measure_name, location, year_id=year_id)
 
 
 class MRFlag(IntFlag):
@@ -177,21 +178,22 @@ def test_core_risklike(entity, measure, location):
 
 
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
-@pytest.mark.parametrize("location", locations)
+@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", locations_r)
 @pytest.mark.parametrize("year_id", [None, 2019, 1900])
 def test_core_years_risklike(entity, measure, location, year_id):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
-    if (entity_expected_measure_ids & measure_id & year_id!=1900):
-        df = core.get_data(entity_name, measure_name, location, year_id=year_id)
-        if year_id == None:
-            assert set(df['year_id']) == set(utility_data.get_estimation_years())
-        elif year_id == 2019:
-            assert set(df['year_id']) == set([2019])
-    elif year_id == 1900:
-        with pytest.raises(Exception):
+    if (entity_expected_measure_ids & measure_id):
+        if year_id != 1900:
             df = core.get_data(entity_name, measure_name, location, year_id=year_id)
+            if year_id == None:
+                assert set(df['year_id']) == set(utility_data.get_estimation_years())
+            elif year_id == 2019:
+                assert set(df['year_id']) == set([2019])
+        else:
+            with pytest.raises(Exception):
+                df = core.get_data(entity_name, measure_name, location, year_id=year_id)
 
 
 entity_cov = [
