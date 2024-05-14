@@ -147,7 +147,7 @@ def get_age_bins() -> pd.DataFrame:
 
 
 def get_demographic_dimensions(
-    location: Union[int, str, List[Union[int, str]]], get_all_years: bool = False
+    location: Union[int, str, List[Union[int, str]]], get_all_years: bool = False, year_id: int = None
 ) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
@@ -168,10 +168,10 @@ def get_demographic_dimensions(
 
     """
     pop = Population()
-    data = core.get_data(pop, "demographic_dimensions", location, get_all_years)
+    data = core.get_data(pop, "demographic_dimensions", location, get_all_years=get_all_years, year_id=year_id)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(
-        data, pop, "demographic_dimensions", location, get_all_years
+        data, pop, "demographic_dimensions", location, get_all_years, year_id
     )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")

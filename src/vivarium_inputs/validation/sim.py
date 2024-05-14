@@ -1324,6 +1324,7 @@ def validate_demographic_dimensions(
         values.
 
     """
+    import pdb; pdb.set_trace()
     validate_demographic_columns(data, context)
 
 
@@ -1537,7 +1538,7 @@ def validate_year_column(data: pd.DataFrame, context: SimulationValidationContex
 
     if not sorted(data_years) == sorted(expected_years):
         raise DataTransformationError(
-            "Year_start and year_end must cover [1990, 2021] in intervals of one year or only be most recent year."
+            f"Data was expected to contain years {expected_years.values}. The data provided contains years {data_years.values}."
         )
 
 

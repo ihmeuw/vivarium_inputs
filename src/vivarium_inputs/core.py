@@ -621,8 +621,9 @@ def get_demographic_dimensions(
     entity: Population, location_id: List[int], get_all_years: bool = False, year_id: int = None,
 ) -> pd.DataFrame:
     demographic_dimensions = utility_data.get_demographic_dimensions(
-        location_id, get_all_years
+        location_id, get_all_years, year_id=year_id
     )
+    #import pdb; pdb.set_trace()
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
 
