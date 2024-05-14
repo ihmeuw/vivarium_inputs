@@ -381,10 +381,11 @@ To use:
                     'measure': str, 
                     'location': Union[int, str, List[Union[int, str]]],
                     'get_all_years': bool,
+                    'year_id': int,
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
-                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool},
+                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool, 'year_id': int},
                  'return': pd.DataFrame, },
              get_theoretical_minimum_risk_life_expectancy: {
                  'parameters': {},
@@ -393,7 +394,7 @@ To use:
                  'parameters': {},
                  'return': pd.DataFrame, },
              get_demographic_dimensions: {
-                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool},
+                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool, 'year_id': int},
                  'return': pd.DataFrame, },
              get_raw_data: {
                  'parameters': {
@@ -401,6 +402,7 @@ To use:
                     'measure': str,
                     'location': Union[int, str, List[Union[int, str]]],
                     'get_all_years': bool,
+                    'year_id': int,
                         },
                 'return': Union[pd.DataFrame, pd.Series], },
              }
