@@ -88,17 +88,6 @@ def test_extract_causelike(entity, measure, location):
     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 
-# @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
-# @pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
-# @pytest.mark.parametrize("location", locations)
-# @pytest.mark.parametrize("year_id", [None, 2019, 1900])
-# def test_extract_years_causelike(entity, measure, location):
-#     entity_name, entity_expected_measure_ids = entity
-#     measure_name, measure_id = measure
-#     if (entity_expected_measure_ids & measure_id):
-#     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
-
-
 class MRFlag(IntFlag):
     """
     Use the idea of a bit field with support from python's enum type IntFlag
