@@ -629,6 +629,9 @@ def get_demographic_dimensions(
 
 
 def check_year_arguments(get_all_years: bool, year_id: int) -> None:
-    # check that get_all_years and year_id are compatible
-    # check that year_id is in estimation years
-    pass
+    if year_id:
+        allowed_years = utility_data.get_estimation_years()
+        if get_all_years: # if we have a year ID and get_all_years is True
+            raise ValueError("You cannot provide a year ID and set get_all_years to True in your get_data call.")
+        if not year_id in allowed_years:
+            raise ValueError(f"year_id must be one of {allowed_years}. You provided {year_id}.")

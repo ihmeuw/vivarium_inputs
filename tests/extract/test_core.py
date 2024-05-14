@@ -103,6 +103,24 @@ def test_core_causelike(entity, measure, location):
     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 
+@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", locations)
+@pytest.mark.parametrize("year_id", [None, 2019, 1900])
+def test_core_years_causelike(entity, measure, location, year_id):
+    entity_name, entity_expected_measure_ids = entity
+    measure_name, measure_id = measure
+    if (entity_expected_measure_ids & measure_id & year_id!=1900):
+        df = core.get_data(entity_name, measure_name, location, year_id=year_id)
+        if year_id == None:
+            assert set(df['year_id']) == set(utility_data.get_estimation_years())
+        elif year_id == 2019:
+            assert set(df['year_id']) == set([2019])
+    elif year_id == 1900:
+        with pytest.raises(Exception):
+            df = core.get_data(entity_name, measure_name, location, year_id=year_id)
+
+
 class MRFlag(IntFlag):
     """
     Use the idea of a bit field with support from python's enum type IntFlag
@@ -158,6 +176,24 @@ def test_core_risklike(entity, measure, location):
     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 
+@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", locations)
+@pytest.mark.parametrize("year_id", [None, 2019, 1900])
+def test_core_years_risklike(entity, measure, location, year_id):
+    entity_name, entity_expected_measure_ids = entity
+    measure_name, measure_id = measure
+    if (entity_expected_measure_ids & measure_id & year_id!=1900):
+        df = core.get_data(entity_name, measure_name, location, year_id=year_id)
+        if year_id == None:
+            assert set(df['year_id']) == set(utility_data.get_estimation_years())
+        elif year_id == 2019:
+            assert set(df['year_id']) == set([2019])
+    elif year_id == 1900:
+        with pytest.raises(Exception):
+            df = core.get_data(entity_name, measure_name, location, year_id=year_id)
+
+
 entity_cov = [
     covariates.systolic_blood_pressure_mmhg,
 ]
@@ -172,6 +208,20 @@ def test_core_covariatelike(entity, measure, location):
     df = core.get_data(entity, measure, utility_data.get_location_id(location))
 
 
+@pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
+@pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
+@pytest.mark.parametrize("location", locations_cov)
+def test_core_years_covariatelike(entity, measure, location, year_id):
+    df = core.get_data(entity, measure, location, year_id=year_id)
+    if year_id == None:
+        assert set(df['year_id']) == set(utility_data.get_estimation_years())
+    elif year_id == 2019:
+        assert set(df['year_id']) == set([2019])
+    elif year_id == 1900:
+        with pytest.raises(Exception):
+            df = core.get_data(entity, measure, location, year_id=year_id)
+
+
 @pytest.mark.parametrize(
     "measures",
     [
@@ -184,6 +234,20 @@ def test_core_covariatelike(entity, measure, location):
 def test_core_population(measures):
     pop = ModelableEntity("ignored", "population", None)
     df = core.get_data(pop, measures, utility_data.get_location_id("India"))
+
+
+@pytest.mark.parametrize("measures", ["structure", "demographic_dimensions"])
+@pytest.mark.parametrize("year_id", [None, 2019, 1900])
+def test_core_years_population(measures, year_id):
+    pop = ModelableEntity("ignored", "population", None)
+    df = core.get_data(pop, measures, utility_data.get_location_id("India"), year_id=year_id)
+    if year_id == None:
+        assert set(df['year_id']) == set(utility_data.get_estimation_years())
+    elif year_id == 2019:
+        assert set(df['year_id']) == set([2019])
+    elif year_id == 1900:
+        with pytest.raises(Exception):
+            df = core.get_data(pop, measures, utility_data.get_location_id("India"), year_id=year_id)
 
 
 # TODO - Underlying problem with gbd access. Remove when corrected.
@@ -228,3 +292,13 @@ def test_pulling_multiple_locations(entity, measure, locations):
     measure_name, measure_id = measure
     tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
     df = tester(entity_name, measure_name, locations)
+
+
+@pytest.mark.parametrize("year_id", [2019, 1900])
+def test_year_args_checks(year_id):
+    if year_id == 2019:
+        with pytest.raises(Exception, match='cannot provide a year ID and set get_all_years to True'):
+            df = core.get_data(entity_name, measure_name, location, get_all_years, year_id)
+    if year_id == 1900:
+        with pytest.raises(Exception, match='year_id must be one of'):
+            df = core.get_data(entity_name, measure_name, location, year_id=year_id)
