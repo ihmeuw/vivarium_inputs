@@ -118,7 +118,7 @@ def test_core_years_causelike(entity, measure, location, year_id):
             elif year_id == 2019:
                 assert set(df.reset_index()['year_id']) == set([2019])
         else:
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match='expected to contain years'):
                 df = core.get_data(entity_name, measure_name, location, year_id=year_id)
 
 
@@ -188,11 +188,11 @@ def test_core_years_risklike(entity, measure, location, year_id):
         if year_id != 1900:
             df = core.get_data(entity_name, measure_name, location, year_id=year_id)
             if year_id == None:
-                assert set(df['year_id']) == set(utility_data.get_estimation_years())
+                assert set(df.reset_index()['year_id']) == set([2021])
             elif year_id == 2019:
-                assert set(df['year_id']) == set([2019])
+                assert set(df.reset_index()['year_id']) == set([2019])
         else:
-            with pytest.raises(Exception):
+            with pytest.raises(ValueError, match='expected to contain years'):
                 df = core.get_data(entity_name, measure_name, location, year_id=year_id)
 
 
@@ -216,11 +216,11 @@ def test_core_covariatelike(entity, measure, location):
 def test_core_years_covariatelike(entity, measure, location, year_id):
     df = core.get_data(entity, measure, location, year_id=year_id)
     if year_id == None:
-        assert set(df['year_id']) == set(utility_data.get_estimation_years())
+        assert set(df.reset_index()['year_id']) == set([2021])
     elif year_id == 2019:
-        assert set(df['year_id']) == set([2019])
+        assert set(df.reset_index()['year_id']) == set([2019])
     elif year_id == 1900:
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError, match='expected to contain years'):
             df = core.get_data(entity, measure, location, year_id=year_id)
 
 
@@ -244,11 +244,11 @@ def test_core_years_population(measures, year_id):
     pop = ModelableEntity("ignored", "population", None)
     df = core.get_data(pop, measures, utility_data.get_location_id("India"), year_id=year_id)
     if year_id == None:
-        assert set(df['year_id']) == set(utility_data.get_estimation_years())
+        assert set(df.reset_index()['year_id']) == set([2021])
     elif year_id == 2019:
-        assert set(df['year_id']) == set([2019])
+        assert set(df.reset_index()['year_id']) == set([2019])
     elif year_id == 1900:
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError, match='expected to contain years'):
             df = core.get_data(pop, measures, utility_data.get_location_id("India"), year_id=year_id)
 
 
@@ -300,7 +300,7 @@ def test_pulling_multiple_locations(entity, measure, locations):
 def test_year_args_checks(year_id):
     if year_id == 2019:
         with pytest.raises(Exception, match='cannot provide a year ID and set get_all_years to True'):
-            df = core.get_data(entity_name, measure_name, location, get_all_years, year_id)
+            df = core.get_data('measles', 'incidence_rate', 'India', get_all_years=True, year_id=year_id)
     if year_id == 1900:
         with pytest.raises(Exception, match='year_id must be one of'):
-            df = core.get_data(entity_name, measure_name, location, year_id=year_id)
+            df = core.get_data('measles', 'incidence_rate', 'India', year_id=year_id)
