@@ -56,6 +56,10 @@ def get_measure(
     get_all_years
         Flag indicating whether to get all years. Otherwise, get most recent year.
         Defaults to False.
+    year_id
+        Year for which to extract data. If None, get most recent year if get_all_years
+        is False or all years if get_all_years is True. Cannot be defined if get_all_years
+        is True.
 
     Returns
     -------
@@ -90,6 +94,10 @@ def get_population_structure(
     get_all_years
         Flag indicating whether to get all years. Otherwise, get most recent year.
         Defaults to False.
+    year_id
+        Year for which to extract data. If None, get most recent year if get_all_years
+        is False or all years if get_all_years is True. Cannot be defined if get_all_years
+        is True.
 
     Returns
     -------
@@ -168,6 +176,10 @@ def get_demographic_dimensions(
     get_all_years
         Flag indicating whether to get all years. Otherwise, get most recent year.
         Defaults to False.
+    year_id
+        Year for which to extract data. If None, get most recent year if get_all_years
+        is False or all years if get_all_years is True. Cannot be defined if get_all_years
+        is True.
 
     Returns
     -------
@@ -236,6 +248,10 @@ def get_raw_data(
     get_all_years
         Flag indicating whether to get all years. Otherwise, get most recent year.
         Defaults to False.
+    year_id
+        Year for which to extract data. If None, get most recent year if get_all_years
+        is False or all years if get_all_years is True. Cannot be defined if get_all_years
+        is True.
 
     Returns
     -------
