@@ -124,15 +124,6 @@ def test_year_id_causelike(entity, measure, location, year_id):
     measure_name, measure_id = measure
     if entity_expected_measure_ids & measure_id:
         check_year_in_data(entity_name, measure_name, location, year_id=year_id)
-        # if year_id != 1900:
-        #     df = core.get_data(entity_name, measure_name, location, year_id=year_id)
-        #     if year_id == None:
-        #         assert set(df.reset_index()["year_id"]) == set([2021])
-        #     elif year_id == 2019:
-        #         assert set(df.reset_index()["year_id"]) == set([2019])
-        # else:
-        #     with pytest.raises(ValueError, match="year_id must be one of"):
-        #         df = core.get_data(entity_name, measure_name, location, year_id=year_id)
 
 
 class MRFlag(IntFlag):
@@ -199,15 +190,6 @@ def test_year_id_risklike(entity, measure, location, year_id):
     measure_name, measure_id = measure
     if entity_expected_measure_ids & measure_id:
         check_year_in_data(entity_name, measure_name, location, year_id=year_id)
-        # if year_id != 1900:
-        #     df = core.get_data(entity_name, measure_name, location, year_id=year_id)
-        #     if year_id == None:
-        #         assert set(df.reset_index()["year_id"]) == set([2021])
-        #     elif year_id == 2019:
-        #         assert set(df.reset_index()["year_id"]) == set([2019])
-        # else:
-        #     with pytest.raises(ValueError, match="year_id must be one of"):
-        #         df = core.get_data(entity_name, measure_name, location, year_id=year_id)
 
 
 entity_cov = [
@@ -230,15 +212,6 @@ def test_core_covariatelike(entity, measure, location):
 @pytest.mark.parametrize("year_id", [None, 2019, 1900])
 def test_year_id_covariatelike(entity, measure, location, year_id):
     check_year_in_data(entity, measure, location, year_id=year_id)
-    # if year_id == None:
-    #     df = core.get_data(entity, measure, location, year_id=year_id)
-    #     assert set(df.reset_index()["year_id"]) == set([2021])
-    # elif year_id == 2019:
-    #     df = core.get_data(entity, measure, location, year_id=year_id)
-    #     assert set(df.reset_index()["year_id"]) == set([2019])
-    # else:
-    #     with pytest.raises(ValueError, match="year_id must be one of"):
-    #         df = core.get_data(entity, measure, location, year_id=year_id)
 
 
 @pytest.mark.parametrize(
@@ -261,21 +234,6 @@ def test_year_id_population(measure, year_id):
     pop = ModelableEntity("ignored", "population", None)
     location = utility_data.get_location_id("India")
     check_year_in_data(pop, measure, location, year_id=year_id)
-    # if year_id == None:
-    #     df = core.get_data(
-    #         pop, measures, utility_data.get_location_id("India"), year_id=year_id
-    #     )
-    #     assert set(df.reset_index()["year_id"]) == set([2021])
-    # elif year_id == 2019:
-    #     df = core.get_data(
-    #         pop, measures, utility_data.get_location_id("India"), year_id=year_id
-    #     )
-    #     assert set(df.reset_index()["year_id"]) == set([2019])
-    # elif year_id == 1900:
-    #     with pytest.raises(ValueError, match="year_id must be one of"):
-    #         df = core.get_data(
-    #             pop, measures, utility_data.get_location_id("India"), year_id=year_id
-    #         )
 
 
 # TODO - Underlying problem with gbd access. Remove when corrected.
