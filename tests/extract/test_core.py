@@ -26,15 +26,15 @@ def fail_expected(entity_name, measure_name, location):
 
 
 def check_year_in_data(entity, measure, location, year_id):
-     if year_id != 1900:
-         df = core.get_data(entity, measure, location, year_id=year_id)
-         if year_id == None:
-             assert set(df.reset_index()["year_id"]) == set([2021])
-         elif year_id == 2019:
-             assert set(df.reset_index()["year_id"]) == set([2019])
-     else:
-         with pytest.raises(ValueError, match="year_id must be one of"):
-             df = core.get_data(entity, measure, location, year_id=year_id)
+    if year_id != 1900:
+        df = core.get_data(entity, measure, location, year_id=year_id)
+        if year_id == None:
+            assert set(df.reset_index()["year_id"]) == set([2021])
+        elif year_id == 2019:
+            assert set(df.reset_index()["year_id"]) == set([2019])
+    else:
+        with pytest.raises(ValueError, match="year_id must be one of"):
+            df = core.get_data(entity, measure, location, year_id=year_id)
 
 
 class MCFlag(IntFlag):
