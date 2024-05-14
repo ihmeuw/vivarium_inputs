@@ -265,6 +265,11 @@ def get_raw_data(
         utility_data.get_location_id(loc) if isinstance(loc, str) else loc for loc in location
     ]
     data = extract.extract_data(
-        entity, measure, location_id, validate=False, get_all_years=get_all_years, year_id=year_id
+        entity,
+        measure,
+        location_id,
+        validate=False,
+        get_all_years=get_all_years,
+        year_id=year_id,
     )
     return data

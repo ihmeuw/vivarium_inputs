@@ -1326,9 +1326,6 @@ def validate_demographic_dimensions(
         values.
 
     """
-    import pdb
-
-    pdb.set_trace()
     validate_demographic_columns(data, context)
 
 
