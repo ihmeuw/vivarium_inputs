@@ -1542,7 +1542,7 @@ def validate_year_column(data: pd.DataFrame, context: SimulationValidationContex
 
     if not sorted(data_years) == sorted(expected_years):
         raise DataTransformationError(
-            f"Data was expected to contain years {expected_years.values}. The data provided contains years {data_years.values}."
+            f"Data was expected to contain years {expected_years.values}. The data provided contains years {data_years}."
         )
 
 
