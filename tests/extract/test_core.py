@@ -107,7 +107,7 @@ def test_core_causelike(entity, measure, location):
 @pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations)
 @pytest.mark.parametrize("year_id", [None, 2019, 1900])
-def test_core_years_causelike(entity, measure, location, year_id):
+def test_year_id_causelike(entity, measure, location, year_id):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
     if (entity_expected_measure_ids & measure_id):
@@ -181,7 +181,7 @@ def test_core_risklike(entity, measure, location):
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
 @pytest.mark.parametrize("year_id", [None, 2019, 1900])
-def test_core_years_risklike(entity, measure, location, year_id):
+def test_year_id_risklike(entity, measure, location, year_id):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
     if (entity_expected_measure_ids & measure_id):
@@ -214,7 +214,7 @@ def test_core_covariatelike(entity, measure, location):
 @pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
 @pytest.mark.parametrize("location", locations_cov)
 @pytest.mark.parametrize("year_id", [None, 2019, 1900])
-def test_core_years_covariatelike(entity, measure, location, year_id):
+def test_year_id_covariatelike(entity, measure, location, year_id):
     if year_id == None:
         df = core.get_data(entity, measure, location, year_id=year_id)
         assert set(df.reset_index()['year_id']) == set([2021])
@@ -242,7 +242,7 @@ def test_core_population(measures):
 
 @pytest.mark.parametrize("measures", ["structure", "demographic_dimensions"])
 @pytest.mark.parametrize("year_id", [None, 2019, 1900])
-def test_core_years_population(measures, year_id):
+def test_year_id_population(measures, year_id):
     pop = ModelableEntity("ignored", "population", None)
     if year_id == None:
         df = core.get_data(pop, measures, utility_data.get_location_id("India"), year_id=year_id)
