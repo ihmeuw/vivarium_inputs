@@ -65,14 +65,18 @@ def get_measure(
     """
     data = core.get_data(entity, measure, location, get_all_years, year_id)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, entity, measure, location, get_all_years, year_id)
+    validation.validate_for_simulation(
+        data, entity, measure, location, get_all_years, year_id
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
 
 
 def get_population_structure(
-    location: Union[int, str, List[Union[int, str]]], get_all_years: bool = False, year_id: int = None
+    location: Union[int, str, List[Union[int, str]]],
+    get_all_years: bool = False,
+    year_id: int = None,
 ) -> pd.DataFrame:
     """Pull GBD population data for the given location and standardize to the
     expected simulation input format, including scrubbing all GBD conventions
@@ -97,7 +101,9 @@ def get_population_structure(
     pop = Population()
     data = core.get_data(pop, "structure", location, get_all_years, year_id)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, pop, "structure", location, get_all_years, year_id)
+    validation.validate_for_simulation(
+        data, pop, "structure", location, get_all_years, year_id
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -147,7 +153,9 @@ def get_age_bins() -> pd.DataFrame:
 
 
 def get_demographic_dimensions(
-    location: Union[int, str, List[Union[int, str]]], get_all_years: bool = False, year_id: int = None
+    location: Union[int, str, List[Union[int, str]]],
+    get_all_years: bool = False,
+    year_id: int = None,
 ) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
@@ -168,7 +176,9 @@ def get_demographic_dimensions(
 
     """
     pop = Population()
-    data = core.get_data(pop, "demographic_dimensions", location, get_all_years=get_all_years, year_id=year_id)
+    data = core.get_data(
+        pop, "demographic_dimensions", location, get_all_years=get_all_years, year_id=year_id
+    )
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(
         data, pop, "demographic_dimensions", location, get_all_years, year_id

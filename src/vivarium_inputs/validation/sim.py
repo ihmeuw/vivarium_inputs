@@ -160,7 +160,9 @@ def validate_for_simulation(
 
     if not check_all_years:
         if year_id:
-            context_args["years"] = pd.DataFrame({"year_start": year_id, "year_end": year_id + 1}, index=[0])
+            context_args["years"] = pd.DataFrame(
+                {"year_start": year_id, "year_end": year_id + 1}, index=[0]
+            )
         else:
             most_recent_year = gbd.get_most_recent_year()
             context_args["years"] = pd.DataFrame(
@@ -1324,7 +1326,9 @@ def validate_demographic_dimensions(
         values.
 
     """
-    import pdb; pdb.set_trace()
+    import pdb
+
+    pdb.set_trace()
     validate_demographic_columns(data, context)
 
 

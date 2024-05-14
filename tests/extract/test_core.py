@@ -110,15 +110,15 @@ def test_core_causelike(entity, measure, location):
 def test_year_id_causelike(entity, measure, location, year_id):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
-    if (entity_expected_measure_ids & measure_id):
+    if entity_expected_measure_ids & measure_id:
         if year_id != 1900:
             df = core.get_data(entity_name, measure_name, location, year_id=year_id)
             if year_id == None:
-                assert set(df.reset_index()['year_id']) == set([2021])
+                assert set(df.reset_index()["year_id"]) == set([2021])
             elif year_id == 2019:
-                assert set(df.reset_index()['year_id']) == set([2019])
+                assert set(df.reset_index()["year_id"]) == set([2019])
         else:
-            with pytest.raises(ValueError, match='year_id must be one of'):
+            with pytest.raises(ValueError, match="year_id must be one of"):
                 df = core.get_data(entity_name, measure_name, location, year_id=year_id)
 
 
@@ -184,15 +184,15 @@ def test_core_risklike(entity, measure, location):
 def test_year_id_risklike(entity, measure, location, year_id):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
-    if (entity_expected_measure_ids & measure_id):
+    if entity_expected_measure_ids & measure_id:
         if year_id != 1900:
             df = core.get_data(entity_name, measure_name, location, year_id=year_id)
             if year_id == None:
-                assert set(df.reset_index()['year_id']) == set([2021])
+                assert set(df.reset_index()["year_id"]) == set([2021])
             elif year_id == 2019:
-                assert set(df.reset_index()['year_id']) == set([2019])
+                assert set(df.reset_index()["year_id"]) == set([2019])
         else:
-            with pytest.raises(ValueError, match='year_id must be one of'):
+            with pytest.raises(ValueError, match="year_id must be one of"):
                 df = core.get_data(entity_name, measure_name, location, year_id=year_id)
 
 
@@ -217,12 +217,12 @@ def test_core_covariatelike(entity, measure, location):
 def test_year_id_covariatelike(entity, measure, location, year_id):
     if year_id == None:
         df = core.get_data(entity, measure, location, year_id=year_id)
-        assert set(df.reset_index()['year_id']) == set([2021])
+        assert set(df.reset_index()["year_id"]) == set([2021])
     elif year_id == 2019:
         df = core.get_data(entity, measure, location, year_id=year_id)
-        assert set(df.reset_index()['year_id']) == set([2019])
+        assert set(df.reset_index()["year_id"]) == set([2019])
     else:
-        with pytest.raises(ValueError, match='year_id must be one of'):
+        with pytest.raises(ValueError, match="year_id must be one of"):
             df = core.get_data(entity, measure, location, year_id=year_id)
 
 
@@ -245,14 +245,20 @@ def test_core_population(measures):
 def test_year_id_population(measures, year_id):
     pop = ModelableEntity("ignored", "population", None)
     if year_id == None:
-        df = core.get_data(pop, measures, utility_data.get_location_id("India"), year_id=year_id)
-        assert set(df.reset_index()['year_id']) == set([2021])
+        df = core.get_data(
+            pop, measures, utility_data.get_location_id("India"), year_id=year_id
+        )
+        assert set(df.reset_index()["year_id"]) == set([2021])
     elif year_id == 2019:
-        df = core.get_data(pop, measures, utility_data.get_location_id("India"), year_id=year_id)
-        assert set(df.reset_index()['year_id']) == set([2019])
+        df = core.get_data(
+            pop, measures, utility_data.get_location_id("India"), year_id=year_id
+        )
+        assert set(df.reset_index()["year_id"]) == set([2019])
     elif year_id == 1900:
-        with pytest.raises(ValueError, match='year_id must be one of'):
-            df = core.get_data(pop, measures, utility_data.get_location_id("India"), year_id=year_id)
+        with pytest.raises(ValueError, match="year_id must be one of"):
+            df = core.get_data(
+                pop, measures, utility_data.get_location_id("India"), year_id=year_id
+            )
 
 
 # TODO - Underlying problem with gbd access. Remove when corrected.
@@ -300,5 +306,9 @@ def test_pulling_multiple_locations(entity, measure, locations):
 
 
 def test_year_args_compatibility():
-    with pytest.raises(Exception, match='cannot provide a year ID and set get_all_years to True'):
-        df = core.get_data(causes.measles, 'incidence_rate', 'India', get_all_years=True, year_id=2021)
+    with pytest.raises(
+        Exception, match="cannot provide a year ID and set get_all_years to True"
+    ):
+        df = core.get_data(
+            causes.measles, "incidence_rate", "India", get_all_years=True, year_id=2021
+        )

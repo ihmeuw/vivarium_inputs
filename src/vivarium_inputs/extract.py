@@ -152,7 +152,10 @@ def extract_data(
 
 
 def extract_prevalence(
-    entity: Union[Cause, Sequela], location_id: List[int], get_all_years: bool = False, year_id: int = None
+    entity: Union[Cause, Sequela],
+    location_id: List[int],
+    get_all_years: bool = False,
+    year_id: int = None,
 ) -> pd.DataFrame:
     data = gbd.get_incidence_prevalence(
         entity_id=entity.gbd_id,
@@ -166,7 +169,10 @@ def extract_prevalence(
 
 
 def extract_incidence_rate(
-    entity: Union[Cause, Sequela], location_id: List[int], get_all_years: bool = False, year_id: int = None
+    entity: Union[Cause, Sequela],
+    location_id: List[int],
+    get_all_years: bool = False,
+    year_id: int = None,
 ) -> pd.DataFrame:
     data = gbd.get_incidence_prevalence(
         entity_id=entity.gbd_id,
@@ -180,7 +186,10 @@ def extract_incidence_rate(
 
 
 def extract_birth_prevalence(
-    entity: Union[Cause, Sequela], location_id: List[int], get_all_years: bool = False, year_id: int = None
+    entity: Union[Cause, Sequela],
+    location_id: List[int],
+    get_all_years: bool = False,
+    year_id: int = None,
 ) -> pd.DataFrame:
     data = gbd.get_birth_prevalence(
         entity_id=entity.gbd_id,
@@ -234,7 +243,9 @@ def extract_disability_weight(
 def extract_deaths(
     entity: Cause, location_id: List[int], get_all_years: bool = False, year_id: int = None
 ) -> pd.DataFrame:
-    data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id)
+    data = gbd.get_codcorrect_draws(
+        entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id
+    )
     data = data[data.measure_id == MEASURES["Deaths"]]
     return data
 
@@ -246,7 +257,9 @@ def extract_exposure(
     year_id: int = None,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
-        data = gbd.get_exposure(entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id)
+        data = gbd.get_exposure(
+            entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id
+        )
         if entity.gbd_id == 341:
             data = process_kidney_dysfunction_exposure(data)
         allowable_measures = [
@@ -305,7 +318,9 @@ def extract_exposure_distribution_weights(
 def extract_relative_risk(
     entity: RiskFactor, location_id: int, get_all_years: bool = False, year_id: int = None
 ) -> pd.DataFrame:
-    data = gbd.get_relative_risk(entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id)
+    data = gbd.get_relative_risk(
+        entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id
+    )
     # TODO: [MIC-4891] Process new relative risk data format properly
     if not data["exposure"].isna().all():
         raise DataAbnormalError(
@@ -321,9 +336,14 @@ def extract_relative_risk(
 
 
 def extract_population_attributable_fraction(
-    entity: Union[RiskFactor, Etiology], location_id: int, get_all_years: bool = False, year_id: int = None
+    entity: Union[RiskFactor, Etiology],
+    location_id: int,
+    get_all_years: bool = False,
+    year_id: int = None,
 ) -> pd.DataFrame:
-    data = gbd.get_paf(entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id)
+    data = gbd.get_paf(
+        entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id
+    )
     data = data[data.metric_id == METRICS["Percent"]]
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
