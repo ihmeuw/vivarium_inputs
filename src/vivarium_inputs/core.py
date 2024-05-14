@@ -222,10 +222,8 @@ def get_disability_weight(
 ) -> pd.DataFrame:
     if entity.kind == "cause":
         data = utility_data.get_demographic_dimensions(
-            location_id, get_all_years, draws=True, value=0.0
+            location_id, get_all_years, draws=True, value=0.0, year_id=year_id
         )
-        if year_id:
-            data["year_id"] = year_id
         data = data.set_index(
             utilities.get_ordered_index_cols(data.columns.difference(DRAW_COLUMNS))
         )
@@ -755,18 +753,18 @@ def get_demographic_dimensions(
     demographic_dimensions = utility_data.get_demographic_dimensions(
         location_id, get_all_years, year_id=year_id
     )
-    # import pdb; pdb.set_trace()
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
 
 
 def check_year_arguments(get_all_years: bool, year_id: int) -> None:
     if year_id:
-        allowed_years = utility_data.get_estimation_years()
         if get_all_years:  # if we have a year ID and get_all_years is True
             raise ValueError(
                 "You cannot provide a year ID and set get_all_years to True in your get_data call."
             )
+        # check year id is an estimation year
+        allowed_years = utility_data.get_estimation_years()
         if not year_id in allowed_years:
             raise ValueError(
                 f"year_id must be one of {allowed_years}. You provided {year_id}."
