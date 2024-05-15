@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import pandas as pd
 from gbd_mapping import RiskFactor
@@ -66,7 +66,7 @@ def get_demographic_dimensions(
     get_all_years: bool = False,
     draws: bool = False,
     value: float = None,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     ages = get_age_group_ids()
     if get_all_years:

@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Optional, Union
 
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, ModelableEntity, RiskFactor, Sequela
@@ -30,7 +30,7 @@ def extract_data(
     location_id: List[int],
     validate: bool = True,
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Check metadata for the requested entity-measure pair. Pull raw data from
     GBD. The only filtering that occurs is by applicable measure id, metric id,
@@ -155,7 +155,7 @@ def extract_prevalence(
     entity: Union[Cause, Sequela],
     location_id: List[int],
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_incidence_prevalence(
         entity_id=entity.gbd_id,
@@ -172,7 +172,7 @@ def extract_incidence_rate(
     entity: Union[Cause, Sequela],
     location_id: List[int],
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_incidence_prevalence(
         entity_id=entity.gbd_id,
@@ -189,7 +189,7 @@ def extract_birth_prevalence(
     entity: Union[Cause, Sequela],
     location_id: List[int],
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_birth_prevalence(
         entity_id=entity.gbd_id,
@@ -254,7 +254,7 @@ def extract_exposure(
     entity: Union[RiskFactor, AlternativeRiskFactor],
     location_id: int,
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
         data = gbd.get_exposure(
@@ -286,7 +286,7 @@ def extract_exposure_standard_deviation(
     entity: Union[RiskFactor, AlternativeRiskFactor],
     location_id: int,
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor" and entity.name in OTHER_MEID:
         data = gbd.get_modelable_entity_draws(
@@ -307,7 +307,7 @@ def extract_exposure_distribution_weights(
     entity: Union[RiskFactor, AlternativeRiskFactor],
     location_id: int,
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_auxiliary_data(
         "exposure_distribution_weights", entity.kind, entity.name, location_id
@@ -339,7 +339,7 @@ def extract_population_attributable_fraction(
     entity: Union[RiskFactor, Etiology],
     location_id: int,
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_paf(
         entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id

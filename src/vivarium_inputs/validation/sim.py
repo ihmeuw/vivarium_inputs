@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -84,7 +84,7 @@ def validate_for_simulation(
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
     check_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
     **context_args,
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation

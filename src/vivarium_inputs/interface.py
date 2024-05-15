@@ -1,5 +1,5 @@
 """Access to vivarium simulation input data."""
-from typing import List, Union
+from typing import List, Optional, Union
 
 import pandas as pd
 from gbd_mapping import ModelableEntity
@@ -14,7 +14,7 @@ def get_measure(
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
@@ -80,7 +80,7 @@ def get_measure(
 def get_population_structure(
     location: Union[int, str, List[Union[int, str]]],
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     """Pull GBD population data for the given location and standardize to the
     expected simulation input format, including scrubbing all GBD conventions
@@ -163,7 +163,7 @@ def get_age_bins() -> pd.DataFrame:
 def get_demographic_dimensions(
     location: Union[int, str, List[Union[int, str]]],
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
@@ -205,7 +205,7 @@ def get_raw_data(
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
     get_all_years: bool = False,
-    year_id: int = None,
+    year_id: Optional[int] = None,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
     Skip standard raw validation checks in order to return data that can be
