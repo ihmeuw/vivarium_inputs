@@ -366,7 +366,7 @@ To use:
     :hide:
 
     import inspect
-    from typing import List, Union
+    from typing import List, Optional, Union
 
     import pandas as pd
 
@@ -381,11 +381,11 @@ To use:
                     'measure': str, 
                     'location': Union[int, str, List[Union[int, str]]],
                     'get_all_years': bool,
-                    'year_id': int,
+                    'year_id': Optional[int],
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
-                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool, 'year_id': int},
+                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool, 'year_id': Optional[int]},
                  'return': pd.DataFrame, },
              get_theoretical_minimum_risk_life_expectancy: {
                  'parameters': {},
@@ -394,7 +394,7 @@ To use:
                  'parameters': {},
                  'return': pd.DataFrame, },
              get_demographic_dimensions: {
-                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool, 'year_id': int},
+                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool, 'year_id': Optional[int]},
                  'return': pd.DataFrame, },
              get_raw_data: {
                  'parameters': {
@@ -402,7 +402,7 @@ To use:
                     'measure': str,
                     'location': Union[int, str, List[Union[int, str]]],
                     'get_all_years': bool,
-                    'year_id': int,
+                    'year_id': Optional[int],
                         },
                 'return': Union[pd.DataFrame, pd.Series], },
              }
