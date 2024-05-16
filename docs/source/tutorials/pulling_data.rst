@@ -380,12 +380,11 @@ To use:
                     'entity': ModelableEntity, 
                     'measure': str, 
                     'location': Union[int, str, List[Union[int, str]]],
-                    'get_all_years': bool,
-                    'year_id': Optional[int],
+                    'year_id': Optional[Union[int, str, List[int]]],
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
-                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool, 'year_id': Optional[int]},
+                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'year_id': Optional[Union[int, str, List[int]]]},
                  'return': pd.DataFrame, },
              get_theoretical_minimum_risk_life_expectancy: {
                  'parameters': {},
@@ -394,15 +393,14 @@ To use:
                  'parameters': {},
                  'return': pd.DataFrame, },
              get_demographic_dimensions: {
-                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'get_all_years': bool, 'year_id': Optional[int]},
+                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'year_id': Optional[Union[int, str, List[int]]]},
                  'return': pd.DataFrame, },
              get_raw_data: {
                  'parameters': {
                     'entity': ModelableEntity,
                     'measure': str,
                     'location': Union[int, str, List[Union[int, str]]],
-                    'get_all_years': bool,
-                    'year_id': Optional[int],
+                    'year_id': Optional[Union[int, str, List[int]]],
                         },
                 'return': Union[pd.DataFrame, pd.Series], },
              }

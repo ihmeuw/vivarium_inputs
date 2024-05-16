@@ -63,20 +63,16 @@ def get_location_id_parents(location_id: Union[int, List[int]]) -> Dict[int, Lis
 
 def get_demographic_dimensions(
     location_id: Union[int, List[int]],
-    get_all_years: bool = False,
     draws: bool = False,
     value: float = None,
-    year_id: Optional[int] = None,
+    year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     ages = get_age_group_ids()
-    if get_all_years:
+    if year_id == 'all':
         estimation_years = get_estimation_years()
         years = range(min(estimation_years), max(estimation_years) + 1)
     else:
-        if year_id:
-            years = [year_id]
-        else:
-            years = [gbd.get_most_recent_year()]
+        years = [year_id] if year_id else [gbd.get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
     location = [location_id] if isinstance(location_id, int) else location_id
     values = [location, sexes, ages, years]

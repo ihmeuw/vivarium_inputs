@@ -83,7 +83,6 @@ def validate_for_simulation(
     entity: ModelableEntity,
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
-    check_all_years: bool = False,
     year_id: Optional[int] = None,
     **context_args,
 ) -> None:

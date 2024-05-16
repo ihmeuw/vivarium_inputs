@@ -13,8 +13,7 @@ def get_measure(
     entity: ModelableEntity,
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
-    get_all_years: bool = False,
-    year_id: Optional[int] = None,
+    year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
@@ -67,11 +66,9 @@ def get_measure(
         Dataframe standardized to the format expected by `vivarium` simulations.
 
     """
-    data = core.get_data(entity, measure, location, get_all_years, year_id)
+    data = core.get_data(entity, measure, location, year_id)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(
-        data, entity, measure, location, get_all_years, year_id
-    )
+    validation.validate_for_simulation(data, entity, measure, location, year_id)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -79,8 +76,7 @@ def get_measure(
 
 def get_population_structure(
     location: Union[int, str, List[Union[int, str]]],
-    get_all_years: bool = False,
-    year_id: Optional[int] = None,
+    year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     """Pull GBD population data for the given location and standardize to the
     expected simulation input format, including scrubbing all GBD conventions
@@ -107,11 +103,9 @@ def get_population_structure(
 
     """
     pop = Population()
-    data = core.get_data(pop, "structure", location, get_all_years, year_id)
+    data = core.get_data(pop, "structure", location, year_id)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(
-        data, pop, "structure", location, get_all_years, year_id
-    )
+    validation.validate_for_simulation(data, pop, "structure", location, year_id)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -162,8 +156,7 @@ def get_age_bins() -> pd.DataFrame:
 
 def get_demographic_dimensions(
     location: Union[int, str, List[Union[int, str]]],
-    get_all_years: bool = False,
-    year_id: Optional[int] = None,
+    year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
@@ -188,13 +181,9 @@ def get_demographic_dimensions(
 
     """
     pop = Population()
-    data = core.get_data(
-        pop, "demographic_dimensions", location, get_all_years=get_all_years, year_id=year_id
-    )
+    data = core.get_data(pop, "demographic_dimensions", location, year_id=year_id)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(
-        data, pop, "demographic_dimensions", location, get_all_years, year_id
-    )
+    validation.validate_for_simulation(data, pop, "demographic_dimensions", location, year_id)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -204,8 +193,7 @@ def get_raw_data(
     entity: ModelableEntity,
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
-    get_all_years: bool = False,
-    year_id: Optional[int] = None,
+    year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
     Skip standard raw validation checks in order to return data that can be
@@ -269,7 +257,6 @@ def get_raw_data(
         measure,
         location_id,
         validate=False,
-        get_all_years=get_all_years,
         year_id=year_id,
     )
     return data
