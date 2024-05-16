@@ -203,7 +203,10 @@ def extract_birth_prevalence(
 
 
 def extract_remission_rate(
-    entity: Cause, location_id: List[int], get_all_years: bool = False, year_id: int = None
+    entity: Cause,
+    location_id: List[int],
+    get_all_years: bool = False,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_modelable_entity_draws(
         entity.me_id, location_id, get_all_years=get_all_years, year_id=year_id
@@ -213,7 +216,10 @@ def extract_remission_rate(
 
 
 def extract_disability_weight(
-    entity: Sequela, location_id: List[int], get_all_years: bool = False, year_id: int = None
+    entity: Sequela,
+    location_id: List[int],
+    get_all_years: bool = False,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     disability_weights = gbd.get_auxiliary_data(
         "disability_weight",
@@ -241,7 +247,10 @@ def extract_disability_weight(
 
 
 def extract_deaths(
-    entity: Cause, location_id: List[int], get_all_years: bool = False, year_id: int = None
+    entity: Cause,
+    location_id: List[int],
+    get_all_years: bool = False,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_codcorrect_draws(
         entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id
@@ -316,7 +325,10 @@ def extract_exposure_distribution_weights(
 
 
 def extract_relative_risk(
-    entity: RiskFactor, location_id: int, get_all_years: bool = False, year_id: int = None
+    entity: RiskFactor,
+    location_id: int,
+    get_all_years: bool = False,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_relative_risk(
         entity.gbd_id, location_id, get_all_years=get_all_years, year_id=year_id
@@ -355,14 +367,20 @@ def extract_population_attributable_fraction(
 
 
 def extract_mediation_factors(
-    entity: RiskFactor, location_id: int, get_all_years: bool = False, year_id: int = None
+    entity: RiskFactor,
+    location_id: int,
+    get_all_years: bool = False,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_auxiliary_data("mediation_factor", entity.kind, entity.name, location_id)
     return data
 
 
 def extract_estimate(
-    entity: Covariate, location_id: int, get_all_years: bool = False, year_id: int = None
+    entity: Covariate,
+    location_id: int,
+    get_all_years: bool = False,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_covariate_estimate(
         int(entity.gbd_id), location_id, get_all_years=get_all_years, year_id=year_id
@@ -376,14 +394,20 @@ def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.D
 
 
 def extract_structure(
-    entity: Population, location_id: int, get_all_years: bool = False, year_id: int = None
+    entity: Population,
+    location_id: int,
+    get_all_years: bool = False,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_population(location_id, get_all_years=get_all_years, year_id=year_id)
     return data
 
 
 def extract_theoretical_minimum_risk_life_expectancy(
-    entity: Population, location_id: int, get_all_years: bool = False, year_id: int = None
+    entity: Population,
+    location_id: int,
+    get_all_years: bool = False,
+    year_id: Optional[int] = None,
 ) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
     return data

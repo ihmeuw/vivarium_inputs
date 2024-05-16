@@ -757,7 +757,7 @@ def get_demographic_dimensions(
     return demographic_dimensions
 
 
-def check_year_arguments(get_all_years: bool, year_id: int) -> None:
+def check_year_arguments(get_all_years: bool, year_id: Optional[int]) -> None:
     if year_id:
         if get_all_years:  # if we have a year ID and get_all_years is True
             raise ValueError(
