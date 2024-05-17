@@ -32,7 +32,7 @@ def check_year_in_data(entity, measure, location, year_id):
             assert set(df.reset_index()["year_id"]) == set([2021])
         elif year_id == 2019:
             assert set(df.reset_index()["year_id"]) == set([2019])
-    else: # assumes that year_id is out of range if not 2019
+    else:  # assumes that year_id is out of range if not 2019
         with pytest.raises(ValueError, match="year_id must be one of"):
             df = core.get_data(entity, measure, location, year_id=year_id)
 
@@ -278,4 +278,3 @@ def test_pulling_multiple_locations(entity, measure, locations):
     measure_name, measure_id = measure
     tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
     df = tester(entity_name, measure_name, locations)
-

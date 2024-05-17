@@ -233,9 +233,7 @@ def get_disability_weight(
                     year_id=year_id,
                 )
                 data += prevalence * disability
-        cause_prevalence = get_data(
-            entity, "prevalence", location_id, year_id=year_id
-        )
+        cause_prevalence = get_data(entity, "prevalence", location_id, year_id=year_id)
         data = (data / cause_prevalence).fillna(0).reset_index()
     else:  # entity.kind == 'sequela'
         try:
@@ -444,7 +442,7 @@ def get_exposure_distribution_weights(
         df.append(copied)
     data = pd.concat(df)
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
-    if year_id != 'all':
+    if year_id != "all":
         if year_id:
             data = data.query("year_id==@year_id")
         else:
@@ -705,4 +703,3 @@ def get_demographic_dimensions(
     )
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions
-
