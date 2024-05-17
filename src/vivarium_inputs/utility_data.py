@@ -68,10 +68,12 @@ def get_demographic_dimensions(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     ages = get_age_group_ids()
+    estimation_years = get_estimation_years()
     if year_id == 'all':
-        estimation_years = get_estimation_years()
         years = range(min(estimation_years), max(estimation_years) + 1)
     else:
+        if year_id and year_id not in estimation_years:
+            raise ValueError(f"year_id must be in {estimation_years}. You provided {year_id}.")
         years = [year_id] if year_id else [gbd.get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
     location = [location_id] if isinstance(location_id, int) else location_id
