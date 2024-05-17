@@ -157,7 +157,7 @@ def validate_for_simulation(
     if measure not in validators:
         raise NotImplementedError()
 
-    if not check_all_years:
+    if year_id != 'all':
         if year_id:
             context_args["years"] = pd.DataFrame(
                 {"year_start": year_id, "year_end": year_id + 1}, index=[0]
