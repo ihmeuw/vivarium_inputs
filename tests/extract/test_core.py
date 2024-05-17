@@ -279,11 +279,3 @@ def test_pulling_multiple_locations(entity, measure, locations):
     tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
     df = tester(entity_name, measure_name, locations)
 
-
-def test_year_args_compatibility():
-    with pytest.raises(
-        ValueError, match="cannot provide a year ID and set get_all_years to True"
-    ):
-        df = core.get_data(
-            causes.measles, "incidence_rate", "India", get_all_years=True, year_id=2021
-        )

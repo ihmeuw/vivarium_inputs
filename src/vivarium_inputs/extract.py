@@ -50,9 +50,9 @@ def extract_data(
         should be extracted and whether raw validation should be performed.
         Should only be set to False if data is being extracted for
         investigation. Never extract data for a simulation without validation.
-    get_all_years
-        Flag indicating whether to get all years. Otherwise, get most recent year.
-        Defaults to False.
+    year_id
+        Year for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
