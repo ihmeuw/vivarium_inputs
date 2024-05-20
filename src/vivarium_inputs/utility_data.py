@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import pandas as pd
 from gbd_mapping import RiskFactor
@@ -63,16 +63,18 @@ def get_location_id_parents(location_id: Union[int, List[int]]) -> Dict[int, Lis
 
 def get_demographic_dimensions(
     location_id: Union[int, List[int]],
-    get_all_years: bool = False,
     draws: bool = False,
     value: float = None,
+    years: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     ages = get_age_group_ids()
-    if get_all_years:
-        estimation_years = get_estimation_years()
+    estimation_years = get_estimation_years()
+    if years == "all":
         years = range(min(estimation_years), max(estimation_years) + 1)
     else:
-        years = [gbd.get_most_recent_year()]
+        if years and years not in estimation_years:
+            raise ValueError(f"years must be in {estimation_years}. You provided {years}.")
+        years = [years] if years else [gbd.get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
     location = [location_id] if isinstance(location_id, int) else location_id
     values = [location, sexes, ages, years]

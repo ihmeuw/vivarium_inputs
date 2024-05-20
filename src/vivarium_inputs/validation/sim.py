@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -83,7 +83,7 @@ def validate_for_simulation(
     entity: ModelableEntity,
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
-    check_all_years: bool = False,
+    years: Optional[int] = None,
     **context_args,
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation
@@ -157,11 +157,16 @@ def validate_for_simulation(
     if measure not in validators:
         raise NotImplementedError()
 
-    if not check_all_years:
-        most_recent_year = gbd.get_most_recent_year()
-        context_args["years"] = pd.DataFrame(
-            {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
-        )
+    if years != "all":
+        if years:
+            context_args["years"] = pd.DataFrame(
+                {"year_start": years, "year_end": years + 1}, index=[0]
+            )
+        else:
+            most_recent_year = gbd.get_most_recent_year()
+            context_args["years"] = pd.DataFrame(
+                {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
+            )
 
     # Coerce to location names
     if not isinstance(location, list):
@@ -1532,8 +1537,10 @@ def validate_year_column(data: pd.DataFrame, context: SimulationValidationContex
     data_years = data.index.levels[data.index.names.index("year")]
 
     if not sorted(data_years) == sorted(expected_years):
+        formatted_expected_years = [interval.left for interval in sorted(expected_years)]
+        formatted_data_years = [interval.left for interval in sorted(data_years)]
         raise DataTransformationError(
-            "Year_start and year_end must cover [1990, 2021] in intervals of one year or only be most recent year."
+            f"Data was expected to contain years {formatted_expected_years}. The data provided contains years {formatted_data_years}."
         )
 
 
