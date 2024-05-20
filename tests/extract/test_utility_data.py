@@ -12,18 +12,18 @@ pytestmark = pytest.mark.skipif(
 
 def test_get_estimation_years():
     result = ud.get_estimation_years()
-    assert set([1990, 1995, 2000, 2005, 2010, 2015, 2017, 2019]) == set(result)
+    assert set([1990, 1995, 2000, 2005, 2010, 2015, 2019, 2020, 2021, 2022]) == set(result)
 
 
 def test_get_year_block():
     result = ud.get_year_block()
     assert result.year_start.iloc[0] == 1990
-    assert result.year_end.iloc[-1] == 2020
+    assert result.year_end.iloc[-1] == 2023
 
 
 def test_get_age_group_ids():
     result = ud.get_age_group_ids()
-    truth = list(range(2, 21)) + [30, 31, 32, 235]
+    truth = [2, 3, 388, 389, 238, 34] + list(range(6, 21)) + [30, 31, 32, 235]
     assert result == truth
 
 
@@ -32,8 +32,15 @@ def test_get_location_id():
     assert 163 == result_india
 
 
-def test_get_location_id_parents():
-    assert [1, 158, 159, 163] == ud.get_location_id_parents(163)
+@pytest.mark.parametrize(
+    "location_id, expected",
+    [
+        (163, {163: [1, 158, 159, 163]}),
+        ([163, 175], {163: [1, 158, 159, 163], 175: [1, 166, 174, 175]}),
+    ],
+)
+def test_get_location_id_parents(location_id, expected):
+    assert expected == ud.get_location_id_parents(location_id)
 
 
 def test_get_demographic_dimensions():

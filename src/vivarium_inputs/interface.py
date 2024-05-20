@@ -1,5 +1,5 @@
 """Access to vivarium simulation input data."""
-from typing import Union
+from typing import List, Optional, Union
 
 import pandas as pd
 from gbd_mapping import ModelableEntity
@@ -9,7 +9,12 @@ from vivarium_inputs import core, extract, utilities, utility_data
 from vivarium_inputs.globals import Population
 
 
-def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.DataFrame:
+def get_measure(
+    entity: ModelableEntity,
+    measure: str,
+    location: Union[int, str, List[Union[int, str]]],
+    years: Optional[Union[int, str, List[int]]] = None,
+) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
     values or ranges and expanding over all demographic dimensions. To pull data
@@ -45,7 +50,11 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
         Measure for which to pull data, should be a measure available for the
         kind of entity which `entity` is.
     location
-        Location for which to pull data.
+        Location for which to pull data. This can be a location id as an int, the location name
+        as a string, or a list of these two data types.
+    years
+        Years for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
@@ -53,15 +62,18 @@ def get_measure(entity: ModelableEntity, measure: str, location: str) -> pd.Data
         Dataframe standardized to the format expected by `vivarium` simulations.
 
     """
-    data = core.get_data(entity, measure, location)
+    data = core.get_data(entity, measure, location, years)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, entity, measure, location)
+    validation.validate_for_simulation(data, entity, measure, location, years)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
 
 
-def get_population_structure(location: str) -> pd.DataFrame:
+def get_population_structure(
+    location: Union[int, str, List[Union[int, str]]],
+    years: Optional[Union[int, str, List[int]]] = None,
+) -> pd.DataFrame:
     """Pull GBD population data for the given location and standardize to the
     expected simulation input format, including scrubbing all GBD conventions
     to replace IDs with meaningful values or ranges and expanding over all
@@ -71,6 +83,9 @@ def get_population_structure(location: str) -> pd.DataFrame:
     ----------
     location
         Location for which to pull population data.
+    years
+        Years for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
@@ -80,9 +95,9 @@ def get_population_structure(location: str) -> pd.DataFrame:
 
     """
     pop = Population()
-    data = core.get_data(pop, "structure", location)
+    data = core.get_data(pop, "structure", location, years)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, pop, "structure", location)
+    validation.validate_for_simulation(data, pop, "structure", location, years)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -131,15 +146,21 @@ def get_age_bins() -> pd.DataFrame:
     return utilities.sort_hierarchical_data(data)
 
 
-def get_demographic_dimensions(location: str) -> pd.DataFrame:
+def get_demographic_dimensions(
+    location: Union[int, str, List[Union[int, str]]],
+    years: Optional[Union[int, str, List[int]]] = None,
+) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
-    to replace IDs with with meaningful values or ranges.
+    to replace IDs with meaningful values or ranges.
 
     Parameters
     ----------
     location
         Location for which to pull demographic dimension data.
+    years
+        Years for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
@@ -148,16 +169,19 @@ def get_demographic_dimensions(location: str) -> pd.DataFrame:
 
     """
     pop = Population()
-    data = core.get_data(pop, "demographic_dimensions", location)
+    data = core.get_data(pop, "demographic_dimensions", location, years=years)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, pop, "demographic_dimensions", location)
+    validation.validate_for_simulation(data, pop, "demographic_dimensions", location, years)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
 
 
 def get_raw_data(
-    entity: ModelableEntity, measure: str, location: str
+    entity: ModelableEntity,
+    measure: str,
+    location: Union[int, str, List[Union[int, str]]],
+    years: Optional[Union[int, str, List[int]]] = None,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
     Skip standard raw validation checks in order to return data that can be
@@ -197,6 +221,9 @@ def get_raw_data(
         Measure for which to extract data.
     location
         Location for which to extract data.
+    years
+        Years for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
@@ -204,6 +231,16 @@ def get_raw_data(
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
-    location_id = utility_data.get_location_id(location)
-    data = extract.extract_data(entity, measure, location_id, validate=False)
+    if not isinstance(location, list):
+        location = [location]
+    location_id = [
+        utility_data.get_location_id(loc) if isinstance(loc, str) else loc for loc in location
+    ]
+    data = extract.extract_data(
+        entity,
+        measure,
+        location_id,
+        validate=False,
+        years=years,
+    )
     return data

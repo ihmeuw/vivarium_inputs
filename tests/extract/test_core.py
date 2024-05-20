@@ -25,6 +25,21 @@ def fail_expected(entity_name, measure_name, location):
         df = core.get_data(entity_name, measure_name, location)
 
 
+def check_year_in_data(entity, measure, location, years):
+    # years expected to be 1900, 2019, None, or "all"
+    if years != 1900:
+        df = core.get_data(entity, measure, location, years=years)
+        if years == None:
+            assert set(df.reset_index()["year_id"]) == set([2021])
+        elif years == 2019:
+            assert set(df.reset_index()["year_id"]) == set([2019])
+        elif years == "all":
+            assert set(df.reset_index()["year_id"]) == set(range(1990, 2023))
+    else:
+        with pytest.raises(ValueError, match="years must be in"):
+            df = core.get_data(entity, measure, location, years=years)
+
+
 class MCFlag(IntFlag):
     """
     Use the idea of a bit field with support from python's enum type IntFlag
@@ -103,6 +118,17 @@ def test_core_causelike(entity, measure, location):
     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 
+@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", locations)
+@pytest.mark.parametrize("years", [None, 2019, 1900, "all"])
+def test_year_id_causelike(entity, measure, location, years):
+    entity_name, entity_expected_measure_ids = entity
+    measure_name, measure_id = measure
+    if entity_expected_measure_ids & measure_id:
+        check_year_in_data(entity_name, measure_name, location, years=years)
+
+
 class MRFlag(IntFlag):
     """
     Use the idea of a bit field with support from python's enum type IntFlag
@@ -141,7 +167,8 @@ measures_r = [
     ("exposure", MRFlag.EXPOSURE),
     ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
     ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
-    ("relative_risk", MRFlag.RELATIVE_RISK),
+    # TODO: Add back in with Mic-4936
+    # ("relative_risk", MRFlag.RELATIVE_RISK),
     ("population_attributable_fraction", MRFlag.PAF),
 ]
 locations_r = ["India"]
@@ -155,6 +182,17 @@ def test_core_risklike(entity, measure, location):
     measure_name, measure_id = measure
     tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
+
+
+@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", locations_r)
+@pytest.mark.parametrize("years", [None, 2019, 1900, "all"])
+def test_year_id_risklike(entity, measure, location, years):
+    entity_name, entity_expected_measure_ids = entity
+    measure_name, measure_id = measure
+    if entity_expected_measure_ids & measure_id:
+        check_year_in_data(entity_name, measure_name, location, years=years)
 
 
 entity_cov = [
@@ -171,6 +209,14 @@ def test_core_covariatelike(entity, measure, location):
     df = core.get_data(entity, measure, utility_data.get_location_id(location))
 
 
+@pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
+@pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
+@pytest.mark.parametrize("location", locations_cov)
+@pytest.mark.parametrize("years", [None, 2019, 1900, "all"])
+def test_year_id_covariatelike(entity, measure, location, years):
+    check_year_in_data(entity, measure, location, years=years)
+
+
 @pytest.mark.parametrize(
     "measures",
     [
@@ -183,6 +229,14 @@ def test_core_covariatelike(entity, measure, location):
 def test_core_population(measures):
     pop = ModelableEntity("ignored", "population", None)
     df = core.get_data(pop, measures, utility_data.get_location_id("India"))
+
+
+@pytest.mark.parametrize("measure", ["structure", "demographic_dimensions"])
+@pytest.mark.parametrize("years", [None, 2019, 1900, "all"])
+def test_year_id_population(measure, years):
+    pop = ModelableEntity("ignored", "population", None)
+    location = utility_data.get_location_id("India")
+    check_year_in_data(pop, measure, location, years=years)
 
 
 # TODO - Underlying problem with gbd access. Remove when corrected.
@@ -199,3 +253,31 @@ locations_health_system = ["India"]
 @pytest.mark.parametrize("location", locations_health_system)
 def test_core_healthsystem(entity, measure, location):
     df = core.get_data(entity, measure, utility_data.get_location_id(location))
+
+
+# TODO: Remove with Mic-4936
+# @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+# @pytest.mark.parametrize("location", locations_r)
+# @pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
+# def test_relative_risk(entity, location):
+#     measure_name = "relative_risk"
+#     measure_id = MRFlag.RELATIVE_RISK
+#     entity_name, entity_expected_measure_ids = entity
+#     df = core.get_data(entity_name, measure_name, location)
+
+
+@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
+@pytest.mark.parametrize(
+    "locations",
+    [
+        [164, 165, 175],
+        ["Ethiopia", "Nigeria"],
+        [164, "Nigeria"],
+    ],
+)
+def test_pulling_multiple_locations(entity, measure, locations):
+    entity_name, entity_expected_measure_ids = entity
+    measure_name, measure_id = measure
+    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
+    df = tester(entity_name, measure_name, locations)

@@ -22,13 +22,13 @@ if __name__ == "__main__":
         "joblib",
         "tables",
         "vivarium>=1.2.1",
-        "gbd_mapping>=3.1.0, <4.0.0",
+        "gbd_mapping>=4.0.0, <5.0.0",
         "loguru",
     ]
 
     setup_requires = ["setuptools_scm"]
 
-    data_requires = ["vivarium-gbd-access>=3.0.7, <4.0.0", "core-maths"]
+    data_requires = ["vivarium-gbd-access>=4.0.0, <5.0.0", "core-maths"]
 
     test_requirements = [
         "pytest",
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     ]
 
     doc_requirements = [
-        "sphinx>=6.2.1, <7.0",
+        "sphinx>=7.0, <8.0",
         "sphinx-rtd-theme",
     ]
 

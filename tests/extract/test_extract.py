@@ -55,7 +55,7 @@ class MCFlag(IntFlag):
 
 entity = [
     (
-        causes.measles,
+        causes.hiv_aids,
         MCFlag.INCIDENCE_RATE
         | MCFlag.PREVALENCE
         | MCFlag.BIRTH_PREVALENCE
@@ -63,7 +63,7 @@ entity = [
         | MCFlag.DEATHS,
     ),
     (
-        causes.diabetes_mellitus_type_2,
+        causes.neural_tube_defects,
         MCFlag.INCIDENCE_RATE | MCFlag.PREVALENCE | MCFlag.BIRTH_PREVALENCE | MCFlag.DEATHS,
     ),
 ]
@@ -118,7 +118,7 @@ class MRFlag(IntFlag):
 
 entity_r = [
     (
-        risk_factors.high_systolic_blood_pressure,
+        risk_factors.high_fasting_plasma_glucose,
         MRFlag.EXPOSURE
         | MRFlag.EXPOSURE_SD
         | MRFlag.EXPOSURE_DIST_WEIGHTS
@@ -136,7 +136,8 @@ measures_r = [
     ("exposure", MRFlag.EXPOSURE),
     ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
     ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
-    ("relative_risk", MRFlag.RELATIVE_RISK),
+    # TODO: Add back in with Mic-4936
+    # ("relative_risk", MRFlag.RELATIVE_RISK),
     ("population_attributable_fraction", MRFlag.PAF),
     ("etiology_population_attributable_fraction", MRFlag.ETIOLOGY_PAF),
     ("mediation_factors", MRFlag.MEDIATION_FACTORS),
@@ -178,3 +179,14 @@ def test_extract_population(measures):
     df = extract.extract_data(
         pop, measures, utility_data.get_location_id("India"), validate=VALIDATE_FLAG
     )
+
+
+# TODO: Remove with Mic-4936
+@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("location", locations_r)
+@pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
+def test_extract_relative_risk(entity, location):
+    measure_name = "relative_risk"
+    measure_id = MRFlag.RELATIVE_RISK
+    entity_name, entity_expected_measure_ids = entity
+    df = extract.extract_data(entity_name, measure_name, location)

@@ -31,6 +31,7 @@ from vivarium_inputs.globals import (
     DataDoesNotExistError,
     InvalidQueryError,
     Population,
+    gbd,
 )
 from vivarium_inputs.mapping_extension import (
     AlternativeRiskFactor,
@@ -49,7 +50,7 @@ MAX_CATEG_REL_RISK = 20
 MAX_CONT_REL_RISK = 10
 MAX_PAF = 1
 MIN_PAF = 0
-MAX_POP = 663_000_000  # Number pulled from GBD global population largest 5 year age bin.
+MAX_POP = 695_000_000  # Number pulled from GBD global population largest 5 year age bin.
 MIN_PROTECTIVE_PAF = -1
 MAX_UTILIZATION = 50
 MAX_LIFE_EXP = 90
@@ -131,7 +132,7 @@ def validate_raw_data(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location_id: int,
+    location_id: Union[int, List[int]],
     **additional_data,
 ) -> None:
     """Validate data conforms to the format expected from raw GBD data, that all
@@ -208,6 +209,9 @@ def validate_raw_data(
     if measure not in validators:
         raise InvalidQueryError(f"No raw validator found for {measure}.")
 
+    # Make location_id a list if not already
+    if not isinstance(location_id, list):
+        location_id = [location_id]
     context = RawValidationContext(location_id, **additional_data)
 
     validators[measure](data, entity, context)
@@ -1570,7 +1574,7 @@ def validate_theoretical_minimum_risk_life_expectancy(
     expected_columns = ["age", "life_expectancy"]
     check_columns(expected_columns, data.columns)
 
-    min_age, max_age = 0, 105
+    min_age, max_age = 0, 110
     if data.age.min() != min_age or data.age.max() != max_age:
         raise DataAbnormalError(
             f"Data does not contain life expectancy values for ages [{min_age}, {max_age}]."
@@ -1774,15 +1778,20 @@ def _get_valid_rr_and_age_groups(
     valid_rr = rr[(rr.cause_id == cause.gbd_id) & rr_measures[measure]]
 
     if entity.distribution in ["ensemble", "lognormal", "normal"]:
-        tmrel = (entity.tmred.max + entity.tmred.min) / 2
+        if entity.tmred.distribution == "draws":
+            ## TODO: [MIC-5049] handle iron deficiency TMREL in VPH
+            pass
+        else:
+            tmrel = (entity.tmred.max + entity.tmred.min) / 2
 
-        #  Non-trivial rr for continuous risk factors is where exposure is bigger(smaller) than tmrel.
-        e_othercols = [c for c in exposure.columns if c not in DRAW_COLUMNS]
-        df = exposure.set_index(e_othercols)
-        op = operator.lt if entity.tmred.inverted else operator.gt
-        exposed_age_groups = set(df[op(df, tmrel)].reset_index().age_group_id)
+            #  Non-trivial rr for continuous risk factors is where exposure is bigger(smaller) than tmrel.
+            e_othercols = [c for c in exposure.columns if c not in DRAW_COLUMNS]
+            df = exposure.set_index(e_othercols)
+            op = operator.lt if entity.tmred.inverted else operator.gt
+            exposed_age_groups = set(df[op(df, tmrel)].reset_index().age_group_id)
 
-        valid_rr = valid_rr[valid_rr.age_group_id.isin(exposed_age_groups)]
+            valid_rr = valid_rr[valid_rr.age_group_id.isin(exposed_age_groups)]
+
         rr_age_groups = set(valid_rr.age_group_id)
 
     else:  # categorical distribution
@@ -1954,16 +1963,17 @@ def check_location(data: pd.DataFrame, context: RawValidationContext) -> None:
         global or requested location id.
 
     """
-    if len(data["location_id"].unique()) > 1:
-        raise DataAbnormalError(f"Data contains multiple location ids.")
 
-    data_location_id = data["location_id"].unique()[0]
-
-    if data_location_id not in context["parent_locations"] + [context["location_id"]]:
-        raise DataAbnormalError(
-            f'Data pulled for {context["location_id"]} actually has location '
-            f"id {data_location_id}, which is not in its hierarchy."
-        )
+    data_location_ids = data["location_id"].unique()
+    parent_locations = [
+        loc for value in context["parent_locations"].values() for loc in value
+    ]
+    for location_id in data_location_ids:
+        if location_id not in context["location_id"] + parent_locations:
+            raise DataAbnormalError(
+                f"Data pulled for '{data_location_ids}' actually has location "
+                f"id {location_id}, which is not in its hierarchy."
+            )
 
 
 def check_columns(expected_cols: List, existing_cols: List) -> None:
@@ -2049,8 +2059,10 @@ def _check_continuity(data_ages: set, all_ages: set) -> None:
     """Make sure data_ages is contiguous block in all_ages."""
     data_ages = list(data_ages)
     all_ages = list(all_ages)
-    all_ages.sort()
-    data_ages.sort()
+    age_bins = utility_data.get_age_bins()
+    id_to_age_map = dict(zip(age_bins.age_group_id, age_bins.age_start))
+    all_ages.sort(key=lambda id: id_to_age_map[id])
+    data_ages.sort(key=lambda id: id_to_age_map[id])
     if (
         all_ages[all_ages.index(data_ages[0]) : all_ages.index(data_ages[-1]) + 1]
         != data_ages

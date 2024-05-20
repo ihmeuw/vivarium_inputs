@@ -1,4 +1,5 @@
 """Global constants, errors, and module imports for inputs processing."""
+
 from gbd_mapping import ModelableEntity, causes, risk_factors
 
 # The purpose of this import block is to mask the dependency on internal
@@ -7,10 +8,10 @@ try:
     from vivarium_gbd_access import gbd
 
     try:
-        from gbd_artifacts.exceptions import NoBestVersionError
         from get_draws.api import EmptyDataFrameException, InputsException
+        from get_draws.base.exceptions import NoBestVersionsException
     except ModuleNotFoundError:
-        raise RuntimeError("Problem importing gbd_artifacts.exceptions or get_draws.api.")
+        raise RuntimeError("Problem importing get_draws.base.exceptions or get_draws.api.")
 
 except ModuleNotFoundError:
 
@@ -22,7 +23,7 @@ except ModuleNotFoundError:
 
     gbd = GbdDummy()
 
-    class NoBestVersionError(Exception):
+    class NoBestVersionsException(Exception):
         """Mock class for gbd exception"""
 
         pass
@@ -130,6 +131,9 @@ MEASURES = {
     "Fertility": 45,
 }
 
+# Number of draw columns
+NUM_DRAWS = 500
+
 # List of standard distribution columns
 DISTRIBUTION_COLUMNS = [
     "exp",
@@ -151,7 +155,7 @@ COVARIATE_VALUE_COLUMNS = ["mean_value", "upper_value", "lower_value"]
 # List of standard demographic id column names.
 DEMOGRAPHIC_COLUMNS = ["location_id", "sex_id", "age_group_id", "year_id"]
 # List of standard GBD draw column names.
-DRAW_COLUMNS = [f"draw_{i}" for i in range(1000)]
+DRAW_COLUMNS = [f"draw_{i}" for i in range(NUM_DRAWS)]
 # Mapping of GBD sex ids
 SEXES = {"Male": 1, "Female": 2, "Combined": 3}
 # Mapping of non-standard age group ids sometimes found in GBD data

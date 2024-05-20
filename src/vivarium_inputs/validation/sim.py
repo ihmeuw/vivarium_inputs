@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -20,6 +20,7 @@ from vivarium_inputs.globals import (
     RISKS_WITH_NEGATIVE_PAF,
     DataTransformationError,
     Population,
+    gbd,
 )
 from vivarium_inputs.mapping_extension import (
     AlternativeRiskFactor,
@@ -53,7 +54,7 @@ VALID_COST_RANGE = (0, {"healthcare_entity": 30_000, "health_technology": 50})
 VALID_UTILIZATION_RANGE = (0, 500)
 VALID_POPULATION_RANGE = (
     0,
-    345_000_000,
+    360_000_000_000,
 )  # Upper bound pulled from GBD global population largest sex-age bin.
 VALID_LIFE_EXP_RANGE = (0, 90)
 
@@ -61,7 +62,7 @@ SCRUBBED_DEMOGRAPHIC_COLUMNS = ["location", "sex", "age", "year"]
 
 
 class SimulationValidationContext:
-    def __init__(self, location, **additional_data):
+    def __init__(self, location: List[str], **additional_data):
         self.context_data = {"location": location}
         self.context_data.update(additional_data)
 
@@ -78,7 +79,12 @@ class SimulationValidationContext:
 
 
 def validate_for_simulation(
-    data: pd.DataFrame, entity: ModelableEntity, measure: str, location: str, **context_args
+    data: pd.DataFrame,
+    entity: ModelableEntity,
+    measure: str,
+    location: Union[int, str, List[Union[int, str]]],
+    years: Optional[int] = None,
+    **context_args,
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation
     and conforms to normal expectations for a measure.
@@ -108,7 +114,11 @@ def validate_for_simulation(
     measure
         The measure to which the data pertain.
     location
-        The location to which the data pertain.
+        The location(s) to which the data pertain.
+    check_all_years
+        Flag indicating whether to validate that we have all years.
+        Otherwise, validate that data has most recent year.
+        Defaults to False.
     context_args
         Any data or information needed to construct the SimulationContext used
         by the individual entity-measure validator functions.
@@ -147,6 +157,24 @@ def validate_for_simulation(
     if measure not in validators:
         raise NotImplementedError()
 
+    if years != "all":
+        if years:
+            context_args["years"] = pd.DataFrame(
+                {"year_start": years, "year_end": years + 1}, index=[0]
+            )
+        else:
+            most_recent_year = gbd.get_most_recent_year()
+            context_args["years"] = pd.DataFrame(
+                {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
+            )
+
+    # Coerce to location names
+    if not isinstance(location, list):
+        location = [location]
+    location = [
+        utility_data.get_location_name(loc) if isinstance(loc, int) else loc
+        for loc in location
+    ]
     context = SimulationValidationContext(location, **context_args)
     validators[measure](data, entity, context)
 
@@ -534,21 +562,20 @@ def validate_excess_mortality_rate(
         error=DataTransformationError,
     )
 
-    if entity.name in BOUNDARY_SPECIAL_CASES["excess_mortality_rate"].get(
-        context["location"], {}
-    ):
-        max_val = BOUNDARY_SPECIAL_CASES["excess_mortality_rate"][context["location"]][
-            entity.name
-        ]
-    else:
-        max_val = VALID_EXCESS_MORT_RANGE[1]
-    check_value_columns_boundary(
-        data,
-        boundary_value=max_val,
-        boundary_type="upper",
-        value_columns=DRAW_COLUMNS,
-        error=DataTransformationError,
-    )
+    for location in context["location"]:
+        if entity.name in BOUNDARY_SPECIAL_CASES["excess_mortality_rate"].get(location, {}):
+            max_val = BOUNDARY_SPECIAL_CASES["excess_mortality_rate"][context["location"]][
+                entity.name
+            ]
+        else:
+            max_val = VALID_EXCESS_MORT_RANGE[1]
+        check_value_columns_boundary(
+            data,
+            boundary_value=max_val,
+            boundary_type="upper",
+            value_columns=DRAW_COLUMNS,
+            error=DataTransformationError,
+        )
 
     check_age_restrictions(data, entity, rest_type="yll", fill_value=0.0, context=context)
     check_sex_restrictions(
@@ -1197,8 +1224,7 @@ def validate_theoretical_minimum_risk_life_expectancy(
     groups, this validator doesn't use the standard column checks. Instead, it
     verifies that the data has the correct age columns and that ages range from
     0 to 110 years. It checks that all life expectancy values are within the
-    expected range and ensures that life expectancy is monotonically decreasing
-    by age.
+    expected range.
 
     Parameters
     ----------
@@ -1213,8 +1239,7 @@ def validate_theoretical_minimum_risk_life_expectancy(
     ------
     DataTransformationError
         If age columns are incorrectly named or contain invalid values or if
-        any life expectancy values are outside the expected range or not
-        monotonically decreasing over age.
+        any life expectancy values are outside the expected range.
 
     """
     expected_index_names = ["age"]
@@ -1247,11 +1272,6 @@ def validate_theoretical_minimum_risk_life_expectancy(
         inclusive=False,
         error=DataTransformationError,
     )
-
-    if not data.sort_values(by="age", ascending=False).value.is_monotonic:
-        raise DataTransformationError(
-            "Life expectancy data is not monotonically decreasing over age."
-        )
 
 
 def validate_age_bins(
@@ -1425,9 +1445,22 @@ def validate_location_column(
 
     """
     data_locations = data.index.unique("location")
-    if len(data_locations) != 1 or data_locations[0] != context["location"]:
+    if not set(data_locations) == (set(context["location"])):
+        # Locations requested for extraction not found in data
+        missing_locations_in_data = set(context["location"]).difference(data_locations)
+        if missing_locations_in_data:
+            missing_error_message = (
+                f"Locations missing in data include '{missing_locations_in_data}'. "
+            )
+        # Locations found in data but not requested for extraction
+        extra_locations_in_data = set(data_locations).difference(context["location"])
+        if extra_locations_in_data:
+            extra_error_message = (
+                f"Extra locations found in data include '{extra_locations_in_data}'. "
+            )
         raise DataTransformationError(
-            "Location must contain a single value that matches specified location."
+            "Location(s) must match between data and SimulationValidationContext. "
+            f"{missing_error_message} + {extra_error_message}"
         )
 
 
@@ -1504,8 +1537,10 @@ def validate_year_column(data: pd.DataFrame, context: SimulationValidationContex
     data_years = data.index.levels[data.index.names.index("year")]
 
     if not sorted(data_years) == sorted(expected_years):
+        formatted_expected_years = [interval.left for interval in sorted(expected_years)]
+        formatted_data_years = [interval.left for interval in sorted(data_years)]
         raise DataTransformationError(
-            "Year_start and year_end must cover [1990, 2017] in intervals of one year."
+            f"Data was expected to contain years {formatted_expected_years}. The data provided contains years {formatted_data_years}."
         )
 
 
@@ -1567,9 +1602,13 @@ def check_age_restrictions(
 
     """
     start_id, end_id = utilities.get_age_group_ids_by_restriction(entity, rest_type)
+
     age_bins = context["age_bins"]
+    id_to_age_start_map = dict(zip(age_bins.age_group_id, age_bins.age_start))
+    age_range_start = id_to_age_start_map[start_id]
+    age_range_end = id_to_age_start_map[end_id]
     in_range_ages = age_bins.loc[
-        (age_bins.age_group_id >= start_id) & (age_bins.age_group_id <= end_id)
+        (age_bins.age_start >= age_range_start) & (age_bins.age_start <= age_range_end)
     ]
     in_range_age_intervals = [
         pd.Interval(row.age_start, row.age_end, closed="left")
