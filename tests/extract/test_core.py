@@ -34,7 +34,7 @@ def check_year_in_data(entity, measure, location, year_id):
             assert set(df.reset_index()["year_id"]) == set([2019])
         elif year_id == 'all':
             assert set(df.reset_index()["year_id"]) == set(range(1990,2023))
-    else: # assumes that year_id is out of range if not 2019
+    else: # year_id is out of range if not one of above
         with pytest.raises(ValueError, match="year_id must be in"):
             df = core.get_data(entity, measure, location, year_id=year_id)
 

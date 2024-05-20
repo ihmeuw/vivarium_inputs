@@ -50,9 +50,9 @@ def extract_data(
         should be extracted and whether raw validation should be performed.
         Should only be set to False if data is being extracted for
         investigation. Never extract data for a simulation without validation.
-    get_all_years
-        Flag indicating whether to get all years. Otherwise, get most recent year.
-        Defaults to False.
+    year_id
+        Year for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
@@ -104,15 +104,17 @@ def extract_data(
     validation.check_metadata(entity, measure)
 
     # update year_id value for gbd calls
-    if year_id == None: # default to most recent year
+    if year_id == None:  # default to most recent year
         year_id = gbd.get_most_recent_year()
-    elif year_id == 'all':
+    elif year_id == "all":
         year_id = None
     # check that we're using a valid year
     if year_id:
         estimation_years = gbd.get_estimation_years()
         if year_id not in estimation_years:
-            raise ValueError(f"year_id must be in {estimation_years}. You provided {year_id}.")
+            raise ValueError(
+                f"year_id must be in {estimation_years}. You provided {year_id}."
+            )
 
     try:
         main_extractor, additional_extractors = extractors[measure]
@@ -151,7 +153,7 @@ def extract_data(
             name: extractor(entity, location_id, year_id)
             for name, extractor in additional_extractors.items()
         }
-        if year_id: # if not pulling all years
+        if year_id:  # if not pulling all years
             additional_data["estimation_years"] = [year_id]
         validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
@@ -208,9 +210,7 @@ def extract_remission_rate(
     location_id: List[int],
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
-    data = gbd.get_modelable_entity_draws(
-        entity.me_id, location_id, year_id=year_id
-    )
+    data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id=year_id)
     data = data[data.measure_id == MEASURES["Remission rate"]]
     return data
 
@@ -238,7 +238,7 @@ def extract_disability_weight(
         loc_data["location_id"] = loc_id
         data.append(loc_data)
     data = pd.concat(data)
-    if year_id: # if not pulling all years
+    if year_id:  # if not pulling all years
         data["year_id"] = year_id
     return data
 
@@ -248,9 +248,7 @@ def extract_deaths(
     location_id: List[int],
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
-    data = gbd.get_codcorrect_draws(
-        entity.gbd_id, location_id, year_id=year_id
-    )
+    data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, year_id=year_id)
     data = data[data.measure_id == MEASURES["Deaths"]]
     return data
 
@@ -261,9 +259,7 @@ def extract_exposure(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
-        data = gbd.get_exposure(
-            entity.gbd_id, location_id, year_id=year_id
-        )
+        data = gbd.get_exposure(entity.gbd_id, location_id, year_id=year_id)
         if entity.gbd_id == 341:
             data = process_kidney_dysfunction_exposure(data)
         allowable_measures = [
@@ -322,9 +318,7 @@ def extract_relative_risk(
     location_id: int,
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
-    data = gbd.get_relative_risk(
-        entity.gbd_id, location_id, year_id=year_id
-    )
+    data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id=year_id)
     # TODO: [MIC-4891] Process new relative risk data format properly
     if not data["exposure"].isna().all():
         raise DataAbnormalError(
@@ -344,9 +338,7 @@ def extract_population_attributable_fraction(
     location_id: int,
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
-    data = gbd.get_paf(
-        entity.gbd_id, location_id, year_id=year_id
-    )
+    data = gbd.get_paf(entity.gbd_id, location_id, year_id=year_id)
     data = data[data.metric_id == METRICS["Percent"]]
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
@@ -371,9 +363,7 @@ def extract_estimate(
     location_id: int,
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
-    data = gbd.get_covariate_estimate(
-        int(entity.gbd_id), location_id, year_id=year_id
-    )
+    data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id, year_id=year_id)
     return data
 
 

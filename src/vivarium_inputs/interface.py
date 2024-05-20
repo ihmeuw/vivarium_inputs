@@ -52,13 +52,9 @@ def get_measure(
     location
         Location for which to pull data. This can be a location id as an int, the location name
         as a string, or a list of these two data types.
-    get_all_years
-        Flag indicating whether to get all years. Otherwise, get most recent year.
-        Defaults to False.
     year_id
-        Year for which to extract data. If None, get most recent year if get_all_years
-        is False or all years if get_all_years is True. Cannot be defined if get_all_years
-        is True.
+        Year for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
@@ -87,13 +83,9 @@ def get_population_structure(
     ----------
     location
         Location for which to pull population data.
-    get_all_years
-        Flag indicating whether to get all years. Otherwise, get most recent year.
-        Defaults to False.
     year_id
-        Year for which to extract data. If None, get most recent year if get_all_years
-        is False or all years if get_all_years is True. Cannot be defined if get_all_years
-        is True.
+        Year for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
@@ -160,19 +152,15 @@ def get_demographic_dimensions(
 ) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
-    to replace IDs with with meaningful values or ranges.
+    to replace IDs with meaningful values or ranges.
 
     Parameters
     ----------
     location
         Location for which to pull demographic dimension data.
-    get_all_years
-        Flag indicating whether to get all years. Otherwise, get most recent year.
-        Defaults to False.
     year_id
-        Year for which to extract data. If None, get most recent year if get_all_years
-        is False or all years if get_all_years is True. Cannot be defined if get_all_years
-        is True.
+        Year for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
@@ -233,13 +221,9 @@ def get_raw_data(
         Measure for which to extract data.
     location
         Location for which to extract data.
-    get_all_years
-        Flag indicating whether to get all years. Otherwise, get most recent year.
-        Defaults to False.
     year_id
-        Year for which to extract data. If None, get most recent year if get_all_years
-        is False or all years if get_all_years is True. Cannot be defined if get_all_years
-        is True.
+        Year for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
 
     Returns
     -------
