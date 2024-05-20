@@ -29,7 +29,7 @@ def extract_data(
     measure: str,
     location_id: List[int],
     validate: bool = True,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    years: Optional[Union[int, str, List[int]]] = None,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Check metadata for the requested entity-measure pair. Pull raw data from
     GBD. The only filtering that occurs is by applicable measure id, metric id,
@@ -50,8 +50,8 @@ def extract_data(
         should be extracted and whether raw validation should be performed.
         Should only be set to False if data is being extracted for
         investigation. Never extract data for a simulation without validation.
-    year_id
-        Year for which to extract data. If None, get most recent year. If 'all',
+    years
+        Years for which to extract data. If None, get most recent year. If 'all',
         get all available data. Defaults to None.
 
     Returns
@@ -104,16 +104,16 @@ def extract_data(
     validation.check_metadata(entity, measure)
 
     # update year_id value for gbd calls
-    if year_id == None:  # default to most recent year
+    if years == None:  # default to most recent year
         year_id = gbd.get_most_recent_year()
-    elif year_id == "all":
+    elif years == "all":
         year_id = None
-    # check that we're using a valid year
-    if year_id:
+    # check that we're using a valid year if years is int
+    if years:
         estimation_years = gbd.get_estimation_years()
-        if year_id not in estimation_years:
+        if years not in estimation_years:
             raise ValueError(
-                f"year_id must be in {estimation_years}. You provided {year_id}."
+                f"years must be in {estimation_years}. You provided {year_id}."
             )
 
     try:

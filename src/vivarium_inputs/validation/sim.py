@@ -83,7 +83,7 @@ def validate_for_simulation(
     entity: ModelableEntity,
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
-    year_id: Optional[int] = None,
+    years: Optional[int] = None,
     **context_args,
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation
@@ -157,10 +157,10 @@ def validate_for_simulation(
     if measure not in validators:
         raise NotImplementedError()
 
-    if year_id != "all":
-        if year_id:
+    if years != "all":
+        if years:
             context_args["years"] = pd.DataFrame(
-                {"year_start": year_id, "year_end": year_id + 1}, index=[0]
+                {"year_start": years, "year_end": years + 1}, index=[0]
             )
         else:
             most_recent_year = gbd.get_most_recent_year()

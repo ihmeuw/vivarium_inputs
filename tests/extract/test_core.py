@@ -25,18 +25,18 @@ def fail_expected(entity_name, measure_name, location):
         df = core.get_data(entity_name, measure_name, location)
 
 
-def check_year_in_data(entity, measure, location, year_id):
-    if year_id != 1900:
-        df = core.get_data(entity, measure, location, year_id=year_id)
-        if year_id == None:
+def check_year_in_data(entity, measure, location, years):
+    if years != 1900:
+        df = core.get_data(entity, measure, location, years=years)
+        if years == None:
             assert set(df.reset_index()["year_id"]) == set([2021])
-        elif year_id == 2019:
+        elif years == 2019:
             assert set(df.reset_index()["year_id"]) == set([2019])
-        elif year_id == 'all':
+        elif years == 'all':
             assert set(df.reset_index()["year_id"]) == set(range(1990,2023))
-    else: # year_id is out of range if not one of above
-        with pytest.raises(ValueError, match="year_id must be in"):
-            df = core.get_data(entity, measure, location, year_id=year_id)
+    else:
+        with pytest.raises(ValueError, match="years must be in"):
+            df = core.get_data(entity, measure, location, years=years)
 
 
 class MCFlag(IntFlag):
@@ -120,12 +120,12 @@ def test_core_causelike(entity, measure, location):
 @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations)
-@pytest.mark.parametrize("year_id", [None, 2019, 1900, 'all'])
-def test_year_id_causelike(entity, measure, location, year_id):
+@pytest.mark.parametrize("years", [None, 2019, 1900, 'all'])
+def test_year_id_causelike(entity, measure, location, years):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
     if entity_expected_measure_ids & measure_id:
-        check_year_in_data(entity_name, measure_name, location, year_id=year_id)
+        check_year_in_data(entity_name, measure_name, location, years=years)
 
 
 class MRFlag(IntFlag):
@@ -186,12 +186,12 @@ def test_core_risklike(entity, measure, location):
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
-@pytest.mark.parametrize("year_id", [None, 2019, 1900, 'all'])
-def test_year_id_risklike(entity, measure, location, year_id):
+@pytest.mark.parametrize("years", [None, 2019, 1900, 'all'])
+def test_year_id_risklike(entity, measure, location, years):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
     if entity_expected_measure_ids & measure_id:
-        check_year_in_data(entity_name, measure_name, location, year_id=year_id)
+        check_year_in_data(entity_name, measure_name, location, years=years)
 
 
 entity_cov = [
@@ -211,9 +211,9 @@ def test_core_covariatelike(entity, measure, location):
 @pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
 @pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
 @pytest.mark.parametrize("location", locations_cov)
-@pytest.mark.parametrize("year_id", [None, 2019, 1900, 'all'])
-def test_year_id_covariatelike(entity, measure, location, year_id):
-    check_year_in_data(entity, measure, location, year_id=year_id)
+@pytest.mark.parametrize("years", [None, 2019, 1900, 'all'])
+def test_year_id_covariatelike(entity, measure, location, years):
+    check_year_in_data(entity, measure, location, years=years)
 
 
 @pytest.mark.parametrize(
@@ -231,11 +231,11 @@ def test_core_population(measures):
 
 
 @pytest.mark.parametrize("measure", ["structure", "demographic_dimensions"])
-@pytest.mark.parametrize("year_id", [None, 2019, 1900, 'all'])
-def test_year_id_population(measure, year_id):
+@pytest.mark.parametrize("years", [None, 2019, 1900, 'all'])
+def test_year_id_population(measure, years):
     pop = ModelableEntity("ignored", "population", None)
     location = utility_data.get_location_id("India")
-    check_year_in_data(pop, measure, location, year_id=year_id)
+    check_year_in_data(pop, measure, location, years=years)
 
 
 # TODO - Underlying problem with gbd access. Remove when corrected.
