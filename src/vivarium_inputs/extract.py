@@ -108,13 +108,13 @@ def extract_data(
         year_id = gbd.get_most_recent_year()
     elif years == "all":
         year_id = None
-    # check that we're using a valid year if years is int
-    if years:
+    else:
         estimation_years = gbd.get_estimation_years()
         if years not in estimation_years:
             raise ValueError(
-                f"years must be in {estimation_years}. You provided {year_id}."
+                f"years must be in {estimation_years}. You provided {years}."
             )
+        year_id = years
 
     try:
         main_extractor, additional_extractors = extractors[measure]

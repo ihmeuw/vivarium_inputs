@@ -74,7 +74,7 @@ def get_demographic_dimensions(
     else:
         if years and years not in estimation_years:
             raise ValueError(
-                f"year must be in {estimation_years}. You provided {years}."
+                f"years must be in {estimation_years}. You provided {years}."
             )
         years = [years] if years else [gbd.get_most_recent_year()]
     sexes = [SEXES["Male"], SEXES["Female"]]
