@@ -26,6 +26,7 @@ def fail_expected(entity_name, measure_name, location):
 
 
 def check_year_in_data(entity, measure, location, years):
+    # years expected to be 1900, 2019, None, or "all"
     if years != 1900:
         df = core.get_data(entity, measure, location, years=years)
         if years == None:
