@@ -32,8 +32,10 @@ def check_year_in_data(entity, measure, location, year_id):
             assert set(df.reset_index()["year_id"]) == set([2021])
         elif year_id == 2019:
             assert set(df.reset_index()["year_id"]) == set([2019])
+        elif year_id == 'all':
+            assert set(df.reset_index()["year_id"]) == set(range(1990,2023))
     else: # assumes that year_id is out of range if not 2019
-        with pytest.raises(ValueError, match="year_id must be one of"):
+        with pytest.raises(ValueError, match="year_id must be in"):
             df = core.get_data(entity, measure, location, year_id=year_id)
 
 
@@ -118,7 +120,7 @@ def test_core_causelike(entity, measure, location):
 @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations)
-@pytest.mark.parametrize("year_id", [None, 2019, 1900])
+@pytest.mark.parametrize("year_id", [None, 2019, 1900, 'all'])
 def test_year_id_causelike(entity, measure, location, year_id):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
@@ -184,7 +186,7 @@ def test_core_risklike(entity, measure, location):
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
-@pytest.mark.parametrize("year_id", [None, 2019, 1900])
+@pytest.mark.parametrize("year_id", [None, 2019, 1900, 'all'])
 def test_year_id_risklike(entity, measure, location, year_id):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
@@ -209,7 +211,7 @@ def test_core_covariatelike(entity, measure, location):
 @pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
 @pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
 @pytest.mark.parametrize("location", locations_cov)
-@pytest.mark.parametrize("year_id", [None, 2019, 1900])
+@pytest.mark.parametrize("year_id", [None, 2019, 1900, 'all'])
 def test_year_id_covariatelike(entity, measure, location, year_id):
     check_year_in_data(entity, measure, location, year_id=year_id)
 
@@ -229,7 +231,7 @@ def test_core_population(measures):
 
 
 @pytest.mark.parametrize("measure", ["structure", "demographic_dimensions"])
-@pytest.mark.parametrize("year_id", [None, 2019, 1900])
+@pytest.mark.parametrize("year_id", [None, 2019, 1900, 'all'])
 def test_year_id_population(measure, year_id):
     pop = ModelableEntity("ignored", "population", None)
     location = utility_data.get_location_id("India")
@@ -279,11 +281,3 @@ def test_pulling_multiple_locations(entity, measure, locations):
     tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
     df = tester(entity_name, measure_name, locations)
 
-
-def test_year_args_compatibility():
-    with pytest.raises(
-        ValueError, match="cannot provide a year ID and set get_all_years to True"
-    ):
-        df = core.get_data(
-            causes.measles, "incidence_rate", "India", get_all_years=True, year_id=2021
-        )
