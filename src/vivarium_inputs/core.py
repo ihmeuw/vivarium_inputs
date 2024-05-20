@@ -698,8 +698,6 @@ def get_demographic_dimensions(
     location_id: List[int],
     years: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
-    demographic_dimensions = utility_data.get_demographic_dimensions(
-        location_id, years=years
-    )
+    demographic_dimensions = utility_data.get_demographic_dimensions(location_id, years=years)
     demographic_dimensions = utilities.normalize(demographic_dimensions)
     return demographic_dimensions

@@ -111,9 +111,7 @@ def extract_data(
     else:
         estimation_years = gbd.get_estimation_years()
         if years not in estimation_years:
-            raise ValueError(
-                f"years must be in {estimation_years}. You provided {years}."
-            )
+            raise ValueError(f"years must be in {estimation_years}. You provided {years}.")
         year_id = years
 
     try:
