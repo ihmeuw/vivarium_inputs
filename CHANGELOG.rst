@@ -1,4 +1,4 @@
-**5.0.0 - 05/08/24**
+**5.0.0 - 05/20/24**
 
  - Pull GBD 2021 data
  - Add functionality to pull multiple locationals at once
