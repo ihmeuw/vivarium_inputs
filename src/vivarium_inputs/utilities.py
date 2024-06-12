@@ -22,8 +22,8 @@ INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure", "p
 ##################################################
 
 
-def scrub_gbd_conventions(data):
-    data = scrub_location(data)
+def scrub_gbd_conventions(data, location):
+    data = scrub_location(data, location)
     data = scrub_sex(data)
     data = scrub_age(data)
     data = scrub_year(data)
@@ -31,17 +31,26 @@ def scrub_gbd_conventions(data):
     return data
 
 
-def scrub_location(data: pd.DataFrame) -> pd.DataFrame:
+def scrub_location(data: pd.DataFrame, location: Union[int, List[str]]) -> pd.DataFrame:
     # Coerce location names
-    location_ids = data.index.get_level_values("location_id").unique()
-    locations = [utility_data.get_location_name(loc_id) for loc_id in location_ids]
+    if not isinstance(location, list):
+        location = [location]
+    location_names = [
+        utility_data.get_location_name(loc) if isinstance(loc, int) else loc
+        for loc in location
+    ]
+    location_dict = {
+        utility_data.get_location_id(loc_name): loc_name for loc_name in location_names
+    }
 
     if "location_id" in data.index.names:
-        data.index = data.index.rename("location", level="location_id").set_levels(
-            locations, level="location"
-        )
+        index_cols = data.index.names
+        data = data.reset_index()
+        data["location_id"] = data["location_id"].map(location_dict)
+        data = data.set_index(index_cols)
+        data.index = data.index.rename("location", level="location_id")
     else:
-        data = pd.concat([data], keys=locations, names=["location"])
+        data = pd.concat([data], keys=list(location_names), names=["location"])
     return data
 
 
