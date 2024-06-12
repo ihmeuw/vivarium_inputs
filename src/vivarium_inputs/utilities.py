@@ -22,8 +22,8 @@ INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure", "p
 ##################################################
 
 
-def scrub_gbd_conventions(data, location):
-    data = scrub_location(data, location)
+def scrub_gbd_conventions(data):
+    data = scrub_location(data)
     data = scrub_sex(data)
     data = scrub_age(data)
     data = scrub_year(data)
@@ -31,18 +31,14 @@ def scrub_gbd_conventions(data, location):
     return data
 
 
-def scrub_location(data: pd.DataFrame, location: Union[int, List[str]]) -> pd.DataFrame:
+def scrub_location(data: pd.DataFrame) -> pd.DataFrame:
     # Coerce location names
-    if not isinstance(location, list):
-        location = [location]
-    location = [
-        utility_data.get_location_name(loc) if isinstance(loc, int) else loc
-        for loc in location
-    ]
+    location_ids = data.index.get_level_values("location_id").unique()
+    locations = [utility_data.get_location_name(loc_id) for loc_id in location_ids]
 
     if "location_id" in data.index.names:
         data.index = data.index.rename("location", level="location_id").set_levels(
-            location, level="location"
+            locations, level="location"
         )
     else:
         data = pd.concat([data], keys=location, names=["location"])
