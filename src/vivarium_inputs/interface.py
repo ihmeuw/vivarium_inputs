@@ -63,7 +63,7 @@ def get_measure(
 
     """
     data = core.get_data(entity, measure, location, years)
-    data = utilities.scrub_gbd_conventions(data, location)
+    data = utilities.scrub_gbd_conventions(data)
     validation.validate_for_simulation(data, entity, measure, location, years)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
