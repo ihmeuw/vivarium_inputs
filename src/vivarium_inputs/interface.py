@@ -96,7 +96,7 @@ def get_population_structure(
     """
     pop = Population()
     data = core.get_data(pop, "structure", location, years)
-    data = utilities.scrub_gbd_conventions(data, location)
+    data = utilities.scrub_gbd_conventions(data)
     validation.validate_for_simulation(data, pop, "structure", location, years)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
@@ -170,7 +170,7 @@ def get_demographic_dimensions(
     """
     pop = Population()
     data = core.get_data(pop, "demographic_dimensions", location, years=years)
-    data = utilities.scrub_gbd_conventions(data, location)
+    data = utilities.scrub_gbd_conventions(data)
     validation.validate_for_simulation(data, pop, "demographic_dimensions", location, years)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
