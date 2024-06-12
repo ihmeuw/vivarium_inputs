@@ -41,7 +41,7 @@ def scrub_location(data: pd.DataFrame) -> pd.DataFrame:
             locations, level="location"
         )
     else:
-        data = pd.concat([data], keys=location, names=["location"])
+        data = pd.concat([data], keys=locations, names=["location"])
     return data
 
 
