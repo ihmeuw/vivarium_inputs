@@ -74,14 +74,14 @@ def get_demographic_dimensions(
     elif years == "all":
         years = range(min(estimation_years), max(estimation_years) + 1)
     elif not isinstance(years, list):
-        years = [years]      
+        years = [years]
 
     not_estimated_years = [y for y in years if y not in estimation_years]
     if len(not_estimated_years) > 0:
         raise ValueError(
             f"years must be in {estimation_years}. You provided {not_estimated_years}."
         )
-            
+
     sexes = [SEXES["Male"], SEXES["Female"]]
     location = [location_id] if isinstance(location_id, int) else location_id
     values = [location, sexes, ages, years]
