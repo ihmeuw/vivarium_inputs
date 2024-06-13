@@ -104,14 +104,19 @@ def extract_data(
     validation.check_metadata(entity, measure)
 
     # update year_id value for gbd calls
-    if years == None:  # default to most recent year
+    if years is None:  # default to most recent year
         year_id = gbd.get_most_recent_year()
     elif years == "all":
         year_id = None
     else:
         estimation_years = gbd.get_estimation_years()
-        if years not in estimation_years:
-            raise ValueError(f"years must be in {estimation_years}. You provided {years}.")
+        if not isinstance(years, list):
+            years = [years]
+        not_estimated_years = [y for y in years if y not in estimation_years]
+        if len(not_estimated_years) > 0:
+            raise ValueError(
+                f"years must be in {estimation_years}. You provided {not_estimated_years}."
+            )
         year_id = years
 
     try:
