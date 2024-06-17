@@ -1,3 +1,7 @@
+**5.0.1 - 06/13/24**
+
+ - Fix bug in scrub_location
+
 **5.0.0 - 05/20/24**
 
  - Pull GBD 2021 data

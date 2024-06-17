@@ -486,6 +486,12 @@ def get_relative_risk(
     location_id: List[int],
     years: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
+    if len(set(location_id)) > 1:
+        raise ValueError(
+            "Extracting relative risk only supports one location at a time. Provided "
+            f"{location_id}."
+        )
+
     data = extract.extract_data(
         entity,
         "relative_risk",
@@ -523,6 +529,8 @@ def get_relative_risk(
         data.loc[tmrel_mask, DRAW_COLUMNS] = data.loc[tmrel_mask, DRAW_COLUMNS].mask(
             np.isclose(data.loc[tmrel_mask, DRAW_COLUMNS], 1.0), 1.0
         )
+    # Coerce location_id from global to requested location - location_id is list of length 1
+    data["location_id"] = location_id[0]
 
     return data
 
