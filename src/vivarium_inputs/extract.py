@@ -109,15 +109,13 @@ def extract_data(
     elif years == "all":
         year_id = None
     else:
+        year_id = years if isinstance(years, list) else [years]
         estimation_years = gbd.get_estimation_years()
-        if not isinstance(years, list):
-            years = [years]
-        not_estimated_years = [y for y in years if y not in estimation_years]
-        if len(not_estimated_years) > 0:
+        not_estimated_years = set(year_id).difference(estimation_years)
+        if not_estimated_years:
             raise ValueError(
                 f"years must be in {estimation_years}. You provided {not_estimated_years}."
             )
-        year_id = years
 
     try:
         main_extractor, additional_extractors = extractors[measure]
