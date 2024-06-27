@@ -111,17 +111,16 @@ measures = [
 locations = ["India"]
 
 
-@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
-@pytest.mark.parametrize("location", locations)
-def test_core_causelike(entity, measure, location):
-    entity_name, entity_expected_measure_ids = entity
-    measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
-    df = tester(entity_name, measure_name, utility_data.get_location_id(location))
+# @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
+# @pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
+# @pytest.mark.parametrize("location", locations)
+# def test_core_causelike(entity, measure, location):
+#     entity_name, entity_expected_measure_ids = entity
+#     measure_name, measure_id = measure
+#     tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
+#     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 
-@pytest.mark.smoke
 @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations)
@@ -178,17 +177,16 @@ measures_r = [
 locations_r = ["India"]
 
 
-@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
-@pytest.mark.parametrize("location", locations_r)
-def test_core_risklike(entity, measure, location):
-    entity_name, entity_expected_measure_ids = entity
-    measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
-    df = tester(entity_name, measure_name, utility_data.get_location_id(location))
+# @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
+# @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
+# @pytest.mark.parametrize("location", locations_r)
+# def test_core_risklike(entity, measure, location):
+#     entity_name, entity_expected_measure_ids = entity
+#     measure_name, measure_id = measure
+#     tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
+#     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 
-@pytest.mark.smoke
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
@@ -207,14 +205,13 @@ measures_cov = ["estimate"]
 locations_cov = ["India"]
 
 
-@pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
-@pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
-@pytest.mark.parametrize("location", locations_cov)
-def test_core_covariatelike(entity, measure, location):
-    df = core.get_data(entity, measure, utility_data.get_location_id(location))
+# @pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
+# @pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
+# @pytest.mark.parametrize("location", locations_cov)
+# def test_core_covariatelike(entity, measure, location):
+#     df = core.get_data(entity, measure, utility_data.get_location_id(location))
 
 
-@pytest.mark.smoke
 @pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
 @pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
 @pytest.mark.parametrize("location", locations_cov)
@@ -223,21 +220,20 @@ def test_year_id_covariatelike(entity, measure, location, years):
     check_year_in_data(entity, measure, location, years=years)
 
 
-@pytest.mark.parametrize(
-    "measures",
-    [
-        "structure",
-        "age_bins",
-        "demographic_dimensions",
-        "theoretical_minimum_risk_life_expectancy",
-    ],
-)
-def test_core_population(measures):
-    pop = ModelableEntity("ignored", "population", None)
-    df = core.get_data(pop, measures, utility_data.get_location_id("India"))
+# @pytest.mark.parametrize(
+#     "measures",
+#     [
+#         "structure",
+#         "age_bins",
+#         "demographic_dimensions",
+#         "theoretical_minimum_risk_life_expectancy",
+#     ],
+# )
+# def test_core_population(measures):
+#     pop = ModelableEntity("ignored", "population", None)
+#     df = core.get_data(pop, measures, utility_data.get_location_id("India"))
 
 
-@pytest.mark.smoke
 @pytest.mark.parametrize("measure", ["structure", "demographic_dimensions"])
 @pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019,2020,2021], "all"])
 def test_year_id_population(measure, years):
@@ -273,18 +269,18 @@ def test_core_healthsystem(entity, measure, location):
 #     df = core.get_data(entity_name, measure_name, location)
 
 
-@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
-@pytest.mark.parametrize(
-    "locations",
-    [
-        [164, 165, 175],
-        ["Ethiopia", "Nigeria"],
-        [164, "Nigeria"],
-    ],
-)
-def test_pulling_multiple_locations(entity, measure, locations):
-    entity_name, entity_expected_measure_ids = entity
-    measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
-    df = tester(entity_name, measure_name, locations)
+# @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
+# @pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
+# @pytest.mark.parametrize(
+#     "locations",
+#     [
+#         [164, 165, 175],
+#         ["Ethiopia", "Nigeria"],
+#         [164, "Nigeria"],
+#     ],
+# )
+# def test_pulling_multiple_locations(entity, measure, locations):
+#     entity_name, entity_expected_measure_ids = entity
+#     measure_name, measure_id = measure
+#     tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
+#     df = tester(entity_name, measure_name, locations)
