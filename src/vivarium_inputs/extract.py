@@ -155,7 +155,7 @@ def extract_data(
             for name, extractor in additional_extractors.items()
         }
         if year_id:  # if not pulling all years
-            additional_data["estimation_years"] = [year_id]
+            additional_data["estimation_years"] = [year_id] if not isinstance(year_id, list) else year_id
         validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
     return data
