@@ -121,10 +121,11 @@ def test_core_causelike(entity, measure, location):
     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations)
-@pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019,2020], "all"])
+@pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019,2020,2021], "all"])
 def test_year_id_causelike(entity, measure, location, years):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
@@ -187,10 +188,11 @@ def test_core_risklike(entity, measure, location):
     df = tester(entity_name, measure_name, utility_data.get_location_id(location))
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
-@pytest.mark.parametrize("years", [None, 2019, 1900, "all"])
+@pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019,2020,2021], "all"])
 def test_year_id_risklike(entity, measure, location, years):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
@@ -212,10 +214,11 @@ def test_core_covariatelike(entity, measure, location):
     df = core.get_data(entity, measure, utility_data.get_location_id(location))
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
 @pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
 @pytest.mark.parametrize("location", locations_cov)
-@pytest.mark.parametrize("years", [None, 2019, 1900, "all"])
+@pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019,2020,2021], "all"])
 def test_year_id_covariatelike(entity, measure, location, years):
     check_year_in_data(entity, measure, location, years=years)
 
@@ -234,8 +237,9 @@ def test_core_population(measures):
     df = core.get_data(pop, measures, utility_data.get_location_id("India"))
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("measure", ["structure", "demographic_dimensions"])
-@pytest.mark.parametrize("years", [None, 2019, 1900, "all"])
+@pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019,2020,2021], "all"])
 def test_year_id_population(measure, years):
     pop = ModelableEntity("ignored", "population", None)
     location = utility_data.get_location_id("India")
