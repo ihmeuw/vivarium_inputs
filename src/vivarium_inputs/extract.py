@@ -240,7 +240,15 @@ def extract_disability_weight(
         data.append(loc_data)
     data = pd.concat(data)
     if year_id:  # if not pulling all years
-        data["year_id"] = year_id
+        if isinstance(year_id, list):
+            for year in year_id:
+                all_data = []
+                data_copy = data.copy()
+                data_copy['year_id'] = year
+                all_data.append(data_copy)
+            data = pd.concat(all_data)
+        else:
+            data["year_id"] = year_id
     return data
 
 
