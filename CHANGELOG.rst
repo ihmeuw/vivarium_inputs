@@ -1,3 +1,7 @@
+**5.0.2 - 07/01/24**
+
+ - Fix bug in validation of the year parameter
+
 **5.0.1 - 06/13/24**
 
  - Fix bug in scrub_location

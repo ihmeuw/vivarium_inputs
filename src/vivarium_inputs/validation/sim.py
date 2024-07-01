@@ -158,9 +158,16 @@ def validate_for_simulation(
         raise NotImplementedError()
 
     if years != "all":
-        if years:
+        if isinstance(years, int):
             context_args["years"] = pd.DataFrame(
                 {"year_start": years, "year_end": years + 1}, index=[0]
+            )
+        elif isinstance(years, list):
+            context_args["years"] = pd.DataFrame(
+                {
+                    "year_start": sorted(years),
+                    "year_end": [year + 1 for year in sorted(years)],
+                }
             )
         else:
             most_recent_year = gbd.get_most_recent_year()

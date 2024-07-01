@@ -444,7 +444,8 @@ def get_exposure_distribution_weights(
     data = utilities.normalize(data, fill_value=0, cols_to_fill=DISTRIBUTION_COLUMNS)
     if years != "all":
         if years:
-            data = data.query(f"year_id=={years}")
+            years = [years] if isinstance(years, int) else years
+            data = data.query(f"year_id in {years}")
         else:
             most_recent_year = gbd.get_most_recent_year()
             data = data.query(f"year_id=={most_recent_year}")
