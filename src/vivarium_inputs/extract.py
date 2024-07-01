@@ -155,7 +155,9 @@ def extract_data(
             for name, extractor in additional_extractors.items()
         }
         if year_id:  # if not pulling all years
-            additional_data["estimation_years"] = [year_id] if not isinstance(year_id, list) else year_id
+            additional_data["estimation_years"] = (
+                [year_id] if not isinstance(year_id, list) else year_id
+            )
         validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
     return data
@@ -244,7 +246,7 @@ def extract_disability_weight(
             for year in year_id:
                 all_data = []
                 data_copy = data.copy()
-                data_copy['year_id'] = year
+                data_copy["year_id"] = year
                 all_data.append(data_copy)
             data = pd.concat(all_data)
         else:
