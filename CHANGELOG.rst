@@ -1,4 +1,4 @@
-**5.0.2 - 6/26/24**
+**5.0.2 - 07/01/24**
 
  - Fix bug in validation of the year parameter
 
