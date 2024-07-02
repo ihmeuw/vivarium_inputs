@@ -243,12 +243,13 @@ def extract_disability_weight(
     data = pd.concat(data)
     if year_id:  # if not pulling all years
         if isinstance(year_id, list):
-            for year in year_id:
-                all_data = []
-                data_copy = data.copy()
-                data_copy["year_id"] = year
-                all_data.append(data_copy)
-            data = pd.concat(all_data)
+            # Create a DataFrame from your year_ids
+            year_df = pd.DataFrame({'year_id': year_id})
+            # Perform a cross join by creating a temporary key to merge on
+            data['key'] = 1
+            year_df['key'] = 1
+            # Merge to get the Cartesian product, then drop the key column
+            data = pd.merge(data, year_df, on='key').drop('key', axis=1)
         else:
             data["year_id"] = year_id
     return data
