@@ -104,15 +104,18 @@ def extract_data(
     validation.check_metadata(entity, measure)
 
     # update year_id value for gbd calls
-    if years == None:  # default to most recent year
+    if years is None:  # default to most recent year
         year_id = gbd.get_most_recent_year()
     elif years == "all":
         year_id = None
     else:
+        year_id = years if isinstance(years, list) else [years]
         estimation_years = gbd.get_estimation_years()
-        if years not in estimation_years:
-            raise ValueError(f"years must be in {estimation_years}. You provided {years}.")
-        year_id = years
+        not_estimated_years = set(year_id).difference(estimation_years)
+        if not_estimated_years:
+            raise ValueError(
+                f"years must be in {estimation_years}. You provided {not_estimated_years}."
+            )
 
     try:
         main_extractor, additional_extractors = extractors[measure]
@@ -152,7 +155,9 @@ def extract_data(
             for name, extractor in additional_extractors.items()
         }
         if year_id:  # if not pulling all years
-            additional_data["estimation_years"] = [year_id]
+            additional_data["estimation_years"] = (
+                [year_id] if not isinstance(year_id, list) else year_id
+            )
         validation.validate_raw_data(data, entity, measure, location_id, **additional_data)
 
     return data
@@ -237,7 +242,16 @@ def extract_disability_weight(
         data.append(loc_data)
     data = pd.concat(data)
     if year_id:  # if not pulling all years
-        data["year_id"] = year_id
+        if isinstance(year_id, list):
+            # Create a DataFrame from your year_ids
+            year_df = pd.DataFrame({"year_id": year_id})
+            # Perform a cross join by creating a temporary key to merge on
+            data["key"] = 1
+            year_df["key"] = 1
+            # Merge to get the Cartesian product, then drop the key column
+            data = pd.merge(data, year_df, on="key").drop("key", axis=1)
+        else:
+            data["year_id"] = year_id
     return data
 
 
