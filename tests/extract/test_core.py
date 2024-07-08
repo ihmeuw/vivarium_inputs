@@ -167,11 +167,10 @@ entity_r = [
     ),
 ]
 measures_r = [
-    ("exposure", MRFlag.EXPOSURE),
-    ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
-    ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
-    # TODO: Add back in with Mic-4936
-    # ("relative_risk", MRFlag.RELATIVE_RISK),
+    #("exposure", MRFlag.EXPOSURE),
+    #("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
+    #("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
+    ("relative_risk", MRFlag.RELATIVE_RISK),
     ("population_attributable_fraction", MRFlag.PAF),
 ]
 locations_r = ["India"]
@@ -256,17 +255,6 @@ locations_health_system = ["India"]
 @pytest.mark.parametrize("location", locations_health_system)
 def test_core_healthsystem(entity, measure, location):
     df = core.get_data(entity, measure, utility_data.get_location_id(location))
-
-
-# TODO: Remove with Mic-4936
-# @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
-# @pytest.mark.parametrize("location", locations_r)
-# @pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
-# def test_relative_risk(entity, location):
-#     measure_name = "relative_risk"
-#     measure_id = MRFlag.RELATIVE_RISK
-#     entity_name, entity_expected_measure_ids = entity
-#     df = core.get_data(entity_name, measure_name, location)
 
 
 @pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
