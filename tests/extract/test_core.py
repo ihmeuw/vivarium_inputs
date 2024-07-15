@@ -208,7 +208,9 @@ def test_year_id_risklike(entity, measure, location, years):
 @pytest.mark.parametrize("location", locations_r)
 def test_slow_year_id_risklike(location):
     # high systolic blood pressure
-    check_year_in_data(risk_factors.high_systolic_blood_pressure, 'relative_risk', location, years='all')
+    check_year_in_data(
+        risk_factors.high_systolic_blood_pressure, "relative_risk", location, years="all"
+    )
 
 
 entity_cov = [
