@@ -204,7 +204,7 @@ def test_year_id_risklike(entity, measure, location, years):
         check_year_in_data(entity_name, measure_name, location, years=years)
 
 
-@pytest.mark.slow # this test requires a lot of time and memory to run
+@pytest.mark.slow  # this test requires a lot of time and memory to run
 @pytest.mark.parametrize("location", locations_r)
 def test_slow_year_id_risklike(location):
     check_year_in_data(
