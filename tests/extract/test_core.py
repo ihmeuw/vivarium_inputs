@@ -167,11 +167,11 @@ entity_r = [
     ),
 ]
 measures_r = [
-    #("exposure", MRFlag.EXPOSURE),
-    #("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
-    #("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
+    ("exposure", MRFlag.EXPOSURE),
+    ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
+    ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
     ("relative_risk", MRFlag.RELATIVE_RISK),
-    #("population_attributable_fraction", MRFlag.PAF),
+    ("population_attributable_fraction", MRFlag.PAF),
 ]
 locations_r = ["India"]
 
@@ -200,7 +200,7 @@ def test_year_id_risklike(entity, measure, location, years):
         and measure[0] == "relative_risk"
         and years == "all"
     ):
-        test_year_id_risklike.is_slow = True
+        pytest.skip(reason="need --runslow option to run")
     if entity_expected_measure_ids & measure_id:
         check_year_in_data(entity_name, measure_name, location, years=years)
 
