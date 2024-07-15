@@ -189,8 +189,7 @@ def test_core_risklike(entity, measure, location):
 @pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", locations_r)
-#@pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019, 2020, 2021], "all"])
-@pytest.mark.parametrize("years", [None, 'all'])
+@pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019, 2020, 2021], "all"])
 def test_year_id_risklike(entity, measure, location, years):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
@@ -203,6 +202,13 @@ def test_year_id_risklike(entity, measure, location, years):
         pytest.skip(reason="need --runslow option to run")
     if entity_expected_measure_ids & measure_id:
         check_year_in_data(entity_name, measure_name, location, years=years)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize("location", locations_r)
+def test_slow_year_id_risklike(location):
+    # high systolic blood pressure
+    check_year_in_data(risk_factors.high_systolic_blood_pressure, 'relative_risk', location, years='all')
 
 
 entity_cov = [
