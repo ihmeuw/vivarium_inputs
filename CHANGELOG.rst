@@ -1,3 +1,7 @@
+**5.0.3 - 07/12/24**
+
+ - Fix bug in processing year ID of disability weight
+
 **5.0.2 - 07/01/24**
 
  - Fix bug in validation of the year parameter
