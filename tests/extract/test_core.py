@@ -195,7 +195,11 @@ def test_year_id_risklike(entity, measure, location, years):
     entity_name, entity_expected_measure_ids = entity
     measure_name, measure_id = measure
     # exposure-parametrized RRs for all years requires a lot of time and memory to process
-    if entity[0].name =='high_systolic_blood_pressure' and measure[0] == 'relative_risk' and years=='all':
+    if (
+        entity[0].name == "high_systolic_blood_pressure"
+        and measure[0] == "relative_risk"
+        and years == "all"
+    ):
         test_year_id_risklike.is_slow = True
     if entity_expected_measure_ids & measure_id:
         check_year_in_data(entity_name, measure_name, location, years=years)
