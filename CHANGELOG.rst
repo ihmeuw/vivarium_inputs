@@ -1,3 +1,7 @@
+**5.0.4 - 07/16/24**
+
+ - Fix bug in processing locations when pulling disability weights
+
 **5.0.3 - 07/12/24**
 
  - Fix bug in processing year ID of disability weight
@@ -13,7 +17,7 @@
 **5.0.0 - 05/20/24**
 
  - Pull GBD 2021 data
- - Add functionality to pull multiple locationals at once
+ - Add functionality to pull multiple locations at once
 
 **4.1.4 - 01/11/24**
 
