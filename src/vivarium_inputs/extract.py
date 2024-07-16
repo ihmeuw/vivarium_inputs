@@ -240,9 +240,8 @@ def extract_disability_weight(
             data["key"] = 1
             year_df["key"] = 1
             # Merge to get the Cartesian product, then drop the key column
-            data = pd.merge(
-                data.drop("year_id", axis=1, errors="ignore"), year_df, on="key"
-            ).drop("key", axis=1)
+            data = data.drop("year_id", axis=1) if "year_id" in data.columns else data
+            data = pd.merge(data, year_df, on="key").drop("key", axis=1)
         else:
             data["year_id"] = year_id
     return data
