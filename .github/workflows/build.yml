@@ -51,13 +51,6 @@ jobs:
           else
             echo "upstream_vivarium_exist=false" >> $GITHUB_ENV
           fi
-      - name: check for upstream vivarium_public_health
-        run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium_public_health.git ${branch_name} == "0"; then
-            echo "upstream_vivarium_public_health_exist=true" >> $GITHUB_ENV
-          else
-            echo "upstream_vivarium_public_health_exist=false" >> $GITHUB_ENV
-          fi
       - name: check for upstream gbd_mapping
         run: |
           if git ls-remote --exit-code --heads https://github.com/ihmeuw/gbd_mapping.git ${branch_name} == "0"; then
@@ -74,27 +67,20 @@ jobs:
         if: env.upstream_vivarium_exist == 'true'
         run: |
           echo "Cloning vivarium upstream branch: ${branch_name}"
+          pushd ..
           git clone --branch=${branch_name} https://github.com/ihmeuw/vivarium.git
           pushd vivarium
           pip install .
-          popd
-      - name: Retrieve upstream vivarium_public_health
-        if: env.upstream_vivarium_public_health_exist == 'true'
-        run: |
-          echo "Cloning vivarium_public_health upstream branch: ${branch_name}"
-          git clone --branch=${branch_name} https://github.com/ihmeuw/vivarium_public_health.git
-          pushd vivarium_public_health
-          pip install .
-          popd
+          popd && popd
       - name: Retrieve upstream gbd_mapping
         if: env.upstream_gbd_mapping_exist == 'true'
         run: |
           echo "Cloning upstream gbd_mapping branch: ${branch_name}"
+          pushd ..
           git clone --branch=${branch_name} https://github.com/ihmeuw/gbd_mapping.git
           pushd gbd_mapping
           pip install .
-          popd
-
+          popd && popd
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip        
