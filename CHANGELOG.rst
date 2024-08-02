@@ -1,3 +1,7 @@
+**5.0.4 - 08/02/24**
+
+ - Fix CI bug when installing upstream dependencies
+
 **5.0.4 - 07/16/24**
 
  - Fix bug in processing locations when pulling disability weights
