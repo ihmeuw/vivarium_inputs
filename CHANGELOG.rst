@@ -1,4 +1,4 @@
-**5.0.4 - 08/02/24**
+**5.0.5 - 08/02/24**
 
  - Fix CI bug when installing upstream dependencies
 
