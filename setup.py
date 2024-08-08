@@ -30,8 +30,11 @@ if __name__ == "__main__":
 
     data_requires = ["vivarium-gbd-access>=4.0.0, <5.0.0", "core-maths"]
 
+    lint_requirements = ["black==22.3.0", "isort"]
+
     test_requirements = [
         "pytest",
+        "pytest-cov",
         "pytest-mock",
         "hypothesis",
     ]
@@ -57,7 +60,7 @@ if __name__ == "__main__":
             "docs": doc_requirements,
             "test": test_requirements,
             "data": data_requires,
-            "dev": doc_requirements + test_requirements + data_requires,
+            "dev": doc_requirements + test_requirements + data_requires + lint_requirements,
         },
         zip_safe=False,
         use_scm_version={
