@@ -58,7 +58,8 @@ install: # Install setuptools, install this package in editable mode
 	pip install -e .[DEV]
 	pip install git+https://github.com/ihmeuw/vivarium@${GIT_BRANCH}
 	pip install git+https://github.com/ihmeuw/gbd_mapping@${GIT_BRANCH}
-	pip install git+https://stash.ihme.washington.edu/scm/sims/vivarium_gbd_access@${GIT_BRANCH}
+	# TODO: We run into permission issues trying to clone vivarium_gbd_access
+	# pip install git+https://stash.ihme.washington.edu/scm/sims/vivarium_gbd_access@${GIT_BRANCH}
 
 
 
