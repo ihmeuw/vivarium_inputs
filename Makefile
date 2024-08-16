@@ -56,6 +56,20 @@ build-env: # Make a new conda environment
 install: # Install setuptools, install this package in editable mode
 	pip install --upgrade pip setuptools
 	pip install -e .[DEV]
+	@echo "Checking if the vivarium repository has the branch $(GIT_BRANCH)..."
+	@$(eval BRANCH_EXISTS=$(shell curl -s https://api.github.com/repos/ihmeuw/vivarium/branches | grep -q '"name": "$(GIT_BRANCH)"' && echo "yes" || echo "no"))
+	@if [ "$(BRANCH_EXISTS)" = "yes" ]; then \
+		pip install git+https://github.com/ihmeuw/vivarium@${GIT_BRANCH}; \
+	fi
+	@echo "Checking if the gbd_mapping repository has the branch $(GIT_BRANCH)..."
+	@$(eval BRANCH_EXISTS=$(shell curl -s https://api.github.com/repos/ihmeuw/gbd_mapping/branches | grep -q '"name": "$(GIT_BRANCH)"' && echo "yes" || echo "no"))
+	@if [ "$(BRANCH_EXISTS)" = "yes" ]; then \
+		pip install git+https://github.com/ihmeuw/gbd_mapping@${GIT_BRANCH}; \
+	fi
+	# TODO: We run into permission issues trying to clone vivarium_gbd_access
+	# pip install git+https://stash.ihme.washington.edu/scm/sims/vivarium_gbd_access@${GIT_BRANCH}
+
+
 
 format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and import sorter
 	black $(LOCATIONS)
