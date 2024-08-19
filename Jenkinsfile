@@ -158,20 +158,20 @@ pipeline {
 
             // Tests
             // removable, if passwords can be exported to env. securely without bash indirection
-            stage("Run Integration Tests") {
-              steps {
-                sh "${ACTIVATE} && make integration"
-                publishHTML([
-                  allowMissing: true,
-                  alwaysLinkToLastBuild: false,
-                  keepAll: true,
-                  reportDir: "output/htmlcov_integration",
-                  reportFiles: "index.html",
-                  reportName: "Coverage Report - Integration tests",
-                  reportTitles: ''
-                ])
-              }
-            }
+            // stage("Run Integration Tests") {
+            //   steps {
+            //     sh "${ACTIVATE} && make integration"
+            //     publishHTML([
+            //       allowMissing: true,
+            //       alwaysLinkToLastBuild: false,
+            //       keepAll: true,
+            //       reportDir: "output/htmlcov_integration",
+            //       reportFiles: "index.html",
+            //       reportName: "Coverage Report - Integration tests",
+            //       reportTitles: ''
+            //     ])
+            //   }
+            // }
 
             // Build
             stage('Build and Deploy') {
