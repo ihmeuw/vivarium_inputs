@@ -1,3 +1,7 @@
+**5.0.6 - 08/21/24**
+
+ - Use script to install dependencies in CI
+
 **5.0.5 - 08/02/24**
 
  - Fix CI bug when installing upstream dependencies
