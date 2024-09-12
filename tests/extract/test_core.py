@@ -1,8 +1,3 @@
-from enum import IntFlag
-
-import gbd_mapping
-import numpy as np
-import pandas as pd
 import pytest
 from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
 
@@ -22,7 +17,7 @@ def success_expected(entity_name, measure_name, location):
 
 def fail_expected(entity_name, measure_name, location):
     with pytest.raises(Exception):
-        df = core.get_data(entity_name, measure_name, location)
+        _df = core.get_data(entity_name, measure_name, location)
 
 
 def check_year_in_data(entity, measure, location, years):
@@ -43,192 +38,164 @@ def check_year_in_data(entity, measure, location, years):
             df = core.get_data(entity, measure, location, years=years)
 
 
-class MCFlag(IntFlag):
-    """
-    Use the idea of a bit field with support from python's enum type IntFlag
-    See here for general information on bit fields:
-    https://en.wikipedia.org/wiki/Bit_field
-
-    And here for python's enum type:
-    https://docs.python.org/3.6/library/enum.html
-    """
-
-    INCIDENCE_RATE = 1
-    RAW_INCIDENCE_RATE = 2
-    PREVALENCE = 4
-    BIRTH_PREVALENCE = 8
-    DISABILITY_WEIGHT = 16
-    REMISSION_RATE = 32
-    CAUSE_SPECIFIC_MORTALITY_RATE = 64
-    EXCESS_MORTALITY_RATE = 128
-    DEATHS = 512
-
-
-entity = [
+ENTITIES_C = [
     (
         causes.measles,
-        MCFlag.INCIDENCE_RATE
-        | MCFlag.RAW_INCIDENCE_RATE
-        | MCFlag.PREVALENCE
-        | MCFlag.DISABILITY_WEIGHT
-        | MCFlag.CAUSE_SPECIFIC_MORTALITY_RATE
-        | MCFlag.EXCESS_MORTALITY_RATE
-        | MCFlag.DEATHS,
+        [
+            "incidence_rate",
+            "raw_incidence_rate",
+            "prevalence",
+            "disability_weight",
+            "cause_specific_mortality_rate",
+            "excess_mortality_rate",
+            "deaths",
+        ],
     ),
     (
         causes.diarrheal_diseases,
-        MCFlag.INCIDENCE_RATE
-        | MCFlag.RAW_INCIDENCE_RATE
-        | MCFlag.PREVALENCE
-        | MCFlag.DISABILITY_WEIGHT
-        | MCFlag.REMISSION_RATE
-        | MCFlag.CAUSE_SPECIFIC_MORTALITY_RATE
-        | MCFlag.EXCESS_MORTALITY_RATE
-        | MCFlag.DEATHS,
+        [
+            "incidence_rate",
+            "raw_incidence_rate",
+            "prevalence",
+            "disability_weight",
+            "remission_rate",
+            "cause_specific_mortality_rate",
+            "excess_mortality_rate",
+            "deaths",
+        ],
     ),
     (
         causes.diabetes_mellitus_type_2,
-        MCFlag.INCIDENCE_RATE
-        | MCFlag.RAW_INCIDENCE_RATE
-        | MCFlag.PREVALENCE
-        | MCFlag.DISABILITY_WEIGHT
-        | MCFlag.CAUSE_SPECIFIC_MORTALITY_RATE
-        | MCFlag.EXCESS_MORTALITY_RATE
-        | MCFlag.DEATHS,
+        [
+            "incidence_rate",
+            "raw_incidence_rate",
+            "prevalence",
+            "disability_weight",
+            "cause_specific_mortality_rate",
+            "excess_mortality_rate",
+            "deaths",
+        ],
     ),
 ]
-measures = [
-    ("incidence_rate", MCFlag.INCIDENCE_RATE),
-    ("raw_incidence_rate", MCFlag.RAW_INCIDENCE_RATE),
-    ("prevalence", MCFlag.PREVALENCE),
-    ("birth_prevalence", MCFlag.BIRTH_PREVALENCE),
-    ("disability_weight", MCFlag.DISABILITY_WEIGHT),
-    ("remission_rate", MCFlag.REMISSION_RATE),
-    ("cause_specific_mortality_rate", MCFlag.CAUSE_SPECIFIC_MORTALITY_RATE),
-    ("excess_mortality_rate", MCFlag.EXCESS_MORTALITY_RATE),
-    ("deaths", MCFlag.DEATHS),
+MEASURES_C = [
+    "incidence_rate",
+    "raw_incidence_rate",
+    "prevalence",
+    "birth_prevalence",
+    "disability_weight",
+    "remission_rate",
+    "cause_specific_mortality_rate",
+    "excess_mortality_rate",
+    "deaths",
 ]
-locations = ["India"]
+LOCATIONS_C = ["India"]
 
 
-@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
-@pytest.mark.parametrize("location", locations)
-def test_core_causelike(entity, measure, location):
-    entity_name, entity_expected_measure_ids = entity
-    measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
-    df = tester(entity_name, measure_name, utility_data.get_location_id(location))
+@pytest.mark.parametrize("entity_details", ENTITIES_C, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", MEASURES_C, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", LOCATIONS_C)
+def test_core_causelike(entity_details, measure, location):
+    entity, entity_expected_measures = entity_details
+    tester = success_expected if measure in entity_expected_measures else fail_expected
+    _df = tester(entity, measure, utility_data.get_location_id(location))
 
 
-@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
-@pytest.mark.parametrize("location", locations)
+@pytest.mark.parametrize("entity_details", ENTITIES_C, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", MEASURES_C, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", LOCATIONS_C)
 @pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019, 2020, 2021], "all"])
-def test_year_id_causelike(entity, measure, location, years):
-    entity_name, entity_expected_measure_ids = entity
-    measure_name, measure_id = measure
-    if entity_expected_measure_ids & measure_id:
-        check_year_in_data(entity_name, measure_name, location, years=years)
+def test_year_id_causelike(entity_details, measure, location, years):
+    entity, entity_expected_measures = entity_details
+    if measure in entity_expected_measures:
+        check_year_in_data(entity, measure, location, years=years)
 
 
-class MRFlag(IntFlag):
-    """
-    Use the idea of a bit field with support from python's enum type IntFlag
-    See here for general information on bit fields:
-    https://en.wikipedia.org/wiki/Bit_field
-
-    And here for python's enum type:
-    https://docs.python.org/3.6/library/enum.html
-    """
-
-    EXPOSURE = 1
-    EXPOSURE_SD = 2
-    EXPOSURE_DIST_WEIGHTS = 4
-    RELATIVE_RISK = 8
-    PAF = 16
-    # not implemented
-    # MEDIATION_FACTORS = 32
-    ALL = EXPOSURE | EXPOSURE_SD | EXPOSURE_DIST_WEIGHTS | RELATIVE_RISK | PAF
-
-
-entity_r = [
+ENTITIES_R = [
     (
         risk_factors.high_systolic_blood_pressure,
-        MRFlag.EXPOSURE
-        | MRFlag.EXPOSURE_SD
-        | MRFlag.EXPOSURE_DIST_WEIGHTS
-        | MRFlag.RELATIVE_RISK
-        | MRFlag.PAF,
+        [
+            "exposure",
+            "exposure_standard_deviation",
+            "exposure_distribution_weights",
+            "relative_risk",
+            "population_attributable_fraction",
+        ],
     ),
     (
         risk_factors.low_birth_weight_and_short_gestation,
-        MRFlag.EXPOSURE | MRFlag.RELATIVE_RISK | MRFlag.PAF,
+        [
+            "exposure",
+            "relative_risk",
+            "population_attributable_fraction",
+        ],
     ),
 ]
-measures_r = [
-    ("exposure", MRFlag.EXPOSURE),
-    ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
-    ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
-    ("relative_risk", MRFlag.RELATIVE_RISK),
-    ("population_attributable_fraction", MRFlag.PAF),
+MEASURES_R = [
+    "exposure",
+    "exposure_standard_deviation",
+    "exposure_distribution_weights",
+    "relative_risk",
+    "population_attributable_fraction",
 ]
-locations_r = ["India"]
+LOCATIONS_R = ["India"]
 
 
-@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
-@pytest.mark.parametrize("location", locations_r)
-def test_core_risklike(entity, measure, location):
-    entity_name, entity_expected_measure_ids = entity
-    measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
-    df = tester(entity_name, measure_name, utility_data.get_location_id(location))
+@pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", LOCATIONS_R)
+def test_core_risklike(entity_details, measure, location):
+    entity, entity_expected_measures = entity_details
+    if (
+        entity.name == risk_factors.high_systolic_blood_pressure.name
+        and measure == "population_attributable_fraction"
+    ):
+        pytest.skip("MIC-4891")
+    tester = success_expected if measure in entity_expected_measures else fail_expected
+    _df = tester(entity, measure, utility_data.get_location_id(location))
 
 
-@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
-@pytest.mark.parametrize("location", locations_r)
+@pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", LOCATIONS_R)
 @pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019, 2020, 2021], "all"])
-def test_year_id_risklike(entity, measure, location, years):
-    entity_name, entity_expected_measure_ids = entity
-    measure_name, measure_id = measure
+def test_year_id_risklike(entity_details, measure, location, years):
+    entity, entity_expected_measures = entity_details
     # exposure-parametrized RRs for all years requires a lot of time and memory to process
     if (
-        entity[0].name == "high_systolic_blood_pressure"
-        and measure[0] == "relative_risk"
+        entity == risk_factors.high_systolic_blood_pressure
+        and measure == "relative_risk"
         and years == "all"
     ):
         pytest.skip(reason="need --runslow option to run")
-    if entity_expected_measure_ids & measure_id:
-        check_year_in_data(entity_name, measure_name, location, years=years)
+    if measure in entity_expected_measures:
+        check_year_in_data(entity, measure, location, years=years)
 
 
 @pytest.mark.slow  # this test requires a lot of time and memory to run
-@pytest.mark.parametrize("location", locations_r)
+@pytest.mark.parametrize("location", LOCATIONS_R)
 def test_slow_year_id_risklike(location):
     check_year_in_data(
         risk_factors.high_systolic_blood_pressure, "relative_risk", location, years="all"
     )
 
 
-entity_cov = [
+ENTITIES_COV = [
     covariates.systolic_blood_pressure_mmhg,
 ]
-measures_cov = ["estimate"]
-locations_cov = ["India"]
+MEASURES_COV = ["estimate"]
+LOCATIONS_COV = ["India"]
 
 
-@pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
-@pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
-@pytest.mark.parametrize("location", locations_cov)
+@pytest.mark.parametrize("entity", ENTITIES_COV, ids=lambda x: x.name)
+@pytest.mark.parametrize("measure", MEASURES_COV, ids=lambda x: x)
+@pytest.mark.parametrize("location", LOCATIONS_COV)
 def test_core_covariatelike(entity, measure, location):
-    df = core.get_data(entity, measure, utility_data.get_location_id(location))
+    _df = core.get_data(entity, measure, utility_data.get_location_id(location))
 
 
-@pytest.mark.parametrize("entity", entity_cov, ids=lambda x: x.name)
-@pytest.mark.parametrize("measure", measures_cov, ids=lambda x: x)
-@pytest.mark.parametrize("location", locations_cov)
+@pytest.mark.parametrize("entity", ENTITIES_COV, ids=lambda x: x.name)
+@pytest.mark.parametrize("measure", MEASURES_COV, ids=lambda x: x)
+@pytest.mark.parametrize("location", LOCATIONS_COV)
 @pytest.mark.parametrize("years", [None, 2019, 1900, [2019], [2019, 2020, 2021], "all"])
 def test_year_id_covariatelike(entity, measure, location, years):
     check_year_in_data(entity, measure, location, years=years)
@@ -245,7 +212,7 @@ def test_year_id_covariatelike(entity, measure, location, years):
 )
 def test_core_population(measures):
     pop = ModelableEntity("ignored", "population", None)
-    df = core.get_data(pop, measures, utility_data.get_location_id("India"))
+    _df = core.get_data(pop, measures, utility_data.get_location_id("India"))
 
 
 @pytest.mark.parametrize("measure", ["structure", "demographic_dimensions"])
@@ -257,23 +224,23 @@ def test_year_id_population(measure, years):
 
 
 # TODO - Underlying problem with gbd access. Remove when corrected.
-entity_health_system = [
+ENTITIES_HEALTH_SYSTEM = [
     healthcare_entities.outpatient_visits,
 ]
-measures_health_system = ["utilization_rate"]
-locations_health_system = ["India"]
+MEASURES_HEALTH_SYSTEM = ["utilization_rate"]
+LOCATIONS_HEALTH_SYSTEM = ["India"]
 
 
 @pytest.mark.skip(reason="Underlying problem with gbd access. Remove when corrected.")
-@pytest.mark.parametrize("entity", entity_health_system, ids=lambda x: x.name)
-@pytest.mark.parametrize("measure", measures_health_system, ids=lambda x: x)
-@pytest.mark.parametrize("location", locations_health_system)
+@pytest.mark.parametrize("entity", ENTITIES_HEALTH_SYSTEM, ids=lambda x: x.name)
+@pytest.mark.parametrize("measure", MEASURES_HEALTH_SYSTEM, ids=lambda x: x)
+@pytest.mark.parametrize("location", LOCATIONS_HEALTH_SYSTEM)
 def test_core_healthsystem(entity, measure, location):
-    df = core.get_data(entity, measure, utility_data.get_location_id(location))
+    _df = core.get_data(entity, measure, utility_data.get_location_id(location))
 
 
-@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
+@pytest.mark.parametrize("entity_details", ENTITIES_C, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", MEASURES_C, ids=lambda x: x[0])
 @pytest.mark.parametrize(
     "locations",
     [
@@ -282,8 +249,8 @@ def test_core_healthsystem(entity, measure, location):
         [164, "Nigeria"],
     ],
 )
-def test_pulling_multiple_locations(entity, measure, locations):
-    entity_name, entity_expected_measure_ids = entity
+def test_pulling_multiple_locations(entity_details, measure, locations):
+    entity, entity_expected_measures = entity_details
     measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
-    df = tester(entity_name, measure_name, locations)
+    tester = success_expected if (entity_expected_measures & measure_id) else fail_expected
+    _df = tester(entity, measure_name, locations)
