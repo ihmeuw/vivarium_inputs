@@ -1,4 +1,5 @@
 """Access to vivarium simulation input data."""
+
 from typing import List, Optional, Union
 
 import pandas as pd
@@ -15,30 +16,26 @@ def get_measure(
     location: Union[int, str, List[Union[int, str]]],
     years: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
-    """Pull GBD data for measure and entity and prep for simulation input,
-    including scrubbing all GBD conventions to replace IDs with meaningful
-    values or ranges and expanding over all demographic dimensions. To pull data
-    using this function, please have at least 50GB of memory available.
+    """Pull GBD data for measure and entity and prep for simulation input.
+
+    Includes scrubbing all GBD conventions to replace IDs with meaningful
+    values or ranges and expanding over all demographic dimensions.
+
+    To pull data using this function, please have at least 50GB of memory available.
 
     Available measures:
-
         For entity kind 'sequela':
             incidence_rate, prevalence, birth_prevalence, disability_weight
-
         For entity kind 'cause':
             incidence_rate, prevalence, birth_prevalence, disability_weight,
             remission_rate, cause_specific_mortality_rate, excess_mortality_rate
-
         For entity kind 'risk_factor':
             exposure, exposure_standard_deviation, exposure_distribution_weights,
             relative_risk, population_attributable_fraction, mediation_factors
-
         For entity kind 'etiology':
             population_attributable_fraction
-
         For entity kind 'alternative_risk_factor':
             exposure, exposure_standard_deviation, exposure_distribution_weights
-
         For entity kind 'covariate':
             estimate
 
@@ -50,17 +47,15 @@ def get_measure(
         Measure for which to pull data, should be a measure available for the
         kind of entity which `entity` is.
     location
-        Location for which to pull data. This can be a location id as an int, the location name
-        as a string, or a list of these two data types.
+        Location for which to pull data. This can be a location id as an int,
+        the location name as a string, or a list of these two data types.
     years
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data. Defaults to None.
 
     Returns
     -------
-    pandas.DataFrame
         Dataframe standardized to the format expected by `vivarium` simulations.
-
     """
     data = core.get_data(entity, measure, location, years)
     data = utilities.scrub_gbd_conventions(data, location)
@@ -89,7 +84,6 @@ def get_population_structure(
 
     Returns
     -------
-    pandas.DataFrame
         Dataframe of population data for `location`, standardized to the format
         expected by `vivarium` simulations.
 

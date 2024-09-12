@@ -31,8 +31,10 @@ def extract_data(
     validate: bool = True,
     years: Optional[Union[int, str, List[int]]] = None,
 ) -> Union[pd.Series, pd.DataFrame]:
-    """Check metadata for the requested entity-measure pair. Pull raw data from
-    GBD. The only filtering that occurs is by applicable measure id, metric id,
+    """Pull raw data from GBD.
+
+    Check metadata for the requested entity-measure pair.
+    The only filtering that occurs is by applicable measure id, metric id,
     or to most detailed causes where relevant. If validate is turned on, will
     also pull any additional data needed for raw validation and call raw
     validation on the extracted data.
@@ -56,7 +58,7 @@ def extract_data(
 
     Returns
     -------
-    Data for the entity-measure pair and specific location requested.
+        Data for the entity-measure pair and specific location requested.
 
     Raises
     ------
@@ -174,6 +176,7 @@ def extract_prevalence(
         entity_type=entity.kind,
         year_id=year_id,
     )
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Prevalence"]]
     return data
 
@@ -189,6 +192,7 @@ def extract_incidence_rate(
         entity_type=entity.kind,
         year_id=year_id,
     )
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Incidence rate"]]
     return data
 
@@ -204,6 +208,7 @@ def extract_birth_prevalence(
         entity_type=entity.kind,
         year_id=year_id,
     )
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Incidence rate"]]
     return data
 
@@ -214,6 +219,7 @@ def extract_remission_rate(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id=year_id)
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Remission rate"]]
     return data
 
@@ -229,6 +235,7 @@ def extract_disability_weight(
         "all",
         location_id,
     )
+    breakpoint()
     data = disability_weights.loc[
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
     ]
@@ -253,6 +260,7 @@ def extract_deaths(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, year_id=year_id)
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Deaths"]]
     return data
 
@@ -264,6 +272,7 @@ def extract_exposure(
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
         data = gbd.get_exposure(entity.gbd_id, location_id, year_id=year_id)
+        breakpoint()
         if entity.gbd_id == 341:
             data = process_kidney_dysfunction_exposure(data)
         allowable_measures = [
@@ -282,6 +291,7 @@ def extract_exposure(
 
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data("exposure", entity.kind, entity.name, location_id)
+        breakpoint()
 
     return data
 
@@ -295,14 +305,17 @@ def extract_exposure_standard_deviation(
         data = gbd.get_modelable_entity_draws(
             OTHER_MEID[entity.name], location_id, year_id=year_id
         )
+        breakpoint()
     elif entity.kind == "risk_factor":
         data = gbd.get_exposure_standard_deviation(
             entity.gbd_id, location_id, year_id=year_id
         )
+        breakpoint()
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data(
             "exposure_standard_deviation", entity.kind, entity.name, location_id
         )
+        breakpoint()
     return data
 
 
@@ -314,6 +327,7 @@ def extract_exposure_distribution_weights(
     data = gbd.get_auxiliary_data(
         "exposure_distribution_weights", entity.kind, entity.name, location_id
     )
+    # FIXME: expected draw data but it's just different distribution results?
     return data
 
 
@@ -323,6 +337,7 @@ def extract_relative_risk(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id=year_id)
+    breakpoint()
     # TODO: [MIC-4891] Process new relative risk data format properly
     if not data["exposure"].isna().all():
         raise DataAbnormalError(
@@ -343,6 +358,7 @@ def extract_population_attributable_fraction(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_paf(entity.gbd_id, location_id, year_id=year_id)
+    # FIXME: support means
     data = data[data.metric_id == METRICS["Percent"]]
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
@@ -368,11 +384,13 @@ def extract_estimate(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id, year_id=year_id)
+    breakpoint()
     return data
 
 
 def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
     data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
+    breakpoint()
     return data
 
 
@@ -382,6 +400,7 @@ def extract_structure(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_population(location_id, year_id=year_id)
+    breakpoint()
     return data
 
 
@@ -391,4 +410,5 @@ def extract_theoretical_minimum_risk_life_expectancy(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
+    breakpoint()
     return data
