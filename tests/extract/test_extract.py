@@ -1,8 +1,3 @@
-from enum import IntFlag
-
-import gbd_mapping
-import numpy as np
-import pandas as pd
 import pytest
 from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
 
@@ -24,135 +19,83 @@ def success_expected(entity_name, measure_name, location):
 
 def fail_expected(entity_name, measure_name, location):
     with pytest.raises(Exception):
-        df = extract.extract_data(entity_name, measure_name, location, validate=VALIDATE_FLAG)
+        _df = extract.extract_data(
+            entity_name, measure_name, location, validate=VALIDATE_FLAG
+        )
 
 
-class MCFlag(IntFlag):
-    """
-    Use the idea of a bit field with support from python's enum type IntFlag
-    See here for general information on bit fields:
-    https://en.wikipedia.org/wiki/Bit_field
-
-    And here for python's enum type:
-    https://docs.python.org/3.6/library/enum.html
-    """
-
-    INCIDENCE_RATE = 1
-    PREVALENCE = 2
-    BIRTH_PREVALENCE = 4
-    DISABILITY_WEIGHT = 8
-    REMISSION_RATE = 16
-    DEATHS = 32
-    ALL = (
-        INCIDENCE_RATE
-        | PREVALENCE
-        | BIRTH_PREVALENCE
-        | DISABILITY_WEIGHT
-        | REMISSION_RATE
-        | DEATHS
-    )
-
-
-entity = [
+ENTITIES_C = [
     (
         causes.hiv_aids,
-        MCFlag.INCIDENCE_RATE
-        | MCFlag.PREVALENCE
-        | MCFlag.BIRTH_PREVALENCE
-        | MCFlag.REMISSION_RATE
-        | MCFlag.DEATHS,
+        ["incidence_rate", "prevalence", "birth_prevalence", "remission_rate", "deaths"],
     ),
     (
         causes.neural_tube_defects,
-        MCFlag.INCIDENCE_RATE | MCFlag.PREVALENCE | MCFlag.BIRTH_PREVALENCE | MCFlag.DEATHS,
+        ["incidence_rate", "prevalence", "birth_prevalence", "deaths"],
     ),
 ]
-measures = [
-    ("incidence_rate", MCFlag.INCIDENCE_RATE),
-    ("prevalence", MCFlag.PREVALENCE),
-    ("birth_prevalence", MCFlag.BIRTH_PREVALENCE),
-    ("disability_weight", MCFlag.DISABILITY_WEIGHT),
-    ("remission_rate", MCFlag.REMISSION_RATE),
-    ("deaths", MCFlag.DEATHS),
+MEASURES_C = [
+    "incidence_rate",
+    "prevalence",
+    "birth_prevalence",
+    "disability_weight",
+    "remission_rate",
+    "deaths",
 ]
-locations = ["India"]
+LOCATIONS_C = ["India"]
 
 
-@pytest.mark.parametrize("entity", entity, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures, ids=lambda x: x[0])
-@pytest.mark.parametrize("location", locations)
+@pytest.mark.parametrize("entity", ENTITIES_C, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", MEASURES_C, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", LOCATIONS_C)
 def test_extract_causelike(entity, measure, location):
-    entity_name, entity_expected_measure_ids = entity
-    measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
-    df = tester(entity_name, measure_name, utility_data.get_location_id(location))
+    entity_name, entity_expected_measures = entity
+    tester = success_expected if measure in entity_expected_measures else fail_expected
+    _df = tester(entity_name, measure, utility_data.get_location_id(location))
 
 
-class MRFlag(IntFlag):
-    """
-    Use the idea of a bit field with support from python's enum type IntFlag
-    See here for general information on bit fields:
-    https://en.wikipedia.org/wiki/Bit_field
-
-    And here for python's enum type:
-    https://docs.python.org/3.6/library/enum.html
-    """
-
-    EXPOSURE = 1
-    EXPOSURE_SD = 2
-    EXPOSURE_DIST_WEIGHTS = 4
-    RELATIVE_RISK = 8
-    PAF = 16
-    ETIOLOGY_PAF = 32
-    MEDIATION_FACTORS = 64
-    ALL = (
-        EXPOSURE
-        | EXPOSURE_SD
-        | EXPOSURE_DIST_WEIGHTS
-        | RELATIVE_RISK
-        | PAF
-        | ETIOLOGY_PAF
-        | MEDIATION_FACTORS
-    )
-
-
-entity_r = [
+ENTITIES_R = [
     (
         risk_factors.high_fasting_plasma_glucose,
-        MRFlag.EXPOSURE
-        | MRFlag.EXPOSURE_SD
-        | MRFlag.EXPOSURE_DIST_WEIGHTS
-        | MRFlag.RELATIVE_RISK
-        | MRFlag.PAF
-        | MRFlag.ETIOLOGY_PAF
-        | MRFlag.MEDIATION_FACTORS,
+        [
+            "exposure",
+            "exposure_standard_deviation",
+            "exposure_distribution_weights",
+            "relative_risk",
+            "population_attributable_fraction",
+            "etiology_population_attributable_fraction",
+            "mediation_factors",
+        ],
     ),
     (
         risk_factors.low_birth_weight_and_short_gestation,
-        MRFlag.EXPOSURE | MRFlag.RELATIVE_RISK | MRFlag.PAF | MRFlag.ETIOLOGY_PAF,
+        [
+            "exposure",
+            "relative_risk",
+            "population_attributable_fraction",
+            "etiology_population_attributable_fraction",
+        ],
     ),
 ]
-measures_r = [
-    ("exposure", MRFlag.EXPOSURE),
-    ("exposure_standard_deviation", MRFlag.EXPOSURE_SD),
-    ("exposure_distribution_weights", MRFlag.EXPOSURE_DIST_WEIGHTS),
-    # TODO: Add back in with Mic-4936
-    # ("relative_risk", MRFlag.RELATIVE_RISK),
-    ("population_attributable_fraction", MRFlag.PAF),
-    ("etiology_population_attributable_fraction", MRFlag.ETIOLOGY_PAF),
-    ("mediation_factors", MRFlag.MEDIATION_FACTORS),
+MEASURES_R = [
+    "exposure",
+    "exposure_standard_deviation",
+    "exposure_distribution_weights",
+    # "relative_risk",  # TODO: Add back in with Mic-4936
+    "population_attributable_fraction",
+    "etiology_population_attributable_fraction",
+    "mediation_factors",
 ]
-locations_r = ["India"]
+LOCATIONS_R = ["India"]
 
 
-@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", measures_r, ids=lambda x: x[0])
-@pytest.mark.parametrize("location", locations_r)
+@pytest.mark.parametrize("entity", ENTITIES_R, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
+@pytest.mark.parametrize("location", LOCATIONS_R)
 def test_extract_risklike(entity, measure, location):
-    entity_name, entity_expected_measure_ids = entity
-    measure_name, measure_id = measure
-    tester = success_expected if (entity_expected_measure_ids & measure_id) else fail_expected
-    df = tester(entity_name, measure_name, utility_data.get_location_id(location))
+    entity_name, entity_expected_measures = entity
+    tester = success_expected if measure in entity_expected_measures else fail_expected
+    _df = tester(entity_name, measure, utility_data.get_location_id(location))
 
 
 entity_cov = [
@@ -166,7 +109,7 @@ locations_cov = ["India"]
 @pytest.mark.parametrize("measure", measures_cov)
 @pytest.mark.parametrize("location", locations_cov)
 def test_extract_covariatelike(entity, measure, location):
-    df = extract.extract_data(
+    _df = extract.extract_data(
         entity, measure, utility_data.get_location_id(location), validate=VALIDATE_FLAG
     )
 
@@ -176,17 +119,16 @@ def test_extract_covariatelike(entity, measure, location):
 )
 def test_extract_population(measures):
     pop = ModelableEntity("ignored", "population", None)
-    df = extract.extract_data(
+    _df = extract.extract_data(
         pop, measures, utility_data.get_location_id("India"), validate=VALIDATE_FLAG
     )
 
 
 # TODO: Remove with Mic-4936
-@pytest.mark.parametrize("entity", entity_r, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("location", locations_r)
+@pytest.mark.parametrize("entity", ENTITIES_R, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("location", LOCATIONS_R)
 @pytest.mark.xfail(reason="New relative risk data is not set up for processing yet")
 def test_extract_relative_risk(entity, location):
     measure_name = "relative_risk"
-    measure_id = MRFlag.RELATIVE_RISK
-    entity_name, entity_expected_measure_ids = entity
-    df = extract.extract_data(entity_name, measure_name, location)
+    entity_name, _entity_expected_measures = entity
+    _df = extract.extract_data(entity_name, measure_name, location)
