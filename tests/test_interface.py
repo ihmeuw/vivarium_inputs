@@ -27,6 +27,11 @@ CAUSE = causes.hiv_aids
 LOCATION = 163  # India
 YEAR = 2021
 
+SUPPORTED_DATA_TYPES = {
+    "mean": MEAN_COLUMNS,
+    "draw": DRAW_COLUMNS,
+}
+
 
 def get_mocked_estimation_years() -> list[int]:
     """Mocked estimation years for testing."""
