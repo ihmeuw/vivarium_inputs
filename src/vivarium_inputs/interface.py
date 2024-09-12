@@ -1,4 +1,5 @@
 """Access to vivarium simulation input data."""
+
 import pandas as pd
 from gbd_mapping import ModelableEntity
 

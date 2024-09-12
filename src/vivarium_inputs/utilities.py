@@ -391,9 +391,9 @@ def clear_disability_weight_outside_restrictions(
     start, end = get_age_group_ids_by_restriction(cause, "yld")
     ages = get_restriction_age_ids(start, end, age_group_ids)
 
-    data.loc[
-        (~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS
-    ] = fill_value
+    data.loc[(~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS] = (
+        fill_value
+    )
     return data
 
 
@@ -514,7 +514,8 @@ def process_kidney_dysfunction_exposure(
     and an inaccurate cat5 category. cat1, cat2, and cat3 are defined for measure 5 and cat4 for
     measure 18, but we will say they are all from measure 5 (this only makes a difference in validation
     and not within a simulation). There are cat5 values (the residual category) but they are calculated
-    separately for each measure and so are not accurate. We will drop these values and recalculate cat5."""
+    separately for each measure and so are not accurate. We will drop these values and recalculate cat5.
+    """
     # drop cat5 data
     data = data.loc[data["parameter"] != "cat5"]
     # re-define remaining data as measure ID 5
