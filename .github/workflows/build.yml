@@ -39,71 +39,33 @@ jobs:
           else
             echo "branch_name=${GITHUB_REF_NAME}" >> $GITHUB_ENV
           fi
-      - name: Conda info
+      - name: Update pip
         run: |
-          conda info
-          conda list
-          echo branch_name = ${branch_name}
-      - name: check for upstream vivarium
+          python -m pip install --upgrade pip
+      - name: Install dependencies
         run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium.git ${branch_name} == "0"; then
-            echo "upstream_vivarium_exist=true" >> $GITHUB_ENV
-          else
-            echo "upstream_vivarium_exist=false" >> $GITHUB_ENV
-          fi
-      - name: check for upstream vivarium_public_health
+          pip install .[docs,test]
+      - name: check for dependency branches and install if needed
         run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium_public_health.git ${branch_name} == "0"; then
-            echo "upstream_vivarium_public_health_exist=true" >> $GITHUB_ENV
-          else
-            echo "upstream_vivarium_public_health_exist=false" >> $GITHUB_ENV
-          fi
-      - name: check for upstream gbd_mapping
-        run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/gbd_mapping.git ${branch_name} == "0"; then
-            echo "upstream_gbd_mapping_exist=true" >> $GITHUB_ENV
-          else
-            echo "upstream_gbd_mapping_exist=false" >> $GITHUB_ENV
-          fi
-
+          cd ..
+          git clone https://github.com/ihmeuw/vivarium_build_utils.git
+          cd vivarium_inputs
+          echo "Contents of install_dependency_branch.sh"
+          echo "----------------------------------------"
+          cat ../vivarium_build_utils/install_dependency_branch.sh
+          echo ""
+          echo "----------------------------------------"
+          sh ../vivarium_build_utils/install_dependency_branch.sh layered_config_tree ${branch_name} github
+          sh ../vivarium_build_utils/install_dependency_branch.sh vivarium ${branch_name} github
+          sh ../vivarium_build_utils/install_dependency_branch.sh gbd_mapping ${branch_name} github
       - name: print environment values
         run: |
           cat $GITHUB_ENV
-
-      - name: Retrieve upstream vivarium
-        if: env.upstream_vivarium_exist == 'true'
-        run: |
-          echo "Cloning vivarium upstream branch: ${branch_name}"
-          git clone --branch=${branch_name} https://github.com/ihmeuw/vivarium.git
-          pushd vivarium
-          pip install .
-          popd
-      - name: Retrieve upstream vivarium_public_health
-        if: env.upstream_vivarium_public_health_exist == 'true'
-        run: |
-          echo "Cloning vivarium_public_health upstream branch: ${branch_name}"
-          git clone --branch=${branch_name} https://github.com/ihmeuw/vivarium_public_health.git
-          pushd vivarium_public_health
-          pip install .
-          popd
-      - name: Retrieve upstream gbd_mapping
-        if: env.upstream_gbd_mapping_exist == 'true'
-        run: |
-          echo "Cloning upstream gbd_mapping branch: ${branch_name}"
-          git clone --branch=${branch_name} https://github.com/ihmeuw/gbd_mapping.git
-          pushd gbd_mapping
-          pip install .
-          popd
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip        
-          pip install .[docs,test]
       - name: Lint
         run: |
           pip install black==22.3.0 isort
-          black . --check --diff
           isort . --check --verbose --only-modified --diff
+          black . --check --diff
       - name: Test
         run: |
           if github.event_name == 'schedule'; then

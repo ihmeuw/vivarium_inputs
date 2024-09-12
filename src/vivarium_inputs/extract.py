@@ -230,18 +230,9 @@ def extract_disability_weight(
         "all",
         location_id,
     )
-    disability_data = disability_weights.loc[
+    data = disability_weights.loc[
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
     ]
-    # Update location_id to match original location id
-    # Note: The flat file we read data from in gbd.get_auxiliary_data only has location_id 1
-    # because disability weights are the same for all locations
-    data = []
-    for loc_id in location_id:
-        loc_data = disability_data.copy()
-        loc_data["location_id"] = loc_id
-        data.append(loc_data)
-    data = pd.concat(data)
     if year_id:  # if not pulling all years
         if isinstance(year_id, list):
             # Create a DataFrame from your year_ids
@@ -250,9 +241,8 @@ def extract_disability_weight(
             data["key"] = 1
             year_df["key"] = 1
             # Merge to get the Cartesian product, then drop the key column
-            data = pd.merge(data.drop("year_id", axis=1), year_df, on="key").drop(
-                "key", axis=1
-            )
+            data = data.drop("year_id", axis=1) if "year_id" in data.columns else data
+            data = pd.merge(data, year_df, on="key").drop("key", axis=1)
         else:
             data["year_id"] = year_id
     return data
