@@ -51,22 +51,24 @@ def test_normalize_sex_no_sex_id():
         ("mean", False),
         ("draw", False),
         ("foo", True),
-        (["mean", "draw"], False),
+        (["mean", "draw"], True),  # temporarily; not implemented
         (["mean", "draw", "foo"], True),
         ({"not": "a list"}, True),
     ],
 )
-def test_process_data_type(data_type, should_raise):
+def test_validate_data_type(data_type, should_raise):
     if should_raise:
         if not isinstance(data_type, (list, str)):
             match = re.escape(
                 f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
             )
+        elif isinstance(data_type, list):
+            match = "Lists of data types are not yet supported."
         else:
             match = re.escape(
                 f"Data type(s) {set(['foo'])} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
             )
-        with pytest.raises(ValueError, match=match):
+        with pytest.raises(utilities.DataTypeNotImplementedError, match=match):
             utilities.validate_data_type(data_type)
     else:
         utilities.validate_data_type(data_type)

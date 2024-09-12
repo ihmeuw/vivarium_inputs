@@ -28,23 +28,13 @@ from vivarium_inputs.utilities import (
 )
 
 
-class DataTypeNotImplementedError(NotImplementedError):
-    """Raised when a data_type is requested that is not implemented for a particular data source."""
-
-    def __init__(self, data_type):
-        if isinstance(data_type, list):
-            message = "A list of requested data types is not yet supported."
-        elif data_type == "mean":
-            message = "Getting mean values is not yet supported."
-        super().__init__(message)
-
-
 def extract_data(
     entity: ModelableEntity,
     measure: str,
     location_id: list[int],
     years: int | str | list[int] | None,
     data_type: str | list[str],
+    value_columns: list[str],
     validate: bool = True,
 ) -> pd.Series | pd.DataFrame:
     """Pull raw data from GBD.
@@ -70,6 +60,8 @@ def extract_data(
         Data type for which to extract data. Supported values include 'mean' for
         getting mean data and 'draw' for getting draw-level data. Can also be a list
         of values to get multiple data types.
+    value_columns
+        List of value columns to be pulled.
     validate
         Flag indicating whether additional data needed for raw validation
         should be extracted and whether raw validation should be performed.
@@ -169,8 +161,11 @@ def extract_data(
             additional_data["estimation_years"] = (
                 [year_id] if not isinstance(year_id, list) else year_id
             )
+
+        if isinstance(data_type, list):
+            raise NotImplementedError("Validation for multiple data types not implemented.")
         validation.validate_raw_data(
-            data, entity, measure, location_id, data_type, **additional_data
+            data, entity, measure, location_id, value_columns, **additional_data
         )
 
     return data
@@ -218,6 +213,7 @@ def extract_prevalence(
     year_id: int | str | list[int] | None,
     data_type: str | list[str],
 ) -> pd.DataFrame:
+
     data = gbd.get_incidence_prevalence(
         entity_id=entity.gbd_id,
         location_id=location_id,
@@ -235,9 +231,6 @@ def extract_incidence_rate(
     year_id: int | str | list[int] | None,
     data_type: str | list[str],
 ) -> pd.DataFrame:
-
-    if isinstance(data_type, list) or data_type == "mean":
-        raise DataTypeNotImplementedError(data_type)
 
     data = gbd.get_incidence_prevalence(
         entity_id=entity.gbd_id,
@@ -383,12 +376,6 @@ def extract_relative_risk(
     if not data["exposure"].isna().any() and data["parameter"].isna().all():
         data["parameter"] = data["exposure"]
         data["exposure"] = np.nan
-    data = filter_to_most_detailed_causes(data)
-    if entity.gbd_id == 136:  # non-exclusive breastfeeding
-        data = data.loc[data["age_group_id"].isin([3, 388])]
-    elif entity.gbd_id == 137:  # discontinued breastfeeding
-        data = data.loc[data["age_group_id"].isin([238, 389])]
-    return data
 
 
 def extract_population_attributable_fraction(
