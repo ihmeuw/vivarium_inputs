@@ -612,9 +612,9 @@ def get_population_attributable_fraction(
             data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()
 
     data = utilities.convert_affected_entity(data, "cause_id")
-    data.loc[
-        data["measure_id"] == MEASURES["YLLs"], "affected_measure"
-    ] = "excess_mortality_rate"
+    data.loc[data["measure_id"] == MEASURES["YLLs"], "affected_measure"] = (
+        "excess_mortality_rate"
+    )
     data.loc[data["measure_id"] == MEASURES["YLDs"], "affected_measure"] = "incidence_rate"
     data = (
         data.groupby(["affected_entity", "affected_measure"])
