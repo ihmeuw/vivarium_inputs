@@ -42,6 +42,7 @@ if __name__ == "__main__":
     doc_requirements = [
         "sphinx>=7.0, <8.0",
         "sphinx-rtd-theme",
+        "sphinx-autodoc-typehints",
     ]
 
     setup(
