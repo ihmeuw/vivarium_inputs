@@ -324,7 +324,6 @@ def extract_relative_risk(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id=year_id)
-    # TODO: new validations?
     if not data["exposure"].isna().any() and data["parameter"].isna().all():
         data["parameter"] = data["exposure"]
         data["exposure"] = np.nan

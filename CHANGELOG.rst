@@ -1,3 +1,7 @@
+**5.0.7 - 09/13/24**
+
+ - Process exposure parametrized relative risks
+
 **5.0.6 - 08/21/24**
 
  - Use script to install dependencies in CI
