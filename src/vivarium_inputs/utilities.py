@@ -22,7 +22,9 @@ INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure", "p
 ##################################################
 
 
-def scrub_gbd_conventions(data, location):
+def scrub_gbd_conventions(
+    data: pd.DataFrame, location: Union[int, str, List[Union[int, str]]]
+) -> pd.DataFrame:
     data = scrub_location(data, location)
     data = scrub_sex(data)
     data = scrub_age(data)
@@ -31,7 +33,9 @@ def scrub_gbd_conventions(data, location):
     return data
 
 
-def scrub_location(data: pd.DataFrame, location: Union[int, List[str]]) -> pd.DataFrame:
+def scrub_location(
+    data: pd.DataFrame, location: Union[int, str, List[Union[int, str]]]
+) -> pd.DataFrame:
     # Coerce location names
     if not isinstance(location, list):
         location = [location]
@@ -54,7 +58,7 @@ def scrub_location(data: pd.DataFrame, location: Union[int, List[str]]) -> pd.Da
     return data
 
 
-def scrub_sex(data):
+def scrub_sex(data: pd.DataFrame) -> pd.DataFrame:
     if "sex_id" in data.index.names:
         levels = list(
             data.index.levels[data.index.names.index("sex_id")].map(
@@ -65,7 +69,7 @@ def scrub_sex(data):
     return data
 
 
-def scrub_age(data):
+def scrub_age(data: pd.DataFrame) -> pd.DataFrame:
     if "age_group_id" in data.index.names:
         age_bins = utility_data.get_age_bins().set_index("age_group_id")
         id_levels = data.index.levels[data.index.names.index("age_group_id")]
@@ -79,7 +83,7 @@ def scrub_age(data):
     return data
 
 
-def scrub_year(data):
+def scrub_year(data: pd.DataFrame) -> pd.DataFrame:
     if "year_id" in data.index.names:
         id_levels = data.index.levels[data.index.names.index("year_id")]
         interval_levels = [
@@ -91,7 +95,7 @@ def scrub_year(data):
     return data
 
 
-def scrub_affected_entity(data):
+def scrub_affected_entity(data: pd.DataFrame) -> pd.DataFrame:
     CAUSE_BY_ID = {c.gbd_id: c for c in causes}
     # RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
     if "cause_id" in data.columns:
@@ -102,7 +106,7 @@ def scrub_affected_entity(data):
     return data
 
 
-def set_age_interval(data):
+def set_age_interval(data: pd.DataFrame) -> pd.DataFrame:
     if "age_start" in data.index.names:
         bins = zip(
             data.index.get_level_values("age_start"), data.index.get_level_values("age_end")
@@ -233,16 +237,15 @@ def get_ordered_index_cols(data_columns: Union[pd.Index, set]):
 
 
 def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS) -> pd.DataFrame:
-    if isinstance(data, pd.DataFrame) and not isinstance(
-        data.index, pd.MultiIndex
-    ):  # push all non-val cols into index
+    if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):
+        # push all non-val cols into index
         data = data.set_index(get_ordered_index_cols(data.columns.difference(value_cols)))
-    elif not data.columns.difference(
-        value_cols
-    ).empty:  # we missed some columns that need to be in index
+    elif not data.columns.difference(value_cols).empty:
+        # we missed some columns that need to be in index
         data = data.set_index(list(data.columns.difference(value_cols)), append=True)
         data = data.reorder_levels(get_ordered_index_cols(set(data.index.names)))
-    else:  # we've already set the full index
+    else:
+        # we've already set the full index
         pass
     return data
 
@@ -332,10 +335,9 @@ def filter_data_by_restrictions(
     which_age: str,
     age_group_ids: List[int],
 ) -> pd.DataFrame:
-    """
-    For the given data and restrictions, it applies age/sex restrictions and
-    filter out the data outside of the range. Age restrictions can be applied
-    in 4 different ways:
+    """Apply age/sex restrictions and filter out the data outside of the range.
+
+    Age restrictions can be applied in 4 different ways:
     - yld
     - yll
     - narrowest(inner) range of yll and yld
@@ -354,10 +356,8 @@ def filter_data_by_restrictions(
 
     Returns
     -------
-    pandas.DataFrame
         DataFrame which is filtered out any data outside of age/sex
         restriction ranges.
-
     """
     restrictions = entity.restrictions
     if restrictions.male_only and not restrictions.female_only:
@@ -487,7 +487,24 @@ def get_exposure_and_restriction_ages(exposure: pd.DataFrame, entity: RiskFactor
     return valid_age_groups
 
 
-def split_interval(data, interval_column, split_column_prefix):
+def split_interval(
+    data: pd.DataFrame, interval_column: str, split_column_prefix: str
+) -> pd.DataFrame:
+    """Split a DataFrame with an interval index into a MultiIndex with start and end columns.
+
+    Parameters
+    ----------
+    data
+        DataFrame with an interval index.
+    interval_column
+        Name of the interval column.
+    split_column_prefix
+        Prefix for the start and end columns.
+
+    Returns
+    -------
+        DataFrame with a MultiIndex containing start and end columns.
+    """
     if isinstance(data, pd.DataFrame) and interval_column in data.index.names:
         data[f"{split_column_prefix}_end"] = [
             x.right for x in data.index.get_level_values(interval_column)
