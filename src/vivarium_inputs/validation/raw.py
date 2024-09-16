@@ -84,8 +84,7 @@ def do_nothing(ignore_1, ignore_2):
 
 
 def check_metadata(entity: ModelableEntity, measure: str) -> None:
-    """Check metadata associated with the given entity and measure for any
-    relevant warnings or errors.
+    """Check metadata associated with the given entity and measure.
 
     Check that the 'exists' flag in metadata corresponding to `measure` is
     True and that the corresponding 'in_range' flag is also True. Warn if
@@ -109,7 +108,6 @@ def check_metadata(entity: ModelableEntity, measure: str) -> None:
     InvalidQueryError
         If a measure is requested for an entity for which that measure is not
         expected to exist.
-
     """
     metadata_checkers = {
         "sequela": do_nothing,
@@ -135,8 +133,7 @@ def validate_raw_data(
     location_id: Union[int, List[int]],
     **additional_data,
 ) -> None:
-    """Validate data conforms to the format expected from raw GBD data, that all
-    values are within expected ranges,
+    """Validate data conforms expected format and ranges.
 
     The following checks are performed for each entity-measure pair (some may
     be excluded for certain pairs if not applicable):
@@ -175,10 +172,8 @@ def validate_raw_data(
     DataAbnormalError
         If critical verifications (e.g., data exist, expected columns are all
         present) fail.
-
     InvalidQueryError
         If an unknown measure is requested for which no validator exists.
-
     """
     validators = {
         # Cause-like measures
@@ -249,10 +244,8 @@ def check_cause_metadata(entity: Cause, measure: str) -> None:
     NotImplementedError
         If the `entity` is YLL only or the YLL age range is broader than the
         YLD age range.
-
     InvalidQueryError
         If the 'exists' metadata flag on `entity` for `measure` is None.
-
     """
     if entity.restrictions.yll_only:
         raise NotImplementedError(
