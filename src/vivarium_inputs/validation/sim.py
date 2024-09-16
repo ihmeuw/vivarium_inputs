@@ -84,11 +84,13 @@ def validate_for_simulation(
     entity: ModelableEntity,
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
-    years: Optional[int] = None,
+    years: Optional[Union[int, list[int]]] = None,
     **context_args,
 ) -> None:
-    """Validate data conforms to the format that is expected by the simulation
-    and conforms to normal expectations for a measure.
+    """Validate data for use in a simulation.
+
+    Checks that the data conforms to the format that is expected by the simulation
+    as well as conforms to normal expectations for a measure.
 
     Data coming in to the simulation is expected to have a full demographic set
     in most instances, as well non-missing, non-infinite, reasonable data. This
@@ -120,7 +122,7 @@ def validate_for_simulation(
         Flag indicating whether to validate that we have all years.
         Otherwise, validate that data has most recent year.
         Defaults to False.
-    context_args
+    **context_args
         Any data or information needed to construct the SimulationContext used
         by the individual entity-measure validator functions.
 
@@ -256,8 +258,7 @@ def validate_incidence_rate(
 def validate_prevalence(
     data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext
 ) -> None:
-    """Check the standard set of validations on simulation-prepped prevalence
-    data.
+    """Check the standard set of validations on simulation-prepped prevalence data.
 
     Parameters
     ----------
@@ -274,7 +275,6 @@ def validate_prevalence(
         If any standard columns are incorrectly named or contain invalid values,
         if yld age or sex restrictions are violated, or data falls outside the
         expected boundary values.
-
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
     validate_expected_index_and_columns(
@@ -1365,7 +1365,6 @@ def validate_expected_index_and_columns(
     DataTransformationError
         If `expected_index_names` doesn't match of `existing_index_names` or
         `expected_cols` does not match `existing_cols`.
-
     """
     to_check = [
         (set(expected_index_names), set(existing_index_names), "index names"),
@@ -1385,8 +1384,9 @@ def validate_expected_index_and_columns(
 def validate_standard_columns(
     data: pd.DataFrame, context: SimulationValidationContext
 ) -> None:
-    """Validate that location, sex, age, year, and value columns in the
-    passed dataframe all have the expected names and values.
+    """Validate that dataframe have expected column names and values.
+
+    The dataframe is expected to have location, sex, age, year, and value columns.
 
     Parameters
     ----------
@@ -1400,7 +1400,6 @@ def validate_standard_columns(
     DataTransformationError
         If any location, sex, age, year, draw, or value columns are incorrectly
         named or contain invalid values.
-
     """
     validate_demographic_columns(data, context)
     validate_value_column(data)
@@ -1553,21 +1552,17 @@ def validate_year_column(data: pd.DataFrame, context: SimulationValidationContex
 
 
 def validate_value_column(data: pd.DataFrame) -> None:
-    """Validate that value columns (i.e., any non-index columns) in the data
-    have no missing values.
+    """Validate that value columns (i.e., any non-index columns) have no missingness.
 
     Parameters
     ----------
     data
         Simulation-prepped data to validate.
-    context
-        Wrapper for additional data used in validation.
 
     Raises
     ------
     DataTransformationError
         If any non-index columns contain any NaN or Inf values.
-
     """
 
     if np.any(np.isnan(data.values)):
