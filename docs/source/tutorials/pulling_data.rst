@@ -28,39 +28,50 @@ calling :func:`vivarium_inputs.interface.get_measure`.
     :local:
     :backlinks: none
 
+.. note::
+
+    The data returned by the interface may occasionally change format as 
+    :mod:`vivarium_inputs` is updated and/or the actual underlying GBD data 
+    changes. Therefore, the examples we provide below may not exactly match 
+    what you see.
 
 Which should I use... get_measure() versus get_raw_data()
-----------------------------------------------------------
-Prefer :func:`vivarium_inputs.interface.get_measure` over
-:func:`vivarium_inputs.interface.get_raw_data`. :func:`vivarium_inputs.interface.get_measure`
-will produce simulation-prepped data. If :func:`vivarium_inputs.interface.get_measure`
+---------------------------------------------------------
+Typically, you should prefer :func:`get_measure <vivarium_inputs.interface.get_measure>` over
+:func:`get_raw_data <vivarium_inputs.interface.get_raw_data>`. 
+:func:`get_measure <vivarium_inputs.interface.get_measure>` will produce 
+simulation-prepped data. If :func:`get_measure <vivarium_inputs.interface.get_measure>`
 fails, or the data it returns doesn't match your expectations, then
-:func:`vivarium_inputs.interface.get_raw_data` might provide some insight
-into what is happening.
+:func:`get_raw_data <vivarium_inputs.interface.get_raw_data>` might provide some 
+insight into what is happening.
 
 Pulling Simulation-Prepped Data
 -------------------------------
 For simulation-prepped data, the interface provides separate methods to pull
-entity-measure data and population structure and life expectancy data. Additionally,
-methods to pull age bin data and demographic dimensions are provided. Simulation-
-prepped data has had GBD IDs replaced with meaningful values or ranges and
-expansion over all demographic dimensions has been performed.  We'll walk
+entity-measure data, population structure, and life expectancy data. Additionally,
+methods to pull age bin data and demographic dimensions are provided. 
+Simulation-prepped data has had GBD IDs replaced with meaningful values or ranges and
+expansion over all demographic dimensions has been performed. We'll walk
 through how to pull data using each of these functions.
 
 Entity-Measure Data
 +++++++++++++++++++
-The interface provides :func:`vivarium_inputs.interface.get_measure` for pulling
-specific measure data for an entity for a single location.
-`entity` should be a :class:`gbd_mapping.base_template.ModelableEntity` (e.g.,
-a cause from ``gbd_mapping``), while `measure` should be a string
-describing the measure for which you want to retrieve data (e.g., 'prevalence'
-or 'relative_risk'). A list of possible measures for each entity
-kind is included in the table below. Finally, `location` should be the string
-location for which you want to pull data (e.g., 'Ethiopia'), in the form used by
-GBD (e.g., 'United States' instead of 'USA').
+The interface provides :func:`get_measure <vivarium_inputs.interface.get_measure>` 
+for pulling location-specific measure data for an entity (e.g. a cause from 
+``gbd_mapping``). The `measure` is the descriptor of the data you want to pull 
+(e.g., 'prevalence' or 'relative_risk') - a list of possible measures for each entity
+type is included in the table below.
 
-To pull simulation-prepped entity-measure data, you must have plenty of available
-memory. Please have at least 50GB on a qlogin.
+.. note::
+
+    To pull simulation-prepped entity-measure data, you must have plenty of 
+    available memory - please request at least 50GB.
+
+.. note::
+
+    The simulation-prepped data returned by :func:`get_measure <vivarium_inputs.interface.get_measure>`
+    has all demographic and year values set as the index with only draw-level
+    data as columns.
 
 For example, to pull prevalence data for diarrheal diseases in Kenya, we would
 do the following:
@@ -75,12 +86,13 @@ do the following:
 
 ::
 
-      draw location     sex        age_start        age_end  year_start  year_end     value
-    0    0    Kenya  Female              0.0       0.019178        1990      1991  0.032557
-    1    0    Kenya  Female              0.0       0.019178        1991      1992  0.031751
-    2    0    Kenya  Female              0.0       0.019178        1992      1993  0.031039
-    3    0    Kenya  Female              0.0       0.019178        1993      1994  0.030458
-    4    0    Kenya  Female              0.0       0.019178        1994      1995  0.030039
+                                                            draw_0  ...  draw_499
+    location sex    age_start age_end  year_start year_end            ...          
+    Kenya    Female 0.000000  0.019178 2021       2022      0.018762  ...  0.018243
+                    0.019178  0.076712 2021       2022      0.041142  ...  0.041379
+                    0.076712  0.500000 2021       2022      0.040640  ...  0.042404
+                    0.500000  1.000000 2021       2022      0.026530  ...  0.029795
+                    1.000000  2.000000 2021       2022      0.011624  ...  0.014232
 
 The following table lists the measures available for each entity kind:
 
@@ -127,8 +139,8 @@ The following table lists the measures available for each entity kind:
 Population Structure Data
 +++++++++++++++++++++++++
 To pull population data for a specific location, :mod:`vivarium_inputs.interface`
-provides :func:`vivarium_inputs.interface.get_population_structure`, which returns
-population data in the input format expected by a simulation.
+provides :func:`get_population_structure <vivarium_inputs.interface.get_population_structure>`, 
+which returns population data in the input format expected by a simulation.
 
 For example, to pull population data for Kenya, we would do the following:
 
@@ -141,17 +153,18 @@ For example, to pull population data for Kenya, we would do the following:
 
 ::
 
-      location     sex        age_start        age_end  year_start  year_end        value
-    0    Kenya  Female              0.0       0.019178        1990      1991  9251.406428
-    1    Kenya  Female              0.0       0.019178        1991      1992  9371.524292
-    2    Kenya  Female              0.0       0.019178        1992      1993  9488.631659
-    3    Kenya  Female              0.0       0.019178        1993      1994  9592.689862
-    4    Kenya  Female              0.0       0.019178        1994      1995  9701.918801
+                                                                    value
+    location sex    age_start age_end  year_start year_end               
+    Kenya    Female 0.000000  0.019178 2021       2022       10995.345135
+                    0.019178  0.076712 2021       2022       32740.129897
+                    0.076712  0.500000 2021       2022      241157.325386
+                    0.500000  1.000000 2021       2022      283195.389282
+                    1.000000  2.000000 2021       2022      575233.481802
 
 Life Expectancy Data
 ++++++++++++++++++++
-To pull life expectancy data, :mod:`vivarium_inputs.interface`
-provides :func:`vivarium_inputs.interface.get_theoretical_minimum_risk_life_expectancy`,
+To pull life expectancy data, :mod:`vivarium_inputs.interface` provides 
+:func:`get_theoretical_minimum_risk_life_expectancy <vivarium_inputs.interface.get_theoretical_minimum_risk_life_expectancy>`,
 which returns life expectancy data in the input format expected by a simulation.
 Because life expectancy is not location specific, the function takes no arguments.
 
@@ -166,66 +179,67 @@ To use:
 
 ::
 
-             age_start        age_end      value
-    0             0.00           0.01  87.885872
-    1             0.01           0.02  87.877086
-    2             0.02           0.03  87.868299
-    3             0.03           0.04  87.859513
-    4             0.04           0.05  87.850727
+                           value
+    age_start age_end           
+    0.00      0.01     89.958040
+    0.01      0.02     89.975474
+    0.02      0.03     89.990990
+    0.03      0.04     89.985077
+    0.04      0.05     89.979164
 
 
 Age Bin Data
 ++++++++++++
 To see what age bins GBD uses that are used in age-specific data, :mod:`vivarium_inputs`
-provides :func:`vivarium_inputs.interface.get_age_bins`, which returns the start,
-end, and name of each GBD age bin expected to appear in age-specific data (with
-the exception of life expectancy, which uses its own age ranges).
+provides :func:`get_age_bins <vivarium_inputs.interface.get_age_bins>`, which returns 
+the start, end, and name of each GBD age bin expected to appear in age-specific data 
+(with the exception of life expectancy, which uses its own age ranges).
 
 .. code-block:: python
 
     from vivarium_inputs import get_age_bins
 
     age_bins = get_age_bins()
-    print(age_bins.head())
+    print(age_bins.reset_index().head())
 
 ::
 
-             age_start        age_end  age_group_name
-    0         0.000000       0.019178  Early Neonatal
-    1         0.019178       0.076712   Late Neonatal
-    2         0.076712       1.000000   Post Neonatal
-    3         1.000000       5.000000          1 to 4
-    4         5.000000      10.000000          5 to 9
+       age_start   age_end   age_group_name
+    0   0.000000  0.019178   Early Neonatal
+    1   0.019178  0.076712    Late Neonatal
+    2   0.076712  0.500000       1-5 months
+    3   0.500000  1.000000      6-11 months
+    4   1.000000  2.000000  12 to 23 months
 
 
 Demographic Dimensions Data
 +++++++++++++++++++++++++++
 Finally, to view the full extent of all demographic dimensions that is expected
-in input data to the simulation,  :mod:`vivarium_inputs` provides
-:func:`vivarium_inputs.interface.get_demographic_dimensions`, which expects a `location`
-argument to fill the location dimension.
+in input data to the simulation, :mod:`vivarium_inputs` provides
+:func:`get_demographic_dimensions <vivarium_inputs.interface.get_demographic_dimensions>`, 
+which expects a `location` argument to fill the location dimension.
 
 .. code-block:: python
 
     from vivarium_inputs import get_demographic_dimensions
 
     dem_dims = get_demographic_dimensions('Kenya')
-    print(dem_dims.head())
+    print(dem_dims.reset_index().head())
 
 ::
 
-      location     sex        age_start        age_end  year_start  year_end
-    0    Kenya  Female              0.0       0.019178        1990      1991
-    1    Kenya  Female              0.0       0.019178        1991      1992
-    2    Kenya  Female              0.0       0.019178        1992      1993
-    3    Kenya  Female              0.0       0.019178        1993      1994
-    4    Kenya  Female              0.0       0.019178        1994      1995
+      location     sex  age_start   age_end  year_start  year_end
+    0    Kenya  Female   0.000000  0.019178        2021      2022
+    1    Kenya  Female   0.019178  0.076712        2021      2022
+    2    Kenya  Female   0.076712  0.500000        2021      2022
+    3    Kenya  Female   0.500000  1.000000        2021      2022
+    4    Kenya  Female   1.000000  2.000000        2021      2022
 
 
 Pulling Raw GBD Data
 --------------------
-The interface provides :func:`vivarium_inputs.interface.get_raw_data`, which can
-be used to pull entity-measure data as well as population structure and life
+The interface provides :func:`get_raw_data <vivarium_inputs.interface.get_raw_data>`, 
+which can be used to pull entity-measure data as well as population structure and life
 expectancy. Raw validation checks are not performed to return data that can
 be investigated for oddities. The only filtering that occurs is by applicable
 measure id, metric id, or to most detailed causes where relevant. No formatting
@@ -235,9 +249,9 @@ type of data.
 
 Entity-Measure Data
 +++++++++++++++++++
-The interface provides :func:`vivarium_inputs.interface.get_raw_data` for pulling
-specific raw measure data for an entity for a single location from GBD, without
-the prep work that occurs on data for a simulation.
+The interface provides :func:`get_raw_data <vivarium_inputs.interface.get_raw_data>` 
+for pulling specific raw measure data for an entity for a single location from GBD, 
+without the prep work that occurs on data for a simulation.
 
 ``entity`` should be a :class:`gbd_mapping.base_template.ModelableEntity` (e.g.,
 a cause from ``gbd_mapping``), while ``measure`` should be a string
@@ -260,12 +274,12 @@ do the following:
 
 ::
 
-          year_id  age_group_id  sex_id  measure_id  cause_id    draw_0    ...      draw_999  location_id  metric_id
-    1288     1990             2       1           5       302  0.030940    ...      0.029214          180          3
-    1289     1990             3       1           5       302  0.063305    ...      0.059538          180          3
-    1290     1990             4       1           5       302  0.056916    ...      0.058788          180          3
-    1291     1990             5       1           5       302  0.026376    ...      0.035843          180          3
-    1292     1990             6       1           5       302  0.011728    ...      0.011231          180          3
+        age_group_id  cause_id    draw_0  ...  year_id  metric_id  version_id
+    50             2       302  0.018762  ...     2021          3        1471
+    51             3       302  0.041142  ...     2021          3        1471
+    52             6       302  0.014616  ...     2021          3        1471
+    53             7       302  0.023237  ...     2021          3        1471
+    54             8       302  0.024702  ...     2021          3        1471
 
 
 The following table lists the measures available for each entity kind for pulling raw data:
@@ -312,8 +326,8 @@ The following table lists the measures available for each entity kind for pullin
 Population Structure Data
 +++++++++++++++++++++++++
 To pull raw population data for a specific location, we will actually use the same
-:func:`vivarium_inputs.interface.get_raw_data` function we used for pulling
-entity-measure data, with a special Population entity.
+:func:`get_raw_data <vivarium_inputs.interface.get_raw_data>` function we used for 
+pulling entity-measure data, with a special Population entity.
 
 For example, to pull population data for Kenya, we would do the following:
 
@@ -327,20 +341,20 @@ For example, to pull population data for Kenya, we would do the following:
 
 ::
 
-       age_group_id  location_id  year_id  sex_id   population  run_id
-    0             2          180     1950       1  2747.467163     117
-    1             2          180     1950       2  2484.512754     117
-    2             2          180     1950       3  5231.979917     117
-    3             2          180     1951       1  3146.320799     117
-    4             2          180     1951       2  3038.538221     117
+       age_group_id  location_id  year_id  sex_id    population  run_id
+    0             2          180     2021       1  1.145138e+04     359
+    1             3          180     2021       1  3.402961e+04     359
+    2             6          180     2021       1  3.187225e+06     359
+    3             7          180     2021       1  3.264795e+06     359
+    4             8          180     2021       1  2.997167e+06     359
 
 
 Life Expectancy Data
 ++++++++++++++++++++
 Similarly to pull life expectancy data, we will use the same
-:func:`vivarium_inputs.interface.get_raw_data` function with the special Population
-entity. Life expectancy data is not location-specific, so we'll just use the
-'Global' location.
+:func:`get_raw_data <vivarium_inputs.interface.get_raw_data>` function with the 
+special Population entity. Life expectancy data is not location-specific, so we'll 
+just use the 'Global' location.
 
 To use:
 
@@ -355,11 +369,11 @@ To use:
 ::
 
         age  life_expectancy
-    0  0.00        87.885872
-    1  0.01        87.877086
-    2  0.02        87.868299
-    3  0.03        87.859513
-    4  0.04        87.850727
+    0  0.00        89.958040
+    1  0.01        89.975474
+    2  0.02        89.990990
+    3  0.03        89.985077
+    4  0.04        89.979164
 
 
 .. testcode::

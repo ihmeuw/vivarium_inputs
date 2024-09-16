@@ -35,7 +35,29 @@ def get_data(
     measure: str,
     location: str | int | list[str | int],
     years: int | str | list[int] | None = None,
-):
+) -> pd.DataFrame:
+    """Pull raw GBD data for measure and entity.
+
+    This also sets all non-value columns to be the dataframe index.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to pull `measure`.
+    measure
+        Measure for which to pull data, should be a measure available for the
+        kind of entity which `entity` is.
+    location
+        Location for which to pull data. This can be a location id as an int,
+        the location name as a string, or a list of these two data types.
+    years
+        Years for which to extract data. If None, get most recent year. If 'all',
+        get all available data. Defaults to None.
+
+    Returns
+    -------
+        Raw and slightly reshaped data for the given entity, measure, location, and years.
+    """
     measure_handlers = {
         # Cause-like measures
         "incidence_rate": (get_incidence_rate, ("cause", "sequela")),
@@ -611,9 +633,9 @@ def get_population_attributable_fraction(
             data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()
 
     data = utilities.convert_affected_entity(data, "cause_id")
-    data.loc[
-        data["measure_id"] == MEASURES["YLLs"], "affected_measure"
-    ] = "excess_mortality_rate"
+    data.loc[data["measure_id"] == MEASURES["YLLs"], "affected_measure"] = (
+        "excess_mortality_rate"
+    )
     data.loc[data["measure_id"] == MEASURES["YLDs"], "affected_measure"] = "incidence_rate"
     data = (
         data.groupby(["affected_entity", "affected_measure"])
