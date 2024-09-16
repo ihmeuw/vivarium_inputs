@@ -30,8 +30,10 @@ def extract_data(
     validate: bool = True,
     years: int | str | list[int] | None = None,
 ) -> pd.Series | pd.DataFrame:
-    """Check metadata for the requested entity-measure pair. Pull raw data from
-    GBD. The only filtering that occurs is by applicable measure id, metric id,
+    """Pull raw data from GBD.
+
+    Also checks metadata for the requested entity-measure pair.
+    The only filtering that occurs is by applicable measure id, metric id,
     or to most detailed causes where relevant. If validate is turned on, will
     also pull any additional data needed for raw validation and call raw
     validation on the extracted data.
@@ -55,7 +57,7 @@ def extract_data(
 
     Returns
     -------
-    Data for the entity-measure pair and specific location requested.
+        Data for the entity-measure pair and specific location requested.
 
     Raises
     ------
@@ -173,6 +175,7 @@ def extract_prevalence(
         entity_type=entity.kind,
         year_id=year_id,
     )
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Prevalence"]]
     return data
 
@@ -188,6 +191,7 @@ def extract_incidence_rate(
         entity_type=entity.kind,
         year_id=year_id,
     )
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Incidence rate"]]
     return data
 
@@ -203,6 +207,7 @@ def extract_birth_prevalence(
         entity_type=entity.kind,
         year_id=year_id,
     )
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Incidence rate"]]
     return data
 
@@ -213,6 +218,7 @@ def extract_remission_rate(
     year_id: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id=year_id)
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Remission rate"]]
     return data
 
@@ -252,6 +258,7 @@ def extract_deaths(
     year_id: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, year_id=year_id)
+    # FIXME: support means
     data = data[data.measure_id == MEASURES["Deaths"]]
     return data
 
@@ -313,6 +320,7 @@ def extract_exposure_distribution_weights(
     data = gbd.get_auxiliary_data(
         "exposure_distribution_weights", entity.kind, entity.name, location_id
     )
+    # FIXME: expected draw data but it's just different distribution results?
     return data
 
 
@@ -339,6 +347,7 @@ def extract_population_attributable_fraction(
     year_id: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = gbd.get_paf(entity.gbd_id, location_id, year_id=year_id)
+    # FIXME: support means
     data = data[data.metric_id == METRICS["Percent"]]
     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
