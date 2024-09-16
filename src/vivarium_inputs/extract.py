@@ -235,7 +235,6 @@ def extract_disability_weight(
         "all",
         location_id,
     )
-    breakpoint()
     data = disability_weights.loc[
         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
     ]
@@ -272,7 +271,6 @@ def extract_exposure(
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
         data = gbd.get_exposure(entity.gbd_id, location_id, year_id=year_id)
-        breakpoint()
         if entity.gbd_id == 341:
             data = process_kidney_dysfunction_exposure(data)
         allowable_measures = [
@@ -291,7 +289,6 @@ def extract_exposure(
 
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data("exposure", entity.kind, entity.name, location_id)
-        breakpoint()
 
     return data
 
@@ -305,17 +302,14 @@ def extract_exposure_standard_deviation(
         data = gbd.get_modelable_entity_draws(
             OTHER_MEID[entity.name], location_id, year_id=year_id
         )
-        breakpoint()
     elif entity.kind == "risk_factor":
         data = gbd.get_exposure_standard_deviation(
             entity.gbd_id, location_id, year_id=year_id
         )
-        breakpoint()
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data(
             "exposure_standard_deviation", entity.kind, entity.name, location_id
         )
-        breakpoint()
     return data
 
 
@@ -337,7 +331,6 @@ def extract_relative_risk(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id=year_id)
-    breakpoint()
     # TODO: [MIC-4891] Process new relative risk data format properly
     if not data["exposure"].isna().all():
         raise DataAbnormalError(
@@ -384,13 +377,11 @@ def extract_estimate(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id, year_id=year_id)
-    breakpoint()
     return data
 
 
 def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
     data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
-    breakpoint()
     return data
 
 
@@ -400,7 +391,6 @@ def extract_structure(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_population(location_id, year_id=year_id)
-    breakpoint()
     return data
 
 
@@ -410,5 +400,4 @@ def extract_theoretical_minimum_risk_life_expectancy(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
-    breakpoint()
     return data
