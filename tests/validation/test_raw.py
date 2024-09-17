@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tests.extract.check import RUNNING_ON_CI
+from tests.conftest import RUNNING_ON_CI
 from vivarium_inputs.globals import SEXES, DataAbnormalError, DataDoesNotExistError
 from vivarium_inputs.validation import raw
 

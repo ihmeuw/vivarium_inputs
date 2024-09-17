@@ -1,7 +1,7 @@
 import pytest
 from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
 
-from tests.extract.check import RUNNING_ON_CI
+from tests.conftest import RUNNING_ON_CI
 from vivarium_inputs import extract, utility_data
 
 pytestmark = pytest.mark.skipif(

@@ -77,37 +77,37 @@ def extract_data(
         # Cause-like measures
         "incidence_rate": (extract_incidence_rate, {}),
         "prevalence": (extract_prevalence, {}),
-        "birth_prevalence": (extract_birth_prevalence, {}),
-        "disability_weight": (extract_disability_weight, {}),
-        "remission_rate": (extract_remission_rate, {}),
-        "deaths": (extract_deaths, {"population": extract_structure}),
-        # Risk-like measures
-        "exposure": (extract_exposure, {}),
-        "exposure_standard_deviation": (
-            extract_exposure_standard_deviation,
-            {"exposure": extract_exposure},
-        ),
-        "exposure_distribution_weights": (extract_exposure_distribution_weights, {}),
-        "relative_risk": (extract_relative_risk, {"exposure": extract_exposure}),
-        "population_attributable_fraction": (
-            extract_population_attributable_fraction,
-            {"exposure": extract_exposure, "relative_risk": extract_relative_risk},
-        ),
-        "etiology_population_attributable_fraction": (
-            extract_population_attributable_fraction,
-            {},
-        ),
-        "mediation_factors": (extract_mediation_factors, {}),
-        # Covariate measures
-        "estimate": (extract_estimate, {}),
-        # Health system measures
-        "utilization_rate": (extract_utilization_rate, {}),
-        # Population measures
-        "structure": (extract_structure, {}),
-        "theoretical_minimum_risk_life_expectancy": (
-            extract_theoretical_minimum_risk_life_expectancy,
-            {},
-        ),
+        # "birth_prevalence": (extract_birth_prevalence, {}),
+        # "disability_weight": (extract_disability_weight, {}),
+        # "remission_rate": (extract_remission_rate, {}),
+        # "deaths": (extract_deaths, {"population": extract_structure}),
+        # # Risk-like measures
+        # "exposure": (extract_exposure, {}),
+        # "exposure_standard_deviation": (
+        #     extract_exposure_standard_deviation,
+        #     {"exposure": extract_exposure},
+        # ),
+        # "exposure_distribution_weights": (extract_exposure_distribution_weights, {}),
+        # "relative_risk": (extract_relative_risk, {"exposure": extract_exposure}),
+        # "population_attributable_fraction": (
+        #     extract_population_attributable_fraction,
+        #     {"exposure": extract_exposure, "relative_risk": extract_relative_risk},
+        # ),
+        # "etiology_population_attributable_fraction": (
+        #     extract_population_attributable_fraction,
+        #     {},
+        # ),
+        # "mediation_factors": (extract_mediation_factors, {}),
+        # # Covariate measures
+        # "estimate": (extract_estimate, {}),
+        # # Health system measures
+        # "utilization_rate": (extract_utilization_rate, {}),
+        # # Population measures
+        # "structure": (extract_structure, {}),
+        # "theoretical_minimum_risk_life_expectancy": (
+        #     extract_theoretical_minimum_risk_life_expectancy,
+        #     {},
+        # ),
     }
 
     validation.check_metadata(entity, measure)
@@ -208,202 +208,202 @@ def extract_incidence_rate(
     return data
 
 
-def extract_birth_prevalence(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_birth_prevalence(
-        entity_id=entity.gbd_id,
-        location_id=location_id,
-        entity_type=entity.kind,
-        year_id=year_id,
-    )
-    data = data[data.measure_id == MEASURES["Incidence rate"]]
-    return data
+# def extract_birth_prevalence(
+#     entity: Union[Cause, Sequela],
+#     location_id: List[int],
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_birth_prevalence(
+#         entity_id=entity.gbd_id,
+#         location_id=location_id,
+#         entity_type=entity.kind,
+#         year_id=year_id,
+#     )
+#     data = data[data.measure_id == MEASURES["Incidence rate"]]
+#     return data
 
 
-def extract_remission_rate(
-    entity: Cause,
-    location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id=year_id)
-    data = data[data.measure_id == MEASURES["Remission rate"]]
-    return data
+# def extract_remission_rate(
+#     entity: Cause,
+#     location_id: List[int],
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id=year_id)
+#     data = data[data.measure_id == MEASURES["Remission rate"]]
+#     return data
 
 
-def extract_disability_weight(
-    entity: Sequela,
-    location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    disability_weights = gbd.get_auxiliary_data(
-        "disability_weight",
-        entity.kind,
-        "all",
-        location_id,
-    )
-    data = disability_weights.loc[
-        disability_weights.healthstate_id == entity.healthstate.gbd_id, :
-    ]
-    if year_id:  # if not pulling all years
-        if isinstance(year_id, list):
-            # Create a DataFrame from your year_ids
-            year_df = pd.DataFrame({"year_id": year_id})
-            # Perform a cross join by creating a temporary key to merge on
-            data["key"] = 1
-            year_df["key"] = 1
-            # Merge to get the Cartesian product, then drop the key column
-            data = data.drop("year_id", axis=1) if "year_id" in data.columns else data
-            data = pd.merge(data, year_df, on="key").drop("key", axis=1)
-        else:
-            data["year_id"] = year_id
-    return data
+# def extract_disability_weight(
+#     entity: Sequela,
+#     location_id: List[int],
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     disability_weights = gbd.get_auxiliary_data(
+#         "disability_weight",
+#         entity.kind,
+#         "all",
+#         location_id,
+#     )
+#     data = disability_weights.loc[
+#         disability_weights.healthstate_id == entity.healthstate.gbd_id, :
+#     ]
+#     if year_id:  # if not pulling all years
+#         if isinstance(year_id, list):
+#             # Create a DataFrame from your year_ids
+#             year_df = pd.DataFrame({"year_id": year_id})
+#             # Perform a cross join by creating a temporary key to merge on
+#             data["key"] = 1
+#             year_df["key"] = 1
+#             # Merge to get the Cartesian product, then drop the key column
+#             data = data.drop("year_id", axis=1) if "year_id" in data.columns else data
+#             data = pd.merge(data, year_df, on="key").drop("key", axis=1)
+#         else:
+#             data["year_id"] = year_id
+#     return data
 
 
-def extract_deaths(
-    entity: Cause,
-    location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, year_id=year_id)
-    data = data[data.measure_id == MEASURES["Deaths"]]
-    return data
+# def extract_deaths(
+#     entity: Cause,
+#     location_id: List[int],
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, year_id=year_id)
+#     data = data[data.measure_id == MEASURES["Deaths"]]
+#     return data
 
 
-def extract_exposure(
-    entity: Union[RiskFactor, AlternativeRiskFactor],
-    location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    if entity.kind == "risk_factor":
-        data = gbd.get_exposure(entity.gbd_id, location_id, year_id=year_id)
-        if entity.gbd_id == 341:
-            data = process_kidney_dysfunction_exposure(data)
-        allowable_measures = [
-            MEASURES["Proportion"],
-            MEASURES["Continuous"],
-            MEASURES["Prevalence"],
-        ]
-        proper_measure_id = set(data.measure_id).intersection(allowable_measures)
-        if len(proper_measure_id) != 1:
-            raise DataAbnormalError(
-                f"Exposure data have {len(proper_measure_id)} measure id(s). Data should have"
-                f"exactly one id out of {allowable_measures} but came back with {proper_measure_id}."
-            )
-        else:
-            data = data[data.measure_id == proper_measure_id.pop()]
+# def extract_exposure(
+#     entity: Union[RiskFactor, AlternativeRiskFactor],
+#     location_id: int,
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     if entity.kind == "risk_factor":
+#         data = gbd.get_exposure(entity.gbd_id, location_id, year_id=year_id)
+#         if entity.gbd_id == 341:
+#             data = process_kidney_dysfunction_exposure(data)
+#         allowable_measures = [
+#             MEASURES["Proportion"],
+#             MEASURES["Continuous"],
+#             MEASURES["Prevalence"],
+#         ]
+#         proper_measure_id = set(data.measure_id).intersection(allowable_measures)
+#         if len(proper_measure_id) != 1:
+#             raise DataAbnormalError(
+#                 f"Exposure data have {len(proper_measure_id)} measure id(s). Data should have"
+#                 f"exactly one id out of {allowable_measures} but came back with {proper_measure_id}."
+#             )
+#         else:
+#             data = data[data.measure_id == proper_measure_id.pop()]
 
-    else:  # alternative_risk_factor
-        data = gbd.get_auxiliary_data("exposure", entity.kind, entity.name, location_id)
+#     else:  # alternative_risk_factor
+#         data = gbd.get_auxiliary_data("exposure", entity.kind, entity.name, location_id)
 
-    return data
-
-
-def extract_exposure_standard_deviation(
-    entity: Union[RiskFactor, AlternativeRiskFactor],
-    location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    if entity.kind == "risk_factor" and entity.name in OTHER_MEID:
-        data = gbd.get_modelable_entity_draws(
-            OTHER_MEID[entity.name], location_id, year_id=year_id
-        )
-    elif entity.kind == "risk_factor":
-        data = gbd.get_exposure_standard_deviation(
-            entity.gbd_id, location_id, year_id=year_id
-        )
-    else:  # alternative_risk_factor
-        data = gbd.get_auxiliary_data(
-            "exposure_standard_deviation", entity.kind, entity.name, location_id
-        )
-    return data
+#     return data
 
 
-def extract_exposure_distribution_weights(
-    entity: Union[RiskFactor, AlternativeRiskFactor],
-    location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_auxiliary_data(
-        "exposure_distribution_weights", entity.kind, entity.name, location_id
-    )
-    return data
+# def extract_exposure_standard_deviation(
+#     entity: Union[RiskFactor, AlternativeRiskFactor],
+#     location_id: int,
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     if entity.kind == "risk_factor" and entity.name in OTHER_MEID:
+#         data = gbd.get_modelable_entity_draws(
+#             OTHER_MEID[entity.name], location_id, year_id=year_id
+#         )
+#     elif entity.kind == "risk_factor":
+#         data = gbd.get_exposure_standard_deviation(
+#             entity.gbd_id, location_id, year_id=year_id
+#         )
+#     else:  # alternative_risk_factor
+#         data = gbd.get_auxiliary_data(
+#             "exposure_standard_deviation", entity.kind, entity.name, location_id
+#         )
+#     return data
 
 
-def extract_relative_risk(
-    entity: RiskFactor,
-    location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id=year_id)
-    # TODO: [MIC-4891] Process new relative risk data format properly
-    if not data["exposure"].isna().all():
-        raise DataAbnormalError(
-            "Relative risk data in new format with 1000 exposure values. Our processing is not "
-            "currently able to process data in this format."
-        )
-    data = filter_to_most_detailed_causes(data)
-    if entity.gbd_id == 136:  # non-exclusive breastfeeding
-        data = data.loc[data["age_group_id"].isin([3, 388])]
-    elif entity.gbd_id == 137:  # discontinued breastfeeding
-        data = data.loc[data["age_group_id"].isin([238, 389])]
-    return data
+# def extract_exposure_distribution_weights(
+#     entity: Union[RiskFactor, AlternativeRiskFactor],
+#     location_id: int,
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_auxiliary_data(
+#         "exposure_distribution_weights", entity.kind, entity.name, location_id
+#     )
+#     return data
 
 
-def extract_population_attributable_fraction(
-    entity: Union[RiskFactor, Etiology],
-    location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_paf(entity.gbd_id, location_id, year_id=year_id)
-    data = data[data.metric_id == METRICS["Percent"]]
-    data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
-    data = filter_to_most_detailed_causes(data)
-    # clip PAFs between 0 and 1 (data outside these bounds is expected from GBD)
-    draw_cols = [col for col in data.columns if col.startswith("draw_")]
-    data.loc[:, draw_cols] = data[draw_cols].clip(lower=0)
-    data.loc[:, draw_cols] = data[draw_cols].clip(upper=1)
-    return data
+# def extract_relative_risk(
+#     entity: RiskFactor,
+#     location_id: int,
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id=year_id)
+#     # TODO: [MIC-4891] Process new relative risk data format properly
+#     if not data["exposure"].isna().all():
+#         raise DataAbnormalError(
+#             "Relative risk data in new format with 1000 exposure values. Our processing is not "
+#             "currently able to process data in this format."
+#         )
+#     data = filter_to_most_detailed_causes(data)
+#     if entity.gbd_id == 136:  # non-exclusive breastfeeding
+#         data = data.loc[data["age_group_id"].isin([3, 388])]
+#     elif entity.gbd_id == 137:  # discontinued breastfeeding
+#         data = data.loc[data["age_group_id"].isin([238, 389])]
+#     return data
 
 
-def extract_mediation_factors(
-    entity: RiskFactor,
-    location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_auxiliary_data("mediation_factor", entity.kind, entity.name, location_id)
-    return data
+# def extract_population_attributable_fraction(
+#     entity: Union[RiskFactor, Etiology],
+#     location_id: int,
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_paf(entity.gbd_id, location_id, year_id=year_id)
+#     data = data[data.metric_id == METRICS["Percent"]]
+#     data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
+#     data = filter_to_most_detailed_causes(data)
+#     # clip PAFs between 0 and 1 (data outside these bounds is expected from GBD)
+#     draw_cols = [col for col in data.columns if col.startswith("draw_")]
+#     data.loc[:, draw_cols] = data[draw_cols].clip(lower=0)
+#     data.loc[:, draw_cols] = data[draw_cols].clip(upper=1)
+#     return data
 
 
-def extract_estimate(
-    entity: Covariate,
-    location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id, year_id=year_id)
-    return data
+# def extract_mediation_factors(
+#     entity: RiskFactor,
+#     location_id: int,
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_auxiliary_data("mediation_factor", entity.kind, entity.name, location_id)
+#     return data
 
 
-def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
-    data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
-    return data
+# def extract_estimate(
+#     entity: Covariate,
+#     location_id: int,
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id, year_id=year_id)
+#     return data
 
 
-def extract_structure(
-    entity: Population,
-    location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_population(location_id, year_id=year_id)
-    return data
+# def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
+#     data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
+#     return data
 
 
-def extract_theoretical_minimum_risk_life_expectancy(
-    entity: Population,
-    location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_theoretical_minimum_risk_life_expectancy()
-    return data
+# def extract_structure(
+#     entity: Population,
+#     location_id: int,
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_population(location_id, year_id=year_id)
+#     return data
+
+
+# def extract_theoretical_minimum_risk_life_expectancy(
+#     entity: Population,
+#     location_id: int,
+#     year_id: Optional[Union[int, str, List[int]]] = None,
+# ) -> pd.DataFrame:
+#     data = gbd.get_theoretical_minimum_risk_life_expectancy()
+#     return data

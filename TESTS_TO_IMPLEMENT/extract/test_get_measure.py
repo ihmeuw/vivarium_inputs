@@ -1,7 +1,7 @@
 import pytest
 from gbd_mapping import causes, covariates, risk_factors
 
-from tests.extract.check import RUNNING_ON_CI
+from tests.conftest import RUNNING_ON_CI
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DataAbnormalError
 from vivarium_inputs.interface import get_measure
