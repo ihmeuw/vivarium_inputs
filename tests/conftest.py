@@ -25,6 +25,11 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture
+def runslow(request: pytest.FixtureRequest):
+    return request.config.getoption("--runslow")
+
+
+@pytest.fixture
 def caplog(_caplog):
     class PropogateHandler(logging.Handler):
         def emit(self, record):

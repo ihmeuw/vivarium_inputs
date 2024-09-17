@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from vivarium_inputs import utilities
+from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS
 
 
 @pytest.mark.parametrize(
@@ -40,3 +41,38 @@ def test_normalize_sex_no_sex_id():
     df = pd.DataFrame({"ColumnA": [1, 2, 3], "ColumnB": [1, 2, 3]})
     normalized = utilities.normalize_sex(df, fill_value=0.0, cols_to_fill=["value"])
     pd.testing.assert_frame_equal(df, normalized)
+
+
+@pytest.mark.parametrize(
+    "data_type_and_expected",
+    [
+        ("mean", "mean"),
+        ("draw", "draw"),
+        ("foo", "raises"),
+        ("MEANS", "mean"),
+        ("DRAWS", "draw"),
+        (["mean", "draw"], ["mean", "draw"]),
+        (["MEANS", "DRAWS"], ["mean", "draw"]),
+        (["mean", "draw", "foo"], "raises"),
+    ],
+)
+def test_process_data_type(data_type_and_expected):
+    data_type, expected = data_type_and_expected
+    if expected == "raises":
+        with pytest.raises(ValueError):
+            utilities.process_data_type(data_type)
+    else:
+        assert utilities.process_data_type(data_type) == expected
+
+
+@pytest.mark.parametrize(
+    "data_type_and_returned_cols",
+    [
+        ("mean", MEAN_COLUMNS),
+        ("draw", DRAW_COLUMNS),
+        (["mean", "draw"], MEAN_COLUMNS + DRAW_COLUMNS),
+    ],
+)
+def test_get_value_columns(data_type_and_returned_cols):
+    data_type, returned_cols = data_type_and_returned_cols
+    assert utilities.get_value_columns(data_type) == returned_cols

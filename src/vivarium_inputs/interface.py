@@ -13,8 +13,9 @@ from vivarium_inputs.globals import Population
 def get_measure(
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location: Union[int, str, list[Union[int, str]]],
+    years: Optional[Union[int, str, list[int]]] = None,
+    data_type: Union[str, list[str]] = "mean",
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input.
 
@@ -52,14 +53,21 @@ def get_measure(
     years
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data. Defaults to None.
+    data_type
+        Data type for which to extract data. Supported values include 'mean' for
+        getting mean data and 'draw' for getting draw-level data. Can also be a list
+        of values to get multiple data types. Defaults to 'mean'.
 
     Returns
     -------
         Dataframe standardized to the format expected by `vivarium` simulations.
     """
-    data = core.get_data(entity, measure, location, years)
+    data_type = utilities.process_data_type(data_type)
+    data = core.get_data(entity, measure, location, years, data_type)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, entity, measure, location, years)
+    validation.validate_for_simulation(
+        data, entity, measure, location, years, data_type=data_type
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -176,8 +184,10 @@ def get_raw_data(
     measure: str,
     location: Union[int, str, List[Union[int, str]]],
     years: Optional[Union[int, str, List[int]]] = None,
+    data_type: Union[str, list[str]] = "mean",
 ) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD for the requested entity, measure, and location.
+
     Skip standard raw validation checks in order to return data that can be
     investigated for oddities. The only filter that occurs is by applicable
     measure id, metric id, or to most detailed causes where relevant.
@@ -218,13 +228,17 @@ def get_raw_data(
     years
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data. Defaults to None.
+    data_type
+        Data type for which to extract data. Supported values include 'mean' for
+        getting mean data and 'draw' for getting draw-level data. Can also be a list
+        of values to get multiple data types. Defaults to 'mean'.
 
     Returns
     -------
-    Union[pandas.Series, pandas.DataFrame]
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
+    data_type = utilities.process_data_type(data_type)
     if not isinstance(location, list):
         location = [location]
     location_id = [
@@ -234,7 +248,8 @@ def get_raw_data(
         entity,
         measure,
         location_id,
+        years,
+        data_type,
         validate=False,
-        years=years,
     )
     return data

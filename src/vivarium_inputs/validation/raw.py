@@ -131,6 +131,7 @@ def validate_raw_data(
     entity: ModelableEntity,
     measure: str,
     location_id: Union[int, List[int]],
+    data_type: Union[str, list[str]],
     **additional_data,
 ) -> None:
     """Validate data conforms expected format and ranges.
@@ -161,6 +162,9 @@ def validate_raw_data(
         Measure to which the data pertain.
     location_id
         Location for which the data were pulled.
+    data_type
+        Data contains a single mean data value column if 'mean' and/or multiple
+        draw-level columns if 'draw'.
     additional_data
         Any additional data needed to validate the measure-entity data. This
         most often applies to RiskFactor data where data from an additional
@@ -200,6 +204,12 @@ def validate_raw_data(
         "structure": validate_structure,
         "theoretical_minimum_risk_life_expectancy": validate_theoretical_minimum_risk_life_expectancy,
     }
+
+    if data_type == "mean":
+        raise NotImplementedError("Validation for mean data not implemented.")
+
+    if isinstance(data_type, list):
+        raise NotImplementedError("Validation for multiple data types not implemented.")
 
     if measure not in validators:
         raise InvalidQueryError(f"No raw validator found for {measure}.")

@@ -11,8 +11,10 @@ from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
     DEMOGRAPHIC_COLUMNS,
     DRAW_COLUMNS,
+    MEAN_COLUMNS,
     SEXES,
     SPECIAL_AGES,
+    SUPPORTED_DATA_TYPES,
 )
 
 INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure", "parameter"]
@@ -555,3 +557,88 @@ def process_kidney_dysfunction_exposure(
     cat5_data = cat5_data[data.columns]
     data = pd.concat([data, cat5_data])
     return data
+
+
+###########################
+# Other utility functions #
+###########################
+
+
+def process_data_type(data_type: Union[str, list[str]]) -> Union[str, list[str]]:
+    """Validate that the provided data type is supported and process it if necessary.
+
+    Parameters
+    ----------
+    data_type
+        Data type(s) to process.
+
+    Raises
+    ------
+    ValueError
+        If a data type is not supported.
+    ValueError
+        If `data_type` is not a string or a list of strings.
+
+    Returns
+    -------
+    Processed data type(s).
+    """
+
+    def process_single_value(value: str) -> str:
+        """Process a single data type value."""
+        # normalize to lowercase
+        value = value.lower()
+        # convert to singular
+        for supported_value in SUPPORTED_DATA_TYPES:
+            if f"{supported_value}s" == value:
+                value = supported_value
+                break
+        if value not in SUPPORTED_DATA_TYPES:
+            raise ValueError(
+                f"Data type '{value}' is not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
+            )
+        return value
+
+    if isinstance(data_type, str):
+        return process_single_value(data_type)
+    elif isinstance(data_type, list):
+        return [process_single_value(value) for value in data_type]
+    else:
+        raise ValueError(
+            f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
+        )
+
+
+def get_value_columns(data_type: Union[str, list[str]]) -> list[str]:
+    """Get the value columns corresponding to the provided data type(s).
+
+    Notes
+    -----
+    The data_type has already been processed and validated at this point so no need
+    to check for invalid values.
+
+    Parameters
+    ----------
+    data_type
+        Data type(s) for which to get value columns.
+
+    Returns
+    -------
+    List of value columns.
+
+    value_cols = MEAN_COLUMNS if data_type else DRAW_COLUMNS
+    """
+
+    column_mapping = {
+        "mean": MEAN_COLUMNS,
+        "draw": DRAW_COLUMNS,
+    }
+
+    if isinstance(data_type, str):
+        cols = column_mapping[data_type]
+    else:  # list
+        cols = []
+        for value in data_type:
+            cols.extend(column_mapping[value])
+
+    return cols

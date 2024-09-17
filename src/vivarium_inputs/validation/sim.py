@@ -83,8 +83,9 @@ def validate_for_simulation(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[Union[int, list[int]]] = None,
+    location: Union[int, str, list[Union[int, str]]],
+    years: Optional[int],
+    data_type: Union[str, list[str]],
     **context_args,
 ) -> None:
     """Validate data for use in a simulation.
@@ -125,6 +126,10 @@ def validate_for_simulation(
     **context_args
         Any data or information needed to construct the SimulationContext used
         by the individual entity-measure validator functions.
+    data_type
+        Data type of the extracted data. Supported values include 'mean' for
+        mean data and 'draw' for draw-level data. Can also be a list of values
+        for multiple data types.
 
     Raises
     -------
@@ -157,8 +162,14 @@ def validate_for_simulation(
         "demographic_dimensions": validate_demographic_dimensions,
     }
 
+    if data_type == "mean":
+        raise NotImplementedError("Mean data validation not yet implemented.")
+
+    if isinstance(data_type, list):
+        raise NotImplementedError("Validation for multiple data types not yet implemented.")
+
     if measure not in validators:
-        raise NotImplementedError()
+        raise NotImplementedError(f"Validation for measure '{measure}' not implemented.")
 
     if years != "all":
         if isinstance(years, int):
