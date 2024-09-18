@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 
+import numpy as np
 import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, ModelableEntity, RiskFactor, Sequela
 
@@ -323,12 +324,9 @@ def extract_relative_risk(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id=year_id)
-    # TODO: [MIC-4891] Process new relative risk data format properly
-    if not data["exposure"].isna().all():
-        raise DataAbnormalError(
-            "Relative risk data in new format with 1000 exposure values. Our processing is not "
-            "currently able to process data in this format."
-        )
+    if not data["exposure"].isna().any() and data["parameter"].isna().all():
+        data["parameter"] = data["exposure"]
+        data["exposure"] = np.nan
     data = filter_to_most_detailed_causes(data)
     if entity.gbd_id == 136:  # non-exclusive breastfeeding
         data = data.loc[data["age_group_id"].isin([3, 388])]
