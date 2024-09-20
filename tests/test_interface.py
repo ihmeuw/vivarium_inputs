@@ -62,10 +62,11 @@ def mocked_hiv_aids_incidence_rate() -> pd.DataFrame:
 def no_cache(mocker: MockerFixture):
     """Mock out the cache so that we always pull data."""
 
-    mocker.patch(
-        "vivarium_gbd_access.utilities.get_input_config",
-        return_value=LayeredConfigTree({"input_data": {"cache_data": False}}),
-    )
+    if not NO_GBD_ACCESS:
+        mocker.patch(
+            "vivarium_gbd_access.utilities.get_input_config",
+            return_value=LayeredConfigTree({"input_data": {"cache_data": False}}),
+        )
 
 
 @pytest.mark.parametrize(
