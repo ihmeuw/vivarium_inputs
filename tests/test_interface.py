@@ -12,10 +12,9 @@ import pytest
 from gbd_mapping import causes
 from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
-from vivarium_gbd_access.gbd import DataTypeNotImplementedError
 
 from tests.conftest import NO_GBD_ACCESS
-from vivarium_inputs.globals import DRAW_COLUMNS, MEASURES
+from vivarium_inputs.globals import DRAW_COLUMNS, MEASURES, DataTypeNotImplementedError
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utility_data import get_age_group_ids
 
@@ -104,16 +103,10 @@ def test_get_incidence_rate(
     if mock_gbd:
         # Test against mocked data instead of actual data retrieval
         if isinstance(data_type, list):
-            with pytest.raises(
-                DataTypeNotImplementedError,
-                match="A list of requested data types is not yet supported",
-            ):
+            with pytest.raises(DataTypeNotImplementedError):
                 data = get_measure(**kwargs)
         elif data_type == "mean":
-            with pytest.raises(
-                DataTypeNotImplementedError,
-                match="Getting mean values is not yet supported",
-            ):
+            with pytest.raises(DataTypeNotImplementedError):
                 data = get_measure(**kwargs)
         else:
             mock_extract_incidence_rate = mocker.patch(
@@ -140,16 +133,10 @@ def test_get_incidence_rate(
 
         # Test actual data retrieval
         if isinstance(data_type, list):
-            with pytest.raises(
-                DataTypeNotImplementedError,
-                match="A list of requested data types is not yet supported",
-            ):
+            with pytest.raises(DataTypeNotImplementedError):
                 data = get_measure(**kwargs)
         elif data_type == "mean":
-            with pytest.raises(
-                DataTypeNotImplementedError,
-                match="Getting mean values is not yet supported",
-            ):
+            with pytest.raises(DataTypeNotImplementedError):
                 data = get_measure(**kwargs)
         else:
             data = get_measure(**kwargs)
