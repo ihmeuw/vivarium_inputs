@@ -98,4 +98,4 @@ def _no_gbd_access():
     return False
 
 
-RUNNING_ON_CI = _no_gbd_access()
+NO_GBD_ACCESS = _no_gbd_access()

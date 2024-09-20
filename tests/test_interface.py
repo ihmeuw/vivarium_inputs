@@ -2,8 +2,9 @@
 Interface tests.
 """
 
+from __future__ import annotations
+
 import itertools
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -13,8 +14,8 @@ from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 from vivarium_gbd_access.gbd import DataTypeNotImplementedError
 
-from tests.conftest import RUNNING_ON_CI
-from vivarium_inputs.globals import DRAW_COLUMNS
+from tests.conftest import NO_GBD_ACCESS
+from vivarium_inputs.globals import DRAW_COLUMNS, MEASURES
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utility_data import get_age_group_ids
 
@@ -24,8 +25,8 @@ YEAR = 2021
 
 
 @pytest.fixture
-def mocked_raw_gbd_draws() -> pd.DataFrame:
-    """Mocked raw GBD data for testing."""
+def mocked_hiv_aids_incidence_rate() -> pd.DataFrame:
+    """Mocked vivarium_gbd_access data for testing."""
     age_group_ids = get_age_group_ids()
     sex_ids = [1, 2]
     measure_ids = [3, 5, 6]
@@ -58,9 +59,6 @@ def mocked_raw_gbd_draws() -> pd.DataFrame:
     return df
 
 
-MOCKED_DATA = pd.DataFrame()
-
-
 @pytest.fixture(autouse=True)
 def no_cache(mocker: MockerFixture):
     """Mock out the cache so that we always pull data."""
@@ -74,18 +72,25 @@ def no_cache(mocker: MockerFixture):
 @pytest.mark.parametrize(
     "data_type", ["mean", "draw", ["mean", "draw"]], ids=("mean", "draw", "mean_draw")
 )
-@pytest.mark.parametrize(
-    "mock_gbd_call", [True, False], ids=("mock_gbd_call", "no_mock_gbd_call")
-)
+@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mock_gbd", "no_mock_gbd"))
 def test_get_incidence_rate(
-    data_type: Union[str, list[str]],
-    mock_gbd_call: bool,
-    mocked_raw_gbd_draws: pd.DataFrame,
+    data_type: str | list[str],
+    mock_gbd: bool,
+    mocked_hiv_aids_incidence_rate: pd.DataFrame,
     runslow: bool,
     mocker: MockerFixture,
 ):
+    """Test get_measure function.
 
-    if not mock_gbd_call and not runslow:
+    If mock_gbd is True, the test will mock vivarium_gbd_access calls with a
+    dummy data fixutre. This allows for pseodu-testing on github actions which
+    does not have access to vivarium_gbd_access. If mock_gb is False, the test
+    is a full end-to-end test, is marked as slow (requires --runslow option to
+    run), and will be skipped if there is not access to vivarium_gbd_access
+    (i.e. it can run in a Jenkins job).
+    """
+
+    if not mock_gbd and not runslow:
         pytest.skip("need --runslow option to run")
 
     kwargs = {
@@ -96,7 +101,7 @@ def test_get_incidence_rate(
         "data_type": data_type,
     }
 
-    if mock_gbd_call:
+    if mock_gbd:
         # Test against mocked data instead of actual data retrieval
         if isinstance(data_type, list):
             with pytest.raises(
@@ -111,17 +116,26 @@ def test_get_incidence_rate(
             ):
                 data = get_measure(**kwargs)
         else:
-            mock_call = mocker.patch(
-                "vivarium_gbd_access.gbd.get_draws", return_value=mocked_raw_gbd_draws
+            mock_extract_incidence_rate = mocker.patch(
+                "vivarium_inputs.extract.extract_incidence_rate",
+                return_value=mocked_hiv_aids_incidence_rate[
+                    mocked_hiv_aids_incidence_rate["measure_id"] == MEASURES["Incidence rate"]
+                ],
+            )
+            mock_extract_prevalence = mocker.patch(
+                "vivarium_inputs.extract.extract_prevalence",
+                return_value=mocked_hiv_aids_incidence_rate[
+                    mocked_hiv_aids_incidence_rate["measure_id"] == MEASURES["Prevalence"]
+                ],
             )
             data = get_measure(**kwargs)
-            # get_draws is called twice, once for raw_incidence and once for prevalence
-            assert mock_call.call_count == 2
+            mock_extract_incidence_rate.assert_called_once()
+            mock_extract_prevalence.assert_called_once()
             assert not data.empty
             assert all(col in data.columns for col in DRAW_COLUMNS)
 
-    if not mock_gbd_call and runslow:
-        if RUNNING_ON_CI:
+    if not mock_gbd and runslow:
+        if NO_GBD_ACCESS:
             pytest.skip("Need GBD access to run this test")
 
         # Test actual data retrieval

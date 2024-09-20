@@ -2,11 +2,11 @@ import gbd_mapping as gm
 import pandas as pd
 import pytest
 
-from tests.conftest import RUNNING_ON_CI
+from tests.conftest import NO_GBD_ACCESS
 from vivarium_inputs import utility_data as ud
 
 pytestmark = pytest.mark.skipif(
-    RUNNING_ON_CI, reason="Don't run these tests on the CI server"
+    NO_GBD_ACCESS, reason="Don't run these tests on the CI server"
 )
 
 

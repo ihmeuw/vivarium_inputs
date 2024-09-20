@@ -1,13 +1,13 @@
 import pytest
 from gbd_mapping import causes, covariates, risk_factors
 
-from tests.conftest import RUNNING_ON_CI
+from tests.conftest import NO_GBD_ACCESS
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DataAbnormalError
 from vivarium_inputs.interface import get_measure
 
 pytestmark = pytest.mark.skipif(
-    RUNNING_ON_CI, reason="Don't run these tests on the CI server"
+    NO_GBD_ACCESS, reason="Don't run these tests on the CI server"
 )
 
 

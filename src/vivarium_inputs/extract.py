@@ -187,7 +187,7 @@ def extract_prevalence(
         year_id=year_id,
         data_type=data_type,
     )
-    data = data[data.measure_id == MEASURES["Prevalence"]]
+    data = data[data["measure_id"] == MEASURES["Prevalence"]]
     return data
 
 
@@ -204,7 +204,7 @@ def extract_incidence_rate(
         year_id=year_id,
         data_type=data_type,
     )
-    data = data[data.measure_id == MEASURES["Incidence rate"]]
+    data = data[data["measure_id"] == MEASURES["Incidence rate"]]
     return data
 
 
@@ -219,7 +219,7 @@ def extract_birth_prevalence(
         entity_type=entity.kind,
         year_id=year_id,
     )
-    data = data[data.measure_id == MEASURES["Incidence rate"]]
+    data = data[data["measure_id"] == MEASURES["Incidence rate"]]
     return data
 
 
@@ -229,7 +229,7 @@ def extract_remission_rate(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id=year_id)
-    data = data[data.measure_id == MEASURES["Remission rate"]]
+    data = data[data["measure_id"] == MEASURES["Remission rate"]]
     return data
 
 
@@ -268,7 +268,7 @@ def extract_deaths(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, year_id=year_id)
-    data = data[data.measure_id == MEASURES["Deaths"]]
+    data = data[data["measure_id"] == MEASURES["Deaths"]]
     return data
 
 
@@ -286,14 +286,14 @@ def extract_exposure(
             MEASURES["Continuous"],
             MEASURES["Prevalence"],
         ]
-        proper_measure_id = set(data.measure_id).intersection(allowable_measures)
+        proper_measure_id = set(data["measure_id"]).intersection(allowable_measures)
         if len(proper_measure_id) != 1:
             raise DataAbnormalError(
                 f"Exposure data have {len(proper_measure_id)} measure id(s). Data should have"
                 f"exactly one id out of {allowable_measures} but came back with {proper_measure_id}."
             )
         else:
-            data = data[data.measure_id == proper_measure_id.pop()]
+            data = data[data["measure_id"] == proper_measure_id.pop()]
 
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data("exposure", entity.kind, entity.name, location_id)
@@ -349,8 +349,8 @@ def extract_population_attributable_fraction(
     year_id: Optional[Union[int, str, List[int]]] = None,
 ) -> pd.DataFrame:
     data = gbd.get_paf(entity.gbd_id, location_id, year_id=year_id)
-    data = data[data.metric_id == METRICS["Percent"]]
-    data = data[data.measure_id.isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
+    data = data[data["metric_id"] == METRICS["Percent"]]
+    data = data[data["measure_id"].isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
     # clip PAFs between 0 and 1 (data outside these bounds is expected from GBD)
     draw_cols = [col for col in data.columns if col.startswith("draw_")]
