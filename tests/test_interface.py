@@ -16,7 +16,6 @@ from pytest_mock import MockerFixture
 from tests.conftest import NO_GBD_ACCESS
 from vivarium_inputs.globals import DRAW_COLUMNS, MEASURES, DataTypeNotImplementedError
 from vivarium_inputs.interface import get_measure
-from vivarium_inputs.utility_data import get_age_group_ids
 
 CAUSE = causes.hiv_aids
 LOCATION = "India"
@@ -26,7 +25,33 @@ YEAR = 2021
 @pytest.fixture
 def mocked_hiv_aids_incidence_rate() -> pd.DataFrame:
     """Mocked vivarium_gbd_access data for testing."""
-    age_group_ids = get_age_group_ids()
+    age_group_ids = [
+        2,
+        3,
+        388,
+        389,
+        238,
+        34,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        30,
+        31,
+        32,
+        235,
+    ]
     sex_ids = [1, 2]
     measure_ids = [3, 5, 6]
 
