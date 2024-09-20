@@ -12,6 +12,7 @@ from gbd_mapping import causes
 from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 from vivarium_gbd_access.gbd import DataTypeNotImplementedError
+
 from tests.conftest import RUNNING_ON_CI
 from vivarium_inputs.globals import DRAW_COLUMNS
 from vivarium_inputs.interface import get_measure
@@ -122,7 +123,7 @@ def test_get_incidence_rate(
     if not mock_gbd_call and runslow:
         if RUNNING_ON_CI:
             pytest.skip("Need GBD access to run this test")
-            
+
         # Test actual data retrieval
         if isinstance(data_type, list):
             with pytest.raises(
