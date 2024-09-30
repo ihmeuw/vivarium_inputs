@@ -14,18 +14,23 @@ from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 
 from tests.conftest import NO_GBD_ACCESS
-from vivarium_inputs.globals import DRAW_COLUMNS, MEASURES, DataTypeNotImplementedError
+from vivarium_inputs.extract import DataTypeNotImplementedError
+from vivarium_inputs.globals import DRAW_COLUMNS, MEASURES
 from vivarium_inputs.interface import get_measure
 
 CAUSE = causes.hiv_aids
-LOCATION = "India"
+LOCATION = 163  # India
 YEAR = 2021
 
 
-@pytest.fixture
-def mocked_hiv_aids_incidence_rate() -> pd.DataFrame:
-    """Mocked vivarium_gbd_access data for testing."""
-    age_group_ids = [
+def get_mocked_estimation_years() -> list[int]:
+    """Mocked estimation years for testing."""
+    return [1990, 1995, 2000, 2005, 2010, 2015, 2019, 2020, 2021, 2022]
+
+
+def get_mocked_age_group_ids() -> list[int]:
+    """Mocked age group ids for testing."""
+    return [
         2,
         3,
         388,
@@ -52,6 +57,27 @@ def mocked_hiv_aids_incidence_rate() -> pd.DataFrame:
         32,
         235,
     ]
+
+
+def get_mocked_location_path_to_global() -> pd.DataFrame:
+    """Mocked location path to global for testing."""
+    return pd.read_csv("tests/fixture_data/location_path_to_global.csv")
+
+
+def get_mocked_age_bins() -> pd.DataFrame:
+    """Mocked age bins for testing."""
+    return pd.read_csv("tests/fixture_data/age_bins.csv")
+
+
+def get_mocked_location_ids() -> pd.DataFrame:
+    """Mocked location ids for testing."""
+    return pd.read_csv("tests/fixture_data/location_ids.csv")
+
+
+@pytest.fixture
+def mocked_hiv_aids_incidence_rate() -> pd.DataFrame:
+    """Mocked vivarium_gbd_access data for testing."""
+    age_group_ids = get_mocked_age_group_ids()
     sex_ids = [1, 2]
     measure_ids = [3, 5, 6]
 
@@ -63,7 +89,7 @@ def mocked_hiv_aids_incidence_rate() -> pd.DataFrame:
 
     # Add on other metadata columns
     df["cause_id"] = CAUSE.gbd_id.real
-    df["location_id"] = 163  # for India
+    df["location_id"] = LOCATION
     df["year_id"] = YEAR
     df["metric_id"] = 3  # for rate
     df["version_id"] = 1471  # not sure where this comes from
@@ -84,7 +110,7 @@ def mocked_hiv_aids_incidence_rate() -> pd.DataFrame:
 
 
 @pytest.fixture(autouse=True)
-def no_cache(mocker: MockerFixture):
+def no_cache(mocker: MockerFixture) -> None:
     """Mock out the cache so that we always pull data."""
 
     if not NO_GBD_ACCESS:
@@ -104,7 +130,7 @@ def test_get_incidence_rate(
     mocked_hiv_aids_incidence_rate: pd.DataFrame,
     runslow: bool,
     mocker: MockerFixture,
-):
+) -> None:
     """Test get_measure function.
 
     If mock_gbd is True, the test will mock vivarium_gbd_access calls with a
@@ -128,6 +154,27 @@ def test_get_incidence_rate(
 
     if mock_gbd:
         # Test against mocked data instead of actual data retrieval
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_estimation_years",
+            return_value=get_mocked_estimation_years(),
+        )
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_age_group_ids",
+            return_value=get_mocked_age_group_ids(),
+        )
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_location_path_to_global",
+            return_value=get_mocked_location_path_to_global(),
+        )
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_raw_age_bins",
+            return_value=get_mocked_age_bins(),
+        )
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_raw_location_ids",
+            return_value=get_mocked_location_ids(),
+        )
+
         if isinstance(data_type, list):
             with pytest.raises(DataTypeNotImplementedError):
                 data = get_measure(**kwargs)

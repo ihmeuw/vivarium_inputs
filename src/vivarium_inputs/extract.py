@@ -5,6 +5,7 @@ import pandas as pd
 from gbd_mapping import Cause, Covariate, Etiology, ModelableEntity, RiskFactor, Sequela
 
 import vivarium_inputs.validation.raw as validation
+from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
     DRAW_COLUMNS,
     MEASURES,
@@ -23,6 +24,17 @@ from vivarium_inputs.utilities import (
     filter_to_most_detailed_causes,
     process_kidney_dysfunction_exposure,
 )
+
+
+class DataTypeNotImplementedError(NotImplementedError):
+    """Raised when a data_type is requested that is not implemented for a particular data source."""
+
+    def __init__(self, data_type):
+        if isinstance(data_type, list):
+            message = "A list of requested data types is not yet supported."
+        elif data_type == "mean":
+            message = "Getting mean values is not yet supported."
+        super().__init__(message)
 
 
 def extract_data(
@@ -112,19 +124,7 @@ def extract_data(
 
     validation.check_metadata(entity, measure)
 
-    # update year_id value for gbd calls
-    if years is None:  # default to most recent year
-        year_id = gbd.get_most_recent_year()
-    elif years == "all":
-        year_id = None
-    else:
-        year_id = years if isinstance(years, list) else [years]
-        estimation_years = gbd.get_estimation_years()
-        not_estimated_years = set(year_id).difference(estimation_years)
-        if not_estimated_years:
-            raise ValueError(
-                f"years must be in {estimation_years}. You provided {not_estimated_years}."
-            )
+    year_id = _get_year_id(years)
 
     try:
         main_extractor, additional_extractors = extractors[measure]
@@ -174,6 +174,42 @@ def extract_data(
     return data
 
 
+####################
+# Helper functions #
+####################
+
+
+def _get_year_id(years):
+    if years is None:  # default to most recent year
+        year_id = _get_most_recent_year()
+    elif years == "all":
+        year_id = None
+    else:
+        year_id = years if isinstance(years, list) else [years]
+        estimation_years = utility_data.get_estimation_years()
+        not_estimated_years = set(year_id).difference(estimation_years)
+        if not_estimated_years:
+            raise ValueError(
+                f"years must be in {estimation_years}. You provided {not_estimated_years}."
+            )
+
+    return year_id
+
+
+#####################
+# Wrapped GBD calls #
+#####################
+
+
+def _get_most_recent_year() -> int:
+    return gbd.get_most_recent_year()
+
+
+#######################
+# Extractor functions #
+#######################
+
+
 def extract_prevalence(
     entity: Union[Cause, Sequela],
     location_id: List[int],
@@ -197,6 +233,10 @@ def extract_incidence_rate(
     year_id: Optional[Union[int, str, List[int]]],
     data_type: Union[str, list[str]],
 ) -> pd.DataFrame:
+
+    if isinstance(data_type, list) or data_type == "mean":
+        raise DataTypeNotImplementedError(data_type)
+
     data = gbd.get_incidence_prevalence(
         entity_id=entity.gbd_id,
         location_id=location_id,
