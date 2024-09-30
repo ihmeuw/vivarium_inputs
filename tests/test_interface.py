@@ -133,11 +133,11 @@ def test_get_incidence_rate(
 ) -> None:
     """Test get_measure function.
 
-    If mock_gbd is True, the test will mock vivarium_gbd_access calls with a
-    dummy data fixutre. This allows for pseodu-testing on github actions which
-    does not have access to vivarium_gbd_access. If mock_gb is False, the test
-    is a full end-to-end test, is marked as slow (requires --runslow option to
-    run), and will be skipped if there is not access to vivarium_gbd_access
+    If mock_gbd is True, the test will mock vivarium_gbd_access calls with
+    dummy data. This allows for pseudo-testing on github actions which
+    does not have access to vivarium_gbd_access. If mock_gbd is False, we run
+    a full end-to-end test marked as slow (i.e. requires the '--runslow' option
+    to run) which will be skipped if there is no access to vivarium_gbd_access
     (i.e. it can run in a Jenkins job).
     """
 
