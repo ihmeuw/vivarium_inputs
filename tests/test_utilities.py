@@ -1,8 +1,10 @@
+import re
+
 import pandas as pd
 import pytest
 
 from vivarium_inputs import utilities
-from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS
+from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS, SUPPORTED_DATA_TYPES
 
 
 @pytest.mark.parametrize(
@@ -54,12 +56,21 @@ def test_normalize_sex_no_sex_id():
         (["mean", "draw"], ["mean", "draw"]),
         (["MEANS", "DRAWS"], ["mean", "draw"]),
         (["mean", "draw", "foo"], "raises"),
+        ({"not": "a list"}, "raises"),
     ],
 )
 def test_process_data_type(data_type_and_expected):
     data_type, expected = data_type_and_expected
     if expected == "raises":
-        with pytest.raises(ValueError):
+        if not isinstance(data_type, (list, str)):
+            match = re.escape(
+                f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
+            )
+        else:
+            match = re.escape(
+                f"Data type 'foo' is not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
+            )
+        with pytest.raises(ValueError, match=match):
             utilities.process_data_type(data_type)
     else:
         assert utilities.process_data_type(data_type) == expected
