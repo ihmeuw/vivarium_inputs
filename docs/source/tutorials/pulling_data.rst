@@ -393,8 +393,9 @@ To use:
                 'parameters': {
                     'entity': ModelableEntity, 
                     'measure': str, 
-                    'location': Union[int, str, List[Union[int, str]]],
-                    'years': Optional[Union[int, str, List[int]]],
+                    'location': Union[int, str, list[Union[int, str]]],
+                    'years': Optional[Union[int, str, list[int]]],
+                    'data_type': Union[str, list[str]],
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
@@ -415,6 +416,7 @@ To use:
                     'measure': str,
                     'location': Union[int, str, List[Union[int, str]]],
                     'years': Optional[Union[int, str, List[int]]],
+                    'data_type': Union[str, list[str]],
                         },
                 'return': Union[pd.DataFrame, pd.Series], },
              }
