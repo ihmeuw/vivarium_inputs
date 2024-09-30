@@ -221,7 +221,9 @@ def test_check_data_exist_pass(data):
         ([2, 3, 388, 238], 2, 388, "non-contiguous"),
     ],
 )
-@pytest.mark.skipif(NO_GBD_ACCESS, reason="Don't run these tests on the CI server")
+@pytest.mark.skipif(
+    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
+)
 def test_check_age_group_ids_fail(mock_validation_context, test_age_ids, start, end, match):
     df = pd.DataFrame({"age_group_id": test_age_ids})
     with pytest.raises(DataAbnormalError, match=match):
@@ -237,7 +239,9 @@ def test_check_age_group_ids_fail(mock_validation_context, test_age_ids, start, 
         ([2, 3, 388], 2, 238, "contain all age groups in restriction range"),
     ],
 )
-@pytest.mark.skipif(NO_GBD_ACCESS, reason="Don't run these tests on the CI server")
+@pytest.mark.skipif(
+    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
+)
 def test_check_age_group_ids_warn(
     mock_validation_context, caplog, test_age_ids, start, end, match
 ):
@@ -250,7 +254,9 @@ def test_check_age_group_ids_warn(
     "test_age_ids, start, end",
     [([2, 3, 388], 2, 388), ([2, 3, 388], None, None), ([2, 3, 388, 389, 238], 2, 238)],
 )
-@pytest.mark.skipif(NO_GBD_ACCESS, reason="Don't run these tests on the CI server")
+@pytest.mark.skipif(
+    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
+)
 def test_check_age_group_ids_pass(mock_validation_context, test_age_ids, start, end, recwarn):
     df = pd.DataFrame({"age_group_id": test_age_ids})
     raw.check_age_group_ids(df, mock_validation_context, start, end)

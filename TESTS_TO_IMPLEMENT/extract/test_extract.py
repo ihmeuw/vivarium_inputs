@@ -5,7 +5,7 @@ from tests.conftest import NO_GBD_ACCESS
 from vivarium_inputs import extract, utility_data
 
 pytestmark = pytest.mark.skipif(
-    NO_GBD_ACCESS, reason="Don't run these tests on the CI server"
+    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
 )
 
 

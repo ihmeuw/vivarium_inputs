@@ -164,7 +164,9 @@ def test_validate_value_column_fail(values):
     ],
     ids=("no_restr", "left_restr", "outer_restr", "right_restr", "nonzero_fill"),
 )
-@pytest.mark.skipif(NO_GBD_ACCESS, reason="Don't run these tests on the CI server")
+@pytest.mark.skipif(
+    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
+)
 def test_check_age_restrictions(
     mocker, mock_validation_context, values, ids, restriction_type, fill
 ):
@@ -190,7 +192,9 @@ def test_check_age_restrictions(
     ],
     ids=("both_sides", "left_side", "right_side", "nonzero_fill"),
 )
-@pytest.mark.skipif(NO_GBD_ACCESS, reason="Don't run these tests on the CI server")
+@pytest.mark.skipif(
+    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
+)
 def test_check_age_restrictions_fail(
     mocker, mock_validation_context, values, ids, restriction_type, fill
 ):

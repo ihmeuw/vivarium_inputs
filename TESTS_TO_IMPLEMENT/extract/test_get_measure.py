@@ -7,7 +7,7 @@ from vivarium_inputs.globals import DataAbnormalError
 from vivarium_inputs.interface import get_measure
 
 pytestmark = pytest.mark.skipif(
-    NO_GBD_ACCESS, reason="Don't run these tests on the CI server"
+    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
 )
 
 
