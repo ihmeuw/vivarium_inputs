@@ -394,9 +394,9 @@ def clear_disability_weight_outside_restrictions(
     start, end = get_age_group_ids_by_restriction(cause, "yld")
     ages = get_restriction_age_ids(start, end, age_group_ids)
 
-    data.loc[
-        (~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS
-    ] = fill_value
+    data.loc[(~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS] = (
+        fill_value
+    )
     return data
 
 
@@ -581,7 +581,7 @@ def process_data_type(data_type: Union[str, list[str]]) -> Union[str, list[str]]
 
     Returns
     -------
-    Processed data type(s).
+        Processed data type(s).
     """
 
     def process_single_value(value: str) -> str:
