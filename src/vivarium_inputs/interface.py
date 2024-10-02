@@ -64,7 +64,7 @@ def get_measure(
     -------
         Dataframe standardized to the format expected by `vivarium` simulations.
     """
-    data_type = utilities.process_data_type(data_type)
+    data_type = utilities.validate_data_type(data_type)
     data = core.get_data(entity, measure, location, years, data_type)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(
@@ -237,7 +237,7 @@ def get_raw_data(
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
-    data_type = utilities.process_data_type(data_type)
+    data_type = utilities.validate_data_type(data_type)
     if not isinstance(location, list):
         location = [location]
     location_id = [

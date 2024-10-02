@@ -566,8 +566,8 @@ def process_kidney_dysfunction_exposure(
 ###########################
 
 
-def process_data_type(data_type: str | list[str]) -> str | list[str]:
-    """Validate that the provided data type is supported and process it if necessary.
+def validate_data_type(data_type: str | list[str]) -> None:
+    """Validate that the provided data type is supported.
 
     Parameters
     ----------
@@ -580,34 +580,18 @@ def process_data_type(data_type: str | list[str]) -> str | list[str]:
         If a data type is not supported.
     ValueError
         If `data_type` is not a string or a list of strings.
-
-    Returns
-    -------
-        Processed data type(s).
     """
 
-    def process_single_value(value: str) -> str:
-        """Process a single data type value."""
-        # normalize to lowercase
-        value = value.lower()
-        # convert to singular
-        for supported_value in SUPPORTED_DATA_TYPES:
-            if f"{supported_value}s" == value:
-                value = supported_value
-                break
-        if value not in SUPPORTED_DATA_TYPES:
-            raise ValueError(
-                f"Data type '{value}' is not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
-            )
-        return value
-
-    if isinstance(data_type, str):
-        return process_single_value(data_type)
-    elif isinstance(data_type, list):
-        return [process_single_value(value) for value in data_type]
-    else:
+    if not isinstance(data_type, (list, str)):
         raise ValueError(
             f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
+        )
+    if isinstance(data_type, str):
+        data_type = [data_type]
+    bad_types = set(data_type).difference(set(SUPPORTED_DATA_TYPES))
+    if bad_types:
+        raise ValueError(
+            f"Data type(s) {bad_types} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
         )
 
 
