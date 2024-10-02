@@ -170,7 +170,7 @@ def extract_data(
                 [year_id] if not isinstance(year_id, list) else year_id
             )
         validation.validate_raw_data(
-            data, entity, measure, location_id, data_type=data_type, **additional_data
+            data, entity, measure, location_id, data_type, **additional_data
         )
 
     return data
