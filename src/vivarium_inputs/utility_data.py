@@ -32,6 +32,7 @@ def get_age_bins(*_, **__) -> pd.DataFrame:
 
 
 def get_raw_age_bins() -> pd.DataFrame:
+    """Wrapper for gbd call for test mocking purposes."""
     return gbd.get_age_bins()
 
 
@@ -48,6 +49,7 @@ def get_location_name(location_id: int) -> str:
 
 
 def get_raw_location_ids() -> pd.DataFrame:
+    """Wrapper for gbd call for test mocking purposes."""
     return gbd.get_location_ids()
 
 
@@ -68,6 +70,7 @@ def get_location_id_parents(location_id: Union[int, List[int]]) -> Dict[int, Lis
 
 
 def get_location_path_to_global() -> pd.DataFrame:
+    """Wrapper for gbd call for test mocking purposes."""
     return gbd.get_location_path_to_global()
 
 
