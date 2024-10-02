@@ -130,16 +130,7 @@ def get_data(
 
     data = handler(entity, location_id, years, data_type)
 
-    if measure in [
-        "structure",
-        "theoretical_minimum_risk_life_expectancy",
-        "estimate",
-        "exposure_distribution_weights",
-    ]:
-        # Custom value columns for these measures
-        value_cols = ["value"]
-    else:
-        value_cols = utilities.get_value_columns(data_type)
+    value_cols = utilities.get_value_columns(data_type, measure)
 
     data = utilities.reshape(data, value_cols=value_cols)
 

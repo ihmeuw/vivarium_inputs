@@ -77,13 +77,16 @@ def test_process_data_type(data_type_and_expected):
 
 
 @pytest.mark.parametrize(
-    "data_type_and_returned_cols",
+    "data_type, measure, returned_cols",
     [
-        ("mean", MEAN_COLUMNS),
-        ("draw", DRAW_COLUMNS),
-        (["mean", "draw"], MEAN_COLUMNS + DRAW_COLUMNS),
+        (None, "structure", ["value"]),
+        (None, "theoretical_minimum_risk_life_expectancy", ["value"]),
+        (None, "estimate", ["value"]),
+        (None, "exposure_distribution_weights", ["value"]),
+        ("mean", None, MEAN_COLUMNS),
+        ("draw", None, DRAW_COLUMNS),
+        (["mean", "draw"], None, MEAN_COLUMNS + DRAW_COLUMNS),
     ],
 )
-def test_get_value_columns(data_type_and_returned_cols):
-    data_type, returned_cols = data_type_and_returned_cols
-    assert utilities.get_value_columns(data_type) == returned_cols
+def test_get_value_columns(data_type, measure, returned_cols):
+    assert utilities.get_value_columns(data_type, measure) == returned_cols

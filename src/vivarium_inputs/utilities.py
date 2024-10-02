@@ -611,7 +611,7 @@ def process_data_type(data_type: str | list[str]) -> str | list[str]:
         )
 
 
-def get_value_columns(data_type: str | list[str]) -> list[str]:
+def get_value_columns(data_type: str | list[str], measure: str | None = None) -> list[str]:
     """Get the value columns corresponding to the provided data type(s).
 
     Notes
@@ -623,24 +623,31 @@ def get_value_columns(data_type: str | list[str]) -> list[str]:
     ----------
     data_type
         Data type(s) for which to get value columns.
+    measure
+        Measure for which to get value columns.
 
     Returns
     -------
-    List of value columns.
-
-    value_cols = MEAN_COLUMNS if data_type else DRAW_COLUMNS
+        List of value columns.
     """
 
-    column_mapping = {
-        "mean": MEAN_COLUMNS,
-        "draw": DRAW_COLUMNS,
-    }
-
-    if isinstance(data_type, str):
-        cols = column_mapping[data_type]
-    else:  # list
+    if measure in [
+        "structure",
+        "theoretical_minimum_risk_life_expectancy",
+        "estimate",
+        "exposure_distribution_weights",
+    ]:
+        # Custom value columns for these measures
+        cols = ["value"]
+    else:
+        data_type_col_mapping = {
+            "mean": MEAN_COLUMNS,
+            "draw": DRAW_COLUMNS,
+        }
         cols = []
+        if isinstance(data_type, str):
+            data_type = [data_type]
         for value in data_type:
-            cols.extend(column_mapping[value])
+            cols.extend(data_type_col_mapping[value])
 
     return cols
