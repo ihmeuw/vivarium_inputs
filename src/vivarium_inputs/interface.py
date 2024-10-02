@@ -114,7 +114,6 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
 
     Returns
     -------
-    pandas.DataFrame
         Dataframe of theoretical minimum risk life expectancy data, standardized
         to the format expected by `vivarium` simulations with binned age parameters.
 
@@ -136,7 +135,6 @@ def get_age_bins() -> pd.DataFrame:
 
     Returns
     -------
-    pandas.DataFrame
         Dataframe of age bin data, with bin start and end values as well as bin
         names.
 
@@ -168,7 +166,6 @@ def get_demographic_dimensions(
 
     Returns
     -------
-    pandas.DataFrame
         Dataframe with age and year bins from GBD, sexes, and the given location.
 
     """
