@@ -393,9 +393,9 @@ To use:
                 'parameters': {
                     'entity': ModelableEntity, 
                     'measure': str, 
-                    'location': Union[int, str, list[Union[int, str]]],
-                    'years': Optional[Union[int, str, list[int]]],
-                    'data_type': Union[str, list[str]],
+                    'location': int | str | list[int | str],
+                    'years': int | str | list[int] | None,
+                    'data_type': str | list[str],
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
@@ -414,11 +414,11 @@ To use:
                  'parameters': {
                     'entity': ModelableEntity,
                     'measure': str,
-                    'location': Union[int, str, List[Union[int, str]]],
-                    'years': Optional[Union[int, str, List[int]]],
-                    'data_type': Union[str, list[str]],
+                    'location': int | str | list[int | str],
+                    'years': int | str | list[int] | None,
+                    'data_type': str | list[str],
                         },
-                'return': Union[pd.DataFrame, pd.Series], },
+                'return': pd.DataFrame | pd.Series, },
              }
     for func, spec in funcs.items():
         sig = inspect.signature(func)

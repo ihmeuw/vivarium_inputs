@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -83,9 +85,9 @@ def validate_for_simulation(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, list[Union[int, str]]],
-    years: Optional[int],
-    data_type: Union[str, list[str]],
+    location: int | str | list[int | str],
+    years: int | None,
+    data_type: str | list[str],
     **context_args,
 ) -> None:
     """Validate data for use in a simulation.

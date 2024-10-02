@@ -1,5 +1,7 @@
 """Access to vivarium simulation input data."""
 
+from __future__ import annotations
+
 from typing import List, Optional, Union
 
 import pandas as pd
@@ -13,9 +15,9 @@ from vivarium_inputs.globals import Population
 def get_measure(
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, list[Union[int, str]]],
-    years: Optional[Union[int, str, list[int]]] = None,
-    data_type: Union[str, list[str]] = "mean",
+    location: int | str | list[int | str],
+    years: int | str | list[int] | None = None,
+    data_type: str | list[str] = "mean",
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input.
 
@@ -182,10 +184,10 @@ def get_demographic_dimensions(
 def get_raw_data(
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[Union[int, str, List[int]]] = None,
-    data_type: Union[str, list[str]] = "mean",
-) -> Union[pd.Series, pd.DataFrame]:
+    location: int | str | list[int | str],
+    years: int | str | list[int] | None = None,
+    data_type: str | list[str] = "mean",
+) -> pd.Series | pd.DataFrame:
     """Pull raw data from GBD for the requested entity, measure, and location.
 
     Skip standard raw validation checks in order to return data that can be

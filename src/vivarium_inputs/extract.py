@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, Optional, Union
 
 import numpy as np
@@ -40,11 +42,11 @@ class DataTypeNotImplementedError(NotImplementedError):
 def extract_data(
     entity: ModelableEntity,
     measure: str,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]],
-    data_type: Union[str, list[str]],
+    location_id: list[int],
+    years: int | str | list[int] | None,
+    data_type: str | list[str],
     validate: bool = True,
-) -> Union[pd.Series, pd.DataFrame]:
+) -> pd.Series | pd.DataFrame:
     """Pull raw data from GBD.
 
     Check metadata for the requested entity-measure pair.
@@ -211,10 +213,10 @@ def _get_most_recent_year() -> int:
 
 
 def extract_prevalence(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]],
-    data_type: Union[str, list[str]],
+    entity: Cause | Sequela,
+    location_id: list[int],
+    year_id: int | str | list[int] | None,
+    data_type: str | list[str],
 ) -> pd.DataFrame:
     data = gbd.get_incidence_prevalence(
         entity_id=entity.gbd_id,
@@ -228,10 +230,10 @@ def extract_prevalence(
 
 
 def extract_incidence_rate(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]],
-    data_type: Union[str, list[str]],
+    entity: Cause | Sequela,
+    location_id: list[int],
+    year_id: int | str | list[int] | None,
+    data_type: str | list[str],
 ) -> pd.DataFrame:
 
     if isinstance(data_type, list) or data_type == "mean":

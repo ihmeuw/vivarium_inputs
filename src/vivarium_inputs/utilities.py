@@ -1,5 +1,7 @@
 """Errors and utility functions for input processing."""
 
+from __future__ import annotations
+
 from numbers import Real
 from typing import List, Tuple, Union
 
@@ -564,7 +566,7 @@ def process_kidney_dysfunction_exposure(
 ###########################
 
 
-def process_data_type(data_type: Union[str, list[str]]) -> Union[str, list[str]]:
+def process_data_type(data_type: str | list[str]) -> str | list[str]:
     """Validate that the provided data type is supported and process it if necessary.
 
     Parameters
@@ -609,7 +611,7 @@ def process_data_type(data_type: Union[str, list[str]]) -> Union[str, list[str]]
         )
 
 
-def get_value_columns(data_type: Union[str, list[str]]) -> list[str]:
+def get_value_columns(data_type: str | list[str]) -> list[str]:
     """Get the value columns corresponding to the provided data type(s).
 
     Notes

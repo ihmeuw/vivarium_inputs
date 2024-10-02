@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator
 from typing import List, Set, Tuple, Union
 
@@ -22,7 +24,6 @@ from vivarium_inputs.globals import (
     MEASURES,
     METRICS,
     PAF_OUTSIDE_AGE_RESTRICTIONS,
-    PROBLEMATIC_RISKS,
     PROTECTIVE_CAUSE_RISK_PAIRS,
     RISKS_WITH_NEGATIVE_PAF,
     SEXES,
@@ -31,7 +32,6 @@ from vivarium_inputs.globals import (
     DataDoesNotExistError,
     InvalidQueryError,
     Population,
-    gbd,
 )
 from vivarium_inputs.mapping_extension import (
     AlternativeRiskFactor,
@@ -130,8 +130,8 @@ def validate_raw_data(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location_id: Union[int, List[int]],
-    data_type: Union[str, list[str]],
+    location_id: int | list[int],
+    data_type: str | list[str],
     **additional_data,
 ) -> None:
     """Validate data conforms expected format and ranges.

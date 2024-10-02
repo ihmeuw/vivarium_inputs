@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from itertools import product
 from typing import List, Optional, Union
 
@@ -34,9 +36,9 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 def get_data(
     entity: ModelableEntity,
     measure: str,
-    location: Union[str, int, List[Union[str, int]]],
-    years: Optional[Union[int, str, List[int]]],
-    data_type: Union[str, list[str]],
+    location: str | int | list[str | int],
+    years: int | str | list[int] | None,
+    data_type: str | list[str],
 ) -> pd.DataFrame:
     """Pull raw GBD data for measure and entity.
 
@@ -145,10 +147,10 @@ def get_data(
 
 
 def get_raw_incidence_rate(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]],
-    data_type: Union[str, list[str]],
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None,
+    data_type: str | list[str],
 ) -> pd.DataFrame:
     data = extract.extract_data(entity, "incidence_rate", location_id, years, data_type)
     if entity.kind == "cause":
@@ -167,10 +169,10 @@ def get_raw_incidence_rate(
 
 
 def get_incidence_rate(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]],
-    data_type: Union[str, list[str]],
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None,
+    data_type: str | list[str],
 ) -> pd.DataFrame:
     data = get_data(entity, "raw_incidence_rate", location_id, years, data_type)
     prevalence = get_data(entity, "prevalence", location_id, years, data_type)
@@ -180,10 +182,10 @@ def get_incidence_rate(
 
 
 def get_prevalence(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]],
-    data_type: Union[str, list[str]],
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None,
+    data_type: str | list[str],
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
