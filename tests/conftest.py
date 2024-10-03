@@ -90,7 +90,7 @@ def locations():
 
 def _no_gbd_access():
     try:
-        from vivarium_inputs.globals import GbdDummy
+        from vivarium_inputs.globals import GBDDummy
 
         return True
     except ImportError:
