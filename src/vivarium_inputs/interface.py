@@ -63,10 +63,20 @@ def get_measure(
         Dataframe standardized to the format expected by `vivarium` simulations.
     """
     data_type = utilities.process_data_type(data_type)
-    data = core.get_data(entity, measure, location, years, data_type)
+    if measure in [
+        "structure",
+        "theoretical_minimum_risk_life_expectancy",
+        "estimate",
+        "exposure_distribution_weights",
+    ]:
+        # Custom value columns for these measures
+        value_columns = ["value"]
+    else:
+        value_columns = utilities.get_value_columns(data_type)
+    data = core.get_data(entity, measure, location, years, data_type, value_columns)
     data = utilities.scrub_gbd_conventions(data, location)
     validation.validate_for_simulation(
-        data, entity, measure, location, years, data_type=data_type
+        data, entity, measure, location, years, data_type, value_columns
     )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")

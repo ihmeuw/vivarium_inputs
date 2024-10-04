@@ -126,15 +126,15 @@ def set_age_interval(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def normalize(
-    data: pd.DataFrame, fill_value: Real = None, cols_to_fill: List[str] = DRAW_COLUMNS
+    data: pd.DataFrame, cols_to_fill: list[str], fill_value: Real = None
 ) -> pd.DataFrame:
-    data = normalize_sex(data, fill_value, cols_to_fill)
+    data = normalize_sex(data, cols_to_fill, fill_value)
     data = normalize_year(data)
-    data = normalize_age(data, fill_value, cols_to_fill)
+    data = normalize_age(data, cols_to_fill, fill_value)
     return data
 
 
-def normalize_sex(data: pd.DataFrame, fill_value, cols_to_fill) -> pd.DataFrame:
+def normalize_sex(data: pd.DataFrame, cols_to_fill, fill_value) -> pd.DataFrame:
     sexes = set(data.sex_id.unique()) if "sex_id" in data.columns else set()
     if not sexes:
         # Data does not correspond to individuals, so no age column necessary.
@@ -197,7 +197,7 @@ def interpolate_year(data):
 
 
 def normalize_age(
-    data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str]
+    data: pd.DataFrame, cols_to_fill: List[str], fill_value: Real
 ) -> pd.DataFrame:
     data_ages = set(data.age_group_id.unique()) if "age_group_id" in data.columns else set()
     gbd_ages = set(utility_data.get_age_group_ids())
@@ -238,7 +238,7 @@ def get_ordered_index_cols(data_columns: Union[pd.Index, set]):
     )
 
 
-def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS) -> pd.DataFrame:
+def reshape(data: pd.DataFrame, value_cols: list[str]) -> pd.DataFrame:
     if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):
         # push all non-val cols into index
         data = data.set_index(get_ordered_index_cols(data.columns.difference(value_cols)))
@@ -252,7 +252,7 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS) -> pd.DataFrame
     return data
 
 
-def wide_to_long(data: pd.DataFrame, value_cols: List, var_name: str) -> pd.DataFrame:
+def wide_to_long(data: pd.DataFrame, value_cols: list[str], var_name: str) -> pd.DataFrame:
     if set(data.columns).intersection(value_cols):
         id_cols = data.columns.difference(value_cols)
         data = pd.melt(data, id_vars=id_cols, value_vars=value_cols, var_name=var_name)
@@ -624,9 +624,7 @@ def get_value_columns(data_type: Union[str, list[str]]) -> list[str]:
 
     Returns
     -------
-    List of value columns.
-
-    value_cols = MEAN_COLUMNS if data_type else DRAW_COLUMNS
+        List of value columns.
     """
 
     column_mapping = {

@@ -86,6 +86,7 @@ def validate_for_simulation(
     location: Union[int, str, list[Union[int, str]]],
     years: Optional[int],
     data_type: Union[str, list[str]],
+    value_columns: list[str],
     **context_args,
 ) -> None:
     """Validate data for use in a simulation.
@@ -123,13 +124,15 @@ def validate_for_simulation(
         Flag indicating whether to validate that we have all years.
         Otherwise, validate that data has most recent year.
         Defaults to False.
-    **context_args
-        Any data or information needed to construct the SimulationContext used
-        by the individual entity-measure validator functions.
     data_type
         Data type of the extracted data. Supported values include 'mean' for
         mean data and 'draw' for draw-level data. Can also be a list of values
         for multiple data types.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
+    **context_args
+        Any data or information needed to construct the SimulationContext used
+        by the individual entity-measure validator functions.
 
     Raises
     -------
@@ -161,9 +164,6 @@ def validate_for_simulation(
         "age_bins": validate_age_bins,
         "demographic_dimensions": validate_demographic_dimensions,
     }
-
-    if data_type == "mean":
-        raise NotImplementedError("Mean data validation not yet implemented.")
 
     if isinstance(data_type, list):
         raise NotImplementedError("Validation for multiple data types not yet implemented.")
@@ -197,7 +197,7 @@ def validate_for_simulation(
         for loc in location
     ]
     context = SimulationValidationContext(location, **context_args)
-    validators[measure](data, entity, context)
+    validators[measure](data, entity, context, value_columns)
 
 
 #########################################################
@@ -208,7 +208,10 @@ def validate_for_simulation(
 
 
 def validate_incidence_rate(
-    data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Union[Cause, Sequela],
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped incidence
     data.
@@ -221,6 +224,8 @@ def validate_incidence_rate(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -232,7 +237,7 @@ def validate_incidence_rate(
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
     validate_expected_index_and_columns(
-        expected_index_names, data.index.names, DRAW_COLUMNS, data.columns
+        expected_index_names, data.index.names, value_columns, data.columns
     )
 
     validate_standard_columns(data, context)
@@ -241,14 +246,14 @@ def validate_incidence_rate(
         data,
         boundary_value=VALID_INCIDENCE_RANGE[0],
         boundary_type="lower",
-        value_columns=DRAW_COLUMNS,
+        value_columns=value_columns,
         error=DataTransformationError,
     )
     check_value_columns_boundary(
         data,
         boundary_value=VALID_INCIDENCE_RANGE[1],
         boundary_type="upper",
-        value_columns=DRAW_COLUMNS,
+        value_columns=value_columns,
         error=DataTransformationError,
     )
 

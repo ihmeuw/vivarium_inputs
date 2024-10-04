@@ -32,8 +32,8 @@ class DataTypeNotImplementedError(NotImplementedError):
     def __init__(self, data_type):
         if isinstance(data_type, list):
             message = "A list of requested data types is not yet supported."
-        elif data_type == "mean":
-            message = "Getting mean values is not yet supported."
+        else:
+            message = f"Data type {data_type} is not supported."
         super().__init__(message)
 
 
@@ -43,6 +43,7 @@ def extract_data(
     location_id: List[int],
     years: Optional[Union[int, str, List[int]]],
     data_type: Union[str, list[str]],
+    value_columns: List[str],
     validate: bool = True,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Pull raw data from GBD.
@@ -68,6 +69,8 @@ def extract_data(
         Data type for which to extract data. Supported values include 'mean' for
         getting mean data and 'draw' for getting draw-level data. Can also be a list
         of values to get multiple data types.
+    value_columns
+        List of value columns to be pulled.
     validate
         Flag indicating whether additional data needed for raw validation
         should be extracted and whether raw validation should be performed.
@@ -167,8 +170,11 @@ def extract_data(
             additional_data["estimation_years"] = (
                 [year_id] if not isinstance(year_id, list) else year_id
             )
+
+        if isinstance(data_type, list):
+            raise NotImplementedError("Validation for multiple data types not implemented.")
         validation.validate_raw_data(
-            data, entity, measure, location_id, data_type=data_type, **additional_data
+            data, entity, measure, location_id, value_columns, **additional_data
         )
 
     return data
@@ -216,6 +222,10 @@ def extract_prevalence(
     year_id: Optional[Union[int, str, List[int]]],
     data_type: Union[str, list[str]],
 ) -> pd.DataFrame:
+
+    if isinstance(data_type, list):
+        raise DataTypeNotImplementedError(data_type)
+
     data = gbd.get_incidence_prevalence(
         entity_id=entity.gbd_id,
         location_id=location_id,
@@ -234,7 +244,7 @@ def extract_incidence_rate(
     data_type: Union[str, list[str]],
 ) -> pd.DataFrame:
 
-    if isinstance(data_type, list) or data_type == "mean":
+    if isinstance(data_type, list):
         raise DataTypeNotImplementedError(data_type)
 
     data = gbd.get_incidence_prevalence(
