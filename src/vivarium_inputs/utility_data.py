@@ -5,8 +5,7 @@ from vivarium_inputs.globals import NON_MAX_TMREL, NUM_DRAWS, SEXES, gbd
 
 
 def get_estimation_years(*_, **__) -> pd.Series:
-    data = gbd.get_estimation_years()
-    return data
+    return gbd.get_estimation_years()
 
 
 def get_year_block(*_, **__) -> pd.DataFrame:
@@ -19,34 +18,43 @@ def get_year_block(*_, **__) -> pd.DataFrame:
 
 
 def get_age_group_ids(*_, **__) -> list[int]:
-    data = gbd.get_age_group_id()
-    return data
+    return gbd.get_age_group_id()
 
 
 def get_age_bins(*_, **__) -> pd.DataFrame:
-    age_bins = gbd.get_age_bins()[
+    age_bins = get_raw_age_bins()[
         ["age_group_id", "age_group_name", "age_group_years_start", "age_group_years_end"]
     ].rename(columns={"age_group_years_start": "age_start", "age_group_years_end": "age_end"})
     age_bins = age_bins.sort_values("age_start").reset_index(drop=True)
     return age_bins
 
 
+def get_raw_age_bins() -> pd.DataFrame:
+    """Wrapper for gbd call for test mocking purposes."""
+    return gbd.get_age_bins()
+
+
 def get_location_id(location_name: str) -> int:
-    return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[
+    return {r.location_name: r.location_id for _, r in get_raw_location_ids().iterrows()}[
         location_name
     ]
 
 
 def get_location_name(location_id: int) -> str:
     return {
-        row.location_id: row.location_name for _, row in gbd.get_location_ids().iterrows()
+        row.location_id: row.location_name for _, row in get_raw_location_ids().iterrows()
     }[location_id]
+
+
+def get_raw_location_ids() -> pd.DataFrame:
+    """Wrapper for gbd call for test mocking purposes."""
+    return gbd.get_location_ids()
 
 
 def get_location_id_parents(location_id: int | list[int]) -> dict[int, list]:
     if isinstance(location_id, int):
         location_id = [location_id]
-    location_metadata = gbd.get_location_path_to_global()
+    location_metadata = get_location_path_to_global()
     parent_ids = (
         location_metadata.loc[location_metadata.location_id.isin(location_id)]
         .set_index("location_id")["path_to_top_parent"]
@@ -57,6 +65,11 @@ def get_location_id_parents(location_id: int | list[int]) -> dict[int, list]:
     parent_ids = {loc_id: list(map(int, parents)) for loc_id, parents in parent_ids.items()}
 
     return parent_ids
+
+
+def get_location_path_to_global() -> pd.DataFrame:
+    """Wrapper for gbd call for test mocking purposes."""
+    return gbd.get_location_path_to_global()
 
 
 def get_demographic_dimensions(
