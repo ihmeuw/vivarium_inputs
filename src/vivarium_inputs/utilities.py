@@ -1,5 +1,7 @@
 """Errors and utility functions for input processing."""
 
+from __future__ import annotations
+
 from numbers import Real
 from typing import List, Tuple, Union
 
@@ -11,8 +13,10 @@ from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
     DEMOGRAPHIC_COLUMNS,
     DRAW_COLUMNS,
+    MEAN_COLUMNS,
     SEXES,
     SPECIAL_AGES,
+    SUPPORTED_DATA_TYPES,
 )
 
 INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure", "parameter"]
@@ -555,3 +559,79 @@ def process_kidney_dysfunction_exposure(
     cat5_data = cat5_data[data.columns]
     data = pd.concat([data, cat5_data])
     return data
+
+
+###########################
+# Other utility functions #
+###########################
+
+
+def validate_data_type(data_type: str | list[str]) -> None:
+    """Validate that the provided data type is supported.
+
+    Parameters
+    ----------
+    data_type
+        Data type(s) to process.
+
+    Raises
+    ------
+    ValueError
+        If a data type is not supported.
+    ValueError
+        If `data_type` is not a string or a list of strings.
+    """
+
+    if not isinstance(data_type, (list, str)):
+        raise ValueError(
+            f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
+        )
+    if isinstance(data_type, str):
+        data_type = [data_type]
+    bad_types = set(data_type).difference(set(SUPPORTED_DATA_TYPES))
+    if bad_types:
+        raise ValueError(
+            f"Data type(s) {bad_types} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
+        )
+
+
+def get_value_columns(data_type: str | list[str], measure: str | None = None) -> list[str]:
+    """Get the value columns corresponding to the provided data type(s).
+
+    Notes
+    -----
+    The data_type has already been processed and validated at this point so no need
+    to check for invalid values.
+
+    Parameters
+    ----------
+    data_type
+        Data type(s) for which to get value columns.
+    measure
+        Measure for which to get value columns.
+
+    Returns
+    -------
+        List of value columns.
+    """
+
+    if measure in [
+        "structure",
+        "theoretical_minimum_risk_life_expectancy",
+        "estimate",
+        "exposure_distribution_weights",
+    ]:
+        # Custom value columns for these measures
+        cols = ["value"]
+    else:
+        data_type_col_mapping = {
+            "mean": MEAN_COLUMNS,
+            "draw": DRAW_COLUMNS,
+        }
+        cols = []
+        if isinstance(data_type, str):
+            data_type = [data_type]
+        for value in data_type:
+            cols.extend(data_type_col_mapping[value])
+
+    return cols
