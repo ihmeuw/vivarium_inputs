@@ -2,6 +2,40 @@
 Pulling Data
 ============
 
+
+.. testsetup::
+
+    import inspect
+
+    from vivarium_inputs import (
+        get_measure,
+        get_population_structure,
+        get_theoretical_minimum_risk_life_expectancy,
+        get_age_bins,
+        get_demographic_dimensions,
+        get_raw_data,
+    )
+
+    def check_args(func, used_args):
+        """Test that the above code-block is valid given that we don't guaranteed 
+        access to vivarium_gbd_access
+        """
+
+        # TODO: Test that the argument and return types are as expected for each
+        # function. We can't easily do this now because we are supporting py3.9
+        # which doesn't allow for type hints using | (instead of Union) and
+        # we've implemented a bit of that.
+        
+        actual_args = inspect.signature(func).parameters
+        
+        # Check that all arguments passed in actually exist in the signature
+        assert not set(used_args).difference(set(actual_args))
+
+        # Check that any args not passed in actually have a default in the signature
+        check_for_default = [arg for arg in actual_args if arg not in used_args]
+        assert all(actual_args[arg].default != inspect._empty for arg in check_for_default)
+
+
 :mod:`vivarium_inputs` provides an interface to pull data from GBD + auxiliary
 data. Use this interface to examine data that you want to use in a model to
 ensure it passes all validations and looks as you expect. You have 2 choices
@@ -81,7 +115,12 @@ do the following:
     from gbd_mapping import causes
     from vivarium_inputs import get_measure
 
-    prev = get_measure(causes.diarrheal_diseases, 'prevalence', 'Kenya')
+    prev = get_measure(
+        entity=causes.diarrheal_diseases,
+        measure='prevalence',
+        location='Kenya',
+        data_type="draws",
+    )
     print(prev.head())
 
 ::
@@ -93,6 +132,12 @@ do the following:
                     0.076712  0.500000 2021       2022      0.040640  ...  0.042404
                     0.500000  1.000000 2021       2022      0.026530  ...  0.029795
                     1.000000  2.000000 2021       2022      0.011624  ...  0.014232
+
+.. testcode::
+    :hide:
+    
+    check_args(get_measure, ["entity", "measure", "location", "data_type"])
+
 
 The following table lists the measures available for each entity kind:
 
@@ -148,7 +193,7 @@ For example, to pull population data for Kenya, we would do the following:
 
     from vivarium_inputs import get_population_structure
 
-    pop = get_population_structure('Kenya')
+    pop = get_population_structure(location='Kenya')
     print(pop.head())
 
 ::
@@ -160,6 +205,12 @@ For example, to pull population data for Kenya, we would do the following:
                     0.076712  0.500000 2021       2022      241157.325386
                     0.500000  1.000000 2021       2022      283195.389282
                     1.000000  2.000000 2021       2022      575233.481802
+
+.. testcode::
+    :hide:
+
+    check_args(get_population_structure, ["location"])
+
 
 Life Expectancy Data
 ++++++++++++++++++++
@@ -187,6 +238,11 @@ To use:
     0.03      0.04     89.985077
     0.04      0.05     89.979164
 
+.. testcode::
+    :hide:
+
+    check_args(get_theoretical_minimum_risk_life_expectancy, [])
+
 
 Age Bin Data
 ++++++++++++
@@ -211,6 +267,11 @@ the start, end, and name of each GBD age bin expected to appear in age-specific 
     3   0.500000  1.000000      6-11 months
     4   1.000000  2.000000  12 to 23 months
 
+.. testcode::
+    :hide:
+
+    check_args(get_age_bins, [])
+
 
 Demographic Dimensions Data
 +++++++++++++++++++++++++++
@@ -223,7 +284,7 @@ which expects a `location` argument to fill the location dimension.
 
     from vivarium_inputs import get_demographic_dimensions
 
-    dem_dims = get_demographic_dimensions('Kenya')
+    dem_dims = get_demographic_dimensions(location='Kenya')
     print(dem_dims.reset_index().head())
 
 ::
@@ -234,6 +295,11 @@ which expects a `location` argument to fill the location dimension.
     2    Kenya  Female   0.076712  0.500000        2021      2022
     3    Kenya  Female   0.500000  1.000000        2021      2022
     4    Kenya  Female   1.000000  2.000000        2021      2022
+
+.. testcode::
+    :hide:
+
+    check_args(get_demographic_dimensions, ["location"])
 
 
 Pulling Raw GBD Data
@@ -261,7 +327,7 @@ kind is included in the table below. Finally, ``location`` should be the string
 location for which you want to pull data (e.g., 'Ethiopia'), in the form used by
 GBD (e.g., 'United States' instead of 'USA').
 
-For example, to pull raw prevalence data for diarrheal diseases in Kenya, we would
+For example, to pull draw-level raw prevalence data for diarrheal diseases in Kenya, we would
 do the following:
 
 .. code-block:: python
@@ -269,7 +335,12 @@ do the following:
     from gbd_mapping import causes
     from vivarium_inputs import get_raw_data
 
-    prev = get_raw_data(causes.diarrheal_diseases, 'prevalence', 'Kenya')
+    prev = get_raw_data(
+        entity=causes.diarrheal_diseases,
+        measure='prevalence',
+        location='Kenya',
+        data_type="draws",
+    )
     print(prev.head())
 
 ::
@@ -281,7 +352,12 @@ do the following:
     53             7       302  0.023237  ...     2021          3        1471
     54             8       302  0.024702  ...     2021          3        1471
 
+.. testcode::
+    :hide:
 
+    check_args(get_raw_data, ["entity", "measure", "location", "data_type"])
+
+    
 The following table lists the measures available for each entity kind for pulling raw data:
 
 .. list-table:: Available Entity-Measure Pairs
@@ -336,7 +412,7 @@ For example, to pull population data for Kenya, we would do the following:
     from vivarium_inputs import get_raw_data
     from vivarium_inputs.globals import Population
 
-    pop = get_raw_data(Population(), 'structure', 'Kenya')
+    pop = get_raw_data(entity=Population(), measure='structure', location='Kenya')
     print(pop.head())
 
 ::
@@ -347,6 +423,11 @@ For example, to pull population data for Kenya, we would do the following:
     2             6          180     2021       1  3.187225e+06     359
     3             7          180     2021       1  3.264795e+06     359
     4             8          180     2021       1  2.997167e+06     359
+
+.. testcode::
+    :hide:
+
+    check_args(get_raw_data, ["entity", "measure", "location"])
 
 
 Life Expectancy Data
@@ -375,54 +456,8 @@ To use:
     3  0.03        89.985077
     4  0.04        89.979164
 
-
 .. testcode::
     :hide:
 
-    import inspect
-
-    import pandas as pd
-
-    from vivarium_inputs import (get_measure, get_population_structure,
-                                 get_theoretical_minimum_risk_life_expectancy,
-                                 get_age_bins, get_demographic_dimensions, get_raw_data)
-    from gbd_mapping import ModelableEntity
-
-    funcs = {get_measure: {
-                'parameters': {
-                    'entity': ModelableEntity, 
-                    'measure': str, 
-                    'location': int | str | list[int | str],
-                    'years': int | str | list[int] | None,
-                        },
-                'return': pd.DataFrame, },
-             get_population_structure: {
-                 'parameters': {'location': int | str | list[int | str], 'years': int | str | list[int] | None},
-                 'return': pd.DataFrame, },
-             get_theoretical_minimum_risk_life_expectancy: {
-                 'parameters': {},
-                 'return': pd.DataFrame, },
-             get_age_bins: {
-                 'parameters': {},
-                 'return': pd.DataFrame, },
-             get_demographic_dimensions: {
-                 'parameters': {'location': int | str | list[int | str], 'years': int | str | list[int] | None},
-                 'return': pd.DataFrame, },
-             get_raw_data: {
-                 'parameters': {
-                    'entity': ModelableEntity,
-                    'measure': str,
-                    'location': int | str | list[int | str],
-                    'years': int | str | list[int] | None,
-                        },
-                'return': pd.DataFrame | pd.Series, },
-             }
-    for func, spec in funcs.items():
-        sig = inspect.signature(func)
-        assert len(sig.parameters) == len(spec['parameters'])
-        for name, annotation in spec['parameters'].items():
-            assert name in sig.parameters
-            assert sig.parameters[name].annotation == annotation
-        assert sig.return_annotation == spec['return']
-
+    check_args(get_raw_data, ["entity", "measure", "location"])
 

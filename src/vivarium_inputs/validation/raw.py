@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator
 
 import numpy as np
@@ -21,7 +23,6 @@ from vivarium_inputs.globals import (
     MEASURES,
     METRICS,
     PAF_OUTSIDE_AGE_RESTRICTIONS,
-    PROBLEMATIC_RISKS,
     PROTECTIVE_CAUSE_RISK_PAIRS,
     RISKS_WITH_NEGATIVE_PAF,
     SEXES,
@@ -30,7 +31,6 @@ from vivarium_inputs.globals import (
     DataDoesNotExistError,
     InvalidQueryError,
     Population,
-    gbd,
 )
 from vivarium_inputs.mapping_extension import (
     AlternativeRiskFactor,
@@ -130,6 +130,7 @@ def validate_raw_data(
     entity: ModelableEntity,
     measure: str,
     location_id: int | list[int],
+    data_type: str | list[str],
     **additional_data,
 ) -> None:
     """Validate data conforms expected format and ranges.
@@ -160,6 +161,9 @@ def validate_raw_data(
         Measure to which the data pertain.
     location_id
         Location for which the data were pulled.
+    data_type
+        Data contains a single mean data value column if 'mean' and/or multiple
+        draw-level columns if 'draw'.
     additional_data
         Any additional data needed to validate the measure-entity data. This
         most often applies to RiskFactor data where data from an additional
@@ -199,6 +203,12 @@ def validate_raw_data(
         "structure": validate_structure,
         "theoretical_minimum_risk_life_expectancy": validate_theoretical_minimum_risk_life_expectancy,
     }
+
+    if data_type == "mean":
+        raise NotImplementedError("Validation for mean data not implemented.")
+
+    if isinstance(data_type, list):
+        raise NotImplementedError("Validation for multiple data types not implemented.")
 
     if measure not in validators:
         raise InvalidQueryError(f"No raw validator found for {measure}.")

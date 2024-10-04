@@ -2,3 +2,13 @@
 py:class vivarium_inputs.mapping_extension.alternative_risk_factor_template.AlternativeRiskFactor
 py:class vivarium_inputs.mapping_extension.healthcare_entity_template.HealthcareEntity
 py:class vivarium_inputs.globals.Population
+py:class vivarium.framework.time.Timedelta
+
+# gbd_mapping
+py:class ModelableEntity
+py:class Cause
+py:class Sequela
+
+# pandas
+py:class pd.Series
+py:class pd.DataFrame
