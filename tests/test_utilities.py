@@ -1,7 +1,10 @@
+import re
+
 import pandas as pd
 import pytest
 
 from vivarium_inputs import utilities
+from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS, SUPPORTED_DATA_TYPES
 
 
 @pytest.mark.parametrize(
@@ -40,3 +43,46 @@ def test_normalize_sex_no_sex_id():
     df = pd.DataFrame({"ColumnA": [1, 2, 3], "ColumnB": [1, 2, 3]})
     normalized = utilities.normalize_sex(df, fill_value=0.0, cols_to_fill=["value"])
     pd.testing.assert_frame_equal(df, normalized)
+
+
+@pytest.mark.parametrize(
+    "data_type, should_raise",
+    [
+        ("mean", False),
+        ("draw", False),
+        ("foo", True),
+        (["mean", "draw"], False),
+        (["mean", "draw", "foo"], True),
+        ({"not": "a list"}, True),
+    ],
+)
+def test_process_data_type(data_type, should_raise):
+    if should_raise:
+        if not isinstance(data_type, (list, str)):
+            match = re.escape(
+                f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
+            )
+        else:
+            match = re.escape(
+                f"Data type(s) {set(['foo'])} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
+            )
+        with pytest.raises(ValueError, match=match):
+            utilities.validate_data_type(data_type)
+    else:
+        utilities.validate_data_type(data_type)
+
+
+@pytest.mark.parametrize(
+    "data_type, measure, returned_cols",
+    [
+        (None, "structure", ["value"]),
+        (None, "theoretical_minimum_risk_life_expectancy", ["value"]),
+        (None, "estimate", ["value"]),
+        (None, "exposure_distribution_weights", ["value"]),
+        ("mean", None, MEAN_COLUMNS),
+        ("draw", None, DRAW_COLUMNS),
+        (["mean", "draw"], None, MEAN_COLUMNS + DRAW_COLUMNS),
+    ],
+)
+def test_get_value_columns(data_type, measure, returned_cols):
+    assert utilities.get_value_columns(data_type, measure) == returned_cols

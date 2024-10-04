@@ -1,5 +1,7 @@
 """Access to vivarium simulation input data."""
 
+from __future__ import annotations
+
 from typing import List, Optional, Union
 
 import pandas as pd
@@ -13,8 +15,9 @@ from vivarium_inputs.globals import Population
 def get_measure(
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location: int | str | list[int | str],
+    years: int | str | list[int] | None = None,
+    data_type: str | list[str] = "mean",
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input.
 
@@ -52,14 +55,21 @@ def get_measure(
     years
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data. Defaults to None.
+    data_type
+        Data type for which to extract data. Supported values include 'mean' for
+        getting mean data and 'draw' for getting draw-level data. Can also be a list
+        of values to get multiple data types. Defaults to 'mean'.
 
     Returns
     -------
         Dataframe standardized to the format expected by `vivarium` simulations.
     """
-    data = core.get_data(entity, measure, location, years)
+    utilities.validate_data_type(data_type)
+    data = core.get_data(entity, measure, location, years, data_type)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, entity, measure, location, years)
+    validation.validate_for_simulation(
+        data, entity, measure, location, years, data_type=data_type
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -104,7 +114,6 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
 
     Returns
     -------
-    pandas.DataFrame
         Dataframe of theoretical minimum risk life expectancy data, standardized
         to the format expected by `vivarium` simulations with binned age parameters.
 
@@ -126,7 +135,6 @@ def get_age_bins() -> pd.DataFrame:
 
     Returns
     -------
-    pandas.DataFrame
         Dataframe of age bin data, with bin start and end values as well as bin
         names.
 
@@ -158,7 +166,6 @@ def get_demographic_dimensions(
 
     Returns
     -------
-    pandas.DataFrame
         Dataframe with age and year bins from GBD, sexes, and the given location.
 
     """
@@ -174,10 +181,12 @@ def get_demographic_dimensions(
 def get_raw_data(
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[Union[int, str, List[int]]] = None,
-) -> Union[pd.Series, pd.DataFrame]:
+    location: int | str | list[int | str],
+    years: int | str | list[int] | None = None,
+    data_type: str | list[str] = "mean",
+) -> pd.Series | pd.DataFrame:
     """Pull raw data from GBD for the requested entity, measure, and location.
+
     Skip standard raw validation checks in order to return data that can be
     investigated for oddities. The only filter that occurs is by applicable
     measure id, metric id, or to most detailed causes where relevant.
@@ -218,13 +227,17 @@ def get_raw_data(
     years
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data. Defaults to None.
+    data_type
+        Data type for which to extract data. Supported values include 'mean' for
+        getting mean data and 'draw' for getting draw-level data. Can also be a list
+        of values to get multiple data types. Defaults to 'mean'.
 
     Returns
     -------
-    Union[pandas.Series, pandas.DataFrame]
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
+    utilities.validate_data_type(data_type)
     if not isinstance(location, list):
         location = [location]
     location_id = [
@@ -234,7 +247,8 @@ def get_raw_data(
         entity,
         measure,
         location_id,
+        years,
+        data_type,
         validate=False,
-        years=years,
     )
     return data
