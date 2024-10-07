@@ -161,9 +161,6 @@ def extract_data(
             additional_data["estimation_years"] = (
                 [year_id] if not isinstance(year_id, list) else year_id
             )
-
-        if isinstance(data_type, list):
-            raise NotImplementedError("Validation for multiple data types not implemented.")
         validation.validate_raw_data(
             data, entity, measure, location_id, value_columns, **additional_data
         )

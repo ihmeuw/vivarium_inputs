@@ -167,9 +167,6 @@ def validate_for_simulation(
         "demographic_dimensions": validate_demographic_dimensions,
     }
 
-    if isinstance(data_type, list):
-        raise NotImplementedError("Validation for multiple data types not yet implemented.")
-
     if measure not in validators:
         raise NotImplementedError(f"Validation for measure '{measure}' not implemented.")
 
