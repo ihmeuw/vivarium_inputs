@@ -372,6 +372,12 @@ def extract_relative_risk(
     if not data["exposure"].isna().any() and data["parameter"].isna().all():
         data["parameter"] = data["exposure"]
         data["exposure"] = np.nan
+    data = filter_to_most_detailed_causes(data)
+    if entity.gbd_id == 136:  # non-exclusive breastfeeding
+        data = data.loc[data["age_group_id"].isin([3, 388])]
+    elif entity.gbd_id == 137:  # discontinued breastfeeding
+        data = data.loc[data["age_group_id"].isin([238, 389])]
+    return data
 
 
 def extract_population_attributable_fraction(
