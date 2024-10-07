@@ -48,11 +48,11 @@ def test_normalize_sex_no_sex_id():
 @pytest.mark.parametrize(
     "data_type, should_raise",
     [
-        ("mean", False),
-        ("draw", False),
+        ("means", False),
+        ("draws", False),
         ("foo", True),
-        (["mean", "draw"], True),  # temporarily; not implemented
-        (["mean", "draw", "foo"], True),
+        (["means", "draws"], True),  # temporarily; not implemented
+        (["means", "draws", "foo"], True),
         ({"not": "a list"}, True),
     ],
 )
