@@ -7,8 +7,6 @@ from gbd_mapping import ModelableEntity, causes, risk_factors
 try:
     from vivarium_gbd_access import gbd
 
-    # from vivarium_gbd_access.gbd import DataTypeNotImplementedError
-
     try:
         from get_draws.api import EmptyDataFrameException, InputsException
         from get_draws.base.exceptions import NoBestVersionsException
@@ -37,11 +35,6 @@ except ModuleNotFoundError:
 
     class InputsException(Exception):
         """Mock class for gbd exception"""
-
-        pass
-
-    class DataTypeNotImplementedError(NotImplementedError):
-        """Mock class for gbd error"""
 
         pass
 
