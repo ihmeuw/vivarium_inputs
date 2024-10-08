@@ -138,9 +138,7 @@ def get_raw_incidence_rate(
     years: int | str | list[int] | None,
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
-    data = extract.extract_data(
-        entity, "incidence_rate", location_id, years, data_type, value_columns
-    )
+    data = extract.extract_data(entity, "incidence_rate", location_id, years, data_type)
     if entity.kind == "cause":
         restrictions_entity = entity
     else:  # sequela
@@ -161,10 +159,8 @@ def get_incidence_rate(
     years: int | str | list[int] | None,
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
-    data = get_data(
-        entity, "raw_incidence_rate", location_id, years, data_type, value_columns
-    )
-    prevalence = get_data(entity, "prevalence", location_id, years, data_type, value_columns)
+    data = get_data(entity, "raw_incidence_rate", location_id, years, data_type)
+    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0)
@@ -182,7 +178,6 @@ def get_prevalence(
         location_id,
         years,
         data_type,
-        value_columns,
     )
     if entity.kind == "cause":
         restrictions_entity = entity
