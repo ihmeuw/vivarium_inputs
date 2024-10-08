@@ -650,8 +650,8 @@ class DataType:
             cols = ["value"]
         else:
             data_type_col_mapping = {
-                "mean": MEAN_COLUMNS,
-                "draw": DRAW_COLUMNS,
+                "means": MEAN_COLUMNS,
+                "draws": DRAW_COLUMNS,
             }
             cols = []
             if isinstance(data_type, str):

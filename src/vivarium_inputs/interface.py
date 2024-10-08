@@ -16,7 +16,7 @@ def get_measure(
     measure: str,
     location: int | str | list[int | str],
     years: int | str | list[int] | None = None,
-    data_type: str | list[str] = "mean",
+    data_type: str | list[str] = "means",
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input.
 
@@ -55,9 +55,9 @@ def get_measure(
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data. Defaults to None.
     data_type
-        Data type for which to extract data. Supported values include 'mean' for
-        getting mean data and 'draw' for getting draw-level data. Can also be a list
-        of values to get multiple data types. Defaults to 'mean'.
+        Data type for which to extract data. Supported values include 'means' for
+        getting mean data and 'draws' for getting draw-level data. Can also be a list
+        of values to get multiple data types. Defaults to 'means'.
 
     Returns
     -------
@@ -180,7 +180,7 @@ def get_raw_data(
     measure: str,
     location: int | str | list[int | str],
     years: int | str | list[int] | None = None,
-    data_type: str | list[str] = "mean",
+    data_type: str | list[str] = "means",
 ) -> pd.Series | pd.DataFrame:
     """Pull raw data from GBD for the requested entity, measure, and location.
 
@@ -225,9 +225,9 @@ def get_raw_data(
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data. Defaults to None.
     data_type
-        Data type for which to extract data. Supported values include 'mean' for
-        getting mean data and 'draw' for getting draw-level data. Can also be a list
-        of values to get multiple data types. Defaults to 'mean'.
+        Data type for which to extract data. Supported values include 'means' for
+        getting mean data and 'draws' for getting draw-level data. Can also be a list
+        of values to get multiple data types. Defaults to 'means'.
 
     Returns
     -------
