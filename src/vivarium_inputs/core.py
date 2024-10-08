@@ -38,7 +38,7 @@ def get_data(
     measure: str,
     location: str | int | list[str | int],
     years: int | str | list[int] | None,
-    data_type: str | list[str],
+    data_type: utilities.DataType,
 ) -> pd.DataFrame:
     """Pull raw GBD data for measure and entity.
 
@@ -58,9 +58,7 @@ def get_data(
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data.
     data_type
-        Data type for which to extract data. Supported values include 'mean' for
-        getting mean data and 'draw' for getting draw-level data. Can also be a list
-        of values to get multiple data types.
+        The DataType object for which to extract data.
 
     Returns
     -------
@@ -129,10 +127,7 @@ def get_data(
         ]
 
     data = handler(entity, location_id, years, data_type)
-
-    value_cols = utilities.get_value_columns(data_type, measure)
-
-    data = utilities.reshape(data, value_cols=value_cols)
+    data = utilities.reshape(data, data_type.value_columns)
 
     return data
 
@@ -141,7 +136,7 @@ def get_raw_incidence_rate(
     entity: Cause | Sequela,
     location_id: list[int],
     years: int | str | list[int] | None,
-    data_type: str | list[str],
+    data_type: utilities.DataType,
 ) -> pd.DataFrame:
     data = extract.extract_data(entity, "incidence_rate", location_id, years, data_type)
     if entity.kind == "cause":
@@ -153,9 +148,8 @@ def get_raw_incidence_rate(
     data = utilities.filter_data_by_restrictions(
         data, restrictions_entity, "yld", utility_data.get_age_group_ids()
     )
-    data = utilities.normalize(data, fill_value=0)
-    value_cols = utilities.get_value_columns(data_type)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + value_cols)
+    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
     return data
 
 
@@ -163,7 +157,7 @@ def get_incidence_rate(
     entity: Cause | Sequela,
     location_id: list[int],
     years: int | str | list[int] | None,
-    data_type: str | list[str],
+    data_type: utilities.DataType,
 ) -> pd.DataFrame:
     data = get_data(entity, "raw_incidence_rate", location_id, years, data_type)
     prevalence = get_data(entity, "prevalence", location_id, years, data_type)
@@ -176,7 +170,7 @@ def get_prevalence(
     entity: Cause | Sequela,
     location_id: list[int],
     years: int | str | list[int] | None,
-    data_type: str | list[str],
+    data_type: utilities.DataType,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -194,9 +188,8 @@ def get_prevalence(
     data = utilities.filter_data_by_restrictions(
         data, restrictions_entity, "yld", utility_data.get_age_group_ids()
     )
-    data = utilities.normalize(data, fill_value=0)
-    value_cols = utilities.get_value_columns(data_type)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + value_cols)
+    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
     return data
 
 
