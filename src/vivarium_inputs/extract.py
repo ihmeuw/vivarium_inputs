@@ -212,7 +212,7 @@ def extract_prevalence(
         location_id=location_id,
         entity_type=entity.kind,
         year_id=year_id,
-        data_type=data_type.request,
+        data_type=data_type.type,
     )
     data = data[data["measure_id"] == MEASURES["Prevalence"]]
     return data
@@ -230,7 +230,7 @@ def extract_incidence_rate(
         location_id=location_id,
         entity_type=entity.kind,
         year_id=year_id,
-        data_type=data_type.request,
+        data_type=data_type.type,
     )
     data = data[data["measure_id"] == MEASURES["Incidence rate"]]
     return data

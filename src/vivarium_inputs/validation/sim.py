@@ -126,8 +126,8 @@ def validate_for_simulation(
         Flag indicating whether to validate that we have all years.
         Otherwise, validate that data has most recent year.
         Defaults to False.
-    data_request
-        DataRequest object of the extracted data.
+    data_type
+        DataType object of the extracted data.
     **context_args
         Any data or information needed to construct the SimulationContext used
         by the individual entity-measure validator functions.

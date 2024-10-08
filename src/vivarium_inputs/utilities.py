@@ -587,7 +587,7 @@ class DataType:
 
     def __init__(self, data_type: str | list[str], measure: str | None) -> None:
         self._validate_data_type(data_type)
-        self.request = data_type
+        self.type = data_type
         self.value_columns = self._get_value_columns(data_type, measure)
 
     @staticmethod
