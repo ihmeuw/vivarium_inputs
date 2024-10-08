@@ -15,7 +15,7 @@ def check_value_columns_boundary(
     data: pd.DataFrame,
     boundary_value: float | pd.Series,
     boundary_type: str,
-    value_columns: list = DRAW_COLUMNS,
+    value_columns: list[str],
     inclusive: bool = True,
     error: type(VivariumInputsError) = None,
 ):
