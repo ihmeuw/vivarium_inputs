@@ -643,7 +643,8 @@ class DataType:
         -------
             List of value columns.
         """
-
+        # TODO: better handle these special-case measures which don't actually
+        # need a data_type defined at all.
         if measure in [
             "structure",
             "theoretical_minimum_risk_life_expectancy",
