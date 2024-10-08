@@ -166,8 +166,8 @@ SPECIAL_AGES = {"all_ages": 22, "age_standardized": 27}
 
 # Supported data request types
 SUPPORTED_DATA_TYPES = {
-    "mean": MEAN_COLUMNS,
-    "draw": DRAW_COLUMNS,
+    "means": MEAN_COLUMNS,
+    "draws": DRAW_COLUMNS,
 }
 
 

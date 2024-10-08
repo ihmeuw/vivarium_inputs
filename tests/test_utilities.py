@@ -48,11 +48,11 @@ def test_normalize_sex_no_sex_id():
 @pytest.mark.parametrize(
     "data_type, should_raise",
     [
-        ("mean", False),
-        ("draw", False),
+        ("means", False),
+        ("draws", False),
         ("foo", True),
-        (["mean", "draw"], True),  # temporarily; not implemented
-        (["mean", "draw", "foo"], True),
+        (["means", "draws"], True),  # temporarily; not implemented
+        (["means", "draws", "foo"], True),
         ({"not": "a list"}, True),
     ],
 )
@@ -77,13 +77,13 @@ def test_validate_data_type(data_type, should_raise):
 @pytest.mark.parametrize(
     "data_type, measure, returned_cols",
     [
-        ("mean", "structure", ["value"]),
-        ("mean", "theoretical_minimum_risk_life_expectancy", ["value"]),
-        ("mean", "estimate", ["value"]),
-        ("mean", "exposure_distribution_weights", ["value"]),
-        ("mean", None, MEAN_COLUMNS),
-        ("draw", None, DRAW_COLUMNS),
-        (["mean", "draw"], None, MEAN_COLUMNS + DRAW_COLUMNS),
+        ("means", "structure", ["value"]),
+        ("means", "theoretical_minimum_risk_life_expectancy", ["value"]),
+        ("means", "estimate", ["value"]),
+        ("means", "exposure_distribution_weights", ["value"]),
+        ("means", None, MEAN_COLUMNS),
+        ("draws", None, DRAW_COLUMNS),
+        (["means", "draws"], None, MEAN_COLUMNS + DRAW_COLUMNS),
     ],
 )
 def test_get_value_columns(data_type, measure, returned_cols):

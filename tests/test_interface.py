@@ -14,18 +14,18 @@ from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 
 from tests.conftest import NO_GBD_ACCESS
-from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS, MEASURES
+from vivarium_inputs.globals import (
+    DRAW_COLUMNS,
+    MEAN_COLUMNS,
+    MEASURES,
+    SUPPORTED_DATA_TYPES,
+)
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utilities import DataTypeNotImplementedError
 
 CAUSE = causes.hiv_aids
 LOCATION = 163  # India
 YEAR = 2021
-
-SUPPORTED_DATA_TYPES = {
-    "mean": MEAN_COLUMNS,
-    "draw": DRAW_COLUMNS,
-}
 
 
 def get_mocked_estimation_years() -> list[int]:
@@ -191,7 +191,7 @@ def no_cache(mocker: MockerFixture) -> None:
 
 
 @pytest.mark.parametrize(
-    "data_type", ["mean", "draw", ["mean", "draw"]], ids=("mean", "draw", "mean_draw")
+    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
 )
 @pytest.mark.parametrize("mock_gbd", [True, False], ids=("mock_gbd", "no_mock_gbd"))
 def test_get_incidence_rate(
@@ -230,8 +230,8 @@ def test_get_incidence_rate(
         if mock_gbd:
             # Test against mocked data instead of actual data retrieval
             mocked_return = {
-                "mean": mocked_hiv_aids_incidence_rate_means,
-                "draw": mocked_hiv_aids_incidence_rate_draws,
+                "means": mocked_hiv_aids_incidence_rate_means,
+                "draws": mocked_hiv_aids_incidence_rate_draws,
             }[data_type]
             mock_extract_incidence_rate = mocker.patch(
                 "vivarium_inputs.extract.extract_incidence_rate",
@@ -271,10 +271,7 @@ def test_get_incidence_rate(
             mock_extract_incidence_rate.assert_called_once()
             mock_extract_prevalence.assert_called_once()
             assert not data.empty
-            assert all(
-                col in data.columns
-                for col in {"mean": MEAN_COLUMNS, "draw": DRAW_COLUMNS}[data_type]
-            )
+            assert all(col in data.columns for col in SUPPORTED_DATA_TYPES[data_type])
             assert all(data.notna())
             assert all(data >= 0)
 
