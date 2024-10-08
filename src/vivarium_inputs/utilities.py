@@ -125,15 +125,15 @@ def set_age_interval(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def normalize(
-    data: pd.DataFrame, fill_value: Real = None, cols_to_fill: list[str] = DRAW_COLUMNS
+    data: pd.DataFrame, cols_to_fill: list[str], fill_value: Real = None
 ) -> pd.DataFrame:
-    data = normalize_sex(data, fill_value, cols_to_fill)
+    data = normalize_sex(data, cols_to_fill, fill_value)
     data = normalize_year(data)
-    data = normalize_age(data, fill_value, cols_to_fill)
+    data = normalize_age(data, cols_to_fill, fill_value)
     return data
 
 
-def normalize_sex(data: pd.DataFrame, fill_value, cols_to_fill) -> pd.DataFrame:
+def normalize_sex(data: pd.DataFrame, cols_to_fill, fill_value) -> pd.DataFrame:
     sexes = set(data.sex_id.unique()) if "sex_id" in data.columns else set()
     if not sexes:
         # Data does not correspond to individuals, so no age column necessary.
@@ -196,7 +196,7 @@ def interpolate_year(data):
 
 
 def normalize_age(
-    data: pd.DataFrame, fill_value: Real, cols_to_fill: list[str]
+    data: pd.DataFrame, cols_to_fill: List[str], fill_value: Real
 ) -> pd.DataFrame:
     data_ages = set(data.age_group_id.unique()) if "age_group_id" in data.columns else set()
     gbd_ages = set(utility_data.get_age_group_ids())
@@ -237,10 +237,9 @@ def get_ordered_index_cols(data_columns: pd.Index | set):
     )
 
 
-def reshape(data: pd.DataFrame, value_cols: list = DRAW_COLUMNS) -> pd.DataFrame:
-    if isinstance(data, pd.DataFrame) and not isinstance(
-        data.index, pd.MultiIndex
-    ):  # push all non-val cols into index
+def reshape(data: pd.DataFrame, value_cols: list[str]) -> pd.DataFrame:
+    if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):
+        # push all non-val cols into index
         data = data.set_index(get_ordered_index_cols(data.columns.difference(value_cols)))
     elif not data.columns.difference(value_cols).empty:
         # we missed some columns that need to be in index
@@ -252,7 +251,7 @@ def reshape(data: pd.DataFrame, value_cols: list = DRAW_COLUMNS) -> pd.DataFrame
     return data
 
 
-def wide_to_long(data: pd.DataFrame, value_cols: list, var_name: str) -> pd.DataFrame:
+def wide_to_long(data: pd.DataFrame, value_cols: list[str], var_name: str) -> pd.DataFrame:
     if set(data.columns).intersection(value_cols):
         id_cols = data.columns.difference(value_cols)
         data = pd.melt(data, id_vars=id_cols, value_vars=value_cols, var_name=var_name)
@@ -562,72 +561,102 @@ def process_kidney_dysfunction_exposure(
 ###########################
 
 
-def validate_data_type(data_type: str | list[str]) -> None:
-    """Validate that the provided data type is supported.
+class DataTypeNotImplementedError(NotImplementedError):
+    """Raised when a data_type is requested that is not implemented for a particular data source."""
 
-    Parameters
+    pass
+
+
+class DataType:
+    """Class to handle data types and their corresponding differences.
+
+    Attributes
     ----------
-    data_type
-        Data type(s) to process.
-
-    Raises
-    ------
-    ValueError
-        If a data type is not supported.
-    ValueError
-        If `data_type` is not a string or a list of strings.
+    request
+        Data type for which to extract data. Supported values include 'mean' for
+        getting mean data and 'draw' for getting draw-level data. Can also be a list
+        of values to get multiple data types. Defaults to 'mean'.
+    value_columns
+        List of value columns to be pulled.
     """
 
-    if not isinstance(data_type, (list, str)):
-        raise ValueError(
-            f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
-        )
-    if isinstance(data_type, str):
-        data_type = [data_type]
-    bad_types = set(data_type).difference(set(SUPPORTED_DATA_TYPES))
-    if bad_types:
-        raise ValueError(
-            f"Data type(s) {bad_types} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
-        )
+    def __init__(self, data_type: str | list[str], measure: str | None) -> None:
+        self._validate_data_type(data_type)
+        self.type = data_type
+        self.value_columns = self._get_value_columns(data_type, measure)
 
+    @staticmethod
+    def _validate_data_type(data_type: str | list[str]) -> None:
+        """Validate that the provided data type is supported.
 
-def get_value_columns(data_type: str | list[str], measure: str | None = None) -> list[str]:
-    """Get the value columns corresponding to the provided data type(s).
+        Parameters
+        ----------
+        data_type
+            Data type(s) to process.
 
-    Notes
-    -----
-    The data_type has already been processed and validated at this point so no need
-    to check for invalid values.
+        Raises
+        ------
+        ValueError
+            If a data type is not supported.
+        ValueError
+            If `data_type` is not a string or a list of strings.
+        """
 
-    Parameters
-    ----------
-    data_type
-        Data type(s) for which to get value columns.
-    measure
-        Measure for which to get value columns.
+        # Temporarily raise for lists of data types
+        if isinstance(data_type, list):
+            raise DataTypeNotImplementedError("Lists of data types are not yet supported.")
 
-    Returns
-    -------
-        List of value columns.
-    """
-
-    if measure in [
-        "structure",
-        "theoretical_minimum_risk_life_expectancy",
-        "estimate",
-        "exposure_distribution_weights",
-    ]:
-        # Custom value columns for these measures
-        cols = ["value"]
-    else:
-        data_type_col_mapping = {
-            "mean": MEAN_COLUMNS,
-            "draw": DRAW_COLUMNS,
-        }
-        cols = []
+        if not isinstance(data_type, (list, str)):
+            raise DataTypeNotImplementedError(
+                f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
+            )
         if isinstance(data_type, str):
             data_type = [data_type]
-        for value in data_type:
-            cols.extend(data_type_col_mapping[value])
+        bad_types = set(data_type).difference(set(SUPPORTED_DATA_TYPES))
+        if bad_types:
+            raise DataTypeNotImplementedError(
+                f"Data type(s) {bad_types} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
+            )
 
-    return cols
+    @staticmethod
+    def _get_value_columns(data_type: str | list[str], measure: str | None) -> list[str]:
+        """Get the value columns corresponding to the provided data type(s).
+
+        Notes
+        -----
+        The data_type has already been processed and validated at this point so no need
+        to check for invalid values.
+
+        Parameters
+        ----------
+        data_type
+            Data type(s) for which to get value columns.
+        measure
+            Measure for which to get value columns.
+
+        Returns
+        -------
+            List of value columns.
+        """
+        # TODO: better handle these special-case measures which don't actually
+        # need a data_type defined at all.
+        if measure in [
+            "structure",
+            "theoretical_minimum_risk_life_expectancy",
+            "estimate",
+            "exposure_distribution_weights",
+        ]:
+            # Custom value columns for these measures
+            cols = ["value"]
+        else:
+            data_type_col_mapping = {
+                "mean": MEAN_COLUMNS,
+                "draw": DRAW_COLUMNS,
+            }
+            cols = []
+            if isinstance(data_type, str):
+                data_type = [data_type]
+            for value in data_type:
+                cols.extend(data_type_col_mapping[value])
+
+        return cols
