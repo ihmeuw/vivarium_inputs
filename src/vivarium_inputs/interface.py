@@ -236,7 +236,7 @@ def get_raw_data(
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
-    data_request = DataType(data_type, measure)
+    data_type = DataType(data_type, measure)
     if not isinstance(location, list):
         location = [location]
     location_id = [
@@ -247,7 +247,7 @@ def get_raw_data(
         measure,
         location_id,
         years,
-        data_request,
+        data_type,
         validate=False,
     )
     return data
