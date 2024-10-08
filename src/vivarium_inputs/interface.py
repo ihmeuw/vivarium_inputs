@@ -247,7 +247,7 @@ def get_raw_data(
         measure,
         location_id,
         years,
-        data_request,
+        data_type,
         validate=False,
     )
     return data
