@@ -572,76 +572,95 @@ class DataTypeNotImplementedError(NotImplementedError):
     pass
 
 
-def validate_data_type(data_type: str | list[str]) -> None:
-    """Validate that the provided data type is supported.
+class DataType:
+    """Class to handle data types and their corresponding differences.
 
-    Parameters
+    Attributes
     ----------
-    data_type
-        Data type(s) to process.
-
-    Raises
-    ------
-    ValueError
-        If a data type is not supported.
-    ValueError
-        If `data_type` is not a string or a list of strings.
+    request
+        Data type for which to extract data. Supported values include 'mean' for
+        getting mean data and 'draw' for getting draw-level data. Can also be a list
+        of values to get multiple data types. Defaults to 'mean'.
+    value_columns
+        List of value columns to be pulled.
     """
 
-    # Temporarily raise for lists of data types
-    if isinstance(data_type, list):
-        raise DataTypeNotImplementedError("Lists of data types are not yet supported.")
+    def __init__(self, data_type: str | list[str], measure: str | None) -> None:
+        self._validate_data_type(data_type)
+        self.request = data_type
+        self.value_columns = self._get_value_columns(data_type, measure)
 
-    if not isinstance(data_type, (list, str)):
-        raise DataTypeNotImplementedError(
-            f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
-        )
-    if isinstance(data_type, str):
-        data_type = [data_type]
-    bad_types = set(data_type).difference(set(SUPPORTED_DATA_TYPES))
-    if bad_types:
-        raise DataTypeNotImplementedError(
-            f"Data type(s) {bad_types} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
-        )
+    @staticmethod
+    def _validate_data_type(data_type: str | list[str]) -> None:
+        """Validate that the provided data type is supported.
 
+        Parameters
+        ----------
+        data_type
+            Data type(s) to process.
 
-def get_value_columns(data_type: str | list[str], measure: str | None = None) -> list[str]:
-    """Get the value columns corresponding to the provided data type(s).
+        Raises
+        ------
+        ValueError
+            If a data type is not supported.
+        ValueError
+            If `data_type` is not a string or a list of strings.
+        """
 
-    Notes
-    -----
-    The data_type has already been processed and validated at this point so no need
-    to check for invalid values.
+        # Temporarily raise for lists of data types
+        if isinstance(data_type, list):
+            raise DataTypeNotImplementedError("Lists of data types are not yet supported.")
 
-    Parameters
-    ----------
-    data_type
-        Data type(s) for which to get value columns.
-    measure
-        Measure for which to get value columns.
-
-    Returns
-    -------
-        List of value columns.
-    """
-
-    if measure in [
-        "structure",
-        "theoretical_minimum_risk_life_expectancy",
-        "estimate",
-        "exposure_distribution_weights",
-    ]:
-        # Custom value columns for these measures
-        cols = ["value"]
-    else:
-        data_type_col_mapping = {
-            "mean": MEAN_COLUMNS,
-            "draw": DRAW_COLUMNS,
-        }
-        cols = []
+        if not isinstance(data_type, (list, str)):
+            raise DataTypeNotImplementedError(
+                f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
+            )
         if isinstance(data_type, str):
             data_type = [data_type]
-        for value in data_type:
-            cols.extend(data_type_col_mapping[value])
+        bad_types = set(data_type).difference(set(SUPPORTED_DATA_TYPES))
+        if bad_types:
+            raise DataTypeNotImplementedError(
+                f"Data type(s) {bad_types} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
+            )
 
-    return cols
+    @staticmethod
+    def _get_value_columns(data_type: str | list[str], measure: str | None) -> list[str]:
+        """Get the value columns corresponding to the provided data type(s).
+
+        Notes
+        -----
+        The data_type has already been processed and validated at this point so no need
+        to check for invalid values.
+
+        Parameters
+        ----------
+        data_type
+            Data type(s) for which to get value columns.
+        measure
+            Measure for which to get value columns.
+
+        Returns
+        -------
+            List of value columns.
+        """
+
+        if measure in [
+            "structure",
+            "theoretical_minimum_risk_life_expectancy",
+            "estimate",
+            "exposure_distribution_weights",
+        ]:
+            # Custom value columns for these measures
+            cols = ["value"]
+        else:
+            data_type_col_mapping = {
+                "mean": MEAN_COLUMNS,
+                "draw": DRAW_COLUMNS,
+            }
+            cols = []
+            if isinstance(data_type, str):
+                data_type = [data_type]
+            for value in data_type:
+                cols.extend(data_type_col_mapping[value])
+
+        return cols

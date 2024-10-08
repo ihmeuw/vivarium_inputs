@@ -23,6 +23,7 @@ from vivarium_inputs.globals import (
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 from vivarium_inputs.utilities import (
+    DataType,
     filter_to_most_detailed_causes,
     process_kidney_dysfunction_exposure,
 )
@@ -33,8 +34,7 @@ def extract_data(
     measure: str,
     location_id: list[int],
     years: int | str | list[int] | None,
-    data_type: str | list[str],
-    value_columns: list[str],
+    data_type: DataType,
     validate: bool = True,
 ) -> pd.Series | pd.DataFrame:
     """Pull raw data from GBD.
@@ -57,11 +57,7 @@ def extract_data(
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data.
     data_type
-        Data type for which to extract data. Supported values include 'mean' for
-        getting mean data and 'draw' for getting draw-level data. Can also be a list
-        of values to get multiple data types.
-    value_columns
-        List of value columns to be pulled.
+        DataType object for which to extract data.
     validate
         Flag indicating whether additional data needed for raw validation
         should be extracted and whether raw validation should be performed.
@@ -162,7 +158,7 @@ def extract_data(
                 [year_id] if not isinstance(year_id, list) else year_id
             )
         validation.validate_raw_data(
-            data, entity, measure, location_id, value_columns, **additional_data
+            data, entity, measure, location_id, data_type.value_columns, **additional_data
         )
 
     return data
@@ -208,7 +204,7 @@ def extract_prevalence(
     entity: Cause | Sequela,
     location_id: list[int],
     year_id: int | str | list[int] | None,
-    data_type: str | list[str],
+    data_type: DataType,
 ) -> pd.DataFrame:
 
     data = gbd.get_incidence_prevalence(
@@ -216,7 +212,7 @@ def extract_prevalence(
         location_id=location_id,
         entity_type=entity.kind,
         year_id=year_id,
-        data_type=data_type,
+        data_type=data_type.request,
     )
     data = data[data["measure_id"] == MEASURES["Prevalence"]]
     return data
@@ -226,7 +222,7 @@ def extract_incidence_rate(
     entity: Cause | Sequela,
     location_id: list[int],
     year_id: int | str | list[int] | None,
-    data_type: str | list[str],
+    data_type: DataType,
 ) -> pd.DataFrame:
 
     data = gbd.get_incidence_prevalence(
@@ -234,7 +230,7 @@ def extract_incidence_rate(
         location_id=location_id,
         entity_type=entity.kind,
         year_id=year_id,
-        data_type=data_type,
+        data_type=data_type.request,
     )
     data = data[data["measure_id"] == MEASURES["Incidence rate"]]
     return data

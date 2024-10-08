@@ -10,6 +10,7 @@ from gbd_mapping import ModelableEntity
 import vivarium_inputs.validation.sim as validation
 from vivarium_inputs import core, extract, utilities, utility_data
 from vivarium_inputs.globals import Population
+from vivarium_inputs.utilities import DataType
 
 
 def get_measure(
@@ -64,22 +65,10 @@ def get_measure(
     -------
         Dataframe standardized to the format expected by `vivarium` simulations.
     """
-    utilities.validate_data_type(data_type)
-    if measure in [
-        "structure",
-        "theoretical_minimum_risk_life_expectancy",
-        "estimate",
-        "exposure_distribution_weights",
-    ]:
-        # Custom value columns for these measures
-        value_columns = ["value"]
-    else:
-        value_columns = utilities.get_value_columns(data_type)
-    data = core.get_data(entity, measure, location, years, data_type, value_columns)
+    data_type = DataType(data_type, measure)
+    data = core.get_data(entity, measure, location, years, data_type)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(
-        data, entity, measure, location, years, data_type, value_columns
-    )
+    validation.validate_for_simulation(data, entity, measure, location, years, data_type)
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -247,7 +236,7 @@ def get_raw_data(
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
-    utilities.validate_data_type(data_type)
+    data_request = DataType(data_type, measure)
     if not isinstance(location, list):
         location = [location]
     location_id = [
@@ -258,7 +247,7 @@ def get_raw_data(
         measure,
         location_id,
         years,
-        data_type,
+        data_request,
         validate=False,
     )
     return data

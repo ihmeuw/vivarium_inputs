@@ -2043,10 +2043,10 @@ def check_columns(expected_cols: List, existing_cols: List) -> None:
     """
     missing_columns = set(expected_cols).difference(set(existing_cols))
     extra_columns = set(existing_cols).difference(set(expected_cols))
-    if missing_columns:
-        raise DataAbnormalError(f"Data is missing columns: {missing_columns}.")
     if extra_columns:
         logger.warning(f"Data returned extra columns: {extra_columns}.")
+    if missing_columns:
+        raise DataAbnormalError(f"Data is missing columns: {missing_columns}.")
 
 
 def check_data_exist(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
@@ -29,6 +29,7 @@ from vivarium_inputs.mapping_extension import (
     HealthcareEntity,
     HealthTechnology,
 )
+from vivarium_inputs.utilities import DataType
 from vivarium_inputs.validation.shared import check_value_columns_boundary
 
 VALID_INCIDENCE_RANGE = (0.0, 50.0)
@@ -87,8 +88,7 @@ def validate_for_simulation(
     measure: str,
     location: int | str | list[int | str],
     years: int | None,
-    data_type: str | list[str],
-    value_columns: list[str],
+    data_request: DataType,
     **context_args,
 ) -> None:
     """Validate data for use in a simulation.
@@ -126,12 +126,8 @@ def validate_for_simulation(
         Flag indicating whether to validate that we have all years.
         Otherwise, validate that data has most recent year.
         Defaults to False.
-    data_type
-        Data type of the extracted data. Supported values include 'mean' for
-        mean data and 'draw' for draw-level data. Can also be a list of values
-        for multiple data types.
-    value_columns
-        List of column names in `data` that contain the values to be validated.
+    data_request
+        DataRequest object of the extracted data.
     **context_args
         Any data or information needed to construct the SimulationContext used
         by the individual entity-measure validator functions.
@@ -196,7 +192,7 @@ def validate_for_simulation(
         for loc in location
     ]
     context = SimulationValidationContext(location, **context_args)
-    validators[measure](data, entity, context, value_columns)
+    validators[measure](data, entity, context, data_request.value_columns)
 
 
 #########################################################

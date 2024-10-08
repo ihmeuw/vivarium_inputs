@@ -69,22 +69,29 @@ def test_validate_data_type(data_type, should_raise):
                 f"Data type(s) {set(['foo'])} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
             )
         with pytest.raises(utilities.DataTypeNotImplementedError, match=match):
-            utilities.validate_data_type(data_type)
+            _data_type = utilities.DataType(data_type, "some-measure")
     else:
-        utilities.validate_data_type(data_type)
+        _data_type = utilities.DataType(data_type, "some-measure")
 
 
 @pytest.mark.parametrize(
     "data_type, measure, returned_cols",
     [
-        (None, "structure", ["value"]),
-        (None, "theoretical_minimum_risk_life_expectancy", ["value"]),
-        (None, "estimate", ["value"]),
-        (None, "exposure_distribution_weights", ["value"]),
+        ("mean", "structure", ["value"]),
+        ("mean", "theoretical_minimum_risk_life_expectancy", ["value"]),
+        ("mean", "estimate", ["value"]),
+        ("mean", "exposure_distribution_weights", ["value"]),
         ("mean", None, MEAN_COLUMNS),
         ("draw", None, DRAW_COLUMNS),
         (["mean", "draw"], None, MEAN_COLUMNS + DRAW_COLUMNS),
     ],
 )
 def test_get_value_columns(data_type, measure, returned_cols):
-    assert utilities.get_value_columns(data_type, measure) == returned_cols
+    if isinstance(data_type, list):
+        with pytest.raises(
+            utilities.DataTypeNotImplementedError,
+            match="Lists of data types are not yet supported.",
+        ):
+            utilities.DataType(data_type, measure).value_columns
+    else:
+        assert utilities.DataType(data_type, measure).value_columns == returned_cols
