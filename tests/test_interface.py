@@ -23,12 +23,22 @@ from vivarium_inputs.globals import (
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utilities import DataTypeNotImplementedError
 
+
+#############
+# CONSTANTS #
+#############
+
 HIV_AIDS = causes.hiv_aids
 HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA = (
     sequelae.hiv_aids_drug_susceptible_tuberculosis_without_anemia
 )
 LOCATION = 163  # India
 YEAR = 2021
+
+
+###############
+# MOCKED DATA #
+###############
 
 
 def get_mocked_estimation_years() -> list[int]:
@@ -140,8 +150,8 @@ def get_mocked_location_ids() -> pd.DataFrame:
     return pd.read_csv("tests/fixture_data/location_ids.csv")
 
 
-def get_mocked_common_incidence_rate_draws() -> pd.DataFrame:
-    """Common dataset for mocked incidence rate draw-level data."""
+def get_mocked_incidence_rate_get_draws_common_data() -> pd.DataFrame:
+    """Common dataset for mocked get_draws() incidence_rate data."""
     age_group_ids = list(get_mocked_age_groups())
     sex_ids = [1, 2]
     measure_ids = [3, 5, 6]
@@ -166,54 +176,8 @@ def get_mocked_common_incidence_rate_draws() -> pd.DataFrame:
     return df
 
 
-@pytest.fixture
-def mocked_incidence_rate_cause_draws() -> pd.DataFrame:
-    """Mocked vivarium_gbd_access data for testing."""
-
-    df = get_mocked_common_incidence_rate_draws().copy()
-
-    # Add on specific columns
-    df["cause_id"] = int(HIV_AIDS.gbd_id)
-
-    # Reorder the columns based on what I saw returned from gbd at some point
-    df = df[
-        ["age_group_id", "cause_id"]
-        + DRAW_COLUMNS
-        + ["location_id", "measure_id", "sex_id", "year_id", "metric_id", "version_id"]
-    ]
-
-    return df
-
-
-@pytest.fixture
-def mocked_incidence_rate_sequela_draws() -> pd.DataFrame:
-    """Mocked vivarium_gbd_access data for testing."""
-
-    df = get_mocked_common_incidence_rate_draws().copy()
-
-    # Add on specific columns
-    df["sequela_id"] = int(HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA.gbd_id)
-
-    # Reorder the columns based on what I saw returned from gbd at some point
-    df = df[
-        ["age_group_id"]
-        + DRAW_COLUMNS
-        + [
-            "location_id",
-            "measure_id",
-            "sequela_id",
-            "sex_id",
-            "year_id",
-            "metric_id",
-            "version_id",
-        ]
-    ]
-
-    return df
-
-
-def get_mocked_common_incidence_rate_means() -> pd.DataFrame:
-    """Common dataset for mocked incidence rate mean-level data."""
+def get_mocked_incidence_rate_get_outputs_common_data() -> pd.DataFrame:
+    """Common dataset for mocked get_outputs() incidence_rate data."""
 
     age_groups = get_mocked_age_groups()
     age_group_ids = list(age_groups)
@@ -249,48 +213,62 @@ def get_mocked_common_incidence_rate_means() -> pd.DataFrame:
     return df
 
 
+############
+# FIXTURES #
+############
+
+
 @pytest.fixture
-def mocked_incidence_rate_sequela_means() -> pd.DataFrame:
+def mocked_cause_incidence_rate_get_draws() -> pd.DataFrame:
     """Mocked vivarium_gbd_access data for testing."""
 
-    df = get_mocked_common_incidence_rate_means().copy()
+    df = get_mocked_incidence_rate_get_draws_common_data().copy()
 
-    # Add on other metadata columns
-    df["sequela_id"] = int(HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA.gbd_id)
-    df["sequela_name"] = "HIV/AIDS -  Drug-susceptible Tuberculosis without anemia"
+    # Add on specific columns
+    df["cause_id"] = int(HIV_AIDS.gbd_id)
 
     # Reorder the columns based on what I saw returned from gbd at some point
     df = df[
-        [
-            "age_group_id",
-            "location_id",
-            "measure_id",
-            "metric_id",
-            "sequela_id",
-            "sex_id",
-            "year_id",
-            "age_group_name",
-            "expected",
-            "location_name",
-            "location_type",
-            "measure",
-            "measure_name",
-            "metric_name",
-            "sequela_name",
-            "sex",
-        ]
-        + MEAN_COLUMNS
-        + ["upper", "lower"]
+        ["age_group_id", "cause_id"]
+        + DRAW_COLUMNS
+        + ["location_id", "measure_id", "sex_id", "year_id", "metric_id", "version_id"]
     ]
 
     return df
 
 
 @pytest.fixture
-def mocked_incidence_rate_cause_means() -> pd.DataFrame:
+def mocked_sequela_incidence_rate_get_draws() -> pd.DataFrame:
     """Mocked vivarium_gbd_access data for testing."""
 
-    df = get_mocked_common_incidence_rate_means().copy()
+    df = get_mocked_incidence_rate_get_draws_common_data().copy()
+
+    # Add on specific columns
+    df["sequela_id"] = int(HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA.gbd_id)
+
+    # Reorder the columns based on what I saw returned from gbd at some point
+    df = df[
+        ["age_group_id"]
+        + DRAW_COLUMNS
+        + [
+            "location_id",
+            "measure_id",
+            "sequela_id",
+            "sex_id",
+            "year_id",
+            "metric_id",
+            "version_id",
+        ]
+    ]
+
+    return df
+
+
+@pytest.fixture
+def mocked_cause_incidence_rate_get_outputs() -> pd.DataFrame:
+    """Mocked vivarium_gbd_access data for testing."""
+
+    df = get_mocked_incidence_rate_get_outputs_common_data().copy()
 
     # Add on other metadata columns
     df["cause_id"] = int(HIV_AIDS.gbd_id)
@@ -325,6 +303,43 @@ def mocked_incidence_rate_cause_means() -> pd.DataFrame:
     return df
 
 
+@pytest.fixture
+def mocked_sequela_incidence_rate_get_outputs() -> pd.DataFrame:
+    """Mocked vivarium_gbd_access data for testing."""
+
+    df = get_mocked_incidence_rate_get_outputs_common_data().copy()
+
+    # Add on other metadata columns
+    df["sequela_id"] = int(HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA.gbd_id)
+    df["sequela_name"] = "HIV/AIDS -  Drug-susceptible Tuberculosis without anemia"
+
+    # Reorder the columns based on what I saw returned from gbd at some point
+    df = df[
+        [
+            "age_group_id",
+            "location_id",
+            "measure_id",
+            "metric_id",
+            "sequela_id",
+            "sex_id",
+            "year_id",
+            "age_group_name",
+            "expected",
+            "location_name",
+            "location_type",
+            "measure",
+            "measure_name",
+            "metric_name",
+            "sequela_name",
+            "sex",
+        ]
+        + MEAN_COLUMNS
+        + ["upper", "lower"]
+    ]
+
+    return df
+
+
 @pytest.fixture(autouse=True)
 def no_cache(mocker: MockerFixture) -> None:
     """Mock out the cache so that we always pull data."""
@@ -334,6 +349,11 @@ def no_cache(mocker: MockerFixture) -> None:
             "vivarium_gbd_access.utilities.get_input_config",
             return_value=LayeredConfigTree({"input_data": {"cache_data": False}}),
         )
+
+
+#########
+# TESTS #
+#########
 
 
 @pytest.mark.parametrize(
@@ -347,10 +367,10 @@ def test_get_incidence_rate(
     entity: Cause | Sequela,
     data_type: str | list[str],
     mock_gbd: bool,
-    mocked_incidence_rate_cause_draws: pd.DataFrame,
-    mocked_incidence_rate_cause_means: pd.DataFrame,
-    mocked_incidence_rate_sequela_draws: pd.DataFrame,
-    mocked_incidence_rate_sequela_means: pd.DataFrame,
+    mocked_cause_incidence_rate_get_draws: pd.DataFrame,
+    mocked_cause_incidence_rate_get_outputs: pd.DataFrame,
+    mocked_sequela_incidence_rate_get_draws: pd.DataFrame,
+    mocked_sequela_incidence_rate_get_outputs: pd.DataFrame,
     runslow: bool,
     mocker: MockerFixture,
 ) -> None:
@@ -384,13 +404,13 @@ def test_get_incidence_rate(
             # TODO: Clean up parameterizing by sequela/cause vs means/draws
             if isinstance(entity, Cause):
                 mocked_return = {
-                    "means": mocked_incidence_rate_cause_means,
-                    "draws": mocked_incidence_rate_cause_draws,
+                    "means": mocked_cause_incidence_rate_get_outputs,
+                    "draws": mocked_cause_incidence_rate_get_draws,
                 }[data_type]
             else:  # Sequela
                 mocked_return = {
-                    "means": mocked_incidence_rate_sequela_means,
-                    "draws": mocked_incidence_rate_sequela_draws,
+                    "means": mocked_sequela_incidence_rate_get_outputs,
+                    "draws": mocked_sequela_incidence_rate_get_draws,
                 }[data_type]
             mock_extract_incidence_rate = mocker.patch(
                 "vivarium_inputs.extract.extract_incidence_rate",
