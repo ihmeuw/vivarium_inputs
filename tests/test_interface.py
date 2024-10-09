@@ -404,14 +404,10 @@ def test_get_incidence_rate_mocked(
     mocker: MockerFixture,
     request: pytest.FixtureRequest,
 ) -> None:
-    """Test get_measure function.
+    """Test the mocked get_measure function.
 
-    If mock_gbd is True, the test will mock vivarium_gbd_access calls with
-    dummy data. This allows for pseudo-testing on github actions which
-    does not have access to vivarium_gbd_access. If mock_gbd is False, we run
-    a full end-to-end test marked as slow (i.e. requires the '--runslow' option
-    to run) which will be skipped if there is no access to vivarium_gbd_access
-    (i.e. it can run in a Jenkins job).
+    This mocks the vivarium_gbd_access calls with dummy data. This allows for
+    pseudo-testing on github actions which does not have access to vivarium_gbd_access.
     """
 
     kwargs = {
