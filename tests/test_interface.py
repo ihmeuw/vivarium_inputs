@@ -23,7 +23,6 @@ from vivarium_inputs.globals import (
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utilities import DataTypeNotImplementedError
 
-
 #############
 # CONSTANTS #
 #############
@@ -356,36 +355,23 @@ def no_cache(mocker: MockerFixture) -> None:
 #########
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "entity", [HIV_AIDS, HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA], ids=("cause", "sequela")
 )
 @pytest.mark.parametrize(
     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
 )
-@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mock_gbd", "no_mock_gbd"))
 def test_get_incidence_rate(
     entity: Cause | Sequela,
     data_type: str | list[str],
-    mock_gbd: bool,
-    mocked_cause_incidence_rate_get_draws: pd.DataFrame,
-    mocked_cause_incidence_rate_get_outputs: pd.DataFrame,
-    mocked_sequela_incidence_rate_get_draws: pd.DataFrame,
-    mocked_sequela_incidence_rate_get_outputs: pd.DataFrame,
-    runslow: bool,
-    mocker: MockerFixture,
 ) -> None:
     """Test get_measure function.
 
-    If mock_gbd is True, the test will mock vivarium_gbd_access calls with
-    dummy data. This allows for pseudo-testing on github actions which
-    does not have access to vivarium_gbd_access. If mock_gbd is False, we run
-    a full end-to-end test marked as slow (i.e. requires the '--runslow' option
+    Run a full end-to-end test marked as slow (i.e. requires the '--runslow' option
     to run) which will be skipped if there is no access to vivarium_gbd_access
     (i.e. it can run in a Jenkins job).
     """
-
-    if not mock_gbd and not runslow:
-        pytest.skip("need --runslow option to run")
 
     kwargs = {
         "entity": entity,
@@ -399,76 +385,119 @@ def test_get_incidence_rate(
         with pytest.raises(DataTypeNotImplementedError):
             data = get_measure(**kwargs)
     else:
-        if mock_gbd:
-            # Test against mocked data instead of actual data retrieval
-            # TODO: Clean up parameterizing by sequela/cause vs means/draws
-            if isinstance(entity, Cause):
-                mocked_return = {
-                    "means": mocked_cause_incidence_rate_get_outputs,
-                    "draws": mocked_cause_incidence_rate_get_draws,
-                }[data_type]
-            else:  # Sequela
-                mocked_return = {
-                    "means": mocked_sequela_incidence_rate_get_outputs,
-                    "draws": mocked_sequela_incidence_rate_get_draws,
-                }[data_type]
-            mock_extract_incidence_rate = mocker.patch(
-                "vivarium_inputs.extract.extract_incidence_rate",
-                return_value=mocked_return[
-                    mocked_return["measure_id"] == MEASURES["Incidence rate"]
-                ],
-            )
-            mock_extract_prevalence = mocker.patch(
-                "vivarium_inputs.extract.extract_prevalence",
-                return_value=mocked_return[
-                    mocked_return["measure_id"] == MEASURES["Prevalence"]
-                ],
-            )
-            mocker.patch(
-                "vivarium_inputs.utility_data.get_estimation_years",
-                return_value=get_mocked_estimation_years(),
-            )
-            mocker.patch(
-                "vivarium_inputs.utility_data.get_age_group_ids",
-                return_value=list(get_mocked_age_groups()),
-            )
-            mocker.patch(
-                "vivarium_inputs.utility_data.get_location_path_to_global",
-                return_value=get_mocked_location_path_to_global(),
-            )
-            mocker.patch(
-                "vivarium_inputs.utility_data.get_raw_age_bins",
-                return_value=get_mocked_age_bins(),
-            )
-            mocker.patch(
-                "vivarium_inputs.utility_data.get_raw_location_ids",
-                return_value=get_mocked_location_ids(),
-            )
+        if NO_GBD_ACCESS:
+            pytest.skip("Need GBD access to run this test")
+        data = get_measure(**kwargs)
 
-            data = get_measure(**kwargs)
-            mock_extract_incidence_rate.assert_called_once()
-            mock_extract_prevalence.assert_called_once()
-        if not mock_gbd and runslow:
-            # Test actual data retrieval
-            if NO_GBD_ACCESS:
-                pytest.skip("Need GBD access to run this test")
-            data = get_measure(**kwargs)
+        check_data(data, data_type)
 
-        # Check data
-        assert not data.empty
-        assert all(col in data.columns for col in SUPPORTED_DATA_TYPES[data_type])
-        value_cols = SUPPORTED_DATA_TYPES[data_type]
-        assert all(col in data.columns for col in value_cols)
-        assert all(data.notna())
-        assert all(data >= 0)
-        # Check metadata index values (note that there may be other metadata returned)
-        expected_metadata = {
-            "location": {"India"},
-            "sex": {"Male", "Female"},
-            "age_start": set(MOCKED_AGE_GROUP_ENDPOINTS["age_start"]),
-            "age_end": set(MOCKED_AGE_GROUP_ENDPOINTS["age_end"]),
-            "year_start": {2021},
-            "year_end": {2022},
-        }
-        for idx, expected in expected_metadata.items():
-            assert set(data.index.get_level_values(idx)) == expected
+
+@pytest.mark.parametrize(
+    "entity", [HIV_AIDS, HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA], ids=("cause", "sequela")
+)
+@pytest.mark.parametrize(
+    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+)
+def test_get_incidence_rate_mocked(
+    entity: Cause | Sequela,
+    data_type: str | list[str],
+    mocker: MockerFixture,
+    request: pytest.FixtureRequest,
+) -> None:
+    """Test get_measure function.
+
+    If mock_gbd is True, the test will mock vivarium_gbd_access calls with
+    dummy data. This allows for pseudo-testing on github actions which
+    does not have access to vivarium_gbd_access. If mock_gbd is False, we run
+    a full end-to-end test marked as slow (i.e. requires the '--runslow' option
+    to run) which will be skipped if there is no access to vivarium_gbd_access
+    (i.e. it can run in a Jenkins job).
+    """
+
+    kwargs = {
+        "entity": entity,
+        "measure": "incidence_rate",
+        "location": LOCATION,
+        "years": YEAR,
+        "data_type": data_type,
+    }
+
+    if isinstance(data_type, list):
+        with pytest.raises(DataTypeNotImplementedError):
+            data = get_measure(**kwargs)
+    else:
+        # Use the parameter ID combination to request the correct fixture data
+        # to use as a mocked return
+        parametrized_id = request.node.name.split(request.function.__name__)[-1]
+        mocked_data = {
+            "[means-cause]": request.getfixturevalue(
+                "mocked_cause_incidence_rate_get_outputs"
+            ),
+            "[draws-cause]": request.getfixturevalue("mocked_cause_incidence_rate_get_draws"),
+            "[means-sequela]": request.getfixturevalue(
+                "mocked_sequela_incidence_rate_get_outputs"
+            ),
+            "[draws-sequela]": request.getfixturevalue(
+                "mocked_sequela_incidence_rate_get_draws"
+            ),
+        }[parametrized_id]
+        mock_extract_incidence_rate = mocker.patch(
+            "vivarium_inputs.extract.extract_incidence_rate",
+            return_value=mocked_data[mocked_data["measure_id"] == MEASURES["Incidence rate"]],
+        )
+        mock_extract_prevalence = mocker.patch(
+            "vivarium_inputs.extract.extract_prevalence",
+            return_value=mocked_data[mocked_data["measure_id"] == MEASURES["Prevalence"]],
+        )
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_estimation_years",
+            return_value=get_mocked_estimation_years(),
+        )
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_age_group_ids",
+            return_value=list(get_mocked_age_groups()),
+        )
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_location_path_to_global",
+            return_value=get_mocked_location_path_to_global(),
+        )
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_raw_age_bins",
+            return_value=get_mocked_age_bins(),
+        )
+        mocker.patch(
+            "vivarium_inputs.utility_data.get_raw_location_ids",
+            return_value=get_mocked_location_ids(),
+        )
+
+        data = get_measure(**kwargs)
+        mock_extract_incidence_rate.assert_called_once()
+        mock_extract_prevalence.assert_called_once()
+
+        check_data(data, data_type)
+
+
+####################
+# HELPER FUNCTIONS #
+####################
+
+
+def check_data(data: pd.DataFrame, data_type: str) -> None:
+    """Check the data returned."""
+    assert not data.empty
+    assert all(col in data.columns for col in SUPPORTED_DATA_TYPES[data_type])
+    value_cols = SUPPORTED_DATA_TYPES[data_type]
+    assert all(col in data.columns for col in value_cols)
+    assert all(data.notna())
+    assert all(data >= 0)
+    # Check metadata index values (note that there may be other metadata returned)
+    expected_metadata = {
+        "location": {"India"},
+        "sex": {"Male", "Female"},
+        "age_start": set(MOCKED_AGE_GROUP_ENDPOINTS["age_start"]),
+        "age_end": set(MOCKED_AGE_GROUP_ENDPOINTS["age_end"]),
+        "year_start": {2021},
+        "year_end": {2022},
+    }
+    for idx, expected in expected_metadata.items():
+        assert set(data.index.get_level_values(idx)) == expected
