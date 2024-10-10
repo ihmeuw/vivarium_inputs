@@ -221,7 +221,7 @@ def get_mocked_incidence_rate_get_outputs_common_data() -> pd.DataFrame:
 def mocked_cause_incidence_rate_get_draws() -> pd.DataFrame:
     """Mocked vivarium_gbd_access data for testing."""
 
-    df = get_mocked_incidence_rate_get_draws_common_data().copy()
+    df = get_mocked_incidence_rate_get_draws_common_data()
 
     # Add on specific columns
     df["cause_id"] = int(HIV_AIDS.gbd_id)
@@ -240,7 +240,7 @@ def mocked_cause_incidence_rate_get_draws() -> pd.DataFrame:
 def mocked_sequela_incidence_rate_get_draws() -> pd.DataFrame:
     """Mocked vivarium_gbd_access data for testing."""
 
-    df = get_mocked_incidence_rate_get_draws_common_data().copy()
+    df = get_mocked_incidence_rate_get_draws_common_data()
 
     # Add on specific columns
     df["sequela_id"] = int(HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA.gbd_id)
@@ -267,7 +267,7 @@ def mocked_sequela_incidence_rate_get_draws() -> pd.DataFrame:
 def mocked_cause_incidence_rate_get_outputs() -> pd.DataFrame:
     """Mocked vivarium_gbd_access data for testing."""
 
-    df = get_mocked_incidence_rate_get_outputs_common_data().copy()
+    df = get_mocked_incidence_rate_get_outputs_common_data()
 
     # Add on other metadata columns
     df["cause_id"] = int(HIV_AIDS.gbd_id)
@@ -306,7 +306,7 @@ def mocked_cause_incidence_rate_get_outputs() -> pd.DataFrame:
 def mocked_sequela_incidence_rate_get_outputs() -> pd.DataFrame:
     """Mocked vivarium_gbd_access data for testing."""
 
-    df = get_mocked_incidence_rate_get_outputs_common_data().copy()
+    df = get_mocked_incidence_rate_get_outputs_common_data()
 
     # Add on other metadata columns
     df["sequela_id"] = int(HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA.gbd_id)
