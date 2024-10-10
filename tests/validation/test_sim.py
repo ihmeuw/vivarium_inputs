@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tests.extract.check import RUNNING_ON_CI
+from tests.conftest import NO_GBD_ACCESS
 from vivarium_inputs.globals import DataTransformationError
 from vivarium_inputs.validation import sim
 
@@ -164,7 +164,9 @@ def test_validate_value_column_fail(values):
     ],
     ids=("no_restr", "left_restr", "outer_restr", "right_restr", "nonzero_fill"),
 )
-@pytest.mark.skipif(RUNNING_ON_CI, reason="Don't run these tests on the CI server")
+@pytest.mark.skipif(
+    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
+)
 def test_check_age_restrictions(
     mocker, mock_validation_context, values, ids, restriction_type, fill
 ):
@@ -190,7 +192,9 @@ def test_check_age_restrictions(
     ],
     ids=("both_sides", "left_side", "right_side", "nonzero_fill"),
 )
-@pytest.mark.skipif(RUNNING_ON_CI, reason="Don't run these tests on the CI server")
+@pytest.mark.skipif(
+    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
+)
 def test_check_age_restrictions_fail(
     mocker, mock_validation_context, values, ids, restriction_type, fill
 ):

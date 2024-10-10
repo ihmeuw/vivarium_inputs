@@ -1,5 +1,7 @@
 """Errors and utility functions for input processing."""
 
+from __future__ import annotations
+
 from numbers import Real
 from typing import List, Tuple, Union
 
@@ -11,8 +13,10 @@ from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
     DEMOGRAPHIC_COLUMNS,
     DRAW_COLUMNS,
+    MEAN_COLUMNS,
     SEXES,
     SPECIAL_AGES,
+    SUPPORTED_DATA_TYPES,
 )
 
 INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure", "parameter"]
@@ -22,7 +26,9 @@ INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure", "p
 ##################################################
 
 
-def scrub_gbd_conventions(data, location):
+def scrub_gbd_conventions(
+    data: pd.DataFrame, location: Union[int, str, List[Union[int, str]]]
+) -> pd.DataFrame:
     data = scrub_location(data, location)
     data = scrub_sex(data)
     data = scrub_age(data)
@@ -31,7 +37,9 @@ def scrub_gbd_conventions(data, location):
     return data
 
 
-def scrub_location(data: pd.DataFrame, location: Union[int, List[str]]) -> pd.DataFrame:
+def scrub_location(
+    data: pd.DataFrame, location: Union[int, str, List[Union[int, str]]]
+) -> pd.DataFrame:
     # Coerce location names
     if not isinstance(location, list):
         location = [location]
@@ -54,7 +62,7 @@ def scrub_location(data: pd.DataFrame, location: Union[int, List[str]]) -> pd.Da
     return data
 
 
-def scrub_sex(data):
+def scrub_sex(data: pd.DataFrame) -> pd.DataFrame:
     if "sex_id" in data.index.names:
         levels = list(
             data.index.levels[data.index.names.index("sex_id")].map(
@@ -65,7 +73,7 @@ def scrub_sex(data):
     return data
 
 
-def scrub_age(data):
+def scrub_age(data: pd.DataFrame) -> pd.DataFrame:
     if "age_group_id" in data.index.names:
         age_bins = utility_data.get_age_bins().set_index("age_group_id")
         id_levels = data.index.levels[data.index.names.index("age_group_id")]
@@ -79,7 +87,7 @@ def scrub_age(data):
     return data
 
 
-def scrub_year(data):
+def scrub_year(data: pd.DataFrame) -> pd.DataFrame:
     if "year_id" in data.index.names:
         id_levels = data.index.levels[data.index.names.index("year_id")]
         interval_levels = [
@@ -91,7 +99,7 @@ def scrub_year(data):
     return data
 
 
-def scrub_affected_entity(data):
+def scrub_affected_entity(data: pd.DataFrame) -> pd.DataFrame:
     CAUSE_BY_ID = {c.gbd_id: c for c in causes}
     # RISK_BY_ID = {r.gbd_id: r for r in risk_factors}
     if "cause_id" in data.columns:
@@ -102,7 +110,7 @@ def scrub_affected_entity(data):
     return data
 
 
-def set_age_interval(data):
+def set_age_interval(data: pd.DataFrame) -> pd.DataFrame:
     if "age_start" in data.index.names:
         bins = zip(
             data.index.get_level_values("age_start"), data.index.get_level_values("age_end")
@@ -120,15 +128,15 @@ def set_age_interval(data):
 
 
 def normalize(
-    data: pd.DataFrame, fill_value: Real = None, cols_to_fill: List[str] = DRAW_COLUMNS
+    data: pd.DataFrame, cols_to_fill: list[str], fill_value: Real = None
 ) -> pd.DataFrame:
-    data = normalize_sex(data, fill_value, cols_to_fill)
+    data = normalize_sex(data, cols_to_fill, fill_value)
     data = normalize_year(data)
-    data = normalize_age(data, fill_value, cols_to_fill)
+    data = normalize_age(data, cols_to_fill, fill_value)
     return data
 
 
-def normalize_sex(data: pd.DataFrame, fill_value, cols_to_fill) -> pd.DataFrame:
+def normalize_sex(data: pd.DataFrame, cols_to_fill, fill_value) -> pd.DataFrame:
     sexes = set(data.sex_id.unique()) if "sex_id" in data.columns else set()
     if not sexes:
         # Data does not correspond to individuals, so no age column necessary.
@@ -191,7 +199,7 @@ def interpolate_year(data):
 
 
 def normalize_age(
-    data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str]
+    data: pd.DataFrame, cols_to_fill: List[str], fill_value: Real
 ) -> pd.DataFrame:
     data_ages = set(data.age_group_id.unique()) if "age_group_id" in data.columns else set()
     gbd_ages = set(utility_data.get_age_group_ids())
@@ -232,22 +240,21 @@ def get_ordered_index_cols(data_columns: Union[pd.Index, set]):
     )
 
 
-def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS) -> pd.DataFrame:
-    if isinstance(data, pd.DataFrame) and not isinstance(
-        data.index, pd.MultiIndex
-    ):  # push all non-val cols into index
+def reshape(data: pd.DataFrame, value_cols: list[str]) -> pd.DataFrame:
+    if isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.MultiIndex):
+        # push all non-val cols into index
         data = data.set_index(get_ordered_index_cols(data.columns.difference(value_cols)))
-    elif not data.columns.difference(
-        value_cols
-    ).empty:  # we missed some columns that need to be in index
+    elif not data.columns.difference(value_cols).empty:
+        # we missed some columns that need to be in index
         data = data.set_index(list(data.columns.difference(value_cols)), append=True)
         data = data.reorder_levels(get_ordered_index_cols(set(data.index.names)))
-    else:  # we've already set the full index
+    else:
+        # we've already set the full index
         pass
     return data
 
 
-def wide_to_long(data: pd.DataFrame, value_cols: List, var_name: str) -> pd.DataFrame:
+def wide_to_long(data: pd.DataFrame, value_cols: list[str], var_name: str) -> pd.DataFrame:
     if set(data.columns).intersection(value_cols):
         id_cols = data.columns.difference(value_cols)
         data = pd.melt(data, id_vars=id_cols, value_vars=value_cols, var_name=var_name)
@@ -332,10 +339,9 @@ def filter_data_by_restrictions(
     which_age: str,
     age_group_ids: List[int],
 ) -> pd.DataFrame:
-    """
-    For the given data and restrictions, it applies age/sex restrictions and
-    filter out the data outside of the range. Age restrictions can be applied
-    in 4 different ways:
+    """Apply age/sex restrictions and filter out the data outside of the range.
+
+    Age restrictions can be applied in 4 different ways:
     - yld
     - yll
     - narrowest(inner) range of yll and yld
@@ -354,10 +360,8 @@ def filter_data_by_restrictions(
 
     Returns
     -------
-    pandas.DataFrame
         DataFrame which is filtered out any data outside of age/sex
         restriction ranges.
-
     """
     restrictions = entity.restrictions
     if restrictions.male_only and not restrictions.female_only:
@@ -487,7 +491,24 @@ def get_exposure_and_restriction_ages(exposure: pd.DataFrame, entity: RiskFactor
     return valid_age_groups
 
 
-def split_interval(data, interval_column, split_column_prefix):
+def split_interval(
+    data: pd.DataFrame, interval_column: str, split_column_prefix: str
+) -> pd.DataFrame:
+    """Split a DataFrame with an interval index into a MultiIndex with start and end columns.
+
+    Parameters
+    ----------
+    data
+        DataFrame with an interval index.
+    interval_column
+        Name of the interval column.
+    split_column_prefix
+        Prefix for the start and end columns.
+
+    Returns
+    -------
+        DataFrame with a MultiIndex containing start and end columns.
+    """
     if isinstance(data, pd.DataFrame) and interval_column in data.index.names:
         data[f"{split_column_prefix}_end"] = [
             x.right for x in data.index.get_level_values(interval_column)
@@ -517,7 +538,8 @@ def process_kidney_dysfunction_exposure(
     and an inaccurate cat5 category. cat1, cat2, and cat3 are defined for measure 5 and cat4 for
     measure 18, but we will say they are all from measure 5 (this only makes a difference in validation
     and not within a simulation). There are cat5 values (the residual category) but they are calculated
-    separately for each measure and so are not accurate. We will drop these values and recalculate cat5."""
+    separately for each measure and so are not accurate. We will drop these values and recalculate cat5.
+    """
     # drop cat5 data
     data = data.loc[data["parameter"] != "cat5"]
     # re-define remaining data as measure ID 5
@@ -537,3 +559,109 @@ def process_kidney_dysfunction_exposure(
     cat5_data = cat5_data[data.columns]
     data = pd.concat([data, cat5_data])
     return data
+
+
+###########################
+# Other utility functions #
+###########################
+
+
+class DataTypeNotImplementedError(NotImplementedError):
+    """Raised when a data_type is requested that is not implemented for a particular data source."""
+
+    pass
+
+
+class DataType:
+    """Class to handle data types and their corresponding differences.
+
+    Attributes
+    ----------
+    request
+        Data type for which to extract data. Supported values include 'mean' for
+        getting mean data and 'draw' for getting draw-level data. Can also be a list
+        of values to get multiple data types. Defaults to 'mean'.
+    value_columns
+        List of value columns to be pulled.
+    """
+
+    def __init__(self, data_type: str | list[str], measure: str | None) -> None:
+        self._validate_data_type(data_type)
+        self.type = data_type
+        self.value_columns = self._get_value_columns(data_type, measure)
+
+    @staticmethod
+    def _validate_data_type(data_type: str | list[str]) -> None:
+        """Validate that the provided data type is supported.
+
+        Parameters
+        ----------
+        data_type
+            Data type(s) to process.
+
+        Raises
+        ------
+        ValueError
+            If a data type is not supported.
+        ValueError
+            If `data_type` is not a string or a list of strings.
+        """
+
+        # Temporarily raise for lists of data types
+        if isinstance(data_type, list):
+            raise DataTypeNotImplementedError("Lists of data types are not yet supported.")
+
+        if not isinstance(data_type, (list, str)):
+            raise DataTypeNotImplementedError(
+                f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
+            )
+        if isinstance(data_type, str):
+            data_type = [data_type]
+        bad_types = set(data_type).difference(set(SUPPORTED_DATA_TYPES))
+        if bad_types:
+            raise DataTypeNotImplementedError(
+                f"Data type(s) {bad_types} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
+            )
+
+    @staticmethod
+    def _get_value_columns(data_type: str | list[str], measure: str | None) -> list[str]:
+        """Get the value columns corresponding to the provided data type(s).
+
+        Notes
+        -----
+        The data_type has already been processed and validated at this point so no need
+        to check for invalid values.
+
+        Parameters
+        ----------
+        data_type
+            Data type(s) for which to get value columns.
+        measure
+            Measure for which to get value columns.
+
+        Returns
+        -------
+            List of value columns.
+        """
+        # TODO: better handle these special-case measures which don't actually
+        # need a data_type defined at all.
+        if measure in [
+            "structure",
+            "theoretical_minimum_risk_life_expectancy",
+            "estimate",
+            "exposure_distribution_weights",
+        ]:
+            # Custom value columns for these measures
+            cols = ["value"]
+        else:
+            data_type_col_mapping = {
+                "means": MEAN_COLUMNS,
+                "draws": DRAW_COLUMNS,
+            }
+            cols = []
+            if isinstance(data_type, str):
+                data_type = [data_type]
+            for value in data_type:
+                cols.extend(data_type_col_mapping[value])
+
+        return cols

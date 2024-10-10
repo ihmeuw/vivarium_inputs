@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from itertools import product
 from typing import List, Optional, Union
 
@@ -34,9 +36,34 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 def get_data(
     entity: ModelableEntity,
     measure: str,
-    location: Union[str, int, List[Union[str, int]]],
-    years: Optional[Union[int, str, List[int]]] = None,
-):
+    location: str | int | list[str | int],
+    years: int | str | list[int] | None,
+    data_type: utilities.DataType,
+) -> pd.DataFrame:
+    """Pull raw GBD data for measure and entity.
+
+    This also sets all non-value columns to be the dataframe index.
+
+    Parameters
+    ----------
+    entity
+        Entity for which to pull `measure`.
+    measure
+        Measure for which to pull data, should be a measure available for the
+        kind of entity which `entity` is.
+    location
+        Location for which to pull data. This can be a location id as an int,
+        the location name as a string, or a list of these two data types.
+    years
+        Years for which to extract data. If None, get most recent year. If 'all',
+        get all available data.
+    data_type
+        The DataType object for which to extract data.
+
+    Returns
+    -------
+        Raw and slightly reshaped data for the given entity, measure, location, and years.
+    """
     measure_handlers = {
         # Cause-like measures
         "incidence_rate": (get_incidence_rate, ("cause", "sequela")),
@@ -99,35 +126,19 @@ def get_data(
             utility_data.get_location_id(location) if isinstance(location, str) else location
         ]
 
-    data = handler(entity, location_id, years)
-
-    if measure in [
-        "structure",
-        "theoretical_minimum_risk_life_expectancy",
-        "estimate",
-        "exposure_distribution_weights",
-    ]:
-        value_cols = ["value"]
-    else:
-        value_cols = DRAW_COLUMNS
-
-    data = utilities.reshape(data, value_cols=value_cols)
+    data = handler(entity, location_id, years, data_type)
+    data = utilities.reshape(data, data_type.value_columns)
 
     return data
 
 
 def get_raw_incidence_rate(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None,
+    data_type: utilities.DataType,
 ) -> pd.DataFrame:
-    data = extract.extract_data(
-        entity,
-        "incidence_rate",
-        location_id,
-        validate=True,
-        years=years,
-    )
+    data = extract.extract_data(entity, "incidence_rate", location_id, years, data_type)
     if entity.kind == "cause":
         restrictions_entity = entity
     else:  # sequela
@@ -137,39 +148,36 @@ def get_raw_incidence_rate(
     data = utilities.filter_data_by_restrictions(
         data, restrictions_entity, "yld", utility_data.get_age_group_ids()
     )
-    data = utilities.normalize(data, fill_value=0)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
+    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
     return data
 
 
 def get_incidence_rate(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None,
+    data_type: utilities.DataType,
 ) -> pd.DataFrame:
-    data = get_data(
-        entity,
-        "raw_incidence_rate",
-        location_id,
-        years=years,
-    )
-    prevalence = get_data(entity, "prevalence", location_id, years=years)
+    data = get_data(entity, "raw_incidence_rate", location_id, years, data_type)
+    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0)
 
 
 def get_prevalence(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None,
+    data_type: utilities.DataType,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
         "prevalence",
         location_id,
-        validate=True,
-        years=years,
+        years,
+        data_type,
     )
     if entity.kind == "cause":
         restrictions_entity = entity
@@ -180,8 +188,8 @@ def get_prevalence(
     data = utilities.filter_data_by_restrictions(
         data, restrictions_entity, "yld", utility_data.get_age_group_ids()
     )
-    data = utilities.normalize(data, fill_value=0)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
+    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
     return data
 
 

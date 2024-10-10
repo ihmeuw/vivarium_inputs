@@ -1,0 +1,1091 @@
+,location_id,location_name
+0,1,Global
+1,44637,Low SDI
+2,44636,Low-middle SDI
+3,44639,Middle SDI
+4,44634,High-middle SDI
+5,44635,High SDI
+6,31,"Central Europe, Eastern Europe, and Central Asia"
+7,32,Central Asia
+8,33,Armenia
+9,34,Azerbaijan
+10,35,Georgia
+11,36,Kazakhstan
+12,37,Kyrgyzstan
+13,38,Mongolia
+14,39,Tajikistan
+15,40,Turkmenistan
+16,41,Uzbekistan
+17,42,Central Europe
+18,43,Albania
+19,44,Bosnia and Herzegovina
+20,45,Bulgaria
+21,46,Croatia
+22,47,Czechia
+23,48,Hungary
+24,50,Montenegro
+25,49,North Macedonia
+26,51,Poland
+27,52,Romania
+28,53,Serbia
+29,54,Slovakia
+30,55,Slovenia
+31,56,Eastern Europe
+32,57,Belarus
+33,58,Estonia
+34,59,Latvia
+35,60,Lithuania
+36,61,Republic of Moldova
+37,62,Russian Federation
+38,63,Ukraine
+39,64,High-income
+40,70,Australasia
+41,71,Australia
+42,72,New Zealand
+43,65,High-income Asia Pacific
+44,66,Brunei Darussalam
+45,67,Japan
+46,35446,Aichi
+47,35428,Akita
+48,35425,Aomori
+49,35435,Chiba
+50,35461,Ehime
+51,35441,Fukui
+52,35463,Fukuoka
+53,35430,Fukushima
+54,35444,Gifu
+55,35433,Gunma
+56,35457,Hiroshima
+57,35424,Hokkaidō
+58,35451,Hyōgo
+59,35431,Ibaraki
+60,35440,Ishikawa
+61,35426,Iwate
+62,35460,Kagawa
+63,35469,Kagoshima
+64,35437,Kanagawa
+65,35462,Kōchi
+66,35466,Kumamoto
+67,35449,Kyōto
+68,35447,Mie
+69,35427,Miyagi
+70,35468,Miyazaki
+71,35443,Nagano
+72,35465,Nagasaki
+73,35452,Nara
+74,35438,Niigata
+75,35467,Ōita
+76,35456,Okayama
+77,35470,Okinawa
+78,35450,Ōsaka
+79,35464,Saga
+80,35434,Saitama
+81,35448,Shiga
+82,35455,Shimane
+83,35445,Shizuoka
+84,35432,Tochigi
+85,35459,Tokushima
+86,35436,Tōkyō
+87,35454,Tottori
+88,35439,Toyama
+89,35453,Wakayama
+90,35429,Yamagata
+91,35458,Yamaguchi
+92,35442,Yamanashi
+93,68,Republic of Korea
+94,69,Singapore
+95,100,High-income North America
+96,101,Canada
+97,349,Greenland
+98,102,United States of America
+99,523,Alabama
+100,524,Alaska
+101,525,Arizona
+102,526,Arkansas
+103,527,California
+104,528,Colorado
+105,529,Connecticut
+106,530,Delaware
+107,531,District of Columbia
+108,532,Florida
+109,533,Georgia
+110,534,Hawaii
+111,535,Idaho
+112,536,Illinois
+113,537,Indiana
+114,538,Iowa
+115,539,Kansas
+116,540,Kentucky
+117,541,Louisiana
+118,542,Maine
+119,543,Maryland
+120,544,Massachusetts
+121,545,Michigan
+122,546,Minnesota
+123,547,Mississippi
+124,548,Missouri
+125,549,Montana
+126,550,Nebraska
+127,551,Nevada
+128,552,New Hampshire
+129,553,New Jersey
+130,554,New Mexico
+131,555,New York
+132,556,North Carolina
+133,557,North Dakota
+134,558,Ohio
+135,559,Oklahoma
+136,560,Oregon
+137,561,Pennsylvania
+138,562,Rhode Island
+139,563,South Carolina
+140,564,South Dakota
+141,565,Tennessee
+142,566,Texas
+143,567,Utah
+144,568,Vermont
+145,569,Virginia
+146,570,Washington
+147,571,West Virginia
+148,572,Wisconsin
+149,573,Wyoming
+150,96,Southern Latin America
+151,97,Argentina
+152,98,Chile
+153,99,Uruguay
+154,73,Western Europe
+155,74,Andorra
+156,75,Austria
+157,76,Belgium
+158,77,Cyprus
+159,78,Denmark
+160,79,Finland
+161,80,France
+162,81,Germany
+163,82,Greece
+164,83,Iceland
+165,84,Ireland
+166,85,Israel
+167,86,Italy
+168,87,Luxembourg
+169,88,Malta
+170,367,Monaco
+171,89,Netherlands
+172,90,Norway
+173,60133,Agder
+174,60135,Innlandet
+175,4923,Møre og Romsdal
+176,4926,Nordland
+177,4910,Oslo
+178,4920,Rogaland
+179,60137,Troms og Finnmark
+180,53432,Trøndelag
+181,60134,Vestfold og Telemark
+182,60132,Vestland
+183,60136,Viken
+184,91,Portugal
+185,396,San Marino
+186,92,Spain
+187,93,Sweden
+188,4944,Stockholm
+189,4940,Sweden except Stockholm
+190,94,Switzerland
+191,95,United Kingdom
+192,4749,England
+193,4621,East Midlands
+194,44697,Derby
+195,44698,Derbyshire
+196,44701,Leicester
+197,44694,Leicestershire
+198,44695,Lincolnshire
+199,44693,Northamptonshire
+200,44700,Nottingham
+201,44699,Nottinghamshire
+202,44696,Rutland
+203,4623,East of England
+204,44716,Bedford
+205,44721,Cambridgeshire
+206,44717,Central Bedfordshire
+207,44720,Essex
+208,44719,Hertfordshire
+209,44726,Luton
+210,44723,Norfolk
+211,44725,Peterborough
+212,44724,Southend-on-Sea
+213,44718,Suffolk
+214,44722,Thurrock
+215,4624,Greater London
+216,44754,Barking and Dagenham
+217,44729,Barnet
+218,44732,Bexley
+219,44735,Brent
+220,44731,Bromley
+221,44748,Camden
+222,44742,Croydon
+223,44744,Ealing
+224,44741,Enfield
+225,44745,Greenwich
+226,44756,Hackney
+227,44743,Hammersmith and Fulham
+228,44755,Haringey
+229,44740,Harrow
+230,44737,Havering
+231,44736,Hillingdon
+232,44751,Hounslow
+233,44757,Islington
+234,44728,Kensington and Chelsea
+235,44738,Kingston upon Thames
+236,44749,Lambeth
+237,44750,Lewisham
+238,44734,Merton
+239,44753,Newham
+240,44733,Redbridge
+241,44727,Richmond upon Thames
+242,44752,Southwark
+243,44739,Sutton
+244,44758,Tower Hamlets
+245,44747,Waltham Forest
+246,44746,Wandsworth
+247,44730,Westminster
+248,4618,North East England
+249,44649,County Durham
+250,44643,Darlington
+251,44650,Gateshead
+252,44654,Hartlepool
+253,44651,Middlesbrough
+254,44646,Newcastle upon Tyne
+255,44647,North Tyneside
+256,44644,Northumberland
+257,44648,Redcar and Cleveland
+258,44652,South Tyneside
+259,44645,Stockton-on-Tees
+260,44653,Sunderland
+261,4619,North West England
+262,44674,Blackburn with Darwen
+263,44676,Blackpool
+264,44662,Bolton
+265,44664,Bury
+266,44655,Cheshire East
+267,44658,Cheshire West and Chester
+268,44661,Cumbria
+269,44670,Halton
+270,44675,Knowsley
+271,44660,Lancashire
+272,44671,Liverpool
+273,44677,Manchester
+274,44667,Oldham
+275,44668,Rochdale
+276,44673,Salford
+277,44659,Sefton
+278,44665,St Helens
+279,44656,Stockport
+280,44672,Tameside
+281,44657,Trafford
+282,44666,Warrington
+283,44669,Wigan
+284,44663,Wirral
+285,4625,South East England
+286,44765,Bracknell Forest
+287,44770,Brighton and Hove
+288,44760,Buckinghamshire
+289,44772,East Sussex
+290,44764,Hampshire
+291,44774,Isle of Wight
+292,44769,Kent
+293,44771,Medway
+294,44775,Milton Keynes
+295,44767,Oxfordshire
+296,44773,Portsmouth
+297,44768,Reading
+298,44777,Slough
+299,44776,Southampton
+300,44761,Surrey
+301,44763,West Berkshire
+302,44766,West Sussex
+303,44762,Windsor and Maidenhead
+304,44759,Wokingham
+305,4626,South West England
+306,44784,Bath and North East Somerset
+307,44790,Bournemouth
+308,44789,"Bristol, City of"
+309,44791,Cornwall
+310,44782,Devon
+311,44779,Dorset
+312,44785,Gloucestershire
+313,44781,North Somerset
+314,44792,Plymouth
+315,44783,Poole
+316,44786,Somerset
+317,44778,South Gloucestershire
+318,44787,Swindon
+319,44788,Torbay
+320,44780,Wiltshire
+321,4622,West Midlands
+322,44714,Birmingham
+323,44709,Coventry
+324,44708,Dudley
+325,44703,"Herefordshire, County of"
+326,44715,Sandwell
+327,44705,Shropshire
+328,44704,Solihull
+329,44707,Staffordshire
+330,44711,Stoke-on-Trent
+331,44710,Telford and Wrekin
+332,44712,Walsall
+333,44702,Warwickshire
+334,44713,Wolverhampton
+335,44706,Worcestershire
+336,4620,Yorkshire and the Humber
+337,44692,Barnsley
+338,44684,Bradford
+339,44682,Calderdale
+340,44690,Doncaster
+341,44679,East Riding of Yorkshire
+342,44691,"Kingston upon Hull, City of"
+343,44685,Kirklees
+344,44686,Leeds
+345,44681,North East Lincolnshire
+346,44683,North Lincolnshire
+347,44678,North Yorkshire
+348,44689,Rotherham
+349,44687,Sheffield
+350,44688,Wakefield
+351,44680,York
+352,433,Northern Ireland
+353,434,Scotland
+354,4636,Wales
+355,103,Latin America and Caribbean
+356,120,Andean Latin America
+357,121,Bolivia (Plurinational State of)
+358,122,Ecuador
+359,123,Peru
+360,104,Caribbean
+361,105,Antigua and Barbuda
+362,106,Bahamas
+363,107,Barbados
+364,108,Belize
+365,305,Bermuda
+366,109,Cuba
+367,110,Dominica
+368,111,Dominican Republic
+369,112,Grenada
+370,113,Guyana
+371,114,Haiti
+372,115,Jamaica
+373,385,Puerto Rico
+374,393,Saint Kitts and Nevis
+375,116,Saint Lucia
+376,117,Saint Vincent and the Grenadines
+377,118,Suriname
+378,119,Trinidad and Tobago
+379,422,United States Virgin Islands
+380,124,Central Latin America
+381,125,Colombia
+382,126,Costa Rica
+383,127,El Salvador
+384,128,Guatemala
+385,129,Honduras
+386,130,Mexico
+387,4643,Aguascalientes
+388,4644,Baja California
+389,4645,Baja California Sur
+390,4646,Campeche
+391,4649,Chiapas
+392,4650,Chihuahua
+393,4647,Coahuila
+394,4648,Colima
+395,4652,Durango
+396,4653,Guanajuato
+397,4654,Guerrero
+398,4655,Hidalgo
+399,4656,Jalisco
+400,4657,México
+401,4651,Mexico City
+402,4658,Michoacán de Ocampo
+403,4659,Morelos
+404,4660,Nayarit
+405,4661,Nuevo León
+406,4662,Oaxaca
+407,4663,Puebla
+408,4664,Querétaro
+409,4665,Quintana Roo
+410,4666,San Luis Potosí
+411,4667,Sinaloa
+412,4668,Sonora
+413,4669,Tabasco
+414,4670,Tamaulipas
+415,4671,Tlaxcala
+416,4672,Veracruz de Ignacio de la Llave
+417,4673,Yucatán
+418,4674,Zacatecas
+419,131,Nicaragua
+420,132,Panama
+421,133,Venezuela (Bolivarian Republic of)
+422,134,Tropical Latin America
+423,135,Brazil
+424,95078,Brazil North
+425,4750,Acre
+426,4753,Amapá
+427,4752,Amazonas
+428,4763,Pará
+429,4770,Rondônia
+430,4771,Roraima
+431,4776,Tocantins
+432,95079,Brazil Northeast
+433,4751,Alagoas
+434,4754,Bahia
+435,4755,Ceará
+436,4759,Maranhão
+437,4764,Paraíba
+438,4766,Pernambuco
+439,4767,Piaui
+440,4769,Rio Grande do Norte
+441,4774,Sergipe
+442,95080,Brazil Central-West
+443,4756,Distrito Federal
+444,4758,Goiás
+445,4762,Mato Grosso
+446,4761,Mato Grosso do Sul
+447,95081,Brazil South
+448,4765,Paraná
+449,4772,Rio Grande do Sul
+450,4773,Santa Catarina
+451,95082,Brazil Southeast
+452,4757,Espírito Santo
+453,4760,Minas Gerais
+454,4768,Rio de Janeiro
+455,4775,São Paulo
+456,136,Paraguay
+457,137,North Africa and Middle East
+458,138,North Africa and Middle East
+459,160,Afghanistan
+460,139,Algeria
+461,140,Bahrain
+462,141,Egypt
+463,142,Iran (Islamic Republic of)
+464,44864,Alborz
+465,44865,Ardebil
+466,44868,Bushehr
+467,44869,Chahar Mahaal and Bakhtiari
+468,44866,East Azarbayejan
+469,44870,Fars
+470,44871,Gilan
+471,44872,Golestan
+472,44873,Hamadan
+473,44874,Hormozgan
+474,44875,Ilam
+475,44876,Isfahan
+476,44877,Kerman
+477,44878,Kermanshah
+478,44880,Khorasan-e-Razavi
+479,44882,Khuzestan
+480,44883,Kohgiluyeh and Boyer-Ahmad
+481,44884,Kurdistan
+482,44885,Lorestan
+483,44886,Markazi
+484,44887,Mazandaran
+485,44879,North Khorasan
+486,44888,Qazvin
+487,44889,Qom
+488,44890,Semnan
+489,44891,Sistan and Baluchistan
+490,44881,South Khorasan
+491,44892,Tehran
+492,44867,West Azarbayejan
+493,44893,Yazd
+494,44894,Zanjan
+495,143,Iraq
+496,144,Jordan
+497,145,Kuwait
+498,146,Lebanon
+499,147,Libya
+500,148,Morocco
+501,150,Oman
+502,149,Palestine
+503,151,Qatar
+504,152,Saudi Arabia
+505,522,Sudan
+506,153,Syrian Arab Republic
+507,154,Tunisia
+508,155,Türkiye
+509,156,United Arab Emirates
+510,157,Yemen
+511,158,South Asia
+512,159,South Asia
+513,161,Bangladesh
+514,162,Bhutan
+515,163,India
+516,4841,Andhra Pradesh
+517,4842,Arunachal Pradesh
+518,4843,Assam
+519,4844,Bihar
+520,4846,Chhattisgarh
+521,4849,Delhi
+522,4850,Goa
+523,4851,Gujarat
+524,4852,Haryana
+525,4853,Himachal Pradesh
+526,4854,Jammu & Kashmir and Ladakh
+527,4855,Jharkhand
+528,4856,Karnataka
+529,4857,Kerala
+530,4859,Madhya Pradesh
+531,4860,Maharashtra
+532,4861,Manipur
+533,4862,Meghalaya
+534,4863,Mizoram
+535,4864,Nagaland
+536,4865,Odisha
+537,44538,Other Union Territories
+538,4867,Punjab
+539,4868,Rajasthan
+540,4869,Sikkim
+541,4870,Tamil Nadu
+542,4871,Telangana
+543,4872,Tripura
+544,4873,Uttar Pradesh
+545,4874,Uttarakhand
+546,4875,West Bengal
+547,164,Nepal
+548,165,Pakistan
+549,53615,Azad Jammu & Kashmir
+550,53616,Balochistan
+551,53617,Gilgit-Baltistan
+552,53618,Islamabad Capital Territory
+553,53619,Khyber Pakhtunkhwa
+554,53620,Punjab
+555,53621,Sindh
+556,4,"Southeast Asia, East Asia, and Oceania"
+557,5,East Asia
+558,6,China
+559,7,Democratic People's Republic of Korea
+560,8,Taiwan (Province of China)
+561,21,Oceania
+562,298,American Samoa
+563,320,Cook Islands
+564,22,Fiji
+565,351,Guam
+566,23,Kiribati
+567,24,Marshall Islands
+568,25,Micronesia (Federated States of)
+569,369,Nauru
+570,374,Niue
+571,376,Northern Mariana Islands
+572,380,Palau
+573,26,Papua New Guinea
+574,27,Samoa
+575,28,Solomon Islands
+576,413,Tokelau
+577,29,Tonga
+578,416,Tuvalu
+579,30,Vanuatu
+580,9,Southeast Asia
+581,10,Cambodia
+582,11,Indonesia
+583,4709,Aceh
+584,4726,Bali
+585,4717,Bangka-Belitung Islands
+586,4725,Banten
+587,4715,Bengkulu
+588,4737,Gorontalo
+589,4720,Jakarta
+590,4713,Jambi
+591,4721,West Java
+592,4722,Central Java
+593,4724,East Java
+594,4729,West Kalimantan
+595,4731,South Kalimantan
+596,4730,Central Kalimantan
+597,4732,East Kalimantan
+598,4719,North Kalimantan
+599,4718,Riau Islands
+600,4716,Lampung
+601,4739,Maluku
+602,4740,North Maluku
+603,4727,West Nusa Tenggara
+604,4728,East Nusa Tenggara
+605,4742,Papua
+606,4741,West Papua
+607,4712,Riau
+608,4738,West Sulawesi
+609,4735,South Sulawesi
+610,4734,Central Sulawesi
+611,4736,Southeast Sulawesi
+612,4733,North Sulawesi
+613,4711,West Sumatra
+614,4714,South Sumatra
+615,4710,North Sumatra
+616,4723,Yogyakarta
+617,12,Lao People's Democratic Republic
+618,13,Malaysia
+619,14,Maldives
+620,183,Mauritius
+621,15,Myanmar
+622,16,Philippines
+623,186,Seychelles
+624,17,Sri Lanka
+625,18,Thailand
+626,19,Timor-Leste
+627,20,Viet Nam
+628,166,Sub-Saharan Africa
+629,167,Central Sub-Saharan Africa
+630,168,Angola
+631,169,Central African Republic
+632,170,Congo
+633,171,Democratic Republic of the Congo
+634,172,Equatorial Guinea
+635,173,Gabon
+636,174,Eastern Sub-Saharan Africa
+637,175,Burundi
+638,176,Comoros
+639,177,Djibouti
+640,178,Eritrea
+641,179,Ethiopia
+642,44861,Addis Ababa
+643,44853,Afar
+644,44854,Amhara
+645,44857,Benishangul-Gumuz
+646,44862,Dire Dawa
+647,44860,Gambella
+648,44859,Harari
+649,44855,Oromia
+650,44856,Somali
+651,44858,"Southern Nations, Nationalities, and Peoples"
+652,44852,Tigray
+653,180,Kenya
+654,35617,Baringo
+655,35618,Bomet
+656,35619,Bungoma
+657,35620,Busia
+658,35621,Elgeyo-Marakwet
+659,35622,Embu
+660,35623,Garissa
+661,35624,Homa Bay
+662,35625,Isiolo
+663,35626,Kajiado
+664,35627,Kakamega
+665,35628,Kericho
+666,35629,Kiambu
+667,35630,Kilifi
+668,35631,Kirinyaga
+669,35632,Kisii
+670,35633,Kisumu
+671,35634,Kitui
+672,35635,Kwale
+673,35636,Laikipia
+674,35637,Lamu
+675,35638,Machakos
+676,35639,Makueni
+677,35640,Mandera
+678,35641,Marsabit
+679,35642,Meru
+680,35643,Migori
+681,35644,Mombasa
+682,35645,Murang'a
+683,35646,Nairobi
+684,35647,Nakuru
+685,35648,Nandi
+686,35649,Narok
+687,35650,Nyamira
+688,35651,Nyandarua
+689,35652,Nyeri
+690,35653,Samburu
+691,35654,Siaya
+692,35655,Taita Taveta
+693,35656,Tana River
+694,35657,Tharaka Nithi
+695,35658,Trans Nzoia
+696,35659,Turkana
+697,35660,Uasin Gishu
+698,35661,Vihiga
+699,35662,Wajir
+700,35663,West Pokot
+701,181,Madagascar
+702,182,Malawi
+703,184,Mozambique
+704,185,Rwanda
+705,187,Somalia
+706,435,South Sudan
+707,190,Uganda
+708,189,United Republic of Tanzania
+709,191,Zambia
+710,192,Southern Sub-Saharan Africa
+711,193,Botswana
+712,197,Eswatini
+713,194,Lesotho
+714,195,Namibia
+715,196,South Africa
+716,482,Eastern Cape
+717,483,Free State
+718,484,Gauteng
+719,485,KwaZulu-Natal
+720,486,Limpopo
+721,487,Mpumalanga
+722,488,North-West
+723,489,Northern Cape
+724,490,Western Cape
+725,198,Zimbabwe
+726,199,Western Sub-Saharan Africa
+727,200,Benin
+728,201,Burkina Faso
+729,203,Cabo Verde
+730,202,Cameroon
+731,204,Chad
+732,205,Côte d'Ivoire
+733,206,Gambia
+734,207,Ghana
+735,208,Guinea
+736,209,Guinea-Bissau
+737,210,Liberia
+738,211,Mali
+739,212,Mauritania
+740,213,Niger
+741,214,Nigeria
+742,215,Sao Tome and Principe
+743,216,Senegal
+744,217,Sierra Leone
+745,218,Togo
+22,53660,Dolnośląskie
+23,53661,Kujawsko-Pomorskie
+24,53662,Łódzkie
+25,53663,Lubelskie
+26,53664,Lubuskie
+27,53665,Małopolskie
+28,53666,Mazowieckie
+29,53667,Opolskie
+30,53668,Podkarpackie
+31,53669,Podlaskie
+32,53670,Pomorskie
+33,53671,Śląskie
+34,53672,Świętokrzyskie
+35,53673,Warmińsko-Mazurskie
+36,53674,Wielkopolskie
+37,53675,Zachodniopomorskie
+49,44971,Altai kray
+50,44983,Amur oblast
+51,44924,Arkhangelsk oblast without Nenets autonomous district
+52,44936,Astrakhan oblast
+53,44903,Belgorod oblast
+54,44904,Bryansk oblast
+55,44945,Chechen Republic
+56,44966,Chelyabinsk oblast
+57,44987,Chukotka Autonomous Area
+58,44952,Chuvash Republic
+59,44974,Irkutsk oblast
+60,44907,Ivanovo oblast
+61,44986,Jewish autonomous oblast
+62,44942,Kabardino-Balkar Republic
+63,44926,Kaliningrad oblast
+64,44908,Kaluga oblast
+65,44980,Kamchatka kray
+66,44943,Karachay-Cherkess Republic
+67,44975,Kemerovo oblast
+68,44982,Khabarovsk kray
+69,44963,Khanty-Mansi autonomous area
+70,44954,Kirov oblast
+71,44922,Komi Republic
+72,44909,Kostroma oblast
+73,44935,Krasnodar kray
+74,44973,Krasnoyarsk kray
+75,44961,Kurgan oblast
+76,44910,Kursk oblast
+77,44927,Leningrad oblast
+78,44911,Lipetzk oblast
+79,44984,Magadan oblast
+80,44920,Moscow City
+81,44912,Moscow oblast
+82,44928,Murmansk oblast
+83,44923,Nenets autonomous district
+84,44955,Nizhny Novgorod oblast
+85,44929,Novgorod oblast
+86,44976,Novosibirsk oblast
+87,44977,Omsk oblast
+88,44956,Orenburg oblast
+89,44913,Oryol oblast
+90,44957,Penza oblast
+91,44953,Perm kray
+92,44981,Primorsky kray
+93,44930,Pskov oblast
+94,44932,Republic of Adygeya
+95,44967,Republic of Altai
+96,44947,Republic of Bashkortostan
+97,44968,Republic of Buryatia
+98,44940,Republic of Dagestan
+99,44941,Republic of Ingushetia
+100,44933,Republic of Kalmykia
+101,44921,Republic of Karelia
+102,44970,Republic of Khakassia
+103,44948,Republic of Mari El
+104,44949,Republic of Mordovia
+105,44944,Republic of North Ossetia-Alania
+106,44979,Republic of Sakha (Yakutia)
+107,44950,Republic of Tatarstan
+108,44969,Republic of Tuva
+109,44938,Rostov oblast
+110,44914,Ryazan oblast
+111,44931,Saint Petersburg
+112,44985,Sakhalin oblast
+113,44958,Samara oblast
+114,44959,Saratov oblast
+115,44915,Smolensk oblast
+116,44946,Stavropol kray
+117,44962,Sverdlovsk oblast
+118,44916,Tambov oblast
+119,44978,Tomsk oblast
+120,44918,Tula oblast
+121,44917,Tver oblast
+122,44965,Tyumen oblast without autonomous areas
+123,44951,Udmurt Republic
+124,44960,Ulyanovsk oblast
+125,44905,Vladimir oblast
+126,44937,Volgograd oblast
+127,44925,Vologda oblast
+128,44906,Voronezh oblast
+129,44964,Yamalo-Nenets autonomous area
+130,44919,Yaroslavl oblast
+131,44972,Zabaikalsk kray
+133,44934,Republic of Crimea
+134,44939,Sevastopol
+135,50559,Ukraine (without Crimea & Sevastopol)
+140,44850,New Zealand Maori population
+141,44851,New Zealand non-Maori population
+267,35507,Abruzzo
+268,35511,Basilicata
+269,35512,Calabria
+270,35509,Campania
+271,35502,Emilia-Romagna
+272,35501,Friuli-Venezia Giulia
+273,35506,Lazio
+274,35496,Liguria
+275,35497,Lombardia
+276,35505,Marche
+277,35508,Molise
+278,35494,Piemonte
+279,35498,Provincia autonoma di Bolzano
+280,35499,Provincia autonoma di Trento
+281,35510,Puglia
+282,35514,Sardegna
+283,35513,Sicilia
+284,35503,Toscana
+285,35504,Umbria
+286,35495,Valle d'Aosta
+287,35500,Veneto
+632,43908,"Andhra Pradesh, Rural"
+633,43872,"Andhra Pradesh, Urban"
+635,43909,"Arunachal Pradesh, Rural"
+636,43873,"Arunachal Pradesh, Urban"
+638,43910,"Assam, Rural"
+639,43874,"Assam, Urban"
+641,43911,"Bihar, Rural"
+642,43875,"Bihar, Urban"
+644,43913,"Chhattisgarh, Rural"
+645,43877,"Chhattisgarh, Urban"
+647,43916,"Delhi, Rural"
+648,43880,"Delhi, Urban"
+650,43917,"Goa, Rural"
+651,43881,"Goa, Urban"
+653,43918,"Gujarat, Rural"
+654,43882,"Gujarat, Urban"
+656,43919,"Haryana, Rural"
+657,43883,"Haryana, Urban"
+659,43920,"Himachal Pradesh, Rural"
+660,43884,"Himachal Pradesh, Urban"
+662,43921,"Jammu & Kashmir and Ladakh, Rural"
+663,43885,"Jammu & Kashmir and Ladakh, Urban"
+665,43922,"Jharkhand, Rural"
+666,43886,"Jharkhand, Urban"
+668,43923,"Karnataka, Rural"
+669,43887,"Karnataka, Urban"
+671,43924,"Kerala, Rural"
+672,43888,"Kerala, Urban"
+674,43926,"Madhya Pradesh, Rural"
+675,43890,"Madhya Pradesh, Urban"
+677,43927,"Maharashtra, Rural"
+678,43891,"Maharashtra, Urban"
+680,43928,"Manipur, Rural"
+681,43892,"Manipur, Urban"
+683,43929,"Meghalaya, Rural"
+684,43893,"Meghalaya, Urban"
+686,43930,"Mizoram, Rural"
+687,43894,"Mizoram, Urban"
+689,43931,"Nagaland, Rural"
+690,43895,"Nagaland, Urban"
+692,43932,"Odisha, Rural"
+693,43896,"Odisha, Urban"
+695,44539,"Other Union Territories, Rural"
+696,44540,"Other Union Territories, Urban"
+698,43934,"Punjab, Rural"
+699,43898,"Punjab, Urban"
+701,43935,"Rajasthan, Rural"
+702,43899,"Rajasthan, Urban"
+704,43936,"Sikkim, Rural"
+705,43900,"Sikkim, Urban"
+707,43937,"Tamil Nadu, Rural"
+708,43901,"Tamil Nadu, Urban"
+710,43938,"Telangana, Rural"
+711,43902,"Telangana, Urban"
+713,43939,"Tripura, Rural"
+714,43903,"Tripura, Urban"
+716,43940,"Uttar Pradesh, Rural"
+717,43904,"Uttar Pradesh, Urban"
+719,43941,"Uttarakhand, Rural"
+720,43905,"Uttarakhand, Urban"
+722,43942,"West Bengal, Rural"
+723,43906,"West Bengal, Urban"
+736,491,Anhui
+737,492,Beijing
+738,493,Chongqing
+739,494,Fujian
+740,495,Gansu
+741,496,Guangdong
+742,497,Guangxi
+743,498,Guizhou
+744,499,Hainan
+745,500,Hebei
+746,501,Heilongjiang
+747,502,Henan
+748,354,Hong Kong Special Administrative Region of China
+749,503,Hubei
+750,504,Hunan
+751,505,Inner Mongolia
+752,506,Jiangsu
+753,507,Jiangxi
+754,508,Jilin
+755,509,Liaoning
+756,361,Macao Special Administrative Region of China
+757,510,Ningxia
+758,511,Qinghai
+759,512,Shaanxi
+760,513,Shandong
+761,514,Shanghai
+762,515,Shanxi
+763,516,Sichuan
+764,517,Tianjin
+765,518,Tibet
+766,519,Xinjiang
+767,520,Yunnan
+768,521,Zhejiang
+833,53536,Abra
+834,53604,Agusan Del Norte
+835,53605,Agusan Del Sur
+836,53572,Aklan
+837,53568,Albay
+838,53573,Antique
+839,53537,Apayao
+840,53554,Aurora
+841,53610,Basilan
+842,53548,Bataan
+843,53547,Batanes
+844,53558,Batangas
+845,53535,Benguet
+846,53586,Biliran
+847,53579,Bohol
+848,53591,Bukidnon
+849,53552,Bulacan
+850,53544,Cagayan
+851,53566,Camarines Norte
+852,53570,Camarines Sur
+853,53594,Camiguin
+854,53571,Capiz
+855,53565,Catanduanes
+856,53556,Cavite
+857,53578,Cebu
+858,53602,Cotabato (North Cotabato)
+859,53596,Davao de Oro
+860,53599,Davao Del Norte
+861,53597,Davao Del Sur
+862,53598,Davao Occidental
+863,53595,Davao Oriental
+864,53608,Dinagat Islands
+865,53582,Eastern Samar
+866,53576,Guimaras
+867,53534,Ifugao
+868,53540,Ilocos Norte
+869,53541,Ilocos Sur
+870,53575,Iloilo
+871,53545,Isabela
+872,53538,Kalinga
+873,53539,La Union
+874,53557,Laguna
+875,53592,Lanao Del Norte
+876,53613,Lanao Del Sur
+877,53585,Leyte
+878,53612,Maguindanao
+879,53564,Marinduque
+880,53569,Masbate
+881,53590,Misamis Occidental
+882,53593,Misamis Oriental
+883,53533,Mountain Province
+884,53614,National Capital Region
+885,53574,Negros Occidental
+886,53577,Negros Oriental
+887,53583,Northern Samar
+888,53553,Nueva Ecija
+889,53543,Nueva Vizcaya
+890,53560,Occidental Mindoro
+891,53561,Oriental Mindoro
+892,53563,Palawan
+893,53551,Pampanga
+894,53542,Pangasinan
+895,53559,Quezon
+896,53546,Quirino
+897,53555,Rizal
+898,53562,Romblon
+899,53584,Samar (Western Samar)
+900,53603,Sarangani
+901,53580,Siquijor
+902,53567,Sorsogon
+903,53600,South Cotabato
+904,53581,Southern Leyte
+905,53601,Sultan Kudarat
+906,53611,Sulu
+907,53607,Surigao Del Norte
+908,53606,Surigao Del Sur
+909,53550,Tarlac
+910,53609,Tawi-Tawi
+911,53549,Zambales
+912,53588,Zamboanga Del Norte
+913,53589,Zamboanga Del Sur
+914,53587,Zamboanga Sibugay
+1034,25318,Abia
+1035,25319,Adamawa
+1036,25320,Akwa Ibom
+1037,25321,Anambra
+1038,25322,Bauchi
+1039,25323,Bayelsa
+1040,25324,Benue
+1041,25325,Borno
+1042,25326,Cross River
+1043,25327,Delta
+1044,25328,Ebonyi
+1045,25329,Edo
+1046,25330,Ekiti
+1047,25331,Enugu
+1048,25332,FCT (Abuja)
+1049,25333,Gombe
+1050,25334,Imo
+1051,25335,Jigawa
+1052,25336,Kaduna
+1053,25337,Kano
+1054,25338,Katsina
+1055,25339,Kebbi
+1056,25340,Kogi
+1057,25341,Kwara
+1058,25342,Lagos
+1059,25343,Nasarawa
+1060,25344,Niger
+1061,25345,Ogun
+1062,25346,Ondo
+1063,25347,Osun
+1064,25348,Oyo
+1065,25349,Plateau
+1066,25350,Rivers
+1067,25351,Sokoto
+1068,25352,Taraba
+1069,25353,Yobe
+1070,25354,Zamfara
+0,44591,World Bank Income Levels
+1,44575,World Bank High Income
+67,44578,World Bank Low Income
+96,44577,World Bank Lower Middle Income
+151,44576,World Bank Upper Middle Income

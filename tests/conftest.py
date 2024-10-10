@@ -25,6 +25,11 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture
+def runslow(request: pytest.FixtureRequest):
+    return request.config.getoption("--runslow")
+
+
+@pytest.fixture
 def caplog(_caplog):
     class PropogateHandler(logging.Handler):
         def emit(self, record):
@@ -81,3 +86,16 @@ def risk_list():
 @pytest.fixture
 def locations():
     return ["Bangladesh", "Ethiopia", "Kenya", "China", "North Korea", "Nigeria"]
+
+
+def _no_gbd_access():
+    try:
+        from vivarium_inputs.globals import GBDDummy
+
+        return True
+    except ImportError:
+        pass
+    return False
+
+
+NO_GBD_ACCESS = _no_gbd_access()
