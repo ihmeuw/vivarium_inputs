@@ -422,50 +422,9 @@ def test_get_incidence_rate_mocked(
         with pytest.raises(DataTypeNotImplementedError):
             data = get_measure(**kwargs)
     else:
-        # Use the parameter ID combination to request the correct fixture data
-        # to use as a mocked return
-        parametrized_id = request.node.name.split(request.function.__name__)[-1]
-        mocked_data = {
-            "[means-cause]": request.getfixturevalue(
-                "mocked_cause_incidence_rate_get_outputs"
-            ),
-            "[draws-cause]": request.getfixturevalue("mocked_cause_incidence_rate_get_draws"),
-            "[means-sequela]": request.getfixturevalue(
-                "mocked_sequela_incidence_rate_get_outputs"
-            ),
-            "[draws-sequela]": request.getfixturevalue(
-                "mocked_sequela_incidence_rate_get_draws"
-            ),
-        }[parametrized_id]
-        mock_extract_incidence_rate = mocker.patch(
-            "vivarium_inputs.extract.extract_incidence_rate",
-            return_value=mocked_data[mocked_data["measure_id"] == MEASURES["Incidence rate"]],
+        mock_extract_incidence_rate, mock_extract_prevalence = _mock_vivarium_gbd_access(
+            request, mocker
         )
-        mock_extract_prevalence = mocker.patch(
-            "vivarium_inputs.extract.extract_prevalence",
-            return_value=mocked_data[mocked_data["measure_id"] == MEASURES["Prevalence"]],
-        )
-        mocker.patch(
-            "vivarium_inputs.utility_data.get_estimation_years",
-            return_value=get_mocked_estimation_years(),
-        )
-        mocker.patch(
-            "vivarium_inputs.utility_data.get_age_group_ids",
-            return_value=list(get_mocked_age_groups()),
-        )
-        mocker.patch(
-            "vivarium_inputs.utility_data.get_location_path_to_global",
-            return_value=get_mocked_location_path_to_global(),
-        )
-        mocker.patch(
-            "vivarium_inputs.utility_data.get_raw_age_bins",
-            return_value=get_mocked_age_bins(),
-        )
-        mocker.patch(
-            "vivarium_inputs.utility_data.get_raw_location_ids",
-            return_value=get_mocked_location_ids(),
-        )
-
         data = get_measure(**kwargs)
         mock_extract_incidence_rate.assert_called_once()
         mock_extract_prevalence.assert_called_once()
@@ -497,3 +456,51 @@ def check_data(data: pd.DataFrame, data_type: str) -> None:
     }
     for idx, expected in expected_metadata.items():
         assert set(data.index.get_level_values(idx)) == expected
+
+
+def _mock_vivarium_gbd_access(
+    request: pytest.FixtureRequest, mocker: MockerFixture
+) -> tuple["mocker.Mock", "mocker.Mock"]:
+
+    mocker.patch(
+        "vivarium_inputs.utility_data.get_estimation_years",
+        return_value=get_mocked_estimation_years(),
+    )
+    mocker.patch(
+        "vivarium_inputs.utility_data.get_age_group_ids",
+        return_value=list(get_mocked_age_groups()),
+    )
+    mocker.patch(
+        "vivarium_inputs.utility_data.get_location_path_to_global",
+        return_value=get_mocked_location_path_to_global(),
+    )
+    mocker.patch(
+        "vivarium_inputs.utility_data.get_raw_age_bins",
+        return_value=get_mocked_age_bins(),
+    )
+    mocker.patch(
+        "vivarium_inputs.utility_data.get_raw_location_ids",
+        return_value=get_mocked_location_ids(),
+    )
+
+    # Use the parameter ID combination to request the correct fixture data
+    # to use as a mocked return
+    parametrized_id = request.node.name.split(request.function.__name__)[-1]
+    mocked_data = {
+        "[means-cause]": request.getfixturevalue("mocked_cause_incidence_rate_get_outputs"),
+        "[draws-cause]": request.getfixturevalue("mocked_cause_incidence_rate_get_draws"),
+        "[means-sequela]": request.getfixturevalue(
+            "mocked_sequela_incidence_rate_get_outputs"
+        ),
+        "[draws-sequela]": request.getfixturevalue("mocked_sequela_incidence_rate_get_draws"),
+    }[parametrized_id]
+    mock_extract_incidence_rate = mocker.patch(
+        "vivarium_inputs.extract.extract_incidence_rate",
+        return_value=mocked_data[mocked_data["measure_id"] == MEASURES["Incidence rate"]],
+    )
+    mock_extract_prevalence = mocker.patch(
+        "vivarium_inputs.extract.extract_prevalence",
+        return_value=mocked_data[mocked_data["measure_id"] == MEASURES["Prevalence"]],
+    )
+
+    return mock_extract_incidence_rate, mock_extract_prevalence
