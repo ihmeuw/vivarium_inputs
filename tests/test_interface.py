@@ -45,95 +45,6 @@ def get_mocked_estimation_years() -> list[int]:
     return [1990, 1995, 2000, 2005, 2010, 2015, 2019, 2020, 2021, 2022]
 
 
-def get_mocked_age_groups() -> dict[int, str]:
-    """Mocked age group ids and names for testing."""
-    return {
-        2: "Early Neonatal",
-        3: "Late Neonatal",
-        388: "1-5 months",
-        389: "6-11 months",
-        238: "12 to 23 months",
-        34: "2 to 4",
-        6: "5 to 9",
-        7: "10 to 14",
-        8: "15 to 19",
-        9: "20 to 24",
-        10: "25 to 29",
-        11: "30 to 34",
-        12: "35 to 39",
-        13: "40 to 44",
-        14: "45 to 49",
-        15: "50 to 54",
-        16: "55 to 59",
-        17: "60 to 64",
-        18: "65 to 69",
-        19: "70 to 74",
-        20: "75 to 79",
-        30: "80 to 84",
-        31: "85 to 89",
-        32: "90 to 94",
-        235: "95 plus",
-    }
-
-
-MOCKED_AGE_GROUP_ENDPOINTS = {
-    "age_start": [
-        0.0,
-        0.07671233,
-        0.5,
-        1.0,
-        2.0,
-        5.0,
-        10.0,
-        15.0,
-        20.0,
-        25.0,
-        30.0,
-        0.01917808,
-        35.0,
-        40.0,
-        45.0,
-        50.0,
-        55.0,
-        60.0,
-        65.0,
-        70.0,
-        75.0,
-        80.0,
-        85.0,
-        90.0,
-        95.0,
-    ],
-    "age_end": [
-        0.07671233,
-        0.5,
-        2.0,
-        1.0,
-        5.0,
-        10.0,
-        15.0,
-        20.0,
-        25.0,
-        30.0,
-        0.01917808,
-        35.0,
-        40.0,
-        45.0,
-        50.0,
-        55.0,
-        60.0,
-        65.0,
-        70.0,
-        75.0,
-        80.0,
-        85.0,
-        90.0,
-        95.0,
-        125.0,
-    ],
-}
-
-
 def get_mocked_location_path_to_global() -> pd.DataFrame:
     """Mocked location path to global for testing."""
     return pd.read_csv("tests/fixture_data/location_path_to_global.csv")
@@ -151,7 +62,7 @@ def get_mocked_location_ids() -> pd.DataFrame:
 
 def get_mocked_incidence_rate_get_draws_common_data() -> pd.DataFrame:
     """Common dataset for mocked get_draws() incidence_rate data."""
-    age_group_ids = list(get_mocked_age_groups())
+    age_group_ids = get_mocked_age_bins()["age_group_id"]
     sex_ids = [1, 2]
     measure_ids = [3, 5, 6]
 
@@ -178,8 +89,8 @@ def get_mocked_incidence_rate_get_draws_common_data() -> pd.DataFrame:
 def get_mocked_incidence_rate_get_outputs_common_data() -> pd.DataFrame:
     """Common dataset for mocked get_outputs() incidence_rate data."""
 
-    age_groups = get_mocked_age_groups()
-    age_group_ids = list(age_groups)
+    age_bins = get_mocked_age_bins()
+    age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
     measure_ids = [5, 6]
 
@@ -193,7 +104,9 @@ def get_mocked_incidence_rate_get_outputs_common_data() -> pd.DataFrame:
     df["location_id"] = LOCATION
     df["year_id"] = YEAR
     df["metric_id"] = 3  # for rate
-    df["age_group_name"] = df["age_group_id"].map(age_groups)
+    df["age_group_name"] = df["age_group_id"].map(
+        dict(age_bins[["age_group_id", "age_group_name"]].values)
+    )
     df["expected"] = False
     df["location_name"] = "India"
     df["location_type"] = "admin0"
@@ -446,11 +359,12 @@ def check_data(data: pd.DataFrame, data_type: str) -> None:
     assert all(data.notna())
     assert all(data >= 0)
     # Check metadata index values (note that there may be other metadata returned)
+    age_bins = get_mocked_age_bins()
     expected_metadata = {
         "location": {"India"},
         "sex": {"Male", "Female"},
-        "age_start": set(MOCKED_AGE_GROUP_ENDPOINTS["age_start"]),
-        "age_end": set(MOCKED_AGE_GROUP_ENDPOINTS["age_end"]),
+        "age_start": set(age_bins["age_group_years_start"]),
+        "age_end": set(age_bins["age_group_years_end"]),
         "year_start": {2021},
         "year_end": {2022},
     }
@@ -466,9 +380,11 @@ def _mock_vivarium_gbd_access(
         "vivarium_inputs.utility_data.get_estimation_years",
         return_value=get_mocked_estimation_years(),
     )
+    age_groups = get_mocked_age_bins()
+    # NOTE: the list of age group IDs must be sorted by their corresponding ages
     mocker.patch(
         "vivarium_inputs.utility_data.get_age_group_ids",
-        return_value=list(get_mocked_age_groups()),
+        return_value=list(age_groups.sort_values("age_group_years_start")["age_group_id"]),
     )
     mocker.patch(
         "vivarium_inputs.utility_data.get_location_path_to_global",
@@ -476,7 +392,7 @@ def _mock_vivarium_gbd_access(
     )
     mocker.patch(
         "vivarium_inputs.utility_data.get_raw_age_bins",
-        return_value=get_mocked_age_bins(),
+        return_value=age_groups,
     )
     mocker.patch(
         "vivarium_inputs.utility_data.get_raw_location_ids",
