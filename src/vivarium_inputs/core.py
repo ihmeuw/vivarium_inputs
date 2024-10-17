@@ -36,7 +36,7 @@ def get_data(
     measure: str,
     location: str | int | list[str | int],
     years: int | str | list[int] | None,
-    data_type: utilities.DataType,
+    data_type: utilities.DataType | str | list[str],
 ) -> pd.DataFrame:
     """Pull raw GBD data for measure and entity.
 
@@ -56,7 +56,8 @@ def get_data(
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data.
     data_type
-        The DataType object for which to extract data.
+        The DataType object (or 'date_type' argument to instantiate a DataType object)
+        for which to extract data.
 
     Returns
     -------
@@ -106,6 +107,9 @@ def get_data(
         "demographic_dimensions": (get_demographic_dimensions, ("population",)),
     }
 
+    if not isinstance(data_type, utilities.DataType):
+        data_type = utilities.DataType(data_type, measure)
+
     if measure not in measure_handlers:
         raise InvalidQueryError(f"No functions available to pull data for measure {measure}.")
 
@@ -141,8 +145,8 @@ def get_incidence_rate(
     years: int | str | list[int] | None,
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
-    data = get_data(entity, "raw_incidence_rate", location_id, years, data_type)
-    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
+    data = get_data(entity, "raw_incidence_rate", location_id, years, data_type.type)
+    prevalence = get_data(entity, "prevalence", location_id, years, data_type.type)
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0)
@@ -235,23 +239,23 @@ def get_disability_weight(
                     "disability_weight",
                     location_id,
                     years,
-                    data_type,
+                    data_type.type,
                 )
                 data += prevalence * disability
-        cause_prevalence = get_data(entity, "prevalence", location_id, years, data_type)
+        cause_prevalence = get_data(entity, "prevalence", location_id, years, data_type.type)
         data = (data / cause_prevalence).fillna(0).reset_index()
     else:  # entity.kind == 'sequela'
         try:
             data = extract.extract_data(
                 entity, "disability_weight", location_id, years, data_type
             )
-            data = utilities.normalize(data, data_type.value_columns)
+            data = utilities.normalize(data, DRAW_COLUMNS)
 
             cause = [c for c in causes if c.sequelae and entity in c.sequelae][0]
             data = utilities.clear_disability_weight_outside_restrictions(
                 data, cause, 0.0, utility_data.get_age_group_ids()
             )
-            data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
+            data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
         except (IndexError, DataDoesNotExistError):
             logger.warning(
                 f"{entity.name.capitalize()} has no disability weight data. All values will be 0."
@@ -278,8 +282,8 @@ def get_remission_rate(
     data = utilities.filter_data_by_restrictions(
         data, entity, "yld", utility_data.get_age_group_ids()
     )
-    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
+    data = utilities.normalize(data, DRAW_COLUMNS, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     return data
 
 
@@ -295,7 +299,7 @@ def get_cause_specific_mortality_rate(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
 
-    deaths = get_data(entity, "deaths", location_id, years, data_type)
+    deaths = get_data(entity, "deaths", location_id, years, data_type.type)
     # population isn't by draws
     pop = get_data(
         Population(),
@@ -305,7 +309,7 @@ def get_cause_specific_mortality_rate(
         utilities.DataType(data_type=None, value_cols=["value"]),
     )
     data = deaths.join(pop, lsuffix="_deaths", rsuffix="_pop")
-    data[data_type.value_columns] = data[data_type.value_columns].divide(data.value, axis=0)
+    data[DRAW_COLUMNS] = data[DRAW_COLUMNS].divide(data.value, axis=0)
     return data.drop(["value"], axis="columns")
 
 
@@ -326,9 +330,9 @@ def get_excess_mortality_rate(
         "cause_specific_mortality_rate",
         location_id,
         years,
-        data_type,
+        data_type.type,
     )
-    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
+    prevalence = get_data(entity, "prevalence", location_id, years, data_type.type)
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data
@@ -350,8 +354,8 @@ def get_deaths(
     data = utilities.filter_data_by_restrictions(
         data, entity, "yll", utility_data.get_age_group_ids()
     )
-    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
+    data = utilities.normalize(data, DRAW_COLUMNS, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     return data
 
 
@@ -370,12 +374,10 @@ def get_exposure(
     data = extract.extract_data(entity, "exposure", location_id, years, data_type)
     data = data.drop("modelable_entity_id", "columns")
 
-    value_columns = data_type.value_columns
-
     if entity.name in EXTRA_RESIDUAL_CATEGORY:
         cat = EXTRA_RESIDUAL_CATEGORY[entity.name]
         data = data.drop(labels=data.query("parameter == @cat").index)
-        data[value_columns] = data[value_columns].clip(lower=MINIMUM_EXPOSURE_VALUE)
+        data[DRAW_COLUMNS] = data[DRAW_COLUMNS].clip(lower=MINIMUM_EXPOSURE_VALUE)
 
     if entity.kind in ["risk_factor", "alternative_risk_factor"]:
         data = utilities.filter_data_by_restrictions(
@@ -390,23 +392,23 @@ def get_exposure(
         #  FIXME: We fill 1 as exposure of tmrel category, which is not correct.
         data = pd.concat(
             [
-                utilities.normalize(exposed, value_columns, fill_value=0),
-                utilities.normalize(unexposed, value_columns, fill_value=1),
+                utilities.normalize(exposed, DRAW_COLUMNS, fill_value=0),
+                utilities.normalize(unexposed, DRAW_COLUMNS, fill_value=1),
             ],
             ignore_index=True,
         )
 
         # normalize so all categories sum to 1
-        cols = list(set(data.columns).difference(value_columns + ["parameter"]))
-        sums = data.groupby(cols)[value_columns].sum()
+        cols = list(set(data.columns).difference(DRAW_COLUMNS + ["parameter"]))
+        sums = data.groupby(cols)[DRAW_COLUMNS].sum()
         data = (
             data.groupby("parameter")
-            .apply(lambda df: df.set_index(cols).loc[:, value_columns].divide(sums))
+            .apply(lambda df: df.set_index(cols).loc[:, DRAW_COLUMNS].divide(sums))
             .reset_index()
         )
     else:
-        data = utilities.normalize(data, value_columns, fill_value=0)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + value_columns + ["parameter"])
+        data = utilities.normalize(data, DRAW_COLUMNS, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS + ["parameter"])
     return data
 
 
@@ -431,8 +433,8 @@ def get_exposure_standard_deviation(
     valid_age_groups = utilities.get_exposure_and_restriction_ages(exposure, entity)
     data = data[data.age_group_id.isin(valid_age_groups)]
 
-    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
+    data = utilities.normalize(data, DRAW_COLUMNS, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
     return data
 
 
@@ -508,22 +510,21 @@ def get_relative_risk(
     data.loc[morbidity & ~mortality, "affected_measure"] = "incidence_rate"
     data.loc[~morbidity & mortality, "affected_measure"] = "cause_specific_mortality_rate"
     data = _filter_relative_risk_to_cause_restrictions(data)
-    value_columns = data_type.value_columns
     data = data.filter(
         DEMOGRAPHIC_COLUMNS
         + ["affected_entity", "affected_measure", "parameter"]
-        + value_columns
+        + DRAW_COLUMNS
     )
     data = (
         data.groupby(["affected_entity", "parameter"])
-        .apply(utilities.normalize, cols_to_fill=value_columns, fill_value=1)
+        .apply(utilities.normalize, cols_to_fill=DRAW_COLUMNS, fill_value=1)
         .reset_index(drop=True)
     )
     if entity.distribution in ["dichotomous", "ordered_polytomous", "unordered_polytomous"]:
         tmrel_cat = utility_data.get_tmrel_category(entity)
         tmrel_mask = data.parameter == tmrel_cat
-        data.loc[tmrel_mask, value_columns] = data.loc[tmrel_mask, value_columns].mask(
-            np.isclose(data.loc[tmrel_mask, value_columns], 1.0), 1.0
+        data.loc[tmrel_mask, DRAW_COLUMNS] = data.loc[tmrel_mask, DRAW_COLUMNS].mask(
+            np.isclose(data.loc[tmrel_mask, DRAW_COLUMNS], 1.0), 1.0
         )
     # Coerce location_id from global to requested location - location_id is list of length 1
     data["location_id"] = location_id[0]
@@ -589,22 +590,22 @@ def get_population_attributable_fraction(
             logger.warning(
                 f"{entity.name.capitalize()} has negative values for paf. These will be replaced with 0."
             )
-            other_cols = [c for c in data.columns if c not in value_columns]
+            other_cols = [c for c in data.columns if c not in DRAW_COLUMNS]
             data.set_index(other_cols, inplace=True)
-            data = data.where(data[value_columns] > 0, 0).reset_index()
+            data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()
 
     data = utilities.convert_affected_entity(data, "cause_id")
-    data.loc[
-        data["measure_id"] == MEASURES["YLLs"], "affected_measure"
-    ] = "excess_mortality_rate"
+    data.loc[data["measure_id"] == MEASURES["YLLs"], "affected_measure"] = (
+        "excess_mortality_rate"
+    )
     data.loc[data["measure_id"] == MEASURES["YLDs"], "affected_measure"] = "incidence_rate"
     data = (
         data.groupby(["affected_entity", "affected_measure"])
-        .apply(utilities.normalize, cols_to_fill=value_columns, fill_value=0)
+        .apply(utilities.normalize, cols_to_fill=DRAW_COLUMNS, fill_value=0)
         .reset_index(drop=True)
     )
     data = data.filter(
-        DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure"] + value_columns
+        DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure"] + DRAW_COLUMNS
     )
     return data
 
@@ -630,7 +631,7 @@ def get_estimate(
         key_columns.append("sex_id")
 
     data = data.filter(key_columns + COVARIATE_VALUE_COLUMNS)
-    data = utilities.normalize(data, data_type.value_columns)
+    data = utilities.normalize(data, DRAW_COLUMNS)
     data = utilities.wide_to_long(data, COVARIATE_VALUE_COLUMNS, var_name="parameter")
     return data
 
@@ -661,7 +662,7 @@ def get_structure(
         )
     data = extract.extract_data(entity, "structure", location_id, years, data_type)
     data = data.drop("run_id", axis="columns").rename(columns={"population": "value"})
-    data = utilities.normalize(data, data_type.value_columns)
+    data = utilities.normalize(data, DRAW_COLUMNS)
     return data
 
 
@@ -714,9 +715,7 @@ def get_demographic_dimensions(
         )
 
     demographic_dimensions = utility_data.get_demographic_dimensions(location_id, years=years)
-    demographic_dimensions = utilities.normalize(
-        demographic_dimensions, data_type.value_columns
-    )
+    demographic_dimensions = utilities.normalize(demographic_dimensions, DRAW_COLUMNS)
     return demographic_dimensions
 
 
