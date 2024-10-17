@@ -1,5 +1,8 @@
 """
 Interface tests.
+
+NOTE: These tests are deprecated and will be removed and replaced with
+test_get_measure.py
 """
 
 from __future__ import annotations
