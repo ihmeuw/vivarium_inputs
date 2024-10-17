@@ -12,6 +12,8 @@ py:class RiskFactor
 py:class AlternativeRiskFactor
 py:class HealthcareEntity
 py:class Population
+py:class Etiology
+py:class Covariate
 
 # pandas
 py:class pd.Series
