@@ -1,27 +1,46 @@
+from functools import partial
+
+import pandas as pd
 import pytest
 from gbd_mapping import causes, covariates, risk_factors
+from layered_config_tree import LayeredConfigTree
+from pytest_mock import MockerFixture
 
 from tests.conftest import NO_GBD_ACCESS
 from vivarium_inputs import utility_data
-from vivarium_inputs.globals import DataAbnormalError
+from vivarium_inputs.globals import SUPPORTED_DATA_TYPES, DataAbnormalError
 from vivarium_inputs.interface import get_measure
+from vivarium_inputs.utilities import DataTypeNotImplementedError
 
 pytestmark = pytest.mark.skipif(
     NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
 )
 
 
-def success_expected(entity_name, measure_name, location):
-    df = get_measure(entity_name, measure_name, location)
-    return df
+@pytest.fixture(autouse=True)
+def no_cache(mocker: MockerFixture) -> None:
+    """Mock out the cache so that we always pull data."""
+
+    if not NO_GBD_ACCESS:
+        mocker.patch(
+            "vivarium_gbd_access.utilities.get_input_config",
+            return_value=LayeredConfigTree({"input_data": {"cache_data": False}}),
+        )
 
 
-def fail_expected(entity_name, measure_name, location):
-    with pytest.raises(Exception):
-        _df = get_measure(entity_name, measure_name, location)
+def success_expected(entity, measure, location, data_type):
+    df = get_measure(entity, measure, location, years=None, data_type=data_type)
+    check_data(df, data_type)
+
+
+def fail_expected(entity, measure, location, data_type, raise_type=Exception):
+    with pytest.raises(raise_type):
+        _df = get_measure(entity, measure, location, years=None, data_type=data_type)
 
 
 ENTITIES_C = [
+    # (entity, applicable_measures)
+    # NOTE: 'raw_incident_rate' and 'deaths' should not be called directly from `get_measure()`
     (
         causes.measles,
         [
@@ -66,13 +85,39 @@ MEASURES_C = [
 LOCATIONS_C = ["India"]
 
 
+# TODO: [mic-5407] - Add Sequela-like tests
+
+
+@pytest.mark.slow
 @pytest.mark.parametrize("entity_details", ENTITIES_C, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", MEASURES_C, ids=lambda x: x[0])
+@pytest.mark.parametrize("measure", MEASURES_C, ids=lambda x: x)
+@pytest.mark.parametrize(
+    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+)
 @pytest.mark.parametrize("location", LOCATIONS_C)
-def test_get_measure_causelike(entity_details, measure, location):
+def test_get_measure_causelike(entity_details, measure, data_type, location):
+
     entity, entity_expected_measures = entity_details
+    location_id = utility_data.get_location_id(location)
+
+    if NO_GBD_ACCESS:
+        pytest.skip("Need GBD access to run this test")
+    if measure == "birth_prevalence":
+        pytest.skip("FIXME: need to find causes with birth prevalence")
+
     tester = success_expected if measure in entity_expected_measures else fail_expected
-    _df = tester(entity, measure, utility_data.get_location_id(location))
+    # Handle not implemented
+    if isinstance(data_type, list):
+        tester = partial(fail_expected, raise_type=DataTypeNotImplementedError)
+    if data_type == "means" and measure in [
+        "disability_weight",
+        "remission_rate",
+        "cause_specific_mortality_rate",
+        "excess_mortality_rate",
+    ]:
+        tester = partial(fail_expected, raise_type=DataTypeNotImplementedError)
+
+    tester(entity, measure, location_id, data_type)
 
 
 ENTITIES_R = [
@@ -105,6 +150,7 @@ MEASURES_R = [
 LOCATIONS_R = ["India"]
 
 
+@pytest.mark.skip("TODO: [mic-5407]")
 @pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", LOCATIONS_R)
@@ -121,6 +167,7 @@ MEASURES_COV = ["estimate"]
 LOCATIONS_COV = ["India"]
 
 
+@pytest.mark.skip("TODO: [mic-5407]")
 @pytest.mark.parametrize("entity", ENTITIES_COV, ids=lambda x: x.name)
 @pytest.mark.parametrize("measure", MEASURES_COV, ids=lambda x: x)
 @pytest.mark.parametrize("location", LOCATIONS_COV)
@@ -136,6 +183,7 @@ MEASURES_R = ["relative_risk"]
 LOCATIONS_R = ["India"]
 
 
+@pytest.mark.skip("TODO: [mic-5407]")
 @pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", LOCATIONS_R)
@@ -152,9 +200,44 @@ MEASURES_R = ["relative_risk"]
 LOCATIONS_R = ["India"]
 
 
+@pytest.mark.skip("TODO: [mic-5407]")
 @pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
 @pytest.mark.parametrize("location", LOCATIONS_R)
 def test_get_working_relative_risk(entity_details, measure, location):
     entity, _entity_expected_measures = entity_details
     _df = success_expected(entity, measure, utility_data.get_location_id(location))
+
+
+####################
+# HELPER FUNCTIONS #
+####################
+
+
+def check_data(data: pd.DataFrame, data_type: str) -> None:
+    """Check the data returned."""
+    assert all(col in data.columns for col in SUPPORTED_DATA_TYPES[data_type])
+    assert all(data.notna())
+    assert all(data >= 0)
+    # Check metadata index values (note that there may be other metadata returned)
+    age_bins = get_mocked_age_bins()
+    expected_metadata = {
+        "location": {"India"},
+        "sex": {"Male", "Female"},
+        "age_start": set(age_bins["age_group_years_start"]),
+        "age_end": set(age_bins["age_group_years_end"]),
+        "year_start": {2021},
+        "year_end": {2022},
+    }
+    for idx, expected in expected_metadata.items():
+        assert set(data.index.get_level_values(idx)) == expected
+
+
+###############
+# MOCKED DATA #
+###############
+
+
+def get_mocked_age_bins() -> pd.DataFrame:
+    """Mocked age bins for testing."""
+    return pd.read_csv("tests/fixture_data/age_bins.csv")
