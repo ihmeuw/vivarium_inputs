@@ -96,7 +96,7 @@ def get_data(
             get_population_attributable_fraction,
             ("risk_factor", "etiology"),
         ),
-        # # Covariate measures
+        # Covariate measures
         "estimate": (get_estimate, ("covariate",)),
         # Population measures
         "structure": (get_structure, ("population",)),
