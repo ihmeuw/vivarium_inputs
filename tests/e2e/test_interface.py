@@ -35,6 +35,88 @@ LOCATION = 163  # India
 YEAR = 2021
 
 
+#########
+# TESTS #
+#########
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "entity", [HIV_AIDS, HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA], ids=("cause", "sequela")
+)
+@pytest.mark.parametrize(
+    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+)
+def test_get_incidence_rate(
+    entity: Cause | Sequela,
+    data_type: str | list[str],
+) -> None:
+    """Test get_measure function.
+
+    Run a full end-to-end test marked as slow (i.e. requires the '--runslow' option
+    to run) which will be skipped if there is no access to vivarium_gbd_access
+    (i.e. it can run in a Jenkins job).
+    """
+
+    kwargs = {
+        "entity": entity,
+        "measure": "incidence_rate",
+        "location": LOCATION,
+        "years": YEAR,
+        "data_type": data_type,
+    }
+
+    if isinstance(data_type, list):
+        with pytest.raises(DataTypeNotImplementedError):
+            data = get_measure(**kwargs)
+    else:
+        if NO_GBD_ACCESS:
+            pytest.skip("Need GBD access to run this test")
+        data = get_measure(**kwargs)
+
+        check_data(data, data_type)
+
+
+@pytest.mark.parametrize(
+    "entity", [HIV_AIDS, HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA], ids=("cause", "sequela")
+)
+@pytest.mark.parametrize(
+    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+)
+def test_get_incidence_rate_mocked(
+    entity: Cause | Sequela,
+    data_type: str | list[str],
+    mocker: MockerFixture,
+    request: pytest.FixtureRequest,
+) -> None:
+    """Test the mocked get_measure function.
+
+    This mocks the vivarium_gbd_access calls with dummy data. This allows for
+    pseudo-testing on github actions which does not have access to vivarium_gbd_access.
+    """
+
+    kwargs = {
+        "entity": entity,
+        "measure": "incidence_rate",
+        "location": LOCATION,
+        "years": YEAR,
+        "data_type": data_type,
+    }
+
+    if isinstance(data_type, list):
+        with pytest.raises(DataTypeNotImplementedError):
+            data = get_measure(**kwargs)
+    else:
+        mock_extract_incidence_rate, mock_extract_prevalence = _mock_vivarium_gbd_access(
+            request, mocker
+        )
+        data = get_measure(**kwargs)
+        mock_extract_incidence_rate.assert_called_once()
+        mock_extract_prevalence.assert_called_once()
+
+        check_data(data, data_type)
+
+
 ###############
 # MOCKED DATA #
 ###############
@@ -261,88 +343,6 @@ def no_cache(mocker: MockerFixture) -> None:
             "vivarium_gbd_access.utilities.get_input_config",
             return_value=LayeredConfigTree({"input_data": {"cache_data": False}}),
         )
-
-
-#########
-# TESTS #
-#########
-
-
-@pytest.mark.slow
-@pytest.mark.parametrize(
-    "entity", [HIV_AIDS, HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA], ids=("cause", "sequela")
-)
-@pytest.mark.parametrize(
-    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
-)
-def test_get_incidence_rate(
-    entity: Cause | Sequela,
-    data_type: str | list[str],
-) -> None:
-    """Test get_measure function.
-
-    Run a full end-to-end test marked as slow (i.e. requires the '--runslow' option
-    to run) which will be skipped if there is no access to vivarium_gbd_access
-    (i.e. it can run in a Jenkins job).
-    """
-
-    kwargs = {
-        "entity": entity,
-        "measure": "incidence_rate",
-        "location": LOCATION,
-        "years": YEAR,
-        "data_type": data_type,
-    }
-
-    if isinstance(data_type, list):
-        with pytest.raises(DataTypeNotImplementedError):
-            data = get_measure(**kwargs)
-    else:
-        if NO_GBD_ACCESS:
-            pytest.skip("Need GBD access to run this test")
-        data = get_measure(**kwargs)
-
-        check_data(data, data_type)
-
-
-@pytest.mark.parametrize(
-    "entity", [HIV_AIDS, HIV_AIDS_DRUG_SUSCEPTIBLE_TB_WO_ANEMIA], ids=("cause", "sequela")
-)
-@pytest.mark.parametrize(
-    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
-)
-def test_get_incidence_rate_mocked(
-    entity: Cause | Sequela,
-    data_type: str | list[str],
-    mocker: MockerFixture,
-    request: pytest.FixtureRequest,
-) -> None:
-    """Test the mocked get_measure function.
-
-    This mocks the vivarium_gbd_access calls with dummy data. This allows for
-    pseudo-testing on github actions which does not have access to vivarium_gbd_access.
-    """
-
-    kwargs = {
-        "entity": entity,
-        "measure": "incidence_rate",
-        "location": LOCATION,
-        "years": YEAR,
-        "data_type": data_type,
-    }
-
-    if isinstance(data_type, list):
-        with pytest.raises(DataTypeNotImplementedError):
-            data = get_measure(**kwargs)
-    else:
-        mock_extract_incidence_rate, mock_extract_prevalence = _mock_vivarium_gbd_access(
-            request, mocker
-        )
-        data = get_measure(**kwargs)
-        mock_extract_incidence_rate.assert_called_once()
-        mock_extract_prevalence.assert_called_once()
-
-        check_data(data, data_type)
 
 
 ####################
