@@ -42,7 +42,7 @@ def fail_expected(entity, measure, location, data_type, raise_type=Exception):
 
 ENTITIES_C = [
     # (entity, applicable_measures)
-    # NOTE: 'raw_incident_rate' and 'deaths' should not be called directly from `get_measure()`
+    # NOTE: 'raw_incidence_rate' and 'deaths' should not be called directly from `get_measure()`
     (
         causes.measles,
         [

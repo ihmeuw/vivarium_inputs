@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from itertools import product
-from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -38,7 +37,7 @@ def get_data(
     measure: str,
     location: str | int | list[str | int],
     years: int | str | list[int] | None,
-    data_type: utilities.DataType | str | list[str],
+    data_type: utilities.DataType,
 ) -> pd.DataFrame:
     """Pull raw GBD data for measure and entity.
 
@@ -58,8 +57,7 @@ def get_data(
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data.
     data_type
-        The DataType object (or 'date_type' argument to instantiate a DataType object)
-        for which to extract data.
+        The DataType object for which to extract data.
 
     Returns
     -------
@@ -109,9 +107,6 @@ def get_data(
         "demographic_dimensions": (get_demographic_dimensions, ("population",)),
     }
 
-    if not isinstance(data_type, utilities.DataType):
-        data_type = utilities.DataType(data_type, measure)
-
     if measure not in measure_handlers:
         raise InvalidQueryError(f"No functions available to pull data for measure {measure}.")
 
@@ -147,8 +142,8 @@ def get_incidence_rate(
     years: int | str | list[int] | None,
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
-    data = get_data(entity, "raw_incidence_rate", location_id, years, data_type.type)
-    prevalence = get_data(entity, "prevalence", location_id, years, data_type.type)
+    data = get_data(entity, "raw_incidence_rate", location_id, years, data_type)
+    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0)
@@ -231,11 +226,7 @@ def get_disability_weight(
             for sequela in entity.sequelae:
                 try:
                     prevalence = get_data(
-                        sequela,
-                        "prevalence",
-                        location_id,
-                        years,
-                        data_type.type,
+                        sequela, "prevalence", location_id, years, data_type
                     )
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
@@ -245,10 +236,10 @@ def get_disability_weight(
                     "disability_weight",
                     location_id,
                     years,
-                    data_type.type,
+                    data_type,
                 )
                 data += prevalence * disability
-        cause_prevalence = get_data(entity, "prevalence", location_id, years, data_type.type)
+        cause_prevalence = get_data(entity, "prevalence", location_id, years, data_type)
         data = (data / cause_prevalence).fillna(0).reset_index()
     else:  # entity.kind == 'sequela'
         try:
@@ -305,9 +296,15 @@ def get_cause_specific_mortality_rate(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
 
-    deaths = get_data(entity, "deaths", location_id, years, data_type.type)
+    deaths = get_data(entity, "deaths", location_id, years, data_type)
     # population isn't by draws
-    pop = get_data(Population(), "structure", location_id, years, data_type.type)
+    pop = get_data(
+        Population(),
+        "structure",
+        location_id,
+        years,
+        utilities.DataType(data_type=None, value_cols=["value"]),
+    )
     data = deaths.join(pop, lsuffix="_deaths", rsuffix="_pop")
     data[DRAW_COLUMNS] = data[DRAW_COLUMNS].divide(data.value, axis=0)
     return data.drop(["value"], axis="columns")
@@ -330,9 +327,9 @@ def get_excess_mortality_rate(
         "cause_specific_mortality_rate",
         location_id,
         years,
-        data_type.type,
+        data_type,
     )
-    prevalence = get_data(entity, "prevalence", location_id, years, data_type.type)
+    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data
@@ -445,7 +442,7 @@ def get_exposure_distribution_weights(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type != "draws":
+    if data_type.type is not None and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
@@ -616,7 +613,7 @@ def get_estimate(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type != "draws":
+    if data_type is not None and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
@@ -638,7 +635,7 @@ def get_estimate(
 # FIXME: can this be deleted? It's not in the get_data() mapping.
 def get_utilization_rate(
     entity: HealthcareEntity,
-    location_id: List[int],
+    location_id: list[int],
     years: int | str | list[int] | None,
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
@@ -655,7 +652,7 @@ def get_structure(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type != "draws":
+    if data_type.type is not None and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
@@ -672,7 +669,7 @@ def get_theoretical_minimum_risk_life_expectancy(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type != "draws":
+    if data_type.type is not None and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
