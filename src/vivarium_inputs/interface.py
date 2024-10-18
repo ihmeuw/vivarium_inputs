@@ -11,12 +11,13 @@ from vivarium_inputs.globals import Population
 from vivarium_inputs.utilities import DataType
 
 
+# TODO: change default data_type to "means" once they are all implemented
 def get_measure(
     entity: ModelableEntity,
     measure: str,
     location: int | str | list[int | str],
     years: int | str | list[int] | None = None,
-    data_type: str | list[str] = "means",
+    data_type: str | list[str] = "draws",
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input.
 
