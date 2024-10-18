@@ -36,7 +36,7 @@ def get_data(
     measure: str,
     location: str | int | list[str | int],
     years: int | str | list[int] | None,
-    data_type: utilities.DataType | str | list[str],
+    data_type: utilities.DataType,
 ) -> pd.DataFrame:
     """Pull raw GBD data for measure and entity.
 
@@ -56,8 +56,7 @@ def get_data(
         Years for which to extract data. If None, get most recent year. If 'all',
         get all available data.
     data_type
-        The DataType object (or 'date_type' argument to instantiate a DataType object)
-        for which to extract data.
+        The DataType object for which to extract data.
 
     Returns
     -------
@@ -107,9 +106,6 @@ def get_data(
         "demographic_dimensions": (get_demographic_dimensions, ("population",)),
     }
 
-    if not isinstance(data_type, utilities.DataType):
-        data_type = utilities.DataType(data_type, measure)
-
     if measure not in measure_handlers:
         raise InvalidQueryError(f"No functions available to pull data for measure {measure}.")
 
@@ -145,8 +141,8 @@ def get_incidence_rate(
     years: int | str | list[int] | None,
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
-    data = get_data(entity, "raw_incidence_rate", location_id, years, data_type.type)
-    prevalence = get_data(entity, "prevalence", location_id, years, data_type.type)
+    data = get_data(entity, "raw_incidence_rate", location_id, years, data_type)
+    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0)
@@ -239,10 +235,10 @@ def get_disability_weight(
                     "disability_weight",
                     location_id,
                     years,
-                    data_type.type,
+                    data_type,
                 )
                 data += prevalence * disability
-        cause_prevalence = get_data(entity, "prevalence", location_id, years, data_type.type)
+        cause_prevalence = get_data(entity, "prevalence", location_id, years, data_type)
         data = (data / cause_prevalence).fillna(0).reset_index()
     else:  # entity.kind == 'sequela'
         try:
@@ -299,7 +295,7 @@ def get_cause_specific_mortality_rate(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
 
-    deaths = get_data(entity, "deaths", location_id, years, data_type.type)
+    deaths = get_data(entity, "deaths", location_id, years, data_type)
     # population isn't by draws
     pop = get_data(
         Population(),
@@ -330,9 +326,9 @@ def get_excess_mortality_rate(
         "cause_specific_mortality_rate",
         location_id,
         years,
-        data_type.type,
+        data_type,
     )
-    prevalence = get_data(entity, "prevalence", location_id, years, data_type.type)
+    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data
