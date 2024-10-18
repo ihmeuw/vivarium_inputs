@@ -370,12 +370,12 @@ def get_exposure(
     data = extract.extract_data(entity, "exposure", location_id, years, data_type)
     data = data.drop("modelable_entity_id", "columns")
 
+    value_columns = data_type.value_columns
+
     if entity.name in EXTRA_RESIDUAL_CATEGORY:
         cat = EXTRA_RESIDUAL_CATEGORY[entity.name]
         data = data.drop(labels=data.query("parameter == @cat").index)
-        data[data_type.value_columns] = data[data_type.value_columns].clip(
-            lower=MINIMUM_EXPOSURE_VALUE
-        )
+        data[value_columns] = data[value_columns].clip(lower=MINIMUM_EXPOSURE_VALUE)
 
     if entity.kind in ["risk_factor", "alternative_risk_factor"]:
         data = utilities.filter_data_by_restrictions(
@@ -390,23 +390,23 @@ def get_exposure(
         #  FIXME: We fill 1 as exposure of tmrel category, which is not correct.
         data = pd.concat(
             [
-                utilities.normalize(exposed, data_type.value_columns, fill_value=0),
-                utilities.normalize(unexposed, data_type.value_columns, fill_value=1),
+                utilities.normalize(exposed, value_columns, fill_value=0),
+                utilities.normalize(unexposed, value_columns, fill_value=1),
             ],
             ignore_index=True,
         )
 
         # normalize so all categories sum to 1
-        cols = list(set(data.columns).difference(data_type.value_columns + ["parameter"]))
-        sums = data.groupby(cols)[data_type.value_columns].sum()
+        cols = list(set(data.columns).difference(value_columns + ["parameter"]))
+        sums = data.groupby(cols)[value_columns].sum()
         data = (
             data.groupby("parameter")
-            .apply(lambda df: df.set_index(cols).loc[:, data_type.value_columns].divide(sums))
+            .apply(lambda df: df.set_index(cols).loc[:, value_columns].divide(sums))
             .reset_index()
         )
     else:
-        data = utilities.normalize(data, data_type.value_columns, fill_value=0)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns + ["parameter"])
+        data = utilities.normalize(data, value_columns, fill_value=0)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + value_columns + ["parameter"])
     return data
 
 
@@ -508,22 +508,23 @@ def get_relative_risk(
     data.loc[morbidity & ~mortality, "affected_measure"] = "incidence_rate"
     data.loc[~morbidity & mortality, "affected_measure"] = "cause_specific_mortality_rate"
     data = _filter_relative_risk_to_cause_restrictions(data)
+    value_columns = data_type.value_columns
     data = data.filter(
         DEMOGRAPHIC_COLUMNS
         + ["affected_entity", "affected_measure", "parameter"]
-        + data_type.value_columns
+        + value_columns
     )
     data = (
         data.groupby(["affected_entity", "parameter"])
-        .apply(utilities.normalize, cols_to_fill=data_type.value_columns, fill_value=1)
+        .apply(utilities.normalize, cols_to_fill=value_columns, fill_value=1)
         .reset_index(drop=True)
     )
     if entity.distribution in ["dichotomous", "ordered_polytomous", "unordered_polytomous"]:
         tmrel_cat = utility_data.get_tmrel_category(entity)
         tmrel_mask = data.parameter == tmrel_cat
-        data.loc[tmrel_mask, data_type.value_columns] = data.loc[
-            tmrel_mask, data_type.value_columns
-        ].mask(np.isclose(data.loc[tmrel_mask, data_type.value_columns], 1.0), 1.0)
+        data.loc[tmrel_mask, value_columns] = data.loc[tmrel_mask, value_columns].mask(
+            np.isclose(data.loc[tmrel_mask, value_columns], 1.0), 1.0
+        )
     # Coerce location_id from global to requested location - location_id is list of length 1
     data["location_id"] = location_id[0]
 
@@ -542,6 +543,7 @@ def get_population_attributable_fraction(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
 
+    value_columns = data_type.value_columns
     causes_map = {c.gbd_id: c for c in causes}
     if entity.kind == "risk_factor":
         data = extract.extract_data(
@@ -583,13 +585,13 @@ def get_population_attributable_fraction(
         data = utilities.filter_data_by_restrictions(
             data, cause, "inner", utility_data.get_age_group_ids()
         )
-        if np.any(data[data_type.value_columns] < 0):
+        if np.any(data[value_columns] < 0):
             logger.warning(
                 f"{entity.name.capitalize()} has negative values for paf. These will be replaced with 0."
             )
-            other_cols = [c for c in data.columns if c not in data_type.value_columns]
+            other_cols = [c for c in data.columns if c not in value_columns]
             data.set_index(other_cols, inplace=True)
-            data = data.where(data[data_type.value_columns] > 0, 0).reset_index()
+            data = data.where(data[value_columns] > 0, 0).reset_index()
 
     data = utilities.convert_affected_entity(data, "cause_id")
     data.loc[
@@ -598,13 +600,11 @@ def get_population_attributable_fraction(
     data.loc[data["measure_id"] == MEASURES["YLDs"], "affected_measure"] = "incidence_rate"
     data = (
         data.groupby(["affected_entity", "affected_measure"])
-        .apply(utilities.normalize, cols_to_fill=data_type.value_columns, fill_value=0)
+        .apply(utilities.normalize, cols_to_fill=value_columns, fill_value=0)
         .reset_index(drop=True)
     )
     data = data.filter(
-        DEMOGRAPHIC_COLUMNS
-        + ["affected_entity", "affected_measure"]
-        + data_type.value_columns
+        DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure"] + value_columns
     )
     return data
 
