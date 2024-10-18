@@ -45,6 +45,22 @@ def test_normalize_sex_no_sex_id():
     pd.testing.assert_frame_equal(df, normalized)
 
 
+@pytest.mark.parametrize("data_type", ["means", "draws", None])
+@pytest.mark.parametrize("value_cols", [None, ["value"]])
+def test_data_type_args(data_type, value_cols):
+    """Test the mutual exclusivity of data_type and value_cols"""
+    if data_type is None and value_cols is None:
+        with pytest.raises(ValueError, match="Must pass either 'data_type' or 'value_cols'."):
+            utilities.DataType(data_type, value_cols)
+    elif data_type is not None and value_cols is not None:
+        with pytest.raises(
+            ValueError, match="Cannot pass both 'data_type' and 'value_cols'."
+        ):
+            utilities.DataType(data_type, value_cols)
+    else:
+        _data_type = utilities.DataType(data_type, value_cols)
+
+
 @pytest.mark.parametrize(
     "data_type, should_raise",
     [
@@ -69,29 +85,28 @@ def test_validate_data_type(data_type, should_raise):
                 f"Data type(s) {set(['foo'])} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
             )
         with pytest.raises(utilities.DataTypeNotImplementedError, match=match):
-            _data_type = utilities.DataType(data_type, "some-measure")
+            _data_type = utilities.DataType(data_type)
     else:
-        _data_type = utilities.DataType(data_type, "some-measure")
+        _data_type = utilities.DataType(data_type)
 
 
 @pytest.mark.parametrize(
-    "data_type, measure, returned_cols",
+    "data_type, value_cols, expected_returned_cols",
     [
-        ("means", "structure", ["value"]),
-        ("means", "theoretical_minimum_risk_life_expectancy", ["value"]),
-        ("means", "estimate", ["value"]),
-        ("means", "exposure_distribution_weights", ["value"]),
         ("means", None, MEAN_COLUMNS),
         ("draws", None, DRAW_COLUMNS),
         (["means", "draws"], None, MEAN_COLUMNS + DRAW_COLUMNS),
+        (None, ["value"], ["value"]),
     ],
 )
-def test_get_value_columns(data_type, measure, returned_cols):
+def test_get_value_columns(data_type, value_cols, expected_returned_cols):
     if isinstance(data_type, list):
         with pytest.raises(
             utilities.DataTypeNotImplementedError,
             match="Lists of data types are not yet supported.",
         ):
-            utilities.DataType(data_type, measure).value_columns
+            utilities.DataType(data_type).value_columns
     else:
-        assert utilities.DataType(data_type, measure).value_columns == returned_cols
+        assert (
+            utilities.DataType(data_type, value_cols).value_columns == expected_returned_cols
+        )
