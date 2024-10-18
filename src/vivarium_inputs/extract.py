@@ -200,24 +200,6 @@ def _get_most_recent_year() -> int:
 #######################
 
 
-def extract_prevalence(
-    entity: Cause | Sequela,
-    location_id: list[int],
-    year_id: int | str | list[int] | None,
-    data_type: DataType,
-) -> pd.DataFrame:
-
-    data = gbd.get_incidence_prevalence(
-        entity_id=entity.gbd_id,
-        location_id=location_id,
-        entity_type=entity.kind,
-        year_id=year_id,
-        data_type=data_type.type,
-    )
-    data = data[data["measure_id"] == MEASURES["Prevalence"]]
-    return data
-
-
 def extract_incidence_rate(
     entity: Cause | Sequela,
     location_id: list[int],
@@ -236,35 +218,46 @@ def extract_incidence_rate(
     return data
 
 
+def extract_prevalence(
+    entity: Cause | Sequela,
+    location_id: list[int],
+    year_id: int | str | list[int] | None,
+    data_type: DataType,
+) -> pd.DataFrame:
+
+    data = gbd.get_incidence_prevalence(
+        entity_id=entity.gbd_id,
+        location_id=location_id,
+        entity_type=entity.kind,
+        year_id=year_id,
+        data_type=data_type.type,
+    )
+    data = data[data["measure_id"] == MEASURES["Prevalence"]]
+    return data
+
+
 def extract_birth_prevalence(
     entity: Union[Cause, Sequela],
     location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_birth_prevalence(
         entity_id=entity.gbd_id,
         location_id=location_id,
         entity_type=entity.kind,
         year_id=year_id,
+        data_type=data_type.type,
     )
     data = data[data["measure_id"] == MEASURES["Incidence rate"]]
-    return data
-
-
-def extract_remission_rate(
-    entity: Cause,
-    location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]] = None,
-) -> pd.DataFrame:
-    data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id=year_id)
-    data = data[data["measure_id"] == MEASURES["Remission rate"]]
     return data
 
 
 def extract_disability_weight(
     entity: Sequela,
     location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     disability_weights = gbd.get_auxiliary_data(
         "disability_weight",
@@ -290,10 +283,22 @@ def extract_disability_weight(
     return data
 
 
+def extract_remission_rate(
+    entity: Cause,
+    location_id: List[int],
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
+) -> pd.DataFrame:
+    data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id=year_id)
+    data = data[data["measure_id"] == MEASURES["Remission rate"]]
+    return data
+
+
 def extract_deaths(
     entity: Cause,
     location_id: List[int],
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, year_id=year_id)
     data = data[data["measure_id"] == MEASURES["Deaths"]]
@@ -303,7 +308,8 @@ def extract_deaths(
 def extract_exposure(
     entity: Union[RiskFactor, AlternativeRiskFactor],
     location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
         data = gbd.get_exposure(entity.gbd_id, location_id, year_id=year_id)
@@ -332,7 +338,8 @@ def extract_exposure(
 def extract_exposure_standard_deviation(
     entity: Union[RiskFactor, AlternativeRiskFactor],
     location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor" and entity.name in OTHER_MEID:
         data = gbd.get_modelable_entity_draws(
@@ -352,7 +359,8 @@ def extract_exposure_standard_deviation(
 def extract_exposure_distribution_weights(
     entity: Union[RiskFactor, AlternativeRiskFactor],
     location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_auxiliary_data(
         "exposure_distribution_weights", entity.kind, entity.name, location_id
@@ -363,7 +371,8 @@ def extract_exposure_distribution_weights(
 def extract_relative_risk(
     entity: RiskFactor,
     location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id=year_id)
     if not data["exposure"].isna().any() and data["parameter"].isna().all():
@@ -380,7 +389,8 @@ def extract_relative_risk(
 def extract_population_attributable_fraction(
     entity: Union[RiskFactor, Etiology],
     location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_paf(entity.gbd_id, location_id, year_id=year_id)
     data = data[data["metric_id"] == METRICS["Percent"]]
@@ -396,7 +406,8 @@ def extract_population_attributable_fraction(
 def extract_mediation_factors(
     entity: RiskFactor,
     location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_auxiliary_data("mediation_factor", entity.kind, entity.name, location_id)
     return data
@@ -405,13 +416,20 @@ def extract_mediation_factors(
 def extract_estimate(
     entity: Covariate,
     location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id, year_id=year_id)
     return data
 
 
-def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.DataFrame:
+# FIXME: can this be deleted? 'utilization_rate' is not in the get_data() mapping.
+def extract_utilization_rate(
+    entity: HealthcareEntity,
+    location_id: int,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
+) -> pd.DataFrame:
     data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
     return data
 
@@ -419,7 +437,8 @@ def extract_utilization_rate(entity: HealthcareEntity, location_id: int) -> pd.D
 def extract_structure(
     entity: Population,
     location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_population(location_id, year_id=year_id)
     return data
@@ -428,7 +447,8 @@ def extract_structure(
 def extract_theoretical_minimum_risk_life_expectancy(
     entity: Population,
     location_id: int,
-    year_id: Optional[Union[int, str, List[int]]] = None,
+    year_id: Optional[Union[int, str, List[int]]],
+    data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
     return data
