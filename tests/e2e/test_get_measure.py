@@ -13,6 +13,8 @@ precautions and guards have been taken:
 - Particularly slow tests are datetime-checked to only weekly.
 """
 
+from __future__ import annotations
+
 from functools import partial
 
 import pandas as pd
