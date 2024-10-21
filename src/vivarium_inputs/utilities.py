@@ -396,9 +396,9 @@ def clear_disability_weight_outside_restrictions(
     start, end = get_age_group_ids_by_restriction(cause, "yld")
     ages = get_restriction_age_ids(start, end, age_group_ids)
 
-    data.loc[
-        (~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS
-    ] = fill_value
+    data.loc[(~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS] = (
+        fill_value
+    )
     return data
 
 
@@ -600,7 +600,7 @@ class DataType:
         - 'means' for getting mean data
         - 'draws' for getting draw-level data
         - None if the requested data is niche. In this case, the value columns
-            must be passed in directly via the `value_cols` argument.
+        must be passed in directly via the `value_cols` argument.
         """
 
         self.value_columns = (
@@ -613,7 +613,7 @@ class DataType:
         -----
         This is mutually exclusive with `data_type`, i.e. one of the two is
         required but not both.
-        
+
         Measures that require `value_cols` of ["value"] to be passed in:
         - structure
         - theoretical_minimum_risk_life_expectancy
