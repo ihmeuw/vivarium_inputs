@@ -2,6 +2,8 @@
 Various mocked GBD objects for testing purposes.
 """
 
+from __future__ import annotations
+
 import itertools
 
 import numpy as np
