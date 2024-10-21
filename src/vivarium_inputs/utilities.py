@@ -617,7 +617,7 @@ class DataType:
         -----
         This is mutually exclusive with `data_type`, i.e. one of the two is
         required but not both.
-        
+
         Measures that require `value_cols` of ["value"] to be passed in:
         - structure
         - theoretical_minimum_risk_life_expectancy
