@@ -329,7 +329,6 @@ def get_excess_mortality_rate(
         data_type,
     )
     prevalence = get_data(entity, "prevalence", location_id, years, data_type)
-    breakpoint()
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data

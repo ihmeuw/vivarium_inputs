@@ -9,7 +9,7 @@ import pandas as pd
 from pytest_mock import MockerFixture
 
 from vivarium_inputs import utility_data
-from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS
+from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS, MEASURES
 
 LOCATION = "India"
 YEAR = 2021  # most recent year (used when default None is provided to get_measure())
@@ -179,7 +179,7 @@ def get_mocked_location_ids() -> pd.DataFrame:
 #########################
 
 
-def mocked_get_draws(measure: str, **kwargs) -> pd.DataFrame:
+def mocked_get_draws(measure: str, **entity_specific_metadata) -> pd.DataFrame:
     """Mocked vivarium_gbd_access get_draws() data for testing."""
 
     # Get the common data for the specific measure (regardless of entity type)
@@ -192,8 +192,13 @@ def mocked_get_draws(measure: str, **kwargs) -> pd.DataFrame:
         "structure": get_mocked_data_structure_get_draws,
     }[measure]()
 
+    # Add on common metadata (note that this may overwrite existing columns, e.g.
+    # from loading a population static file)
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
+
     # Add on other entity-specific metadata columns
-    for key, value in kwargs.items():
+    for key, value in entity_specific_metadata.items():
         df[key] = value
 
     return df
@@ -210,9 +215,7 @@ def get_mocked_data_incidence_rate_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
     df["measure_id"] = 6
-    df["year_id"] = YEAR
     df["metric_id"] = 3  # for rate
     df["version_id"] = DUMMY_INT
 
@@ -232,9 +235,7 @@ def get_mocked_data_prevalence_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
     df["measure_id"] = 5
-    df["year_id"] = YEAR
     df["metric_id"] = 3  # for rate
     df["version_id"] = DUMMY_INT
 
@@ -246,13 +247,11 @@ def get_mocked_data_prevalence_get_draws() -> pd.DataFrame:
 def get_mocked_data_dw_get_draws() -> pd.DataFrame:
     df = pd.DataFrame(
         {
-            "location_id": utility_data.get_location_id(LOCATION),
             "age_group_id": 22,
             "sex_id": 3,
             "measure": "disability_weight",
             "healthstate_id": DUMMY_FLOAT,
             "healthstate": DUMMY_STR,
-            "year_id": YEAR,
         },
         index=[0],
     )
@@ -274,9 +273,7 @@ def get_mocked_data_remission_rate_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
     df["measure_id"] = 7
-    df["year_id"] = YEAR
     df["metric_id"] = 3
     df["model_version_id"] = DUMMY_INT
     df["modelable_entity_id"] = DUMMY_INT
@@ -298,9 +295,7 @@ def get_mocked_data_deaths_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
     df["measure_id"] = 1
-    df["year_id"] = YEAR
     df["metric_id"] = 1
     df["version_id"] = DUMMY_INT
 
@@ -312,6 +307,7 @@ def get_mocked_data_deaths_get_draws() -> pd.DataFrame:
 
 
 def get_mocked_data_structure_get_draws() -> pd.DataFrame:
+    # Populations is difficult to mock at the age-group level so just load it
     return pd.read_csv(f"tests/fixture_data/population_{LOCATION.lower()}_{YEAR}.csv")
 
 
@@ -320,17 +316,35 @@ def get_mocked_data_structure_get_draws() -> pd.DataFrame:
 ###########################
 
 
-def mocked_get_outputs(measure: str, **kwargs) -> pd.DataFrame:
+def mocked_get_outputs(measure: str, **entity_specific_metadata) -> pd.DataFrame:
     """Mocked vivarium_gbd_access get_outputs() data for testing."""
 
+    # Get the common data for the specific measure (regardless of entity type)
     df = {
         "incidence_rate": get_mocked_data_incidence_rate_get_outputs,
         "prevalence": get_mocked_data_prevalence_get_outputs,
     }[measure]()
 
+    # Add on common metadata (note that this may overwrite existing columns, e.g.
+    # from loading a population static file)
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
+    df["expected"] = False
+    df["location_name"] = "India"
+    df["location_type"] = "admin0"
+    age_bins = get_mocked_age_bins()
+    df["age_group_name"] = df["age_group_id"].map(
+        dict(age_bins[["age_group_id", "age_group_name"]].values)
+    )
+    df["sex"] = df["sex_id"].map({1: "Male", 2: "Female"})
+
     # Add on other metadata columns
-    for key, value in kwargs.items():
+    for key, value in entity_specific_metadata.items():
         df[key] = value
+
+    # get_outputs() also returns 'upper' and 'lower' columns
+    df["upper"] = df["val"] * 1.1
+    df["lower"] = df["val"] * 0.9
 
     return df
 
@@ -347,25 +361,13 @@ def get_mocked_data_incidence_rate_get_outputs() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
     df["measure_id"] = 6
-    df["year_id"] = YEAR
     df["metric_id"] = 3
-    df["age_group_name"] = df["age_group_id"].map(
-        dict(age_bins[["age_group_id", "age_group_name"]].values)
-    )
-    df["expected"] = False
-    df["location_name"] = "India"
-    df["location_type"] = "admin0"
     df["measure"] = "incidence"
     df["measure_name"] = "Incidence"
     df["metric_name"] = "Rate"
-    df["sex"] = df["sex_id"].map({1: "Male", 2: "Female"})
 
     _add_value_columns(df, MEAN_COLUMNS, 1.4, 1.8)
-    # get_outputs() also returns 'upper' and 'lower' columns
-    df["upper"] = df["val"] * 1.1
-    df["lower"] = df["val"] * 0.9
 
     return df
 
@@ -382,25 +384,13 @@ def get_mocked_data_prevalence_get_outputs() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
     df["measure_id"] = 5
-    df["year_id"] = YEAR
     df["metric_id"] = 3
-    df["age_group_name"] = df["age_group_id"].map(
-        dict(age_bins[["age_group_id", "age_group_name"]].values)
-    )
-    df["expected"] = False
-    df["location_name"] = "India"
-    df["location_type"] = "admin0"
     df["measure"] = "prevalence"
     df["measure_name"] = "Prevalence"
     df["metric_name"] = "Rate"
-    df["sex"] = df["sex_id"].map({1: "Male", 2: "Female"})
 
     _add_value_columns(df, MEAN_COLUMNS, 0.22, 0.027)
-    # get_outputs() also returns 'upper' and 'lower' columns
-    df["upper"] = df["val"] * 1.1
-    df["lower"] = df["val"] * 0.9
 
     return df
 
