@@ -1,12 +1,28 @@
+"""
+End-to-end tests for interface.get_measure().
+
+Due to the fact that pulling data can take quite some time as well as that
+vivarium_gbd_access is required but not always available, some unique
+precautions and guards have been taken:
+- All tests are automatically skipped if vivarium_gbd_access is not installed 
+    (e.g. from github actions).
+- Tests are parametrized by a 'mock_gbd' boolean which, if true, uses mocked
+    data instead of pulling from the GBD. This allows for testing on github actions
+    as well as testing on every push/pull (via Jenkins pipelines).
+- Unmocked tests are marked as slow and thus require the --runslow flag to run.
+- Particularly slow tests are datetime-checked to only weekly.
+"""
+
 from functools import partial
 
 import pandas as pd
 import pytest
-from gbd_mapping import causes, covariates, risk_factors, sequelae
+from gbd_mapping import Cause, Sequela, causes, covariates, risk_factors, sequelae
 from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 
 from tests.conftest import NO_GBD_ACCESS
+from tests.e2e.mocked_gbd import LOCATION, get_mocked_age_bins, mock_vivarium_gbd_access
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import SUPPORTED_DATA_TYPES, DataAbnormalError
 from vivarium_inputs.interface import get_measure
@@ -15,8 +31,6 @@ from vivarium_inputs.utilities import DataTypeNotImplementedError
 pytestmark = pytest.mark.skipif(
     NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
 )
-
-LOCATION = "India"
 
 
 # TODO [MIC-5448]: Move to vivarium_testing_utilties
@@ -41,7 +55,7 @@ def fail_expected(entity, measure, location, data_type, raise_type=Exception):
         _df = get_measure(entity, measure, location, years=None, data_type=data_type)
 
 
-ENTITIES_C = [
+CAUSES = [
     # (entity, applicable_measures)
     # NOTE: 'raw_incidence_rate' and 'deaths' should not be called directly from `get_measure()`
     (
@@ -76,7 +90,7 @@ ENTITIES_C = [
         ],
     ),
 ]
-MEASURES_C = [
+CAUSE_MEASURES = [
     "incidence_rate",
     "prevalence",
     "birth_prevalence",
@@ -88,12 +102,19 @@ MEASURES_C = [
 
 
 @pytest.mark.slow
-@pytest.mark.parametrize("entity_details", ENTITIES_C, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", MEASURES_C, ids=lambda x: x)
+@pytest.mark.parametrize("entity_details", CAUSES, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", CAUSE_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
 )
-def test_get_measure_causelike(entity_details, measure, data_type):
+@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+def test_get_measure_causelike(
+    entity_details: tuple[Cause, list[str]],
+    measure: str,
+    data_type: str | list[str],
+    mock_gbd: bool,
+    mocker: MockerFixture,
+):
 
     entity, entity_expected_measures = entity_details
     location_id = utility_data.get_location_id(LOCATION)
@@ -105,17 +126,30 @@ def test_get_measure_causelike(entity_details, measure, data_type):
 
     tester = success_expected if measure in entity_expected_measures else fail_expected
     # Handle not implemented
-    if isinstance(data_type, list):
-        tester = partial(fail_expected, raise_type=DataTypeNotImplementedError)
-    if data_type == "means" and measure in [
+    is_unimplemented_means = data_type == "means" and measure in [
         "disability_weight",
         "remission_rate",
         "cause_specific_mortality_rate",
         "excess_mortality_rate",
-    ]:
+    ]
+    is_unimplemented = isinstance(data_type, list) or is_unimplemented_means
+    if is_unimplemented:
         tester = partial(fail_expected, raise_type=DataTypeNotImplementedError)
 
+    if mock_gbd:
+        # TODO: Reduce duplicate testing. Since this data is mocked, it is doing the
+        # same test for a given measure regardless of the entity.
+
+        if is_unimplemented:
+            pytest.skip("Cannot mock data for unimplemented features.")
+        if tester == fail_expected:
+            pytest.skip("Do mock data for expected failed calls.")
+        mocked_funcs = mock_vivarium_gbd_access(entity, measure, data_type, mocker)
+
     tester(entity, measure, location_id, data_type)
+    if mock_gbd:
+        for mocked_func in mocked_funcs:
+            assert mocked_func.called_once()
 
 
 ENTITIES_S = [
@@ -143,7 +177,14 @@ MEASURES_S = [
 @pytest.mark.parametrize(
     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
 )
-def test_get_measure_sequelalike(entity_details, measure, data_type):
+@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+def test_get_measure_sequelalike(
+    entity_details: tuple[Sequela, list[str]],
+    measure: str,
+    data_type: str | list[str],
+    mock_gbd: bool,
+    mocker: MockerFixture,
+):
 
     entity, entity_expected_measures = entity_details
     location_id = utility_data.get_location_id(LOCATION)
@@ -162,7 +203,22 @@ def test_get_measure_sequelalike(entity_details, measure, data_type):
     ]:
         tester = partial(fail_expected, raise_type=DataTypeNotImplementedError)
 
+    if mock_gbd:
+        # TODO: Reduce duplicate testing. Since this data is mocked, it is doing the
+        # same test for a given measure regardless of the entity.
+        if (
+            isinstance(tester, partial)
+            and tester.keywords.get("raise_type") == DataTypeNotImplementedError
+        ):
+            pytest.skip("Cannot mock data for unimplemented features.")
+        if tester == fail_expected:
+            pytest.skip("Do mock data for expected failed calls.")
+        mocked_funcs = mock_vivarium_gbd_access(entity, measure, data_type, mocker)
+
     tester(entity, measure, location_id, data_type)
+    if mock_gbd:
+        for mocked_func in mocked_funcs:
+            assert mocked_func.called_once()
 
 
 ENTITIES_R = [
@@ -268,13 +324,3 @@ def check_data(data: pd.DataFrame, data_type: str) -> None:
     }
     for idx, expected in expected_metadata.items():
         assert set(data.index.get_level_values(idx)) == expected
-
-
-###############
-# MOCKED DATA #
-###############
-
-
-def get_mocked_age_bins() -> pd.DataFrame:
-    """Mocked age bins for testing."""
-    return pd.read_csv("tests/fixture_data/age_bins.csv")
