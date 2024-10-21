@@ -588,10 +588,20 @@ class DataType:
             self._validate_data_type(data_type)
 
         self.type = data_type
-        """Data type(s) for which to get value columns. Supported values include 
-        'mean' for getting mean data and 'draw' for getting draw-level data, or 
-        None if you want to specifically use the columns passed in. Can
-        also be a list of values to get multiple data types."""
+        """Data type(s) for which to extract data and used to determine the data's
+        value columns. 
+
+        Notes
+        -----
+        This is mutually exclusive with `value_cols`, i.e. one of the two is
+        required but not both.
+
+        Supported values include:
+        - 'means' for getting mean data
+        - 'draws' for getting draw-level data
+        - None if the requested data is niche. In this case, the value columns
+            must be passed in directly via the `value_cols` argument.
+        """
 
         self.value_columns = (
             self._get_value_columns(data_type) if value_cols is None else value_cols
@@ -601,6 +611,9 @@ class DataType:
         
         Notes
         -----
+        This is mutually exclusive with `data_type`, i.e. one of the two is
+        required but not both.
+        
         Measures that require `value_cols` of ["value"] to be passed in:
         - structure
         - theoretical_minimum_risk_life_expectancy

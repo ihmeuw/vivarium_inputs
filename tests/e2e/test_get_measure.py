@@ -19,6 +19,7 @@ pytestmark = pytest.mark.skipif(
 LOCATION = "India"
 
 
+# TODO [MIC-5448]: Move to vivarium_testing_utilties
 @pytest.fixture(autouse=True)
 def no_cache(mocker: MockerFixture) -> None:
     """Mock out the cache so that we always pull data."""

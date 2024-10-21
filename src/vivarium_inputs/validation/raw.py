@@ -1445,7 +1445,7 @@ def validate_estimate(
         any values in columns do not match the expected set of values.
 
     """
-    # The value columns are irrelevant of the data_type in this case
+    # The value columns do not depend on the data_type for estimate types
     value_columns = ["mean_value", "upper_value", "lower_value"]
 
     check_data_exist(data, zeros_missing=False, value_columns=value_columns)
