@@ -201,7 +201,7 @@ MEASURES_R = [
 ]
 
 
-@pytest.mark.skip("TODO: [mic-5407]")
+@pytest.mark.skip("TODO: [mic-5456]")
 @pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
 def test_get_measure_risklike(entity_details, measure):
@@ -216,7 +216,7 @@ ENTITIES_COV = [
 MEASURES_COV = ["estimate"]
 
 
-@pytest.mark.skip("TODO: [mic-5407]")
+@pytest.mark.skip("TODO: [mic-5456]")
 @pytest.mark.parametrize("entity", ENTITIES_COV, ids=lambda x: x.name)
 @pytest.mark.parametrize("measure", MEASURES_COV, ids=lambda x: x)
 def test_get_measure_covariatelike(entity, measure):
@@ -230,7 +230,7 @@ ENTITIES_R = [
 MEASURES_R = ["relative_risk"]
 
 
-@pytest.mark.skip("TODO: [mic-5407]")
+@pytest.mark.skip("TODO: [mic-5456]")
 @pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
 def test_get_failing_relative_risk(entity_details, measure):
@@ -245,7 +245,7 @@ ENTITIES_R = [
 MEASURES_R = ["relative_risk"]
 
 
-@pytest.mark.skip("TODO: [mic-5407]")
+@pytest.mark.skip("TODO: [mic-5456]")
 @pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
 def test_get_working_relative_risk(entity_details, measure):
