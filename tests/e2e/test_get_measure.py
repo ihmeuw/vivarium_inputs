@@ -94,7 +94,6 @@ CAUSE_MEASURES = [
 ]
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("entity_details", CAUSES, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", CAUSE_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
@@ -106,6 +105,7 @@ def test_get_measure_causelike(
     measure: str,
     data_type: str | list[str],
     mock_gbd: bool,
+    runslow: bool,
     mocker: MockerFixture,
 ):
     # Test-specific fixme skips
@@ -121,7 +121,7 @@ def test_get_measure_causelike(
     ]
     is_unimplemented = isinstance(data_type, list) or is_unimplemented_means
 
-    run_test(entity_details, measure, data_type, mock_gbd, mocker, is_unimplemented)
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
 
 
 SEQUELAE = [
@@ -155,6 +155,7 @@ def test_get_measure_sequelalike(
     measure: str,
     data_type: str | list[str],
     mock_gbd: bool,
+    runslow: bool,
     mocker: MockerFixture,
 ):
 
@@ -168,7 +169,7 @@ def test_get_measure_sequelalike(
     ]
     is_unimplemented = isinstance(data_type, list) or is_unimplemented_means
 
-    run_test(entity_details, measure, data_type, mock_gbd, mocker, is_unimplemented)
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
 
 
 ENTITIES_R = [
@@ -262,13 +263,16 @@ def run_test(
     measure: str,
     data_type: str | list[str],
     mock_gbd: bool,
+    runslow: bool,
     mocker: MockerFixture,
     is_unimplemented: bool,
 ):
     entity, entity_expected_measures = entity_details
 
+    if not runslow and not mock_gbd:
+        pytest.skip("Need --runslow option to run unmocked tests")
     if NO_GBD_ACCESS and not mock_gbd:
-        pytest.skip("Need GBD access to run this test")
+        pytest.skip("Need GBD access to run unmocked tests")
 
     tester = success_expected if measure in entity_expected_measures else fail_expected
     if is_unimplemented:
