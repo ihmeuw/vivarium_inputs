@@ -26,6 +26,7 @@ from pytest_mock import MockerFixture
 from tests.conftest import NO_GBD_ACCESS
 from tests.e2e.mocked_gbd import (
     LOCATION,
+    LOCATION_ID,
     YEAR,
     get_mocked_age_bins,
     mock_vivarium_gbd_access,
@@ -34,10 +35,6 @@ from vivarium_inputs import utility_data
 from vivarium_inputs.globals import SUPPORTED_DATA_TYPES, DataAbnormalError
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utilities import DataTypeNotImplementedError
-
-pytestmark = pytest.mark.skipif(
-    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
-)
 
 
 # TODO [MIC-5448]: Move to vivarium_testing_utilties
@@ -270,9 +267,8 @@ def run_test(
     is_unimplemented: bool,
 ):
     entity, entity_expected_measures = entity_details
-    location_id = utility_data.get_location_id(LOCATION)
 
-    if NO_GBD_ACCESS:
+    if NO_GBD_ACCESS and not mock_gbd:
         pytest.skip("Need GBD access to run this test")
 
     tester = success_expected if measure in entity_expected_measures else fail_expected
@@ -288,7 +284,7 @@ def run_test(
             pytest.skip("Do mock data for expected failed calls.")
         mocked_funcs = mock_vivarium_gbd_access(entity, measure, data_type, mocker)
 
-    tester(entity, measure, location_id, data_type)
+    tester(entity, measure, LOCATION_ID, data_type)
     if mock_gbd:
         for mocked_func in mocked_funcs:
             assert mocked_func.called_once()

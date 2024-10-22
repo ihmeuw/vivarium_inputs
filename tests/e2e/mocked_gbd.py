@@ -13,7 +13,7 @@ from pytest_mock import MockerFixture
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS, MEASURES
 
-LOCATION = "India"
+LOCATION, LOCATION_ID = "India", 163
 YEAR = 2021  # most recent year (used when default None is provided to get_measure())
 DUMMY_INT = 1234
 DUMMY_STR = "foo"
@@ -40,6 +40,7 @@ def mock_vivarium_gbd_access(
     # TODO [MIC-5454]: Move mocked gbd access stuff to vivarium_testing_utilities
 
     # Generic/small mocks that may or may not actually be called for this specific test
+    mocker.patch("vivarium_inputs.utility_data.get_most_recent_year", return_value=YEAR)
     mocker.patch(
         "vivarium_inputs.utility_data.get_estimation_years",
         return_value=get_mocked_estimation_years(),
@@ -69,7 +70,7 @@ def mock_vivarium_gbd_access(
         "draws": mocked_get_draws,
     }[data_type]
 
-    entity_specific_metadata = {
+    entity_specific_metadata_mapper = {
         "Cause": {
             "cause_id": int(entity.gbd_id),
             "acause": DUMMY_STR,
@@ -79,7 +80,8 @@ def mock_vivarium_gbd_access(
             "sequela_id": int(entity.gbd_id),
             "sequela_name": DUMMY_STR,
         },
-    }[entity.__class__.__name__]
+    }
+    entity_specific_metadata = entity_specific_metadata_mapper[entity.__class__.__name__]
 
     mocked_funcs = []
     if measure == "incidence_rate":
@@ -102,6 +104,12 @@ def mock_vivarium_gbd_access(
         mocked_extract_disability_weight = mocker.patch(
             "vivarium_inputs.extract.extract_disability_weight",
             return_value=mocked_data_func(measure, **entity_specific_metadata),
+        )
+        combined_metadata = entity_specific_metadata_mapper["Cause"]
+        combined_metadata.update(entity_specific_metadata_mapper["Sequela"])
+        mocked_extract_prevalence = mocker.patch(
+            "vivarium_inputs.extract.extract_prevalence",
+            return_value=mocked_data_func("prevalence", **combined_metadata),
         )
         mocked_funcs = [mocked_extract_disability_weight]
     elif measure == "remission_rate":
@@ -257,8 +265,8 @@ def get_mocked_data_dw_get_draws() -> pd.DataFrame:
         },
         index=[0],
     )
-
-    _add_value_columns(df, DRAW_COLUMNS, 0.1, 0.7)
+    # We set the values here very low to avoid validation errors
+    _add_value_columns(df, DRAW_COLUMNS, 0.0, 0.1)
 
     return df
 
