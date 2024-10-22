@@ -600,14 +600,18 @@ class DataType:
         - 'means' for getting mean data
         - 'draws' for getting draw-level data
         - None if the requested data is niche. In this case, the value columns
-        must be passed in directly via the `value_cols` argument.
+        must be passed in directly via the `value_cols` argument. 'None' will 
+        likely be removed as a supported value in the future when 'means' is
+        fully supported.
         """
 
         self.value_columns = (
             self._get_value_columns(data_type) if value_cols is None else value_cols
         )
         """List of value columns corresponding to the provided data type(s). If 
-        None, the list will be generated based on the data type passed in.
+        None, the list will be generated based on the data type passed in. This
+        argument may go away in the future when getting mean data is fully
+        supported.
         
         Notes
         -----

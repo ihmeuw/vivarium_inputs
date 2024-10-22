@@ -58,7 +58,7 @@ def test_data_type_args(data_type, value_cols):
         ):
             utilities.DataType(data_type, value_cols)
     else:
-        _data_type = utilities.DataType(data_type, value_cols)
+        utilities.DataType(data_type, value_cols)
 
 
 @pytest.mark.parametrize(
@@ -85,9 +85,9 @@ def test_validate_data_type(data_type, should_raise):
                 f"Data type(s) {set(['foo'])} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
             )
         with pytest.raises(utilities.DataTypeNotImplementedError, match=match):
-            _data_type = utilities.DataType(data_type)
+            utilities.DataType(data_type)
     else:
-        _data_type = utilities.DataType(data_type)
+        utilities.DataType(data_type)
 
 
 @pytest.mark.parametrize(
