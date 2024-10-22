@@ -20,7 +20,6 @@ from vivarium_inputs.globals import (
     COVARIATE_VALUE_COLUMNS,
     DEMOGRAPHIC_COLUMNS,
     DISTRIBUTION_COLUMNS,
-    DRAW_COLUMNS,
     EXTRA_RESIDUAL_CATEGORY,
     MEASURES,
     MINIMUM_EXPOSURE_VALUE,
@@ -226,11 +225,7 @@ def get_disability_weight(
             for sequela in entity.sequelae:
                 try:
                     prevalence = get_data(
-                        sequela,
-                        "prevalence",
-                        location_id,
-                        years,
-                        data_type,
+                        sequela, "prevalence", location_id, years, data_type
                     )
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
@@ -302,7 +297,13 @@ def get_cause_specific_mortality_rate(
 
     deaths = get_data(entity, "deaths", location_id, years, data_type)
     # population isn't by draws
-    pop = get_data(Population(), "structure", location_id, years, data_type)
+    pop = get_data(
+        Population(),
+        "structure",
+        location_id,
+        years,
+        utilities.DataType(data_type=None, value_cols=["value"]),
+    )
     data = deaths.join(pop, lsuffix="_deaths", rsuffix="_pop")
     data[data_type.value_columns] = data[data_type.value_columns].divide(data.value, axis=0)
     return data.drop(["value"], axis="columns")
@@ -442,7 +443,7 @@ def get_exposure_distribution_weights(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type != "draws":
+    if data_type.type is not None and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
@@ -542,6 +543,7 @@ def get_population_attributable_fraction(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
 
+    value_columns = data_type.value_columns
     causes_map = {c.gbd_id: c for c in causes}
     if entity.kind == "risk_factor":
         data = extract.extract_data(
@@ -583,7 +585,6 @@ def get_population_attributable_fraction(
         data = utilities.filter_data_by_restrictions(
             data, cause, "inner", utility_data.get_age_group_ids()
         )
-        value_columns = data_type.value_columns
         if np.any(data[value_columns] < 0):
             logger.warning(
                 f"{entity.name.capitalize()} has negative values for paf. These will be replaced with 0."
@@ -615,7 +616,7 @@ def get_estimate(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type != "draws":
+    if data_type is not None and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
@@ -643,7 +644,7 @@ def get_utilization_rate(
 ) -> pd.DataFrame:
     data = extract.extract_data(entity, "utilization_rate", location_id, years, data_type)
     data = utilities.normalize(data, data_type.value_columns, fill_value=0)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
+    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
     return data
 
 
@@ -654,11 +655,10 @@ def get_structure(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type != "draws":
+    if data_type.type is not None and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
-
     data = extract.extract_data(entity, "structure", location_id, years, data_type)
     data = data.drop("run_id", axis="columns").rename(columns={"population": "value"})
     data = utilities.normalize(data, data_type.value_columns)
@@ -672,7 +672,7 @@ def get_theoretical_minimum_risk_life_expectancy(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type != "draws":
+    if data_type.type is not None and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )

@@ -148,7 +148,7 @@ def extract_data(
 
     if validate:
         additional_data = {
-            name: extractor(entity, location_id, year_id)
+            name: extractor(entity, location_id, year_id, data_type)
             for name, extractor in additional_extractors.items()
         }
         if year_id:  # if not pulling all years
@@ -287,7 +287,7 @@ def extract_remission_rate(
     year_id: int | str | list[int] | None,
     data_type: DataType,
 ) -> pd.DataFrame:
-    data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id=year_id)
+    data = gbd.get_modelable_entity_draws(entity.me_id, location_id, year_id, data_type.type)
     data = data[data["measure_id"] == MEASURES["Remission rate"]]
     return data
 
@@ -298,7 +298,9 @@ def extract_deaths(
     year_id: int | str | list[int] | None,
     data_type: DataType,
 ) -> pd.DataFrame:
-    data = gbd.get_codcorrect_draws(entity.gbd_id, location_id, year_id=year_id)
+    data = gbd.get_codcorrect_draws(
+        entity.gbd_id, location_id, year_id=year_id, data_type=data_type.type
+    )
     data = data[data["measure_id"] == MEASURES["Deaths"]]
     return data
 
@@ -310,7 +312,7 @@ def extract_exposure(
     data_type: DataType,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
-        data = gbd.get_exposure(entity.gbd_id, location_id, year_id=year_id)
+        data = gbd.get_exposure(entity.gbd_id, location_id, year_id, data_type.type)
         if entity.gbd_id == 341:
             data = process_kidney_dysfunction_exposure(data)
         allowable_measures = [
@@ -341,11 +343,11 @@ def extract_exposure_standard_deviation(
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor" and entity.name in OTHER_MEID:
         data = gbd.get_modelable_entity_draws(
-            OTHER_MEID[entity.name], location_id, year_id=year_id
+            OTHER_MEID[entity.name], location_id, year_id, data_type.type
         )
     elif entity.kind == "risk_factor":
         data = gbd.get_exposure_standard_deviation(
-            entity.gbd_id, location_id, year_id=year_id
+            entity.gbd_id, location_id, year_id, data_type.type
         )
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data(
@@ -372,7 +374,7 @@ def extract_relative_risk(
     year_id: int | str | list[int] | None,
     data_type: DataType,
 ) -> pd.DataFrame:
-    data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id=year_id)
+    data = gbd.get_relative_risk(entity.gbd_id, location_id, year_id, data_type.type)
     if not data["exposure"].isna().any() and data["parameter"].isna().all():
         data["parameter"] = data["exposure"]
         data["exposure"] = np.nan
@@ -390,7 +392,7 @@ def extract_population_attributable_fraction(
     year_id: int | str | list[int] | None,
     data_type: DataType,
 ) -> pd.DataFrame:
-    data = gbd.get_paf(entity.gbd_id, location_id, year_id=year_id)
+    data = gbd.get_paf(entity.gbd_id, location_id, year_id, data_type.type)
     data = data[data["metric_id"] == METRICS["Percent"]]
     data = data[data["measure_id"].isin([MEASURES["YLDs"], MEASURES["YLLs"]])]
     data = filter_to_most_detailed_causes(data)
@@ -417,7 +419,7 @@ def extract_estimate(
     year_id: int | str | list[int] | None,
     data_type: DataType,
 ) -> pd.DataFrame:
-    data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id, year_id=year_id)
+    data = gbd.get_covariate_estimate(int(entity.gbd_id), location_id, year_id)
     return data
 
 
@@ -428,7 +430,9 @@ def extract_utilization_rate(
     year_id: Optional[Union[int, str, List[int]]],
     data_type: DataType,
 ) -> pd.DataFrame:
-    data = gbd.get_modelable_entity_draws(entity.gbd_id, location_id)
+    data = gbd.get_modelable_entity_draws(
+        entity.gbd_id, location_id, year_id=None, data_type=data_type.type
+    )
     return data
 
 
