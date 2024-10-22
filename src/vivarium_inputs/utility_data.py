@@ -10,6 +10,10 @@ def get_estimation_years(*_, **__) -> pd.Series:
     return gbd.get_estimation_years()
 
 
+def get_most_recent_year(*_, **__) -> int:
+    return gbd.get_most_recent_year()
+
+
 def get_year_block(*_, **__) -> pd.DataFrame:
     estimation_years = get_estimation_years()
     year_block = pd.DataFrame(
@@ -83,7 +87,7 @@ def get_demographic_dimensions(
     ages = get_age_group_ids()
     estimation_years = get_estimation_years()
     if years is None:  # default to most recent year
-        years = [gbd.get_most_recent_year()]
+        years = [get_most_recent_year()]
     elif years == "all":
         years = range(min(estimation_years), max(estimation_years) + 1)
     else:

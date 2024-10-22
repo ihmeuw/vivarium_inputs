@@ -179,7 +179,7 @@ def validate_for_simulation(
                 }
             )
         else:
-            most_recent_year = gbd.get_most_recent_year()
+            most_recent_year = utility_data.get_most_recent_year()
             context_args["years"] = pd.DataFrame(
                 {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
             )

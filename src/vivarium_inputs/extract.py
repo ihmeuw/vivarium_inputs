@@ -171,7 +171,7 @@ def extract_data(
 
 def _get_year_id(years):
     if years is None:  # default to most recent year
-        year_id = _get_most_recent_year()
+        year_id = utility_data.get_most_recent_year()
     elif years == "all":
         year_id = None
     else:
@@ -184,15 +184,6 @@ def _get_year_id(years):
             )
 
     return year_id
-
-
-#####################
-# Wrapped GBD calls #
-#####################
-
-
-def _get_most_recent_year() -> int:
-    return gbd.get_most_recent_year()
 
 
 #######################
