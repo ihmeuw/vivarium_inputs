@@ -88,7 +88,7 @@ def validate_for_simulation(
     measure: str,
     location: int | str | list[int | str],
     years: int | None,
-    data_request: DataType,
+    data_type: DataType,
     **context_args,
 ) -> None:
     """Validate data for use in a simulation.
@@ -192,7 +192,7 @@ def validate_for_simulation(
         for loc in location
     ]
     context = SimulationValidationContext(location, **context_args)
-    validators[measure](data, entity, context, data_request.value_columns)
+    validators[measure](data, entity, context, data_type.value_columns)
 
 
 #########################################################
@@ -204,7 +204,7 @@ def validate_for_simulation(
 
 def validate_incidence_rate(
     data: pd.DataFrame,
-    entity: Union[Cause, Sequela],
+    entity: Cause | Sequela,
     context: SimulationValidationContext,
     value_columns: list[str],
 ) -> None:
@@ -267,7 +267,10 @@ def validate_incidence_rate(
 
 
 def validate_prevalence(
-    data: pd.DataFrame, entity: Cause | Sequela, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Cause | Sequela,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped prevalence data.
 
@@ -279,6 +282,8 @@ def validate_prevalence(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -289,7 +294,7 @@ def validate_prevalence(
     """
     expected_index_names = SCRUBBED_DEMOGRAPHIC_COLUMNS
     validate_expected_index_and_columns(
-        expected_index_names, data.index.names, DRAW_COLUMNS, data.columns
+        expected_index_names, data.index.names, value_columns, data.columns
     )
 
     validate_standard_columns(data, context)
@@ -298,14 +303,14 @@ def validate_prevalence(
         data,
         boundary_value=VALID_PREVALENCE_RANGE[0],
         boundary_type="lower",
-        value_columns=DRAW_COLUMNS,
+        value_columns=value_columns,
         error=DataTransformationError,
     )
     check_value_columns_boundary(
         data,
         boundary_value=VALID_PREVALENCE_RANGE[1],
         boundary_type="upper",
-        value_columns=DRAW_COLUMNS,
+        value_columns=value_columns,
         error=DataTransformationError,
     )
 
@@ -324,7 +329,10 @@ def validate_prevalence(
 
 
 def validate_birth_prevalence(
-    data: pd.DataFrame, entity: Cause | Sequela, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: entity: Cause | Sequela,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped birth
     prevalence data, skipping the check on age columns since birth prevalence
@@ -338,6 +346,8 @@ def validate_birth_prevalence(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -384,7 +394,10 @@ def validate_birth_prevalence(
 
 
 def validate_disability_weight(
-    data: pd.DataFrame, entity: Cause | Sequela, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: entity: Cause | Sequela,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped disability
     weight data.
@@ -397,6 +410,8 @@ def validate_disability_weight(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -442,7 +457,10 @@ def validate_disability_weight(
 
 
 def validate_remission_rate(
-    data: pd.DataFrame, entity: Cause, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Cause,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped remission
     data.
@@ -455,6 +473,8 @@ def validate_remission_rate(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -493,7 +513,10 @@ def validate_remission_rate(
 
 
 def validate_cause_specific_mortality_rate(
-    data: pd.DataFrame, entity: Cause, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Cause,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped cause
     specific mortality data.
@@ -506,6 +529,8 @@ def validate_cause_specific_mortality_rate(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -544,7 +569,10 @@ def validate_cause_specific_mortality_rate(
 
 
 def validate_excess_mortality_rate(
-    data: pd.DataFrame, entity: Cause, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Cause,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped excess
     mortality data.
@@ -557,6 +585,8 @@ def validate_excess_mortality_rate(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -606,6 +636,7 @@ def validate_exposure(
     data: pd.DataFrame,
     entity: RiskFactor | AlternativeRiskFactor,
     context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped exposure
     data, with the upper boundary of values determined by the distribution type.
@@ -630,6 +661,8 @@ def validate_exposure(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -716,6 +749,7 @@ def validate_exposure_standard_deviation(
     data: pd.DataFrame,
     entity: RiskFactor | AlternativeRiskFactor,
     context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped exposure
     standard deviation data, using the broadest age range determined by yll and
@@ -729,6 +763,8 @@ def validate_exposure_standard_deviation(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -770,6 +806,7 @@ def validate_exposure_distribution_weights(
     data: pd.DataFrame,
     entity: RiskFactor | AlternativeRiskFactor,
     context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped exposure
     distribution weights data, skipping the check on draw columns since weights
@@ -788,6 +825,8 @@ def validate_exposure_distribution_weights(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -834,7 +873,10 @@ def validate_exposure_distribution_weights(
 
 
 def validate_relative_risk(
-    data: pd.DataFrame, entity: RiskFactor, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: RiskFactor,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped relative risk
     data, with the upper boundary of values determined by the distribution type.
@@ -855,6 +897,8 @@ def validate_relative_risk(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -955,6 +999,7 @@ def validate_population_attributable_fraction(
     data: pd.DataFrame,
     entity: RiskFactor | Etiology,
     context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped population
     attributable fraction data. For protective cause-risk pairs: check a hard
@@ -971,6 +1016,8 @@ def validate_population_attributable_fraction(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -1045,13 +1092,19 @@ def validate_population_attributable_fraction(
 
 
 def validate_mediation_factors(
-    data: pd.DataFrame, entity: RiskFactor, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: RiskFactor,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     raise NotImplementedError()
 
 
 def validate_estimate(
-    data: pd.DataFrame, entity: Covariate, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Covariate,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped covariate
     estimate data, adjusting as needed for covariates that are not by age or
@@ -1066,6 +1119,8 @@ def validate_estimate(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -1191,7 +1246,10 @@ def validate_utilization_rate(
 
 
 def validate_structure(
-    data: pd.DataFrame, entity: Population, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Population,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Check the standard set of validations on simulation-prepped population
     structure data, skipping the check on the draw column since structure data
@@ -1205,6 +1263,8 @@ def validate_structure(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -1236,7 +1296,10 @@ def validate_structure(
 
 
 def validate_theoretical_minimum_risk_life_expectancy(
-    data: pd.DataFrame, entity: Population, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Population,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """Because the structure of life expectancy data is somewhat different,
     containing a custom age column that doesn't match the standard GBD age
@@ -1253,6 +1316,8 @@ def validate_theoretical_minimum_risk_life_expectancy(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -1294,7 +1359,10 @@ def validate_theoretical_minimum_risk_life_expectancy(
 
 
 def validate_age_bins(
-    data: pd.DataFrame, entity: Population, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Population,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """With only age columns in this data, the validator is an abbreviated
     version employing only the standard column check on ages.
@@ -1307,6 +1375,8 @@ def validate_age_bins(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
@@ -1323,7 +1393,10 @@ def validate_age_bins(
 
 
 def validate_demographic_dimensions(
-    data: pd.DataFrame, entity: Population, context: SimulationValidationContext
+    data: pd.DataFrame,
+    entity: Population,
+    context: SimulationValidationContext,
+    value_columns: list[str],
 ) -> None:
     """With only demographic columns in this data, the validator is an
     abbreviated version employing only the standard demographic column checks.
@@ -1336,6 +1409,8 @@ def validate_demographic_dimensions(
         Entity to which the data pertain.
     context
         Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
 
     Raises
     ------
