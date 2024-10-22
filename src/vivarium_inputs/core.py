@@ -443,7 +443,7 @@ def get_exposure_distribution_weights(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type is not None and data_type.type != "draws":
+    if data_type.type and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
@@ -468,7 +468,7 @@ def get_exposure_distribution_weights(
             years = [years] if isinstance(years, int) else years
             data = data.query(f"year_id in {years}")
         else:
-            most_recent_year = gbd.get_most_recent_year()
+            most_recent_year = utility_data.get_most_recent_year()
             data = data.query(f"year_id=={most_recent_year}")
     data = data.filter(DEMOGRAPHIC_COLUMNS + DISTRIBUTION_COLUMNS)
     data = utilities.wide_to_long(data, DISTRIBUTION_COLUMNS, var_name="parameter")
@@ -616,7 +616,7 @@ def get_estimate(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type is not None and data_type.type != "draws":
+    if data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
@@ -655,7 +655,7 @@ def get_structure(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type is not None and data_type.type != "draws":
+    if data_type.type and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
@@ -672,7 +672,7 @@ def get_theoretical_minimum_risk_life_expectancy(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type is not None and data_type.type != "draws":
+    if data_type.type and data_type.type != "draws":
         raise utilities.DataTypeNotImplementedError(
             f"Data type(s) {data_type.type} are not supported for this function."
         )

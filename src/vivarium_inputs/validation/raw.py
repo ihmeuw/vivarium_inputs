@@ -2559,6 +2559,6 @@ def check_metric_id(data: pd.DataFrame, expected_metric: str) -> None:
     """
     if set(data.metric_id) != {METRICS[expected_metric.capitalize()]}:
         raise DataAbnormalError(
-            f"Data includes metrics beyond the expected {expected_metric.lower()} "
-            f"(metric_id {METRICS[expected_metric.capitalize()]}"
+            f"Data includes metrics beyond the expected '{expected_metric.lower()}' "
+            f"(metric_id {METRICS[expected_metric.capitalize()]})"
         )
