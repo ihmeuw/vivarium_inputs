@@ -13,7 +13,7 @@ from pytest_mock import MockerFixture
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS, MEASURES
 
-LOCATION, LOCATION_ID = "India", 163
+LOCATION = "India"
 YEAR = 2021  # most recent year (used when default None is provided to get_measure())
 DUMMY_INT = 1234
 DUMMY_STR = "foo"
@@ -318,7 +318,23 @@ def get_mocked_data_deaths_get_draws() -> pd.DataFrame:
 
 def get_mocked_data_structure_get_draws() -> pd.DataFrame:
     # Populations is difficult to mock at the age-group level so just load it
-    return pd.read_csv(f"tests/fixture_data/population_{LOCATION.lower()}_{YEAR}.csv")
+    # return pd.read_csv(f"tests/fixture_data/population_{LOCATION.lower()}_{YEAR}.csv")
+    age_bins = get_mocked_age_bins()
+    age_group_ids = list(age_bins["age_group_id"])
+    sex_ids = [1, 2, 3]
+
+    # Initiate df with all possible combinations of variable metadata columns
+    df = pd.DataFrame(
+        list(itertools.product(age_group_ids, sex_ids)),
+        columns=["age_group_id", "sex_id"],
+    )
+
+    # Add on other metadata columns
+    df["run_id"] = DUMMY_INT
+
+    _add_value_columns(df, ["population"], 1.0e6, 100.0e6)
+
+    return df
 
 
 ###########################

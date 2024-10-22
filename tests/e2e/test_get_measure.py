@@ -26,7 +26,6 @@ from pytest_mock import MockerFixture
 from tests.conftest import NO_GBD_ACCESS
 from tests.e2e.mocked_gbd import (
     LOCATION,
-    LOCATION_ID,
     YEAR,
     get_mocked_age_bins,
     mock_vivarium_gbd_access,
@@ -284,7 +283,7 @@ def run_test(
             pytest.skip("Do mock data for expected failed calls.")
         mocked_funcs = mock_vivarium_gbd_access(entity, measure, data_type, mocker)
 
-    tester(entity, measure, LOCATION_ID, data_type)
+    tester(entity, measure, utility_data.get_location_id(LOCATION), data_type)
     if mock_gbd:
         for mocked_func in mocked_funcs:
             assert mocked_func.called_once()
