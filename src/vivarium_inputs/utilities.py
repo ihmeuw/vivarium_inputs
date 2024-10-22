@@ -573,39 +573,61 @@ class DataTypeNotImplementedError(NotImplementedError):
 
 
 class DataType:
-    """Class to handle data types and their corresponding differences.
+    """Class to handle data types and their corresponding differences."""
 
-    Attributes
-    ----------
-    request
-        Data type for which to extract data. Supported values include 'mean' for
-        getting mean data and 'draw' for getting draw-level data. Can also be a list
-        of values to get multiple data types. Defaults to 'mean'.
-    value_columns
-        List of value columns to be pulled.
-    """
+    def __init__(
+        self, data_type: str | list[str] | None, value_cols: list[str] | None = None
+    ) -> None:
 
-    def __init__(self, data_type: str | list[str], measure: str | None) -> None:
-        self._validate_data_type(data_type)
+        if data_type is not None and value_cols is not None:
+            raise ValueError("Cannot pass both 'data_type' and 'value_cols'.")
+        if data_type is None and value_cols is None:
+            raise ValueError("Must pass either 'data_type' or 'value_cols'.")
+
+        if data_type is not None:
+            self._validate_data_type(data_type)
+
         self.type = data_type
-        self.value_columns = self._get_value_columns(data_type, measure)
+        """Data type(s) for which to extract data and used to determine the data's
+        value columns. 
+
+        Notes
+        -----
+        This is mutually exclusive with `value_cols`, i.e. one of the two is
+        required but not both.
+
+        Supported values include:
+        - 'means' for getting mean data
+        - 'draws' for getting draw-level data
+        - None if the requested data is niche. In this case, the value columns
+        must be passed in directly via the `value_cols` argument. 'None' will 
+        likely be removed as a supported value in the future when 'means' is
+        fully supported.
+        """
+
+        self.value_columns = (
+            self._get_value_columns(data_type) if value_cols is None else value_cols
+        )
+        """List of value columns corresponding to the provided data type(s). If 
+        None, the list will be generated based on the data type passed in. This
+        argument may go away in the future when getting mean data is fully
+        supported.
+        
+        Notes
+        -----
+        This is mutually exclusive with `data_type`, i.e. one of the two is
+        required but not both.
+
+        Measures that require `value_cols` of ["value"] to be passed in:
+        - structure
+        - theoretical_minimum_risk_life_expectancy
+        - estimate
+        - exposure_distribution_weights
+        """
 
     @staticmethod
     def _validate_data_type(data_type: str | list[str]) -> None:
-        """Validate that the provided data type is supported.
-
-        Parameters
-        ----------
-        data_type
-            Data type(s) to process.
-
-        Raises
-        ------
-        ValueError
-            If a data type is not supported.
-        ValueError
-            If `data_type` is not a string or a list of strings.
-        """
+        """Validate that the provided data type is supported."""
 
         # Temporarily raise for lists of data types
         if isinstance(data_type, list):
@@ -624,44 +646,16 @@ class DataType:
             )
 
     @staticmethod
-    def _get_value_columns(data_type: str | list[str], measure: str | None) -> list[str]:
-        """Get the value columns corresponding to the provided data type(s).
+    def _get_value_columns(data_type: str | list[str]) -> list[str]:
+        """Get the value columns corresponding to the provided data type(s)."""
+        data_type_col_mapping = {
+            "means": MEAN_COLUMNS,
+            "draws": DRAW_COLUMNS,
+        }
+        value_cols = []
+        if isinstance(data_type, str):
+            data_type = [data_type]
+        for value in data_type:
+            value_cols.extend(data_type_col_mapping[value])
 
-        Notes
-        -----
-        The data_type has already been processed and validated at this point so no need
-        to check for invalid values.
-
-        Parameters
-        ----------
-        data_type
-            Data type(s) for which to get value columns.
-        measure
-            Measure for which to get value columns.
-
-        Returns
-        -------
-            List of value columns.
-        """
-        # TODO: better handle these special-case measures which don't actually
-        # need a data_type defined at all.
-        if measure in [
-            "structure",
-            "theoretical_minimum_risk_life_expectancy",
-            "estimate",
-            "exposure_distribution_weights",
-        ]:
-            # Custom value columns for these measures
-            cols = ["value"]
-        else:
-            data_type_col_mapping = {
-                "means": MEAN_COLUMNS,
-                "draws": DRAW_COLUMNS,
-            }
-            cols = []
-            if isinstance(data_type, str):
-                data_type = [data_type]
-            for value in data_type:
-                cols.extend(data_type_col_mapping[value])
-
-        return cols
+        return value_cols
