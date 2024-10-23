@@ -28,6 +28,7 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture
 def runslow(request: pytest.FixtureRequest):
+    """Fixture to allow 'runslow' to be used as an argument in tests."""
     return request.config.getoption("--runslow")
 
 

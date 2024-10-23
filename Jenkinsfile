@@ -152,35 +152,31 @@ pipeline {
               }
             }
 
-            // Quality Checks
-            stage("Format") {
-              steps {
-                sh "${ACTIVATE} && make format"
-              }
-            }
-
-            // stage("Lint") {
-            //   steps {
-            //     sh "${ACTIVATE} && make lint"
-            //   }
-            // }
+            // NOTE: we exclude several usual stages (Format, Lint, and Type Check)
+            // because they are already being run in github actions
 
             // Tests
-            // removable, if passwords can be exported to env. securely without bash indirection
-            // stage("Run Integration Tests") {
-            //   steps {
-            //     sh "${ACTIVATE} && make integration"
-            //     publishHTML([
-            //       allowMissing: true,
-            //       alwaysLinkToLastBuild: false,
-            //       keepAll: true,
-            //       reportDir: "output/htmlcov_integration",
-            //       reportFiles: "index.html",
-            //       reportName: "Coverage Report - Integration tests",
-            //       reportTitles: ''
-            //     ])
-            //   }
-            // }
+            // NOTE: we only run slow e2e tests here because unit and mocked e2e tests are already 
+            // being run in github actions
+            // NOTE: we do not distinguish between scheduled (IS_CRON) and other (e.g. on-push)
+            // builds here like we typically. Usually we would run slow tests on a schedule and
+            // fast tests otherwise, but in this case the repo (hosted on github) does not have
+            // access to the Jenkins builds anyway and so we simply run slow tests always
+            // and will at least get the slack message upon failure.
+            stage("Run Unmocked E2E Tests") {
+              steps {
+                sh "${ACTIVATE} && make e2e-runslow"
+                publishHTML([
+                  allowMissing: true,
+                  alwaysLinkToLastBuild: false,
+                  keepAll: true,
+                  reportDir: "output/htmlcov_e2e",
+                  reportFiles: "index.html",
+                  reportName: "Coverage Report - E2E tests",
+                  reportTitles: ''
+                ])
+              }
+            }
 
             // Build
             stage('Build and Deploy') {
