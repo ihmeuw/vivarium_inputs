@@ -94,7 +94,6 @@ CAUSE_MEASURES = [
 ]
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("entity_details", CAUSES, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", CAUSE_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
@@ -106,6 +105,7 @@ def test_get_measure_causelike(
     measure: str,
     data_type: str | list[str],
     mock_gbd: bool,
+    runslow: bool,
     mocker: MockerFixture,
 ):
     # Test-specific fixme skips
@@ -121,7 +121,7 @@ def test_get_measure_causelike(
     ]
     is_unimplemented = isinstance(data_type, list) or is_unimplemented_means
 
-    run_test(entity_details, measure, data_type, mock_gbd, mocker, is_unimplemented)
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
 
 
 SEQUELAE = [
@@ -155,6 +155,7 @@ def test_get_measure_sequelalike(
     measure: str,
     data_type: str | list[str],
     mock_gbd: bool,
+    runslow: bool,
     mocker: MockerFixture,
 ):
 
@@ -168,7 +169,7 @@ def test_get_measure_sequelalike(
     ]
     is_unimplemented = isinstance(data_type, list) or is_unimplemented_means
 
-    run_test(entity_details, measure, data_type, mock_gbd, mocker, is_unimplemented)
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
 
 
 ENTITIES_R = [
@@ -200,7 +201,7 @@ MEASURES_R = [
 ]
 
 
-@pytest.mark.skip("TODO: [mic-5407]")
+@pytest.mark.skip("TODO: [mic-5456]")
 @pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
 def test_get_measure_risklike(entity_details, measure):
@@ -215,7 +216,7 @@ ENTITIES_COV = [
 MEASURES_COV = ["estimate"]
 
 
-@pytest.mark.skip("TODO: [mic-5407]")
+@pytest.mark.skip("TODO: [mic-5456]")
 @pytest.mark.parametrize("entity", ENTITIES_COV, ids=lambda x: x.name)
 @pytest.mark.parametrize("measure", MEASURES_COV, ids=lambda x: x)
 def test_get_measure_covariatelike(entity, measure):
@@ -229,7 +230,7 @@ ENTITIES_R = [
 MEASURES_R = ["relative_risk"]
 
 
-@pytest.mark.skip("TODO: [mic-5407]")
+@pytest.mark.skip("TODO: [mic-5456]")
 @pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
 def test_get_failing_relative_risk(entity_details, measure):
@@ -244,7 +245,7 @@ ENTITIES_R = [
 MEASURES_R = ["relative_risk"]
 
 
-@pytest.mark.skip("TODO: [mic-5407]")
+@pytest.mark.skip("TODO: [mic-5456]")
 @pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
 def test_get_working_relative_risk(entity_details, measure):
@@ -262,13 +263,16 @@ def run_test(
     measure: str,
     data_type: str | list[str],
     mock_gbd: bool,
+    runslow: bool,
     mocker: MockerFixture,
     is_unimplemented: bool,
 ):
     entity, entity_expected_measures = entity_details
 
+    if not runslow and not mock_gbd:
+        pytest.skip("Need --runslow option to run unmocked tests")
     if NO_GBD_ACCESS and not mock_gbd:
-        pytest.skip("Need GBD access to run this test")
+        pytest.skip("Need GBD access to run unmocked tests")
 
     tester = success_expected if measure in entity_expected_measures else fail_expected
     if is_unimplemented:
