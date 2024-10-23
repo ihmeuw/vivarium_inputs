@@ -72,22 +72,21 @@ install: # Install setuptools, install this package in editable mode
 	@echo "----------------------------------------"
 	@sh vivarium_build_utils/install_dependency_branch.sh vivarium ${GIT_BRANCH} jenkins
 	@sh vivarium_build_utils/install_dependency_branch.sh gbd_mapping ${GIT_BRANCH} jenkins
+# FIXME: Add support for installing non-develop branches of vivarium_gbd_access
+# @sh vivarium_build_utils/install_dependency_branch.sh vivarium_gbd_access ${GIT_BRANCH} jenkins
 
+# NOTE: we cannot currently install anything but the 'main' branch in vivarium_gbd_access
+# due to it being hosted on bitbucket and behind the IHME firewall (which vivarium_build_utils 
+# cannot see because it is on github). One workaround until we get this fixed is to 
+# TEMPORARILY (i.e. just for testing) change the vivarium_gbd_access setup.py data_requires 
+# value to install the branch of interest:
+# "vivarium-gbd-access @ git+ssh://git@stash.ihme.washington.edu:7999/sims/vivarium_gbd_access.git@BRANCH-TO-INSTALL#egg=vivarium-gbd-access"
+# Then, assuming the build passes, you can change it back (which will cause builds to 
+# start failing again until everything gets merged to main).
 
-
-format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and import sorter
-	black $(LOCATIONS)
-	isort $(LOCATIONS)
-	@echo "Ignore, Created by Makefile, `date`" > $@
-
-lint: .flake8 .bandit $(MAKE_SOURCES) # Run the code linter and package security vulnerability checker
-	-flake8 $(LOCATIONS)
-	-safety check
-	@echo "Ignore, Created by Makefile, `date`" > $@
-
-integration: $(MAKE_SOURCES) # Run the end-to-end tests
-	export COVERAGE_FILE=./output/.coverage.integration
-	pytest --runslow tests --cov --cov-report term --cov-report html:./output/htmlcov_integration
+e2e-runslow: $(MAKE_SOURCES) # Run all (--runslow) end-to-end tests
+	export COVERAGE_FILE=./output/.coverage.e2e
+	pytest tests/e2e -vvv --runslow --cov --cov-report term --cov-report html:./output/htmlcov_e2e
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 build-doc: $(MAKE_SOURCES) # Build the Sphinx docs
