@@ -1,0 +1,112 @@
+import re
+
+import pandas as pd
+import pytest
+
+from vivarium_inputs import utilities
+from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS, SUPPORTED_DATA_TYPES
+
+
+@pytest.mark.parametrize(
+    "sex_ids",
+    [(1, 1, 1, 2, 2, 2), (1, 1, 2, 2, 3, 3), (1, 1, 1), (2, 2, 2), (3, 3, 3)],
+    ids=["male_female", "male_female_both", "male", "female", "both"],
+)
+def test_normalize_sex(sex_ids):
+    df = pd.DataFrame({"sex_id": sex_ids, "value": [1] * len(sex_ids)})
+    normalized = utilities.normalize_sex(df, fill_value=0.0, cols_to_fill=["value"])
+    assert {1, 2} == set(normalized.sex_id)
+
+
+def test_normalize_sex_copy_3():
+    values = [1, 2, 3, 4]
+    df = pd.DataFrame({"sex_id": [3] * len(values), "value": values})
+    normalized = utilities.normalize_sex(df, fill_value=0.0, cols_to_fill=["value"])
+    assert (normalized.loc[normalized.sex_id == 1, "value"] == values).all()
+    assert (normalized.loc[normalized.sex_id == 2, "value"] == values).all()
+
+
+def test_normalize_sex_fill_value():
+    values = [1, 2, 3, 4]
+    fill = 0.0
+    for sex in [1, 2]:
+        missing_sex = 1 if sex == 2 else 2
+        df = pd.DataFrame({"sex_id": [sex] * len(values), "value": values})
+        normalized = utilities.normalize_sex(df, fill_value=fill, cols_to_fill=["value"])
+        assert (normalized.loc[normalized.sex_id == sex, "value"] == values).all()
+        assert (
+            normalized.loc[normalized.sex_id == missing_sex, "value"] == [fill] * len(values)
+        ).all()
+
+
+def test_normalize_sex_no_sex_id():
+    df = pd.DataFrame({"ColumnA": [1, 2, 3], "ColumnB": [1, 2, 3]})
+    normalized = utilities.normalize_sex(df, fill_value=0.0, cols_to_fill=["value"])
+    pd.testing.assert_frame_equal(df, normalized)
+
+
+@pytest.mark.parametrize("data_type", ["means", "draws", None])
+@pytest.mark.parametrize("value_cols", [None, ["value"]])
+def test_data_type_args(data_type, value_cols):
+    """Test the mutual exclusivity of data_type and value_cols"""
+    if data_type is None and value_cols is None:
+        with pytest.raises(ValueError, match="Must pass either 'data_type' or 'value_cols'."):
+            utilities.DataType(data_type, value_cols)
+    elif data_type is not None and value_cols is not None:
+        with pytest.raises(
+            ValueError, match="Cannot pass both 'data_type' and 'value_cols'."
+        ):
+            utilities.DataType(data_type, value_cols)
+    else:
+        utilities.DataType(data_type, value_cols)
+
+
+@pytest.mark.parametrize(
+    "data_type, should_raise",
+    [
+        ("means", False),
+        ("draws", False),
+        ("foo", True),
+        (["means", "draws"], True),  # temporarily; not implemented
+        (["means", "draws", "foo"], True),
+        ({"not": "a list"}, True),
+    ],
+)
+def test_validate_data_type(data_type, should_raise):
+    if should_raise:
+        if not isinstance(data_type, (list, str)):
+            match = re.escape(
+                f"'data_type' must be a string or a list of strings. Got {type(data_type)}."
+            )
+        elif isinstance(data_type, list):
+            match = "Lists of data types are not yet supported."
+        else:
+            match = re.escape(
+                f"Data type(s) {set(['foo'])} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
+            )
+        with pytest.raises(utilities.DataTypeNotImplementedError, match=match):
+            utilities.DataType(data_type)
+    else:
+        utilities.DataType(data_type)
+
+
+@pytest.mark.parametrize(
+    "data_type, value_cols, expected_returned_cols",
+    [
+        ("means", None, MEAN_COLUMNS),
+        ("draws", None, DRAW_COLUMNS),
+        (["means", "draws"], None, MEAN_COLUMNS + DRAW_COLUMNS),
+        (None, ["value"], ["value"]),
+    ],
+)
+def test_get_value_columns(data_type, value_cols, expected_returned_cols):
+    if isinstance(data_type, list):
+        with pytest.raises(
+            utilities.DataTypeNotImplementedError,
+            match="Lists of data types are not yet supported.",
+        ):
+            utilities.DataType(data_type).value_columns
+    else:
+        assert (
+            utilities.DataType(data_type, value_cols).value_columns == expected_returned_cols
+        )
