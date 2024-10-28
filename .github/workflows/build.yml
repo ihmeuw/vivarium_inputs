@@ -15,5 +15,6 @@ jobs:
     uses: 
       ihmeuw/vivarium_build_utils/.github/workflows/build.yml@main
     with:
+      # FIXME: we can't install vivarium_gbd_access
       dependencies: "vivarium,gbd_mapping"
       use_mypy: false
