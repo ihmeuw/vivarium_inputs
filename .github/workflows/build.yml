@@ -18,3 +18,4 @@ jobs:
       # FIXME: we can't install vivarium_gbd_access
       dependencies: "vivarium,gbd_mapping"
       use_mypy: false
+      install_type: "test,docs"
