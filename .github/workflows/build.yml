@@ -21,7 +21,7 @@ jobs:
       # FIXME: we can't install vivarium_gbd_access
       dependencies: "vivarium,gbd_mapping"
       skip_mypy: true
-      install_type: "test,docs"
+      install_type: "[test,docs]"
     secrets:
       NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
       NOTIFY_PASSWORD: ${{ secrets.NOTIFY_PASSWORD }}
