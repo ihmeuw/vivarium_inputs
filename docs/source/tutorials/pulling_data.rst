@@ -383,7 +383,7 @@ To use:
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
-                 'parameters': {'location': int | str | list[int | str], 'years': int | str | list[int] | None,
+                 'parameters': {'location': int | str | list[int | str], 'years': int | str | list[int] | None},
                  'return': pd.DataFrame, },
              get_theoretical_minimum_risk_life_expectancy: {
                  'parameters': {},
@@ -392,7 +392,7 @@ To use:
                  'parameters': {},
                  'return': pd.DataFrame, },
              get_demographic_dimensions: {
-                 'parameters': {'location': int | str | list[int | str], 'years': int | str | list[int] | None,
+                 'parameters': {'location': int | str | list[int | str], 'years': int | str | list[int] | None},
                  'return': pd.DataFrame, },
              get_raw_data: {
                  'parameters': {
