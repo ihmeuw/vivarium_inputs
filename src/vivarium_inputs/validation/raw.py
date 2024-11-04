@@ -2369,7 +2369,7 @@ def check_sex_restrictions(
 
 
 def check_measure_id(
-    data: pd.DataFrame, allowable_measures: List[str], single_only: bool = True
+    data: pd.DataFrame, allowable_measures: list[str], single_only: bool = True
 ) -> None:
     """Check that data contains a measure id that is one of the allowed
     measure ids.

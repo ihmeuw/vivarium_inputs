@@ -651,7 +651,7 @@ def get_estimate(
     return data
 
 
-def get_utilization_rate(entity: HealthcareEntity, location_id: List[int]) -> pd.DataFrame:
+def get_utilization_rate(entity: HealthcareEntity, location_id: list[int]) -> pd.DataFrame:
     data = extract.extract_data(entity, "utilization_rate", location_id)
     data = utilities.normalize(data, fill_value=0)
     data = data.filter(DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS)
