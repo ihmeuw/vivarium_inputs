@@ -2073,7 +2073,7 @@ def check_age_group_ids(
     data: pd.DataFrame,
     context: RawValidationContext,
     restriction_start: int | None,
-    restriction_end: int, None,
+    restriction_end: int | None,
 ) -> None:
     """Check the set of age_group_ids included in data pulled from GBD for
     the following conditions:
