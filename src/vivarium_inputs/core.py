@@ -1,5 +1,4 @@
 from itertools import product
-from typing import List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -34,8 +33,8 @@ from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareE
 def get_data(
     entity: ModelableEntity,
     measure: str,
-    location: Union[str, int, List[Union[str, int]]],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location: str | int | list[str | int],
+    years: int | str | list[int] | None = None,
 ):
     measure_handlers = {
         # Cause-like measures
@@ -117,9 +116,9 @@ def get_data(
 
 
 def get_raw_incidence_rate(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -143,9 +142,9 @@ def get_raw_incidence_rate(
 
 
 def get_incidence_rate(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = get_data(
         entity,
@@ -160,9 +159,9 @@ def get_incidence_rate(
 
 
 def get_prevalence(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -186,9 +185,9 @@ def get_prevalence(
 
 
 def get_birth_prevalence(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -203,9 +202,9 @@ def get_birth_prevalence(
 
 
 def get_disability_weight(
-    entity: Union[Cause, Sequela],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: Cause | Sequela,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     if entity.kind == "cause":
         data = utility_data.get_demographic_dimensions(
@@ -263,8 +262,8 @@ def get_disability_weight(
 
 def get_remission_rate(
     entity: Cause,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -283,8 +282,8 @@ def get_remission_rate(
 
 def get_cause_specific_mortality_rate(
     entity: Cause,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     deaths = get_data(entity, "deaths", location_id, years=years)
     # population isn't by draws
@@ -296,8 +295,8 @@ def get_cause_specific_mortality_rate(
 
 def get_excess_mortality_rate(
     entity: Cause,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     csmr = get_data(
         entity,
@@ -313,8 +312,8 @@ def get_excess_mortality_rate(
 
 def get_deaths(
     entity: Cause,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -332,9 +331,9 @@ def get_deaths(
 
 
 def get_exposure(
-    entity: Union[RiskFactor, AlternativeRiskFactor],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: RiskFactor | AlternativeRiskFactor,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -384,9 +383,9 @@ def get_exposure(
 
 
 def get_exposure_standard_deviation(
-    entity: Union[RiskFactor, AlternativeRiskFactor],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: RiskFactor | AlternativeRiskFactor,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -413,9 +412,9 @@ def get_exposure_standard_deviation(
 
 
 def get_exposure_distribution_weights(
-    entity: Union[RiskFactor, AlternativeRiskFactor],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: RiskFactor | AlternativeRiskFactor,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -484,8 +483,8 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
 
 def get_relative_risk(
     entity: RiskFactor,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     if len(set(location_id)) > 1:
         raise ValueError(
@@ -546,9 +545,9 @@ def filter_by_relative_risk(df: pd.DataFrame, relative_risk: pd.DataFrame) -> pd
 
 
 def get_population_attributable_fraction(
-    entity: Union[RiskFactor, Etiology],
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    entity: RiskFactor | Etiology,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     causes_map = {c.gbd_id: c for c in causes}
     if entity.kind == "risk_factor":
@@ -629,8 +628,8 @@ def get_population_attributable_fraction(
 
 def get_estimate(
     entity: Covariate,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -661,8 +660,8 @@ def get_utilization_rate(entity: HealthcareEntity, location_id: List[int]) -> pd
 
 def get_structure(
     entity: Population,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -678,8 +677,8 @@ def get_structure(
 
 def get_theoretical_minimum_risk_life_expectancy(
     entity: Population,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     data = extract.extract_data(
         entity,
@@ -695,8 +694,8 @@ def get_theoretical_minimum_risk_life_expectancy(
 
 def get_age_bins(
     entity: Population,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     age_bins = utility_data.get_age_bins()[["age_group_name", "age_start", "age_end"]]
     return age_bins
@@ -704,8 +703,8 @@ def get_age_bins(
 
 def get_demographic_dimensions(
     entity: Population,
-    location_id: List[int],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location_id: list[int],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     demographic_dimensions = utility_data.get_demographic_dimensions(location_id, years=years)
     demographic_dimensions = utilities.normalize(demographic_dimensions)

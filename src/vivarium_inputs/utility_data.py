@@ -1,5 +1,3 @@
-from typing import Dict, List, Optional, Union
-
 import pandas as pd
 from gbd_mapping import RiskFactor
 
@@ -20,7 +18,7 @@ def get_year_block(*_, **__) -> pd.DataFrame:
     return year_block
 
 
-def get_age_group_ids(*_, **__) -> List[int]:
+def get_age_group_ids(*_, **__) -> list[int]:
     data = gbd.get_age_group_id()
     return data
 
@@ -45,7 +43,7 @@ def get_location_name(location_id: int) -> str:
     }[location_id]
 
 
-def get_location_id_parents(location_id: Union[int, List[int]]) -> Dict[int, List]:
+def get_location_id_parents(location_id: int | list[int]) -> dict[int, list]:
     if isinstance(location_id, int):
         location_id = [location_id]
     location_metadata = gbd.get_location_path_to_global()
@@ -62,10 +60,10 @@ def get_location_id_parents(location_id: Union[int, List[int]]) -> Dict[int, Lis
 
 
 def get_demographic_dimensions(
-    location_id: Union[int, List[int]],
+    location_id: int | list[int],
     draws: bool = False,
     value: float = None,
-    years: Optional[Union[int, str, List[int]]] = None,
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     ages = get_age_group_ids()
     estimation_years = get_estimation_years()

@@ -1,5 +1,4 @@
 import operator
-from typing import List, Set, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -132,7 +131,7 @@ def validate_raw_data(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location_id: Union[int, List[int]],
+    location_id: int | list[int],
     **additional_data,
 ) -> None:
     """Validate data conforms to the format expected from raw GBD data, that all
@@ -308,7 +307,7 @@ def check_healthcare_entity_metadata(entity: HealthcareEntity, measure: str) -> 
 
 
 def validate_incidence_rate(
-    data: pd.DataFrame, entity: Union[Cause, Sequela], context: RawValidationContext
+    data: pd.DataFrame, entity: Cause | Sequela, context: RawValidationContext
 ) -> None:
     """Check the standard set of validations on raw incidence data for entity.
 
@@ -365,7 +364,7 @@ def validate_incidence_rate(
 
 
 def validate_prevalence(
-    data: pd.DataFrame, entity: Union[Cause, Sequela], context: RawValidationContext
+    data: pd.DataFrame, entity: Cause | Sequela, context: RawValidationContext
 ) -> None:
     """Check the standard set of validations on raw prevalence data for entity.
 
@@ -431,7 +430,7 @@ def validate_prevalence(
 
 
 def validate_birth_prevalence(
-    data: pd.DataFrame, entity: Union[Cause, Sequela], context: RawValidationContext
+    data: pd.DataFrame, entity: Cause | Sequela, context: RawValidationContext
 ) -> None:
     """Check the standard set of validations on raw birth prevalence data for
     entity, replacing the standard age id checks with a custom check of the
@@ -679,7 +678,7 @@ def validate_deaths(data: pd.DataFrame, entity: Cause, context: RawValidationCon
 
 def validate_exposure(
     data: pd.DataFrame,
-    entity: Union[RiskFactor, AlternativeRiskFactor],
+    entity: RiskFactor | AlternativeRiskFactor,
     context: RawValidationContext,
 ) -> None:
     """Check the standard set of validations on raw exposure data for entity.
@@ -802,7 +801,7 @@ def validate_exposure(
 
 def validate_exposure_standard_deviation(
     data: pd.DataFrame,
-    entity: Union[RiskFactor, AlternativeRiskFactor],
+    entity: RiskFactor | AlternativeRiskFactor,
     context: RawValidationContext,
 ) -> None:
     """Check the standard set of validations on raw exposure standard
@@ -867,7 +866,7 @@ def validate_exposure_standard_deviation(
 
 def validate_exposure_distribution_weights(
     data: pd.DataFrame,
-    entity: Union[RiskFactor, AlternativeRiskFactor],
+    entity: RiskFactor | AlternativeRiskFactor,
     context: RawValidationContext,
 ) -> None:
     """Check the standard set of validations on raw exposure distribution
@@ -1103,7 +1102,7 @@ def validate_relative_risk(
 
 
 def validate_population_attributable_fraction(
-    data: pd.DataFrame, entity: Union[RiskFactor, Etiology], context: RawValidationContext
+    data: pd.DataFrame, entity: RiskFactor | Etiology, context: RawValidationContext
 ) -> None:
     """Check the standard set of validations on raw population attributable
     fraction data for entity, replacing the age restrictions check with
@@ -1377,7 +1376,7 @@ def validate_estimate(
 
 def validate_cost(
     data: pd.DataFrame,
-    entity: Union[HealthcareEntity, HealthTechnology],
+    entity: HealthcareEntity | HealthTechnology,
     context: RawValidationContext,
 ) -> None:
     """Check the standard set of validations on raw cost data for entity,
@@ -1708,7 +1707,7 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool) ->
 
 
 def check_cause_yll_yld_only_restrictions(
-    data: pd.DataFrame, entity: Union[RiskFactor, Etiology]
+    data: pd.DataFrame, entity: RiskFactor | Etiology,
 ) -> None:
     """Verify that there is no data violating yll/yld only restrictions.
 
@@ -1746,7 +1745,7 @@ def check_cause_yll_yld_only_restrictions(
 
 def _get_valid_rr_and_age_groups(
     context: RawValidationContext, entity: RiskFactor, cause: Cause, measure_id: int
-) -> Tuple[Set, pd.DataFrame]:
+) -> tuple[set, pd.DataFrame]:
     """According to the distribution type of RiskFactor, it finds the non-
     trivial relative risk and returns its age groups ids and relative risk
     only containing the given `cause` and `measure id`.
@@ -1976,7 +1975,7 @@ def check_location(data: pd.DataFrame, context: RawValidationContext) -> None:
             )
 
 
-def check_columns(expected_cols: List, existing_cols: List) -> None:
+def check_columns(expected_cols: list, existing_cols: list) -> None:
     """Verify that the passed lists of columns match.
 
     Parameters
@@ -2073,8 +2072,8 @@ def _check_continuity(data_ages: set, all_ages: set) -> None:
 def check_age_group_ids(
     data: pd.DataFrame,
     context: RawValidationContext,
-    restriction_start: Union[int, None],
-    restriction_end: Union[int, None],
+    restriction_start: int | None,
+    restriction_end: int, None,
 ) -> None:
     """Check the set of age_group_ids included in data pulled from GBD for
     the following conditions:
