@@ -422,9 +422,7 @@ def get_restriction_age_ids(
     return data
 
 
-def get_restriction_age_boundary(
-    entity: RiskFactor | Cause, boundary: str, reverse=False
-):
+def get_restriction_age_boundary(entity: RiskFactor | Cause, boundary: str, reverse=False):
     """Find the minimum/maximum age restriction (if both 'yll' and 'yld'
     restrictions exist) for a RiskFactor.
 
