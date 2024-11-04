@@ -1,3 +1,7 @@
+**5.1.0 - 11/04/24**
+
+ - Drop support for Python 3.9
+
 **5.0.7 - 09/13/24**
 
  - Process exposure parametrized relative risks
