@@ -1707,8 +1707,7 @@ def check_mort_morb_flags(data: pd.DataFrame, yld_only: bool, yll_only: bool) ->
 
 
 def check_cause_yll_yld_only_restrictions(
-    data: pd.DataFrame,
-    entity: RiskFactor | Etiology,
+    data: pd.DataFrame, entity: RiskFactor | Etiology
 ) -> None:
     """Verify that there is no data violating yll/yld only restrictions.
 
