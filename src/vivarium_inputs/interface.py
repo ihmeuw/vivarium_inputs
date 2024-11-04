@@ -10,7 +10,7 @@ from vivarium_inputs.globals import Population
 def get_measure(
     entity: ModelableEntity,
     measure: str,
-    location: int | str | list[int] | str,
+    location: int | str | list[int | str],
     years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
@@ -145,7 +145,7 @@ def get_age_bins() -> pd.DataFrame:
 
 
 def get_demographic_dimensions(
-    location: int | str | list[int, str],
+    location: int | str | list[int | str],
     years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
