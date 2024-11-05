@@ -1,7 +1,6 @@
 """Errors and utility functions for input processing."""
 
 from numbers import Real
-from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -31,7 +30,7 @@ def scrub_gbd_conventions(data, location):
     return data
 
 
-def scrub_location(data: pd.DataFrame, location: Union[int, List[str]]) -> pd.DataFrame:
+def scrub_location(data: pd.DataFrame, location: int | list[str]) -> pd.DataFrame:
     # Coerce location names
     if not isinstance(location, list):
         location = [location]
@@ -120,7 +119,7 @@ def set_age_interval(data):
 
 
 def normalize(
-    data: pd.DataFrame, fill_value: Real = None, cols_to_fill: List[str] = DRAW_COLUMNS
+    data: pd.DataFrame, fill_value: Real = None, cols_to_fill: list[str] = DRAW_COLUMNS
 ) -> pd.DataFrame:
     data = normalize_sex(data, fill_value, cols_to_fill)
     data = normalize_year(data)
@@ -191,7 +190,7 @@ def interpolate_year(data):
 
 
 def normalize_age(
-    data: pd.DataFrame, fill_value: Real, cols_to_fill: List[str]
+    data: pd.DataFrame, fill_value: Real, cols_to_fill: list[str]
 ) -> pd.DataFrame:
     data_ages = set(data.age_group_id.unique()) if "age_group_id" in data.columns else set()
     gbd_ages = set(utility_data.get_age_group_ids())
@@ -226,13 +225,13 @@ def normalize_age(
     return data
 
 
-def get_ordered_index_cols(data_columns: Union[pd.Index, set]):
+def get_ordered_index_cols(data_columns: pd.Index | set):
     return [i for i in INDEX_COLUMNS if i in data_columns] + list(
         data_columns.difference(INDEX_COLUMNS)
     )
 
 
-def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS) -> pd.DataFrame:
+def reshape(data: pd.DataFrame, value_cols: list = DRAW_COLUMNS) -> pd.DataFrame:
     if isinstance(data, pd.DataFrame) and not isinstance(
         data.index, pd.MultiIndex
     ):  # push all non-val cols into index
@@ -247,7 +246,7 @@ def reshape(data: pd.DataFrame, value_cols: List = DRAW_COLUMNS) -> pd.DataFrame
     return data
 
 
-def wide_to_long(data: pd.DataFrame, value_cols: List, var_name: str) -> pd.DataFrame:
+def wide_to_long(data: pd.DataFrame, value_cols: list, var_name: str) -> pd.DataFrame:
     if set(data.columns).intersection(value_cols):
         id_cols = data.columns.difference(value_cols)
         data = pd.melt(data, id_vars=id_cols, value_vars=value_cols, var_name=var_name)
@@ -300,8 +299,8 @@ def compute_categorical_paf(
 
 
 def get_age_group_ids_by_restriction(
-    entity: Union[RiskFactor, Cause], which_age: str
-) -> Tuple[float, float]:
+    entity: RiskFactor | Cause, which_age: str
+) -> tuple[float, float]:
     if which_age == "yll":
         start, end = (
             entity.restrictions.yll_age_group_id_start,
@@ -328,9 +327,9 @@ def get_age_group_ids_by_restriction(
 
 def filter_data_by_restrictions(
     data: pd.DataFrame,
-    entity: Union[RiskFactor, Cause],
+    entity: RiskFactor | Cause,
     which_age: str,
-    age_group_ids: List[int],
+    age_group_ids: list[int],
 ) -> pd.DataFrame:
     """
     For the given data and restrictions, it applies age/sex restrictions and
@@ -376,7 +375,7 @@ def filter_data_by_restrictions(
 
 
 def clear_disability_weight_outside_restrictions(
-    data: pd.DataFrame, cause: Cause, fill_value: float, age_group_ids: List[int]
+    data: pd.DataFrame, cause: Cause, fill_value: float, age_group_ids: list[int]
 ) -> pd.DataFrame:
     """Because sequela disability weight is not age/sex specific, we need to
     have a custom function to set the values outside the corresponding cause
@@ -409,8 +408,8 @@ def filter_to_most_detailed_causes(data: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_restriction_age_ids(
-    start_id: Union[int, None], end_id: Union[int, None], age_group_ids: List[int]
-) -> List[int]:
+    start_id: int | None, end_id: int | None, age_group_ids: list[int]
+) -> list[int]:
     """Get the start/end age group id and return the list of GBD age_group_ids
     in-between.
     """
@@ -423,9 +422,7 @@ def get_restriction_age_ids(
     return data
 
 
-def get_restriction_age_boundary(
-    entity: Union[RiskFactor, Cause], boundary: str, reverse=False
-):
+def get_restriction_age_boundary(entity: RiskFactor | Cause, boundary: str, reverse=False):
     """Find the minimum/maximum age restriction (if both 'yll' and 'yld'
     restrictions exist) for a RiskFactor.
 

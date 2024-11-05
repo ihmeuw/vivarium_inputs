@@ -1,5 +1,3 @@
-from typing import Dict, List, Optional, Union
-
 import numpy as np
 import pandas as pd
 from gbd_mapping import (
@@ -63,7 +61,7 @@ SCRUBBED_DEMOGRAPHIC_COLUMNS = ["location", "sex", "age", "year"]
 
 
 class SimulationValidationContext:
-    def __init__(self, location: List[str], **additional_data):
+    def __init__(self, location: list[str], **additional_data):
         self.context_data = {"location": location}
         self.context_data.update(additional_data)
 
@@ -83,8 +81,8 @@ def validate_for_simulation(
     data: pd.DataFrame,
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[int] = None,
+    location: int | str | list[int | str],
+    years: int | None = None,
     **context_args,
 ) -> None:
     """Validate data conforms to the format that is expected by the simulation
@@ -195,7 +193,7 @@ def validate_for_simulation(
 
 
 def validate_incidence_rate(
-    data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext
+    data: pd.DataFrame, entity: Cause | Sequela, context: SimulationValidationContext
 ) -> None:
     """Check the standard set of validations on simulation-prepped incidence
     data.
@@ -254,7 +252,7 @@ def validate_incidence_rate(
 
 
 def validate_prevalence(
-    data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext
+    data: pd.DataFrame, entity: Cause | Sequela, context: SimulationValidationContext
 ) -> None:
     """Check the standard set of validations on simulation-prepped prevalence
     data.
@@ -313,7 +311,7 @@ def validate_prevalence(
 
 
 def validate_birth_prevalence(
-    data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext
+    data: pd.DataFrame, entity: Cause | Sequela, context: SimulationValidationContext
 ) -> None:
     """Check the standard set of validations on simulation-prepped birth
     prevalence data, skipping the check on age columns since birth prevalence
@@ -373,7 +371,7 @@ def validate_birth_prevalence(
 
 
 def validate_disability_weight(
-    data: pd.DataFrame, entity: Union[Cause, Sequela], context: SimulationValidationContext
+    data: pd.DataFrame, entity: Cause | Sequela, context: SimulationValidationContext
 ) -> None:
     """Check the standard set of validations on simulation-prepped disability
     weight data.
@@ -593,7 +591,7 @@ def validate_excess_mortality_rate(
 
 def validate_exposure(
     data: pd.DataFrame,
-    entity: Union[RiskFactor, AlternativeRiskFactor],
+    entity: RiskFactor | AlternativeRiskFactor,
     context: SimulationValidationContext,
 ) -> None:
     """Check the standard set of validations on simulation-prepped exposure
@@ -703,7 +701,7 @@ def validate_exposure(
 
 def validate_exposure_standard_deviation(
     data: pd.DataFrame,
-    entity: Union[RiskFactor, AlternativeRiskFactor],
+    entity: RiskFactor | AlternativeRiskFactor,
     context: SimulationValidationContext,
 ) -> None:
     """Check the standard set of validations on simulation-prepped exposure
@@ -757,7 +755,7 @@ def validate_exposure_standard_deviation(
 
 def validate_exposure_distribution_weights(
     data: pd.DataFrame,
-    entity: Union[RiskFactor, AlternativeRiskFactor],
+    entity: RiskFactor | AlternativeRiskFactor,
     context: SimulationValidationContext,
 ) -> None:
     """Check the standard set of validations on simulation-prepped exposure
@@ -942,7 +940,7 @@ def validate_relative_risk(
 
 def validate_population_attributable_fraction(
     data: pd.DataFrame,
-    entity: Union[RiskFactor, Etiology],
+    entity: RiskFactor | Etiology,
     context: SimulationValidationContext,
 ) -> None:
     """Check the standard set of validations on simulation-prepped population
@@ -1086,7 +1084,7 @@ def validate_estimate(
 
 def validate_cost(
     data: pd.DataFrame,
-    entity: Union[HealthTechnology, HealthcareEntity],
+    entity: HealthTechnology | HealthcareEntity,
     context: SimulationValidationContext,
 ) -> None:
     """Check the standard set of validations on simulation-prepped cost data.
@@ -1342,10 +1340,10 @@ def validate_demographic_dimensions(
 
 
 def validate_expected_index_and_columns(
-    expected_index_names: List,
-    existing_index_names: List,
-    expected_cols: List,
-    existing_cols: List,
+    expected_index_names: list,
+    existing_index_names: list,
+    expected_cols: list,
+    existing_cols: list,
 ) -> None:
     """Verify that the passed lists of columns and index names match.
 
@@ -1580,7 +1578,7 @@ def check_age_restrictions(
     data: pd.DataFrame,
     entity: ModelableEntity,
     rest_type: str,
-    fill_value: Union[float, Dict[str, float]],
+    fill_value: float | dict[str, float],
     context: SimulationValidationContext,
 ):
     """Given an entity and which restrictions to use, ensure that all data for
@@ -1642,7 +1640,7 @@ def check_sex_restrictions(
     data: pd.DataFrame,
     male_only: bool,
     female_only: bool,
-    fill_value: Union[float, Dict[str, float]],
+    fill_value: float | dict[str, float],
     entity=None,
 ):
     """Given an entity and which restrictions to use, ensure that all data for
@@ -1699,8 +1697,8 @@ def check_sex_restrictions(
 
 def _check_cat_risk_fill_values(
     outside_data: pd.DataFrame,
-    entity: Union[RiskFactor, AlternativeRiskFactor],
-    fill_value: Dict[str, float],
+    entity: RiskFactor | AlternativeRiskFactor,
+    fill_value: dict[str, float],
     restriction: str,
 ):
     """Helper method for checking restrictions for categorical risks where two

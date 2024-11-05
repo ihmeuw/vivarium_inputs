@@ -1,5 +1,4 @@
 import operator
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -14,7 +13,7 @@ from vivarium_inputs.globals import DRAW_COLUMNS, VivariumInputsError
 
 def check_value_columns_boundary(
     data: pd.DataFrame,
-    boundary_value: Union[float, pd.Series],
+    boundary_value: float | pd.Series,
     boundary_type: str,
     value_columns: list = DRAW_COLUMNS,
     inclusive: bool = True,

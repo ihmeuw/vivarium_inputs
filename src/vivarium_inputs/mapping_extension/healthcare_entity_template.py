@@ -1,5 +1,3 @@
-from typing import Union
-
 from gbd_mapping.base_template import GbdRecord, ModelableEntity
 from gbd_mapping.id import me_id
 
@@ -13,7 +11,7 @@ class HealthcareEntity(ModelableEntity):
         self,
         name: str,
         kind: str,
-        gbd_id: Union[me_id, None],
+        gbd_id: me_id | None,
         utilization: me_id = None,
     ):
         super().__init__(name=name, kind=kind, gbd_id=gbd_id)

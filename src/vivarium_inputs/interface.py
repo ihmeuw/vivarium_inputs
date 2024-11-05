@@ -1,6 +1,4 @@
 """Access to vivarium simulation input data."""
-from typing import List, Optional, Union
-
 import pandas as pd
 from gbd_mapping import ModelableEntity
 
@@ -12,8 +10,8 @@ from vivarium_inputs.globals import Population
 def get_measure(
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location: int | str | list[int | str],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     """Pull GBD data for measure and entity and prep for simulation input,
     including scrubbing all GBD conventions to replace IDs with meaningful
@@ -71,8 +69,8 @@ def get_measure(
 
 
 def get_population_structure(
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location: int | str | list[int | str],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     """Pull GBD population data for the given location and standardize to the
     expected simulation input format, including scrubbing all GBD conventions
@@ -147,8 +145,8 @@ def get_age_bins() -> pd.DataFrame:
 
 
 def get_demographic_dimensions(
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[Union[int, str, List[int]]] = None,
+    location: int | str | list[int | str],
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     """Pull the full demographic dimensions for GBD data, standardized to the
     expected simulation input format, including scrubbing all GBD conventions
@@ -180,9 +178,9 @@ def get_demographic_dimensions(
 def get_raw_data(
     entity: ModelableEntity,
     measure: str,
-    location: Union[int, str, List[Union[int, str]]],
-    years: Optional[Union[int, str, List[int]]] = None,
-) -> Union[pd.Series, pd.DataFrame]:
+    location: int | str | list[int | str],
+    years: int | str | list[int] | None = None,
+) -> pd.Series | pd.DataFrame:
     """Pull raw data from GBD for the requested entity, measure, and location.
     Skip standard raw validation checks in order to return data that can be
     investigated for oddities. The only filter that occurs is by applicable
@@ -227,7 +225,7 @@ def get_raw_data(
 
     Returns
     -------
-    Union[pandas.Series, pandas.DataFrame]
+    pandas.Series | pandas.DataFrame
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """

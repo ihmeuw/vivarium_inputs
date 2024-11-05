@@ -366,7 +366,6 @@ To use:
     :hide:
 
     import inspect
-    from typing import List, Optional, Union
 
     import pandas as pd
 
@@ -379,12 +378,12 @@ To use:
                 'parameters': {
                     'entity': ModelableEntity, 
                     'measure': str, 
-                    'location': Union[int, str, List[Union[int, str]]],
-                    'years': Optional[Union[int, str, List[int]]],
+                    'location': int | str | list[int | str],
+                    'years': int | str | list[int] | None,
                         },
                 'return': pd.DataFrame, },
              get_population_structure: {
-                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'years': Optional[Union[int, str, List[int]]]},
+                 'parameters': {'location': int | str | list[int | str], 'years': int | str | list[int] | None},
                  'return': pd.DataFrame, },
              get_theoretical_minimum_risk_life_expectancy: {
                  'parameters': {},
@@ -393,16 +392,16 @@ To use:
                  'parameters': {},
                  'return': pd.DataFrame, },
              get_demographic_dimensions: {
-                 'parameters': {'location': Union[int, str, List[Union[int, str]]], 'years': Optional[Union[int, str, List[int]]]},
+                 'parameters': {'location': int | str | list[int | str], 'years': int | str | list[int] | None},
                  'return': pd.DataFrame, },
              get_raw_data: {
                  'parameters': {
                     'entity': ModelableEntity,
                     'measure': str,
-                    'location': Union[int, str, List[Union[int, str]]],
-                    'years': Optional[Union[int, str, List[int]]],
+                    'location': int | str | list[int | str],
+                    'years': int | str | list[int] | None,
                         },
-                'return': Union[pd.DataFrame, pd.Series], },
+                'return': pd.DataFrame | pd.Series, },
              }
     for func, spec in funcs.items():
         sig = inspect.signature(func)
