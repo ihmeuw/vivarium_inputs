@@ -152,17 +152,18 @@ pipeline {
               }
             }
 
-            // NOTE: we exclude several usual stages (Format, Lint, and Type Check)
-            // because they are already being run in github actions
+            // NOTE: We exclude several usual stages (Format, Lint, and Type Check)
+            //  because they are already being run in github actions.
 
             // Tests
-            // NOTE: we only run slow e2e tests here because unit and mocked e2e tests are already 
-            // being run in github actions
-            // NOTE: we do not distinguish between scheduled (IS_CRON) and other (e.g. on-push)
-            // builds here like we typically. Usually we would run slow tests on a schedule and
-            // fast tests otherwise, but in this case the repo (hosted on github) does not have
-            // access to the Jenkins builds anyway and so we simply run slow tests always
-            // and will at least get the slack message upon failure.
+            // NOTE: We only run slow e2e tests here because unit and mocked e2e tests are already 
+            //  being run in github actions.
+            // NOTE: we do not distinguish between scheduled (IS_CRON) and triggered (e.g. on-push)
+            //  builds here like we typically do. Usually we would run slow tests on a schedule and
+            //  fast tests when triggered, but in this case the repo (hosted on github) does not have
+            //  access to the Jenkins builds anyway and so we can't block a merge with a failed
+            //  build. As such, we just always run the slow tests and will at least get a slack
+            //  message upon failure (even if too late and the merge already happened).
             stage("Run Unmocked E2E Tests") {
               steps {
                 sh "${ACTIVATE} && make e2e-runslow"

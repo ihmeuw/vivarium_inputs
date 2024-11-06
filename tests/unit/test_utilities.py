@@ -4,7 +4,37 @@ import pandas as pd
 import pytest
 
 from vivarium_inputs import utilities
-from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS, SUPPORTED_DATA_TYPES
+from vivarium_inputs.globals import (
+    DRAW_COLUMNS,
+    MEAN_COLUMNS,
+    NON_STANDARD_MEASURES,
+    SUPPORTED_DATA_TYPES,
+)
+
+POSSIBLE_MEASURES = [
+    "incidence_rate",
+    "raw_incidence_rate",
+    "prevalence",
+    "birth_prevalence",
+    "disability_weight",
+    "remission_rate",
+    "cause_specific_mortality_rate",
+    "excess_mortality_rate",
+    "deaths",
+    # Risk-like measures
+    "exposure",
+    "exposure_standard_deviation",
+    "exposure_distribution_weights",
+    "relative_risk",
+    "population_attributable_fraction",
+    # Covariate measures
+    "estimate",
+    # Population measures
+    "structure",
+    "theoretical_minimum_risk_life_expectancy",
+    "age_bins",
+    "demographic_dimensions",
+]
 
 
 @pytest.mark.parametrize(
@@ -45,22 +75,6 @@ def test_normalize_sex_no_sex_id():
     pd.testing.assert_frame_equal(df, normalized)
 
 
-@pytest.mark.parametrize("data_type", ["means", "draws", None])
-@pytest.mark.parametrize("value_cols", [None, ["value"]])
-def test_data_type_args(data_type, value_cols):
-    """Test the mutual exclusivity of data_type and value_cols"""
-    if data_type is None and value_cols is None:
-        with pytest.raises(ValueError, match="Must pass either 'data_type' or 'value_cols'."):
-            utilities.DataType(data_type, value_cols)
-    elif data_type is not None and value_cols is not None:
-        with pytest.raises(
-            ValueError, match="Cannot pass both 'data_type' and 'value_cols'."
-        ):
-            utilities.DataType(data_type, value_cols)
-    else:
-        utilities.DataType(data_type, value_cols)
-
-
 @pytest.mark.parametrize(
     "data_type, should_raise",
     [
@@ -85,28 +99,27 @@ def test_validate_data_type(data_type, should_raise):
                 f"Data type(s) {set(['foo'])} are not supported. Supported types are {list(SUPPORTED_DATA_TYPES)}."
             )
         with pytest.raises(utilities.DataTypeNotImplementedError, match=match):
-            utilities.DataType(data_type)
+            utilities.DataType("foo", data_type)
     else:
-        utilities.DataType(data_type)
+        utilities.DataType("foo", data_type)
 
 
+@pytest.mark.parametrize("measure", POSSIBLE_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
-    "data_type, value_cols, expected_returned_cols",
-    [
-        ("means", None, MEAN_COLUMNS),
-        ("draws", None, DRAW_COLUMNS),
-        (["means", "draws"], None, MEAN_COLUMNS + DRAW_COLUMNS),
-        (None, ["value"], ["value"]),
-    ],
+    "data_type", ("means", "draws", ["means", "draws"]), ids=["means", "draws", "means_draws"]
 )
-def test_get_value_columns(data_type, value_cols, expected_returned_cols):
+def test_get_value_columns(measure, data_type):
     if isinstance(data_type, list):
         with pytest.raises(
             utilities.DataTypeNotImplementedError,
             match="Lists of data types are not yet supported.",
         ):
-            utilities.DataType(data_type).value_columns
+            utilities.DataType(measure, data_type).value_columns
     else:
-        assert (
-            utilities.DataType(data_type, value_cols).value_columns == expected_returned_cols
-        )
+        if measure in NON_STANDARD_MEASURES:
+            expected_returned_cols = ["value"]
+        elif data_type == "means":
+            expected_returned_cols = MEAN_COLUMNS
+        else:  # draws
+            expected_returned_cols = DRAW_COLUMNS
+        assert utilities.DataType(measure, data_type).value_columns == expected_returned_cols
