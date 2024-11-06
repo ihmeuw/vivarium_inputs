@@ -12,7 +12,7 @@ from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
     DEMOGRAPHIC_COLUMNS,
     DRAW_COLUMNS,
-    MEAN_COLUMNS,
+    NON_STANDARD_MEASURES,
     SEXES,
     SPECIAL_AGES,
     SUPPORTED_DATA_TYPES,
@@ -393,9 +393,9 @@ def clear_disability_weight_outside_restrictions(
     start, end = get_age_group_ids_by_restriction(cause, "yld")
     ages = get_restriction_age_ids(start, end, age_group_ids)
 
-    data.loc[(~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS] = (
-        fill_value
-    )
+    data.loc[
+        (~data.sex_id.isin(sexes)) | (~data.age_group_id.isin(ages)), DRAW_COLUMNS
+    ] = fill_value
     return data
 
 
@@ -570,17 +570,9 @@ class DataTypeNotImplementedError(NotImplementedError):
 class DataType:
     """Class to handle data types and their corresponding differences."""
 
-    def __init__(
-        self, data_type: str | list[str] | None, value_cols: list[str] | None = None
-    ) -> None:
+    def __init__(self, measure: str, data_type: str | list[str]) -> None:
 
-        if data_type is not None and value_cols is not None:
-            raise ValueError("Cannot pass both 'data_type' and 'value_cols'.")
-        if data_type is None and value_cols is None:
-            raise ValueError("Must pass either 'data_type' or 'value_cols'.")
-
-        if data_type is not None:
-            self._validate_data_type(data_type)
+        self._validate_data_type(data_type)
 
         self.type = data_type
         """Data type(s) for which to extract data and used to determine the data's
@@ -588,32 +580,26 @@ class DataType:
 
         Notes
         -----
-        This is mutually exclusive with `value_cols`, i.e. one of the two is
-        required but not both.
-
         Supported values include:
         - 'means' for getting mean data
         - 'draws' for getting draw-level data
-        - None if the requested data is niche. In this case, the value columns
-        must be passed in directly via the `value_cols` argument. 'None' will 
-        likely be removed as a supported value in the future when 'means' is
-        fully supported.
+
+        The data for the following measures do not adhere standard data_types
+        (i.e. they are not mean or draw-level data) and so this attribute
+        is somewhat irrelevant:
+        - structure
+        - theoretical_minimum_risk_life_expectancy
+        - estimate
+        - exposure_distribution_weights
         """
 
-        self.value_columns = (
-            self._get_value_columns(data_type) if value_cols is None else value_cols
-        )
-        """List of value columns corresponding to the provided data type(s). If 
-        None, the list will be generated based on the data type passed in. This
-        argument may go away in the future when getting mean data is fully
-        supported.
+        self.value_columns = self._get_value_columns(measure, data_type)
+        """List of value columns corresponding to the provided data type(s).
         
         Notes
         -----
-        This is mutually exclusive with `data_type`, i.e. one of the two is
-        required but not both.
-
-        Measures that require `value_cols` of ["value"] to be passed in:
+        The following measures do not adhere to standard data type-specific
+        value_columns and so have them set manually to 'value':
         - structure
         - theoretical_minimum_risk_life_expectancy
         - estimate
@@ -641,16 +627,19 @@ class DataType:
             )
 
     @staticmethod
-    def _get_value_columns(data_type: str | list[str]) -> list[str]:
-        """Get the value columns corresponding to the provided data type(s)."""
-        data_type_col_mapping = {
-            "means": MEAN_COLUMNS,
-            "draws": DRAW_COLUMNS,
-        }
+    def _get_value_columns(measure: str, data_type: str | list[str]) -> list[str]:
+        """Get the value columns corresponding to the provided data type(s).
+
+        If the measure is one of 'structure', 'theoretical_minimum_risk_life_expectancy',
+        'estimate', or 'exposure_distribution_weights', the value columns are always 'value'.
+        """
         value_cols = []
         if isinstance(data_type, str):
             data_type = [data_type]
         for value in data_type:
-            value_cols.extend(data_type_col_mapping[value])
+            if measure in NON_STANDARD_MEASURES:
+                value_cols.append("value")
+            else:
+                value_cols.extend(SUPPORTED_DATA_TYPES[value])
 
         return value_cols
