@@ -26,7 +26,7 @@ INDEX_COLUMNS = DEMOGRAPHIC_COLUMNS + ["affected_entity", "affected_measure", "p
 
 
 def scrub_gbd_conventions(
-    data: pd.DataFrame, location: Union[int, str, List[Union[int, str]]]
+    data: pd.DataFrame, location: int | str | list[int | str]
 ) -> pd.DataFrame:
     data = scrub_location(data, location)
     data = scrub_sex(data)
@@ -196,7 +196,7 @@ def interpolate_year(data):
 
 
 def normalize_age(
-    data: pd.DataFrame, cols_to_fill: List[str], fill_value: Real
+    data: pd.DataFrame, cols_to_fill: list[str], fill_value: Real
 ) -> pd.DataFrame:
     data_ages = set(data.age_group_id.unique()) if "age_group_id" in data.columns else set()
     gbd_ages = set(utility_data.get_age_group_ids())
