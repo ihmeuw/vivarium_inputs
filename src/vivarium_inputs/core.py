@@ -26,6 +26,7 @@ from vivarium_inputs.globals import (
     DataDoesNotExistError,
     InvalidQueryError,
     Population,
+    gbd,
 )
 from vivarium_inputs.mapping_extension import AlternativeRiskFactor, HealthcareEntity
 
