@@ -179,7 +179,7 @@ def validate_for_simulation(
                 }
             )
         else:
-            most_recent_year = utility_data.get_most_recent_year()
+            most_recent_year = gbd.get_most_recent_year()
             context_args["years"] = pd.DataFrame(
                 {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
             )
@@ -330,7 +330,7 @@ def validate_prevalence(
 
 def validate_birth_prevalence(
     data: pd.DataFrame,
-    entity: entity: Cause | Sequela,
+    entity: Cause | Sequela,
     context: SimulationValidationContext,
     value_columns: list[str],
 ) -> None:
@@ -395,7 +395,7 @@ def validate_birth_prevalence(
 
 def validate_disability_weight(
     data: pd.DataFrame,
-    entity: entity: Cause | Sequela,
+    entity: Cause | Sequela,
     context: SimulationValidationContext,
     value_columns: list[str],
 ) -> None:
