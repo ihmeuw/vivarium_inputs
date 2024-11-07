@@ -172,6 +172,11 @@ def mock_vivarium_gbd_access(
             "vivarium_inputs.extract.extract_exposure_standard_deviation",
             return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
         )
+    elif measure == "exposure_distribution_weights":
+        mock = mocker.patch(
+            "vivarium_inputs.extract.extract_exposure_distribution_weights",
+            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+        )
     else:
         raise NotImplementedError(f"Unexpected measure: {measure}")
     return mocked_funcs
@@ -220,13 +225,10 @@ def mocked_get_draws(measure: str, entity, **entity_specific_metadata) -> pd.Dat
         "structure": get_mocked_structure_get_draws,
         "exposure": partial(get_mocked_exposure_get_draws, entity),
         "exposure_standard_deviation": get_mocked_exposure_sd_get_draws,
+        "exposure_distribution_weights": get_mocked_exposure_distribution_weights_get_draws,
     }[measure]()
-    # Add on common metadata (note that this may overwrite existing columns, e.g.
-    # from loading a population static file)
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
 
-    # Add on other entity-specific metadata columns
+    # Add on entity-specific metadata columns
     for key, value in entity_specific_metadata.items():
         df[key] = value
 
@@ -244,6 +246,8 @@ def get_mocked_incidence_rate_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
     df["measure_id"] = 6  # incidence
     df["metric_id"] = 3  # rate
     df["version_id"] = DUMMY_INT
@@ -264,6 +268,8 @@ def get_mocked_prevalence_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
     df["measure_id"] = 5  # prevalence
     df["metric_id"] = 3  # rate
     df["version_id"] = DUMMY_INT
@@ -276,6 +282,8 @@ def get_mocked_prevalence_get_draws() -> pd.DataFrame:
 def get_mocked_dw_get_draws() -> pd.DataFrame:
     df = pd.DataFrame(
         {
+            "location_id": utility_data.get_location_id(LOCATION),
+            "year_id": YEAR,
             "age_group_id": 22,
             "sex_id": 3,
             "measure": "disability_weight",
@@ -302,6 +310,8 @@ def get_mocked_remission_rate_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
     df["measure_id"] = 7  # remission
     df["metric_id"] = 3  # rate
     df["model_version_id"] = DUMMY_INT
@@ -324,6 +334,8 @@ def get_mocked_deaths_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
     df["measure_id"] = 1  # deaths
     df["metric_id"] = 1  # number
     df["version_id"] = DUMMY_INT
@@ -349,6 +361,8 @@ def get_mocked_structure_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
     df["run_id"] = DUMMY_INT
 
     _add_value_columns(df, ["population"], 1.0e6, 100.0e6)
@@ -373,6 +387,8 @@ def get_mocked_exposure_get_draws(entity) -> pd.DataFrame:
         )
 
         # Add on other metadata columns
+        df["location_id"] = utility_data.get_location_id(LOCATION)
+        df["year_id"] = YEAR
         df["modelable_entity_id"] = DUMMY_INT
         df["measure_id"] = 19  # continuous
         df["metric_id"] = 3  # rate
@@ -395,6 +411,8 @@ def get_mocked_exposure_sd_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
     df["modelable_entity_id"] = DUMMY_INT
     df["measure_id"] = 19  # continuous
     df["metric_id"] = 3  # rate
@@ -403,6 +421,34 @@ def get_mocked_exposure_sd_get_draws() -> pd.DataFrame:
     _add_value_columns(df, DRAW_COLUMNS, 6.0, 14.0)
 
     return df
+
+
+def get_mocked_exposure_distribution_weights_get_draws() -> pd.DataFrame:
+
+    # We simply copy/paste the data from the call here.
+    return pd.DataFrame(
+        {
+            "exp": 0.0012511270939698,
+            "gamma": 0.0118578481457336,
+            "invgamma": 0.0307299056293708,
+            "llogis": 0.244326256508881,
+            "gumbel": 0.515477963465818,
+            "weibull": 0.0085853963221991,
+            "lnorm": 0.0162367872410608,
+            "norm": 0.00494120859787,
+            "glnorm": 0,
+            "betasr": 0.0350911796340715,
+            "mgamma": 0.0064136247118684,
+            "mgumbel": 0.125088702649157,
+            "invweibull": 0,
+            "rei_id": 107,
+            "location_id": 163,
+            "sex_id": 3,
+            "age_group_id": 22,
+            "measure": "ensemble_distribution_weight",
+        },
+        index=[0],
+    )
 
 
 ###########################
