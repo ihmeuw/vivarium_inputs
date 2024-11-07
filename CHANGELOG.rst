@@ -1,3 +1,9 @@
+**5.2.0 - 11/07/24**
+
+ - Add framework for getting mean data
+ - Add mean data support for getting incidence, prevalence, and birth prevalence
+ - Add a few tests to be run in CI against get_measure
+
 **5.1.0 - 11/04/24**
 
  - Drop support for Python 3.9
