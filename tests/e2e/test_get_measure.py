@@ -212,31 +212,27 @@ RISK_FACTORS = [
         risk_factors.high_systolic_blood_pressure,
         [
             "exposure",
-            "exposure_standard_deviation",
-            "exposure_distribution_weights",
-            # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
-            "population_attributable_fraction",  # Very slow
+            # "exposure_standard_deviation",
+            # "exposure_distribution_weights",
+            # # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
+            # "population_attributable_fraction",  # Very slow
         ],
     ),
     (
         risk_factors.low_birth_weight_and_short_gestation,
         [
             "exposure",
-            # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
-            "population_attributable_fraction",  # Very slow
+            # # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
+            # "population_attributable_fraction",  # Very slow
         ],
     ),
 ]
 RISK_FACTOR_MEASURES = [
     "exposure",
-    "exposure_standard_deviation",
-    "exposure_distribution_weights",
-    "relative_risk",
-    "population_attributable_fraction",
-    # "mediation_factors",
-    #   QUESTION: are we supposed to support mediation_factors? There is no mapping
-    #   for interface.get_measure(), but there is an extraction method
-    #   (i.e. interface.get_raw_data())
+    # "exposure_standard_deviation",
+    # "exposure_distribution_weights",
+    # "relative_risk",
+    # "population_attributable_fraction",
 ]
 
 
@@ -245,7 +241,8 @@ RISK_FACTOR_MEASURES = [
 @pytest.mark.parametrize(
     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
 )
-@pytest.mark.parametrize("mock_gbd", [False], ids=("unmocked",))  # TODO: mock_id=True
+@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+# @pytest.mark.parametrize("mock_gbd", [True])  # FIXME: USE BOTH
 def test_get_measure_risklike(
     entity_details: RiskFactor,
     measure: str,

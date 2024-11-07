@@ -15,7 +15,7 @@ from gbd_mapping import (
 )
 from loguru import logger
 
-from vivarium_inputs import utilities, utility_data
+from vivarium_inputs import utility_data
 from vivarium_inputs.globals import (
     DEMOGRAPHIC_COLUMNS,
     DRAW_COLUMNS,

@@ -5,6 +5,7 @@ Various mocked GBD objects for testing purposes.
 from __future__ import annotations
 
 import itertools
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -81,6 +82,9 @@ def mock_vivarium_gbd_access(
             "sequela_id": int(entity.gbd_id),
             "sequela_name": DUMMY_STR,
         },
+        "RiskFactor": {
+            "rei_id": int(entity.gbd_id),
+        },
     }
     entity_specific_metadata = entity_specific_metadata_mapper[entity.__class__.__name__]
 
@@ -155,6 +159,12 @@ def mock_vivarium_gbd_access(
             mocked_extract_deaths,
             mocked_extract_structure,
         ]
+    elif measure == "exposure":
+        mocked_extract_exposure = mocker.patch(
+            "vivarium_inputs.extract.extract_exposure",
+            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+        )
+        mocked_funcs = [mocked_extract_exposure]
     else:
         raise NotImplementedError(f"Unexpected measure: {measure}")
     return mocked_funcs
@@ -190,19 +200,19 @@ def get_mocked_location_ids() -> pd.DataFrame:
 #########################
 
 
-def mocked_get_draws(measure: str, **entity_specific_metadata) -> pd.DataFrame:
+def mocked_get_draws(measure: str, entity, **entity_specific_metadata) -> pd.DataFrame:
     """Mocked vivarium_gbd_access get_draws() data for testing."""
 
     # Get the common data for the specific measure (regardless of entity type)
     df = {
-        "incidence_rate": get_mocked_data_incidence_rate_get_draws,
-        "prevalence": get_mocked_data_prevalence_get_draws,
-        "disability_weight": get_mocked_data_dw_get_draws,
-        "remission_rate": get_mocked_data_remission_rate_get_draws,
-        "deaths": get_mocked_data_deaths_get_draws,
-        "structure": get_mocked_data_structure_get_draws,
+        "incidence_rate": get_mocked_incidence_rate_get_draws,
+        "prevalence": get_mocked_prevalence_get_draws,
+        "disability_weight": get_mocked_dw_get_draws,
+        "remission_rate": get_mocked_remission_rate_get_draws,
+        "deaths": get_mocked_deaths_get_draws,
+        "structure": get_mocked_structure_get_draws,
+        "exposure": partial(get_mocked_exposure_get_draws, entity),
     }[measure]()
-
     # Add on common metadata (note that this may overwrite existing columns, e.g.
     # from loading a population static file)
     df["location_id"] = utility_data.get_location_id(LOCATION)
@@ -215,7 +225,7 @@ def mocked_get_draws(measure: str, **entity_specific_metadata) -> pd.DataFrame:
     return df
 
 
-def get_mocked_data_incidence_rate_get_draws() -> pd.DataFrame:
+def get_mocked_incidence_rate_get_draws() -> pd.DataFrame:
     age_group_ids = get_mocked_age_bins()["age_group_id"]
     sex_ids = [1, 2]
 
@@ -226,8 +236,8 @@ def get_mocked_data_incidence_rate_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["measure_id"] = 6
-    df["metric_id"] = 3  # for rate
+    df["measure_id"] = 6  # incidence
+    df["metric_id"] = 3  # rate
     df["version_id"] = DUMMY_INT
 
     _add_value_columns(df, DRAW_COLUMNS, 0.3, 3.6)
@@ -235,7 +245,7 @@ def get_mocked_data_incidence_rate_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_data_prevalence_get_draws() -> pd.DataFrame:
+def get_mocked_prevalence_get_draws() -> pd.DataFrame:
     age_group_ids = get_mocked_age_bins()["age_group_id"]
     sex_ids = [1, 2]
 
@@ -246,8 +256,8 @@ def get_mocked_data_prevalence_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["measure_id"] = 5
-    df["metric_id"] = 3  # for rate
+    df["measure_id"] = 5  # prevalence
+    df["metric_id"] = 3  # rate
     df["version_id"] = DUMMY_INT
 
     _add_value_columns(df, DRAW_COLUMNS, 0.004, 0.06)
@@ -255,7 +265,7 @@ def get_mocked_data_prevalence_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_data_dw_get_draws() -> pd.DataFrame:
+def get_mocked_dw_get_draws() -> pd.DataFrame:
     df = pd.DataFrame(
         {
             "age_group_id": 22,
@@ -272,7 +282,7 @@ def get_mocked_data_dw_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_data_remission_rate_get_draws() -> pd.DataFrame:
+def get_mocked_remission_rate_get_draws() -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
@@ -284,8 +294,8 @@ def get_mocked_data_remission_rate_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["measure_id"] = 7
-    df["metric_id"] = 3
+    df["measure_id"] = 7  # remission
+    df["metric_id"] = 3  # rate
     df["model_version_id"] = DUMMY_INT
     df["modelable_entity_id"] = DUMMY_INT
 
@@ -294,7 +304,7 @@ def get_mocked_data_remission_rate_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_data_deaths_get_draws() -> pd.DataFrame:
+def get_mocked_deaths_get_draws() -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
@@ -306,8 +316,8 @@ def get_mocked_data_deaths_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["measure_id"] = 1
-    df["metric_id"] = 1
+    df["measure_id"] = 1  # deaths
+    df["metric_id"] = 1  # number
     df["version_id"] = DUMMY_INT
 
     # Note: The maximum deaths cannot be too high because we have a validation
@@ -317,7 +327,7 @@ def get_mocked_data_deaths_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_data_structure_get_draws() -> pd.DataFrame:
+def get_mocked_structure_get_draws() -> pd.DataFrame:
     # Populations is difficult to mock at the age-group level so just load it
     # return pd.read_csv(f"tests/fixture_data/population_{LOCATION.lower()}_{YEAR}.csv")
     age_bins = get_mocked_age_bins()
@@ -338,6 +348,33 @@ def get_mocked_data_structure_get_draws() -> pd.DataFrame:
     return df
 
 
+def get_mocked_exposure_get_draws(entity) -> pd.DataFrame:
+    if entity.name == "low_birth_weight_and_short_gestation":
+        df = pd.read_csv("tests/fixture_data/lbwsg_exposure_metadata.csv")
+        _add_value_columns(df, DRAW_COLUMNS, 0.0, 1.0)
+        #
+    else:
+        age_bins = get_mocked_age_bins()
+        age_group_ids = list(age_bins["age_group_id"])
+        sex_ids = [1, 2]
+
+        # Initiate df with all possible combinations of variable metadata columns
+        df = pd.DataFrame(
+            list(itertools.product(age_group_ids, sex_ids)),
+            columns=["age_group_id", "sex_id"],
+        )
+
+        # Add on other metadata columns
+        df["modelable_entity_id"] = DUMMY_INT
+        df["measure_id"] = 19  # continuous
+        df["metric_id"] = 3  # rate
+        df["parameter"] = "continuous"
+
+        _add_value_columns(df, DRAW_COLUMNS, 100.0, 200.0)
+
+    return df
+
+
 ###########################
 # MOCKED GET_OUTPUTS DATA #
 ###########################
@@ -348,8 +385,8 @@ def mocked_get_outputs(measure: str, **entity_specific_metadata) -> pd.DataFrame
 
     # Get the common data for the specific measure (regardless of entity type)
     df = {
-        "incidence_rate": get_mocked_data_incidence_rate_get_outputs,
-        "prevalence": get_mocked_data_prevalence_get_outputs,
+        "incidence_rate": get_mocked_incidence_rate_get_outputs,
+        "prevalence": get_mocked_prevalence_get_outputs,
     }[measure]()
 
     # Add on common metadata (note that this may overwrite existing columns, e.g.
@@ -376,7 +413,7 @@ def mocked_get_outputs(measure: str, **entity_specific_metadata) -> pd.DataFrame
     return df
 
 
-def get_mocked_data_incidence_rate_get_outputs() -> pd.DataFrame:
+def get_mocked_incidence_rate_get_outputs() -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
@@ -399,7 +436,7 @@ def get_mocked_data_incidence_rate_get_outputs() -> pd.DataFrame:
     return df
 
 
-def get_mocked_data_prevalence_get_outputs() -> pd.DataFrame:
+def get_mocked_prevalence_get_outputs() -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
