@@ -88,7 +88,7 @@ def validate_for_simulation(
     measure: str,
     location: int | str | list[int | str],
     years: int | None,
-    data_type: DataType,
+    value_columns: list[str],
     **context_args,
 ) -> None:
     """Validate data for use in a simulation.
@@ -126,8 +126,8 @@ def validate_for_simulation(
         Flag indicating whether to validate that we have all years.
         Otherwise, validate that data has most recent year.
         Defaults to False.
-    data_type
-        DataType object of the extracted data.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
     **context_args
         Any data or information needed to construct the SimulationContext used
         by the individual entity-measure validator functions.
@@ -179,7 +179,7 @@ def validate_for_simulation(
                 }
             )
         else:
-            most_recent_year = gbd.get_most_recent_year()
+            most_recent_year = utility_data.get_most_recent_year()
             context_args["years"] = pd.DataFrame(
                 {"year_start": most_recent_year, "year_end": most_recent_year + 1}, index=[0]
             )
@@ -192,7 +192,7 @@ def validate_for_simulation(
         for loc in location
     ]
     context = SimulationValidationContext(location, **context_args)
-    validators[measure](data, entity, context, data_type.value_columns)
+    validators[measure](data, entity, context, value_columns)
 
 
 #########################################################

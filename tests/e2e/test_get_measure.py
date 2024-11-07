@@ -1,25 +1,21 @@
-"""
-End-to-end tests for interface.get_measure().
-
-Due to the fact that pulling data can take quite some time as well as that
-vivarium_gbd_access is required but not always available, some unique
-precautions and guards have been taken:
-- All tests are automatically skipped if vivarium_gbd_access is not installed 
-    (e.g. from github actions).
-- Tests are parametrized by a 'mock_gbd' boolean which, if true, uses mocked
-    data instead of pulling from the GBD. This allows for testing on github actions
-    as well as testing on every push/pull (via Jenkins pipelines).
-- Unmocked tests are marked as slow and thus require the --runslow flag to run.
-- Particularly slow tests are datetime-checked to only weekly.
-"""
+"""End-to-end tests for interface.get_measure()."""
 
 from __future__ import annotations
 
+import datetime
 from functools import partial
 
 import pandas as pd
 import pytest
-from gbd_mapping import Cause, Sequela, causes, covariates, risk_factors, sequelae
+from gbd_mapping import (
+    Cause,
+    RiskFactor,
+    Sequela,
+    causes,
+    covariates,
+    risk_factors,
+    sequelae,
+)
 from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 
@@ -31,7 +27,11 @@ from tests.e2e.mocked_gbd import (
     mock_vivarium_gbd_access,
 )
 from vivarium_inputs import utility_data
-from vivarium_inputs.globals import SUPPORTED_DATA_TYPES, DataAbnormalError
+from vivarium_inputs.globals import (
+    NON_STANDARD_MEASURES,
+    SUPPORTED_DATA_TYPES,
+    DataAbnormalError,
+)
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utilities import DataTypeNotImplementedError
 
@@ -108,6 +108,24 @@ def test_get_measure_causelike(
     runslow: bool,
     mocker: MockerFixture,
 ):
+    """Test get_measure().
+
+    We are parametrizing over various things.
+    - entity_details: A tuple of an entity and a list of measures that are applicable to that entity.
+    - measure: The possible measures for that entity type (e.g. cause, sequela, etc)
+    - data_type: The data type request (means or draws)
+    - mock_gbd: Whether to mock calls to vivarium_gbd_access or not. We do this because
+        getting the real data tends to take a long time and so we want to only run that
+        when requesting a --runslow test. Note that we do not attempt to get more granular
+        with slow runs; mocked tests will always run and unmocked tests will only run
+        if --runslow is passed
+
+    Notes
+    -----
+    The --runslow flag is automatically passed into these tests as an argument; we do
+    not mark the tests themselves as slow (because we want more granularity, i.e.
+    mocked tests are not slow but unmocked tests are).
+    """
     # Test-specific fixme skips
     if measure == "birth_prevalence":
         pytest.skip("FIXME: need to find causes with birth prevalence")
@@ -143,7 +161,6 @@ SEQUELA_MEASURES = [
 ]
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize("entity_details", SEQUELAE, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", SEQUELA_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
@@ -158,6 +175,24 @@ def test_get_measure_sequelalike(
     runslow: bool,
     mocker: MockerFixture,
 ):
+    """Test get_measure().
+
+    We are parametrizing over various things.
+    - entity_details: A tuple of an entity and a list of measures that are applicable to that entity.
+    - measure: The possible measures for that entity type (e.g. cause, sequela, etc)
+    - data_type: The data type request (means or draws)
+    - mock_gbd: Whether to mock calls to vivarium_gbd_access or not. We do this because
+        getting the real data tends to take a long time and so we want to only run that
+        when requesting a --runslow test. Note that we do not attempt to get more granular
+        with slow runs; mocked tests will always run and unmocked tests will only run
+        if --runslow is passed
+
+    Notes
+    -----
+    The --runslow flag is automatically passed into these tests as an argument; we do
+    not mark the tests themselves as slow (because we want more granularity, i.e.
+    mocked tests are not slow but unmocked tests are).
+    """
 
     # Test-specific fixme skips
     if measure == "birth_prevalence":
@@ -172,7 +207,7 @@ def test_get_measure_sequelalike(
     run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
 
 
-ENTITIES_R = [
+RISK_FACTORS = [
     (
         risk_factors.high_systolic_blood_pressure,
         [
@@ -180,34 +215,72 @@ ENTITIES_R = [
             "exposure_standard_deviation",
             "exposure_distribution_weights",
             # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
-            "population_attributable_fraction",
+            "population_attributable_fraction",  # Very slow
         ],
     ),
     (
         risk_factors.low_birth_weight_and_short_gestation,
         [
             "exposure",
-            "relative_risk",
-            "population_attributable_fraction",
+            # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
+            "population_attributable_fraction",  # Very slow
         ],
     ),
 ]
-MEASURES_R = [
+RISK_FACTOR_MEASURES = [
     "exposure",
     "exposure_standard_deviation",
     "exposure_distribution_weights",
-    # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
+    "relative_risk",
     "population_attributable_fraction",
+    # "mediation_factors",
+    #   QUESTION: are we supposed to support mediation_factors? There is no mapping
+    #   for interface.get_measure(), but there is an extraction method
+    #   (i.e. interface.get_raw_data())
 ]
 
 
-@pytest.mark.skip("TODO: [mic-5456]")
-@pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
-def test_get_measure_risklike(entity_details, measure):
-    entity, entity_expected_measures = entity_details
-    tester = success_expected if measure in entity_expected_measures else fail_expected
-    _df = tester(entity, measure, utility_data.get_location_id(LOCATION))
+@pytest.mark.parametrize("entity_details", RISK_FACTORS, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", RISK_FACTOR_MEASURES, ids=lambda x: x)
+@pytest.mark.parametrize(
+    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+)
+@pytest.mark.parametrize("mock_gbd", [False], ids=("unmocked",))  # TODO: mock_id=True
+def test_get_measure_risklike(
+    entity_details: RiskFactor,
+    measure: str,
+    data_type: str | list[str],
+    mock_gbd: bool,
+    runslow: bool,
+    mocker: MockerFixture,
+):
+    """Test get_measure().
+
+    We are parametrizing over various things.
+    - entity_details: A tuple of an entity and a list of measures that are applicable to that entity.
+    - measure: The possible measures for that entity type (e.g. cause, sequela, etc)
+    - data_type: The data type request (means or draws)
+    - mock_gbd: Whether to mock calls to vivarium_gbd_access or not. We do this because
+        getting the real data tends to take a long time and so we want to only run that
+        when requesting a --runslow test. Note that we do not attempt to get more granular
+        with slow runs; mocked tests will always run and unmocked tests will only run
+        if --runslow is passed
+
+    Notes
+    -----
+    The --runslow flag is automatically passed into these tests as an argument; we do
+    not mark the tests themselves as slow (because we want more granularity, i.e.
+    mocked tests are not slow but unmocked tests are).
+    """
+
+    # Test-specific fixme skips
+    if measure == "relative_risk":
+        pytest.skip("FIXME: [mic-4936]")
+
+    # Handle not implemented
+    is_unimplemented = isinstance(data_type, list) or data_type == "means"
+
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
 
 
 ENTITIES_COV = [
@@ -259,7 +332,7 @@ def test_get_working_relative_risk(entity_details, measure):
 
 
 def run_test(
-    entity_details: tuple[Cause, list[str]],
+    entity_details: tuple[Cause | Sequela | RiskFactor, list[str]],
     measure: str,
     data_type: str | list[str],
     mock_gbd: bool,
@@ -273,6 +346,16 @@ def run_test(
         pytest.skip("Need --runslow option to run unmocked tests")
     if NO_GBD_ACCESS and not mock_gbd:
         pytest.skip("Need GBD access to run unmocked tests")
+    # Only run PAF tests on Sundays since it's so slow. Note that this
+    # could indadvertently be skipped if there is a significant delay between when
+    # a jenkins pipeline is kicked off and when the test itself is run.
+    if (
+        measure in entity_expected_measures
+        and measure == "population_attributable_fraction"
+        and not mock_gbd
+        and datetime.datetime.today().weekday() != 6
+    ):
+        pytest.skip("Only run full PAF tests on Sundays")
 
     tester = success_expected if measure in entity_expected_measures else fail_expected
     if is_unimplemented:
@@ -295,7 +378,7 @@ def run_test(
 
 def success_expected(entity, measure, location, data_type):
     df = get_measure(entity, measure, location, years=None, data_type=data_type)
-    check_data(df, data_type)
+    check_data(measure, df, data_type)
 
 
 def fail_expected(entity, measure, location, data_type, raise_type=Exception):
@@ -303,9 +386,12 @@ def fail_expected(entity, measure, location, data_type, raise_type=Exception):
         _df = get_measure(entity, measure, location, years=None, data_type=data_type)
 
 
-def check_data(data: pd.DataFrame, data_type: str) -> None:
+def check_data(measure: str, data: pd.DataFrame, data_type: str) -> None:
     """Check the data returned."""
-    assert all(col in data.columns for col in SUPPORTED_DATA_TYPES[data_type])
+    if measure in NON_STANDARD_MEASURES:
+        assert list(data.columns) == ["value"]
+    else:
+        assert all(col in data.columns for col in SUPPORTED_DATA_TYPES[data_type])
     assert all(data.notna())
     assert all(data >= 0)
     # Check metadata index values (note that there may be other metadata returned)

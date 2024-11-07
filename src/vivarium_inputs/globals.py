@@ -170,6 +170,14 @@ SUPPORTED_DATA_TYPES = {
     "draws": DRAW_COLUMNS,
 }
 
+# Measures that don't have mean or draw-level data
+NON_STANDARD_MEASURES = [
+    "structure",
+    "theoretical_minimum_risk_life_expectancy",
+    "estimate",
+    "exposure_distribution_weights",
+]
+
 
 # Cause-risk pair where risk may have a protective effect on a certain cause with negative paf
 PROTECTIVE_CAUSE_RISK_PAIRS = {
