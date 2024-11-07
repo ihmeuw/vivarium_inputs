@@ -92,51 +92,53 @@ def mock_vivarium_gbd_access(
     if measure == "incidence_rate":
         mocked_extract_incidence_rate = mocker.patch(
             "vivarium_inputs.extract.extract_incidence_rate",
-            return_value=mocked_data_func(measure, **entity_specific_metadata),
+            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
         )
         mocked_extract_prevalence = mocker.patch(
             "vivarium_inputs.extract.extract_prevalence",
-            return_value=mocked_data_func("prevalence", **entity_specific_metadata),
+            return_value=mocked_data_func("prevalence", entity, **entity_specific_metadata),
         )
         mocked_funcs = [mocked_extract_incidence_rate, mocked_extract_prevalence]
     elif measure == "prevalence":
-        mocked_extract_prevalence = mocker.patch(
+        mock = mocker.patch(
             "vivarium_inputs.extract.extract_prevalence",
-            return_value=mocked_data_func(measure, **entity_specific_metadata),
+            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
         )
-        mocked_funcs = [mocked_extract_prevalence]
+        mocked_funcs = [mock]
     elif measure == "disability_weight":
-        mocked_extract_disability_weight = mocker.patch(
+        mock = mocker.patch(
             "vivarium_inputs.extract.extract_disability_weight",
-            return_value=mocked_data_func(measure, **entity_specific_metadata),
+            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
         )
         combined_metadata = entity_specific_metadata_mapper["Cause"]
         combined_metadata.update(entity_specific_metadata_mapper["Sequela"])
         mocked_extract_prevalence = mocker.patch(
             "vivarium_inputs.extract.extract_prevalence",
-            return_value=mocked_data_func("prevalence", **combined_metadata),
+            return_value=mocked_data_func("prevalence", entity, **combined_metadata),
         )
-        mocked_funcs = [mocked_extract_disability_weight]
+        mocked_funcs = [mock]
     elif measure == "remission_rate":
-        mocked_extract_remission_rate = mocker.patch(
+        mock = mocker.patch(
             "vivarium_inputs.extract.extract_remission_rate",
-            return_value=mocked_data_func(measure, **entity_specific_metadata),
+            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
         )
-        mocked_funcs = [mocked_extract_remission_rate]
+        mocked_funcs = [mock]
     elif measure == "cause_specific_mortality_rate":
         del entity_specific_metadata["acause"]
         del entity_specific_metadata["cause_name"]
         mocked_extract_deaths = mocker.patch(
             "vivarium_inputs.extract.extract_deaths",
-            return_value=mocked_data_func("deaths", **entity_specific_metadata),
+            return_value=mocked_data_func("deaths", entity, **entity_specific_metadata),
         )
         mocked_extract_structure = mocker.patch(
             "vivarium_inputs.extract.extract_structure",
-            return_value=mocked_data_func("structure"),
+            return_value=mocked_data_func("structure", entity),
         )
         mocked_funcs = [mocked_extract_deaths, mocked_extract_structure]
     elif measure == "excess_mortality_rate":
-        mocked_prevalence_data = mocked_data_func("prevalence", **entity_specific_metadata)
+        mocked_prevalence_data = mocked_data_func(
+            "prevalence", entity, **entity_specific_metadata
+        )
         mocked_extract_prevalence = mocker.patch(
             "vivarium_inputs.extract.extract_prevalence",
             return_value=mocked_prevalence_data[
@@ -148,11 +150,11 @@ def mock_vivarium_gbd_access(
         del death_kwargs["cause_name"]
         mocked_extract_deaths = mocker.patch(
             "vivarium_inputs.extract.extract_deaths",
-            return_value=mocked_data_func("deaths", **entity_specific_metadata),
+            return_value=mocked_data_func("deaths", entity, **entity_specific_metadata),
         )
         mocked_extract_structure = mocker.patch(
             "vivarium_inputs.extract.extract_structure",
-            return_value=mocked_data_func("structure"),
+            return_value=mocked_data_func("structure", entity),
         )
         mocked_funcs = [
             mocked_extract_prevalence,
@@ -160,11 +162,16 @@ def mock_vivarium_gbd_access(
             mocked_extract_structure,
         ]
     elif measure == "exposure":
-        mocked_extract_exposure = mocker.patch(
+        mock = mocker.patch(
             "vivarium_inputs.extract.extract_exposure",
             return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
         )
-        mocked_funcs = [mocked_extract_exposure]
+        mocked_funcs = [mock]
+    elif measure == "exposure_standard_deviation":
+        mock = mocker.patch(
+            "vivarium_inputs.extract.extract_exposure_standard_deviation",
+            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+        )
     else:
         raise NotImplementedError(f"Unexpected measure: {measure}")
     return mocked_funcs
@@ -212,6 +219,7 @@ def mocked_get_draws(measure: str, entity, **entity_specific_metadata) -> pd.Dat
         "deaths": get_mocked_deaths_get_draws,
         "structure": get_mocked_structure_get_draws,
         "exposure": partial(get_mocked_exposure_get_draws, entity),
+        "exposure_standard_deviation": get_mocked_exposure_sd_get_draws,
     }[measure]()
     # Add on common metadata (note that this may overwrite existing columns, e.g.
     # from loading a population static file)
@@ -375,12 +383,34 @@ def get_mocked_exposure_get_draws(entity) -> pd.DataFrame:
     return df
 
 
+def get_mocked_exposure_sd_get_draws() -> pd.DataFrame:
+    age_bins = get_mocked_age_bins()
+    age_group_ids = list(age_bins["age_group_id"])
+    sex_ids = [1, 2]
+
+    # Initiate df with all possible combinations of variable metadata columns
+    df = pd.DataFrame(
+        list(itertools.product(age_group_ids, sex_ids)),
+        columns=["age_group_id", "sex_id"],
+    )
+
+    # Add on other metadata columns
+    df["modelable_entity_id"] = DUMMY_INT
+    df["measure_id"] = 19  # continuous
+    df["metric_id"] = 3  # rate
+    df["model_version_id"] = DUMMY_INT
+
+    _add_value_columns(df, DRAW_COLUMNS, 6.0, 14.0)
+
+    return df
+
+
 ###########################
 # MOCKED GET_OUTPUTS DATA #
 ###########################
 
 
-def mocked_get_outputs(measure: str, **entity_specific_metadata) -> pd.DataFrame:
+def mocked_get_outputs(measure: str, entity, **entity_specific_metadata) -> pd.DataFrame:
     """Mocked vivarium_gbd_access get_outputs() data for testing."""
 
     # Get the common data for the specific measure (regardless of entity type)

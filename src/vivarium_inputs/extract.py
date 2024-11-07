@@ -344,6 +344,7 @@ def extract_exposure_standard_deviation(
         data = gbd.get_auxiliary_data(
             "exposure_standard_deviation", entity.kind, entity.name, location_id
         )
+    breakpoint()
     return data
 
 
