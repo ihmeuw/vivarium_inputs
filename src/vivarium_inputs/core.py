@@ -141,8 +141,20 @@ def get_incidence_rate(
     years: int | str | list[int] | None,
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
-    data = get_data(entity, "raw_incidence_rate", location_id, years, data_type)
-    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
+    data = get_data(
+        entity,
+        "raw_incidence_rate",
+        location_id,
+        years,
+        utilities.DataType("raw_incidence_rate", data_type.type),
+    )
+    prevalence = get_data(
+        entity,
+        "prevalence",
+        location_id,
+        years,
+        utilities.DataType("prevalence", data_type.type),
+    )
     # Convert from "True incidence" to the incidence rate among susceptibles
     data /= 1 - prevalence
     return data.fillna(0)
@@ -225,7 +237,11 @@ def get_disability_weight(
             for sequela in entity.sequelae:
                 try:
                     prevalence = get_data(
-                        sequela, "prevalence", location_id, years, data_type
+                        sequela,
+                        "prevalence",
+                        location_id,
+                        years,
+                        utilities.DataType("prevalence", data_type.type),
                     )
                 except DataDoesNotExistError:
                     # sequela prevalence does not exist so no point continuing with this sequela
@@ -235,10 +251,16 @@ def get_disability_weight(
                     "disability_weight",
                     location_id,
                     years,
-                    data_type,
+                    utilities.DataType("disability_weight", data_type.type),
                 )
                 data += prevalence * disability
-        cause_prevalence = get_data(entity, "prevalence", location_id, years, data_type)
+        cause_prevalence = get_data(
+            entity,
+            "prevalence",
+            location_id,
+            years,
+            utilities.DataType("prevalence", data_type.type),
+        )
         data = (data / cause_prevalence).fillna(0).reset_index()
     else:  # entity.kind == 'sequela'
         try:
@@ -295,14 +317,16 @@ def get_cause_specific_mortality_rate(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
 
-    deaths = get_data(entity, "deaths", location_id, years, data_type)
+    deaths = get_data(
+        entity, "deaths", location_id, years, utilities.DataType("deaths", data_type.type)
+    )
     # population isn't by draws
     pop = get_data(
         Population(),
         "structure",
         location_id,
         years,
-        utilities.DataType(data_type=None, value_cols=["value"]),
+        utilities.DataType("structure", data_type.type),
     )
     data = deaths.join(pop, lsuffix="_deaths", rsuffix="_pop")
     data[data_type.value_columns] = data[data_type.value_columns].divide(data.value, axis=0)
@@ -326,9 +350,15 @@ def get_excess_mortality_rate(
         "cause_specific_mortality_rate",
         location_id,
         years,
-        data_type,
+        utilities.DataType("cause_specific_mortality_rate", data_type.type),
     )
-    prevalence = get_data(entity, "prevalence", location_id, years, data_type)
+    prevalence = get_data(
+        entity,
+        "prevalence",
+        location_id,
+        years,
+        utilities.DataType("prevalence", data_type.type),
+    )
     data = (csmr / prevalence).fillna(0)
     data = data.replace([np.inf, -np.inf], 0)
     return data
@@ -594,9 +624,9 @@ def get_population_attributable_fraction(
             data = data.where(data[value_columns] > 0, 0).reset_index()
 
     data = utilities.convert_affected_entity(data, "cause_id")
-    data.loc[data["measure_id"] == MEASURES["YLLs"], "affected_measure"] = (
-        "excess_mortality_rate"
-    )
+    data.loc[
+        data["measure_id"] == MEASURES["YLLs"], "affected_measure"
+    ] = "excess_mortality_rate"
     data.loc[data["measure_id"] == MEASURES["YLDs"], "affected_measure"] = "incidence_rate"
     data = (
         data.groupby(["affected_entity", "affected_measure"])

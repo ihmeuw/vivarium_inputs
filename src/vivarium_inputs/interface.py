@@ -64,10 +64,12 @@ def get_measure(
     -------
         Dataframe standardized to the format expected by `vivarium` simulations.
     """
-    data_type = DataType(data_type)
+    data_type = DataType(measure, data_type)
     data = core.get_data(entity, measure, location, years, data_type)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, entity, measure, location, years, data_type)
+    validation.validate_for_simulation(
+        data, entity, measure, location, years, data_type.value_columns
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
@@ -235,7 +237,8 @@ def get_raw_data(
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
-    data_type = DataType(data_type)
+    # FIXME: Add tests against this function
+    data_type = DataType(measure, data_type)
     if not isinstance(location, list):
         location = [location]
     location_id = [
