@@ -1268,19 +1268,19 @@ def validate_population_attributable_fraction(
 
     grouped = data.groupby(["cause_id", "measure_id"])
 
-    for (c_id, _), g in grouped:
-        cause = [c for c in causes if c.gbd_id == c_id][0]
+    for (c_id, _), group in grouped:
+        cause = [cause for cause in causes if cause.gbd_id == c_id][0]
         cause_male_expected = risk_male_expected and not cause.restrictions.female_only
         cause_female_expected = risk_female_expected and not cause.restrictions.male_only
 
-        check_age_group_ids(g, context, None, None)
-        check_sex_ids(g, context, cause_male_expected, cause_female_expected)
+        check_age_group_ids(group, context, None, None)
+        check_sex_ids(group, context, cause_male_expected, cause_female_expected)
         #  check only if there is a sex restriction (male only or female only).
         if not cause_male_expected or not cause_female_expected:
             check_sex_restrictions(
-                g, context, cause_male_expected, cause_female_expected, DRAW_COLUMNS
+                group, context, cause_male_expected, cause_female_expected, DRAW_COLUMNS
             )
-        check_paf_rr_exposure_age_groups(g, context, entity)
+        check_paf_rr_exposure_age_groups(group, context, entity)
 
     protective_causes = (
         PROTECTIVE_CAUSE_RISK_PAIRS[entity.name]

@@ -33,6 +33,14 @@ def mock_vivarium_gbd_access(
     by a specific test. However, for mocked 'utilities.extract' data, we only mock
     if it is required for a given entity-measure-data_type combination.
 
+    Notes
+    -----
+    For simplicity, we mock the 'utilities.extract` functions rather than the
+    actual gbd calls. This does leave a bit of a coverage gap since the
+    'utilities.extract' functions have a bit of logic in them once the raw
+    data from gbd is returned. This seems like a reasonable tradeoff given that
+    we are still running the full unmocked tests on Jenkins as well.
+
     Returns
     -------
     A list of the mocked extract functions.
@@ -88,7 +96,6 @@ def mock_vivarium_gbd_access(
     }
     entity_specific_metadata = entity_specific_metadata_mapper[entity.__class__.__name__]
 
-    mocked_funcs = []
     if measure == "incidence_rate":
         mocked_extract_incidence_rate = mocker.patch(
             "vivarium_inputs.extract.extract_incidence_rate",
@@ -168,15 +175,41 @@ def mock_vivarium_gbd_access(
         )
         mocked_funcs = [mock]
     elif measure == "exposure_standard_deviation":
-        mock = mocker.patch(
+        mocked_exposure_sd = mocker.patch(
             "vivarium_inputs.extract.extract_exposure_standard_deviation",
             return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
         )
+        mocked_exposure = mocker.patch(
+            "vivarium_inputs.extract.extract_exposure",
+            return_value=mocked_data_func("exposure", entity, **entity_specific_metadata),
+        )
+        mocked_funcs = [mocked_exposure_sd, mocked_exposure]
     elif measure == "exposure_distribution_weights":
-        mock = mocker.patch(
+        mocked_exposure_distribution_weights = mocker.patch(
             "vivarium_inputs.extract.extract_exposure_distribution_weights",
             return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
         )
+        mocked_exposure = mocker.patch(
+            "vivarium_inputs.extract.extract_exposure",
+            return_value=mocked_data_func("exposure", entity, **entity_specific_metadata),
+        )
+        mocked_funcs = [mocked_exposure_distribution_weights, mocked_exposure]
+    elif measure == "population_attributable_fraction":
+        mocked_pafs = mocker.patch(
+            "vivarium_inputs.extract.extract_population_attributable_fraction",
+            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+        )
+        mocked_exposure = mocker.patch(
+            "vivarium_inputs.extract.extract_exposure",
+            return_value=mocked_data_func("exposure", entity, **entity_specific_metadata),
+        )
+        mocked_rr = mocker.patch(
+            "vivarium_inputs.extract.extract_relative_risk",
+            return_value=mocked_data_func(
+                "relative_risk", entity, **entity_specific_metadata
+            ),
+        )
+        mocked_funcs = [mocked_pafs, mocked_exposure, mocked_rr]
     else:
         raise NotImplementedError(f"Unexpected measure: {measure}")
     return mocked_funcs
@@ -226,6 +259,8 @@ def mocked_get_draws(measure: str, entity, **entity_specific_metadata) -> pd.Dat
         "exposure": partial(get_mocked_exposure_get_draws, entity),
         "exposure_standard_deviation": get_mocked_exposure_sd_get_draws,
         "exposure_distribution_weights": get_mocked_exposure_distribution_weights_get_draws,
+        "population_attributable_fraction": get_mocked_pafs_get_draws,
+        "relative_risk": get_mocked_rr_get_draws,
     }[measure]()
 
     # Add on entity-specific metadata columns
@@ -449,6 +484,57 @@ def get_mocked_exposure_distribution_weights_get_draws() -> pd.DataFrame:
         },
         index=[0],
     )
+
+
+def get_mocked_pafs_get_draws() -> pd.DataFrame:
+    age_bins = get_mocked_age_bins()
+    age_group_ids = list(age_bins["age_group_id"])
+    sex_ids = [1, 2]
+    measure_ids = [3, 4]  # only allowables for PAFs
+
+    # Initiate df with all possible combinations of variable metadata columns
+    df = pd.DataFrame(
+        list(itertools.product(age_group_ids, sex_ids, measure_ids)),
+        columns=["age_group_id", "sex_id", "measure_id"],
+    )
+
+    # Add on other metadata columns
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
+    df["cause_id"] = 495  # Needs to be a valid cause_id
+    df["metric_id"] = 2  # percent
+    df["version_id"] = DUMMY_INT
+
+    _add_value_columns(df, DRAW_COLUMNS, 0.0, 1.0)
+
+    return df
+
+
+def get_mocked_rr_get_draws() -> pd.DataFrame:
+    age_bins = get_mocked_age_bins()
+    age_group_ids = list(age_bins["age_group_id"])
+    sex_ids = [1, 2]
+
+    # Initiate df with all possible combinations of variable metadata columns
+    df = pd.DataFrame(
+        list(itertools.product(age_group_ids, sex_ids)),
+        columns=["age_group_id", "sex_id"],
+    )
+
+    # Add on other metadata columns
+    df["location_id"] = 1  # Most relative risks are global
+    df["year_id"] = YEAR
+    df["modelable_entity_id"] = DUMMY_INT
+    df["cause_id"] = 495  # Needs to be a valid cause_id
+    df["mortality"] = 1
+    df["morbidity"] = 1
+    df["metric_id"] = 3  # rate
+    df["parameter"] = DUMMY_FLOAT
+    df["exposure"] = np.nan
+
+    _add_value_columns(df, DRAW_COLUMNS, 0.0, 1000.0)
+
+    return df
 
 
 ###########################

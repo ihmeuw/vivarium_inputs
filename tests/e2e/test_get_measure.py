@@ -214,16 +214,16 @@ RISK_FACTORS = [
             "exposure",
             "exposure_standard_deviation",
             "exposure_distribution_weights",
-            # # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
-            # "population_attributable_fraction",  # Very slow
+            # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
+            "population_attributable_fraction",  # Very slow
         ],
     ),
     (
         risk_factors.low_birth_weight_and_short_gestation,
         [
             "exposure",
-            # # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
-            # "population_attributable_fraction",  # Very slow
+            # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
+            "population_attributable_fraction",  # Very slow
         ],
     ),
 ]
@@ -231,8 +231,8 @@ RISK_FACTOR_MEASURES = [
     "exposure",
     "exposure_standard_deviation",
     "exposure_distribution_weights",
-    # "relative_risk",
-    # "population_attributable_fraction",
+    "relative_risk",
+    "population_attributable_fraction",
 ]
 
 
@@ -242,7 +242,6 @@ RISK_FACTOR_MEASURES = [
     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
 )
 @pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
-# @pytest.mark.parametrize("mock_gbd", [True])  # FIXME: USE BOTH
 def test_get_measure_risklike(
     entity_details: RiskFactor,
     measure: str,
@@ -347,8 +346,8 @@ def run_test(
     # could indadvertently be skipped if there is a significant delay between when
     # a jenkins pipeline is kicked off and when the test itself is run.
     if (
-        measure in entity_expected_measures
-        and measure == "population_attributable_fraction"
+        measure == "population_attributable_fraction"
+        and measure in entity_expected_measures
         and not mock_gbd
         and datetime.datetime.today().weekday() != 6
     ):

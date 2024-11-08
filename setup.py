@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     setup_requires = ["setuptools_scm"]
 
-    data_requires = ["vivarium-gbd-access>=4.0.0, <5.0.0", "core-maths"]
+    data_requires = ["vivarium-gbd-access>=4.1.0, <5.0.0", "core-maths"]
 
     lint_requirements = ["black==22.3.0", "isort"]
 
