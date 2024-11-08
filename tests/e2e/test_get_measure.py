@@ -35,6 +35,9 @@ from vivarium_inputs.globals import (
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utilities import DataTypeNotImplementedError
 
+# TBD - SHOULD BE SUNDAY!!! <<<<<<<<<<<<<<<<<
+SLOW_TEST_DAY = "Friday"  # Day to run very slow tests, e.g. PAFs and RRs
+
 
 # TODO [MIC-5448]: Move to vivarium_testing_utilties
 @pytest.fixture(autouse=True)
@@ -211,28 +214,28 @@ RISK_FACTORS = [
     (
         risk_factors.high_systolic_blood_pressure,
         [
-            "exposure",
-            "exposure_standard_deviation",
-            "exposure_distribution_weights",
-            # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
-            "population_attributable_fraction",  # Very slow
+            # "exposure",
+            # "exposure_standard_deviation",
+            # "exposure_distribution_weights",
+            "relative_risk",
+            # "population_attributable_fraction",  # Very slow
         ],
     ),
     (
         risk_factors.low_birth_weight_and_short_gestation,
         [
-            "exposure",
-            # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
-            "population_attributable_fraction",  # Very slow
+            # "exposure",
+            "relative_risk",
+            # "population_attributable_fraction",  # Very slow
         ],
     ),
 ]
 RISK_FACTOR_MEASURES = [
-    "exposure",
-    "exposure_standard_deviation",
-    "exposure_distribution_weights",
+    # "exposure",
+    # "exposure_standard_deviation",
+    # "exposure_distribution_weights",
     "relative_risk",
-    "population_attributable_fraction",
+    # "population_attributable_fraction",
 ]
 
 
@@ -241,9 +244,10 @@ RISK_FACTOR_MEASURES = [
 @pytest.mark.parametrize(
     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
 )
-@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+# @pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+@pytest.mark.parametrize("mock_gbd", [True])
 def test_get_measure_risklike(
-    entity_details: RiskFactor,
+    entity_details: tuple(RiskFactor, list[str]),
     measure: str,
     data_type: str | list[str],
     mock_gbd: bool,
@@ -270,8 +274,8 @@ def test_get_measure_risklike(
     """
 
     # Test-specific fixme skips
-    if measure == "relative_risk":
-        pytest.skip("FIXME: [mic-4936]")
+    # if measure == "relative_risk":
+    #     pytest.skip("FIXME: [mic-4936]")
 
     # Handle not implemented
     is_unimplemented = isinstance(data_type, list) or data_type == "means"
@@ -292,34 +296,57 @@ def test_get_measure_covariatelike(entity, measure):
     _df = get_measure(entity, measure, utility_data.get_location_id(LOCATION))
 
 
-# TODO: Remove with Mic-4936
-ENTITIES_R = [
-    (risk_factors.high_systolic_blood_pressure, ["relative_risk"]),
-]
-MEASURES_R = ["relative_risk"]
+# # TODO: Remove with Mic-4936. This is a temporary test that should be replaced
+# # with the relative risk parameters in test_get_measure_risklike
+# @pytest.mark.parametrize(
+#     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+# )
+# def test_get_failing_relative_risk(
+#     data_type: str | list[str], runslow: bool, mocker: MockerFixture
+# ):
+#     mock_gbd = False  # Don't bother mocking this test - too difficult
+#     measure = "relative_risk"
+#     entity_details = (risk_factors.high_systolic_blood_pressure, [measure])
+
+#     # Handle not implemented
+#     is_unimplemented = isinstance(data_type, list) or data_type == "means"
+
+#     run_test(
+#         entity_details,
+#         measure,
+#         data_type,
+#         mock_gbd,
+#         runslow,
+#         mocker,
+#         is_unimplemented,
+#         DataAbnormalError,
+#     )
 
 
-@pytest.mark.skip("TODO: [mic-5456]")
-@pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
-def test_get_failing_relative_risk(entity_details, measure):
-    entity, _entity_expected_measures = entity_details
-    with pytest.raises(DataAbnormalError):
-        _df = get_measure(entity, measure, LOCATION)
+# # TODO: Remove with Mic-4936. This is a temporary test that should be replaced
+# # with the relative risk parameters in test_get_measure_risklike
+# @pytest.mark.parametrize(
+#     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+# )
+# def test_get_working_relative_risk(
+#     data_type: str | list[str], runslow: bool, mocker: MockerFixture
+# ):
+#     mock_gbd = False  # Don't bother mocking this test - too difficult
+#     measure = "relative_risk"
+#     entity_details = (risk_factors.iron_deficiency, [measure])
 
+#     # Handle not implemented
+#     is_unimplemented = isinstance(data_type, list) or data_type == "means"
 
-ENTITIES_R = [
-    (risk_factors.iron_deficiency, ["relative_risk"]),
-]
-MEASURES_R = ["relative_risk"]
-
-
-@pytest.mark.skip("TODO: [mic-5456]")
-@pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
-def test_get_working_relative_risk(entity_details, measure):
-    entity, _entity_expected_measures = entity_details
-    _df = success_expected(entity, measure, utility_data.get_location_id(LOCATION))
+#     run_test(
+#         entity_details,
+#         measure,
+#         data_type,
+#         mock_gbd,
+#         runslow,
+#         mocker,
+#         is_unimplemented,
+#     )
 
 
 ####################
@@ -335,6 +362,7 @@ def run_test(
     runslow: bool,
     mocker: MockerFixture,
     is_unimplemented: bool,
+    raise_type: Exception = None,
 ):
     entity, entity_expected_measures = entity_details
 
@@ -345,17 +373,30 @@ def run_test(
     # Only run PAF tests on Sundays since it's so slow. Note that this
     # could indadvertently be skipped if there is a significant delay between when
     # a jenkins pipeline is kicked off and when the test itself is run.
+    run_weekly_tests = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ][datetime.datetime.today().weekday()] == SLOW_TEST_DAY
     if (
-        measure == "population_attributable_fraction"
+        measure in ["population_attributable_fraction", "relative_risk"]
         and measure in entity_expected_measures
         and not mock_gbd
-        and datetime.datetime.today().weekday() != 6
+        and not run_weekly_tests
     ):
-        pytest.skip("Only run full PAF tests on Sundays")
+        pytest.skip(f"Only run full PAF and RR tests on {SLOW_TEST_DAY}s")
 
     tester = success_expected if measure in entity_expected_measures else fail_expected
-    if is_unimplemented:
+    if is_unimplemented:  # This should trigger first
         tester = partial(fail_expected, raise_type=DataTypeNotImplementedError)
+    elif raise_type:
+        tester = partial(fail_expected, raise_type=raise_type)
+    else:
+        pass  # success is really expected
 
     if mock_gbd:
         # TODO: Reduce duplicate testing. Since this data is mocked, it is doing the

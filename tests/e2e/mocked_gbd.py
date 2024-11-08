@@ -194,6 +194,18 @@ def mock_vivarium_gbd_access(
             return_value=mocked_data_func("exposure", entity, **entity_specific_metadata),
         )
         mocked_funcs = [mocked_exposure_distribution_weights, mocked_exposure]
+    elif measure == "relative_risk":
+        mocked_rr = mocker.patch(
+            "vivarium_inputs.extract.extract_relative_risk",
+            return_value=mocked_data_func(
+                "relative_risk", entity, **entity_specific_metadata
+            ),
+        )
+        mocked_exposure = mocker.patch(
+            "vivarium_inputs.extract.extract_exposure",
+            return_value=mocked_data_func("exposure", entity, **entity_specific_metadata),
+        )
+        mocked_funcs = [mocked_rr, mocked_exposure]
     elif measure == "population_attributable_fraction":
         mocked_pafs = mocker.patch(
             "vivarium_inputs.extract.extract_population_attributable_fraction",
@@ -260,7 +272,7 @@ def mocked_get_draws(measure: str, entity, **entity_specific_metadata) -> pd.Dat
         "exposure_standard_deviation": get_mocked_exposure_sd_get_draws,
         "exposure_distribution_weights": get_mocked_exposure_distribution_weights_get_draws,
         "population_attributable_fraction": get_mocked_pafs_get_draws,
-        "relative_risk": get_mocked_rr_get_draws,
+        "relative_risk": partial(get_mocked_rr_get_draws, entity),
     }[measure]()
 
     # Add on entity-specific metadata columns
@@ -409,8 +421,7 @@ def get_mocked_exposure_get_draws(entity) -> pd.DataFrame:
     if entity.name == "low_birth_weight_and_short_gestation":
         df = pd.read_csv("tests/fixture_data/lbwsg_exposure_metadata.csv")
         _add_value_columns(df, DRAW_COLUMNS, 0.0, 1.0)
-        #
-    else:
+    elif entity.name == "high_systolic_blood_pressure":
         age_bins = get_mocked_age_bins()
         age_group_ids = list(age_bins["age_group_id"])
         sex_ids = [1, 2]
@@ -430,7 +441,8 @@ def get_mocked_exposure_get_draws(entity) -> pd.DataFrame:
         df["parameter"] = "continuous"
 
         _add_value_columns(df, DRAW_COLUMNS, 100.0, 200.0)
-
+    else:
+        raise NotImplementedError(f"{entity.name} not implemented in mocked_gbd.py")
     return df
 
 
@@ -510,8 +522,11 @@ def get_mocked_pafs_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_rr_get_draws() -> pd.DataFrame:
+def get_mocked_rr_get_draws(entity) -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
+    if entity.name == "high_systolic_blood_pressure":
+        # high sbp is only for >=25 years
+        age_bins = age_bins[age_bins["age_group_years_start"] >= 25]
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
 
