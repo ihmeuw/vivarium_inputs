@@ -27,11 +27,7 @@ from tests.e2e.mocked_gbd import (
     mock_vivarium_gbd_access,
 )
 from vivarium_inputs import utility_data
-from vivarium_inputs.globals import (
-    NON_STANDARD_MEASURES,
-    SUPPORTED_DATA_TYPES,
-    DataAbnormalError,
-)
+from vivarium_inputs.globals import NON_STANDARD_MEASURES, SUPPORTED_DATA_TYPES
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utilities import DataTypeNotImplementedError
 
@@ -214,28 +210,28 @@ RISK_FACTORS = [
     (
         risk_factors.high_systolic_blood_pressure,
         [
-            # "exposure",
-            # "exposure_standard_deviation",
-            # "exposure_distribution_weights",
-            "relative_risk",
-            # "population_attributable_fraction",  # Very slow
+            "exposure",
+            "exposure_standard_deviation",
+            "exposure_distribution_weights",
+            "relative_risk",  # Very slow
+            "population_attributable_fraction",  # Very slow
         ],
     ),
     (
         risk_factors.low_birth_weight_and_short_gestation,
         [
-            # "exposure",
-            "relative_risk",
-            # "population_attributable_fraction",  # Very slow
+            "exposure",
+            "relative_risk",  # Very slow
+            "population_attributable_fraction",  # Very slow
         ],
     ),
 ]
 RISK_FACTOR_MEASURES = [
-    # "exposure",
-    # "exposure_standard_deviation",
-    # "exposure_distribution_weights",
+    "exposure",
+    "exposure_standard_deviation",
+    "exposure_distribution_weights",
     "relative_risk",
-    # "population_attributable_fraction",
+    "population_attributable_fraction",
 ]
 
 
@@ -244,8 +240,7 @@ RISK_FACTOR_MEASURES = [
 @pytest.mark.parametrize(
     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
 )
-# @pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
-@pytest.mark.parametrize("mock_gbd", [True])
+@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
 def test_get_measure_risklike(
     entity_details: tuple(RiskFactor, list[str]),
     measure: str,
@@ -274,8 +269,13 @@ def test_get_measure_risklike(
     """
 
     # Test-specific fixme skips
-    # if measure == "relative_risk":
-    #     pytest.skip("FIXME: [mic-4936]")
+    if (
+        measure == "relative_risk"
+        and entity_details[0].name == "high_systolic_blood_pressure"
+        and not mock_gbd
+        and data_type == "draws"
+    ):
+        pytest.skip("FIXME: [mic-5543] continuous rrs cannot validate")
 
     # Handle not implemented
     is_unimplemented = isinstance(data_type, list) or data_type == "means"
@@ -294,59 +294,6 @@ MEASURES_COV = ["estimate"]
 @pytest.mark.parametrize("measure", MEASURES_COV, ids=lambda x: x)
 def test_get_measure_covariatelike(entity, measure):
     _df = get_measure(entity, measure, utility_data.get_location_id(LOCATION))
-
-
-# # TODO: Remove with Mic-4936. This is a temporary test that should be replaced
-# # with the relative risk parameters in test_get_measure_risklike
-# @pytest.mark.parametrize(
-#     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
-# )
-# def test_get_failing_relative_risk(
-#     data_type: str | list[str], runslow: bool, mocker: MockerFixture
-# ):
-#     mock_gbd = False  # Don't bother mocking this test - too difficult
-#     measure = "relative_risk"
-#     entity_details = (risk_factors.high_systolic_blood_pressure, [measure])
-
-#     # Handle not implemented
-#     is_unimplemented = isinstance(data_type, list) or data_type == "means"
-
-#     run_test(
-#         entity_details,
-#         measure,
-#         data_type,
-#         mock_gbd,
-#         runslow,
-#         mocker,
-#         is_unimplemented,
-#         DataAbnormalError,
-#     )
-
-
-# # TODO: Remove with Mic-4936. This is a temporary test that should be replaced
-# # with the relative risk parameters in test_get_measure_risklike
-# @pytest.mark.parametrize(
-#     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
-# )
-# def test_get_working_relative_risk(
-#     data_type: str | list[str], runslow: bool, mocker: MockerFixture
-# ):
-#     mock_gbd = False  # Don't bother mocking this test - too difficult
-#     measure = "relative_risk"
-#     entity_details = (risk_factors.iron_deficiency, [measure])
-
-#     # Handle not implemented
-#     is_unimplemented = isinstance(data_type, list) or data_type == "means"
-
-#     run_test(
-#         entity_details,
-#         measure,
-#         data_type,
-#         mock_gbd,
-#         runslow,
-#         mocker,
-#         is_unimplemented,
-#     )
 
 
 ####################
