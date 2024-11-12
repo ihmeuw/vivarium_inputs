@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 from gbd_mapping import (
     Cause,
+    Covariate,
     RiskFactor,
     Sequela,
     causes,
@@ -31,8 +32,7 @@ from vivarium_inputs.globals import NON_STANDARD_MEASURES, SUPPORTED_DATA_TYPES
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utilities import DataTypeNotImplementedError
 
-# TBD - SHOULD BE SUNDAY!!! <<<<<<<<<<<<<<<<<
-SLOW_TEST_DAY = "Friday"  # Day to run very slow tests, e.g. PAFs and RRs
+SLOW_TEST_DAY = "Sunday"  # Day to run very slow tests, e.g. PAFs and RRs
 
 
 # TODO [MIC-5448]: Move to vivarium_testing_utilties
@@ -283,18 +283,50 @@ def test_get_measure_risklike(
     run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
 
 
-ENTITIES_COV = [
-    covariates.systolic_blood_pressure_mmhg,
-]
-MEASURES_COV = ["estimate"]
+COVARIATES = [(covariates.systolic_blood_pressure_mmhg, ["estimate"])]
+COVARIATE_MEASURES = ["estimate"]
 
 
-@pytest.mark.skip("TODO: [mic-5456]")
-@pytest.mark.parametrize("entity", ENTITIES_COV, ids=lambda x: x.name)
-@pytest.mark.parametrize("measure", MEASURES_COV, ids=lambda x: x)
-def test_get_measure_covariatelike(entity, measure):
-    _df = get_measure(entity, measure, utility_data.get_location_id(LOCATION))
+@pytest.mark.parametrize("entity_details", COVARIATES, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", COVARIATE_MEASURES, ids=lambda x: x)
+@pytest.mark.parametrize(
+    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+)
+@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+def test_get_measure_covariatelike(
+    entity_details: tuple(Covariate, list[str]),
+    measure: str,
+    data_type: str | list[str],
+    mock_gbd: bool,
+    runslow: bool,
+    mocker: MockerFixture,
+):
+    """Test get_measure().
 
+    We are parametrizing over various things.
+    - entity_details: A tuple of an entity and a list of measures that are applicable to that entity.
+    - measure: The possible measures for that entity type (e.g. cause, sequela, etc)
+    - data_type: The data type request (means or draws)
+    - mock_gbd: Whether to mock calls to vivarium_gbd_access or not. We do this because
+        getting the real data tends to take a long time and so we want to only run that
+        when requesting a --runslow test. Note that we do not attempt to get more granular
+        with slow runs; mocked tests will always run and unmocked tests will only run
+        if --runslow is passed
+
+    Notes
+    -----
+    The --runslow flag is automatically passed into these tests as an argument; we do
+    not mark the tests themselves as slow (because we want more granularity, i.e.
+    mocked tests are not slow but unmocked tests are).
+    """
+
+    # Handle not implemented
+    is_unimplemented = isinstance(data_type, list) or data_type == "means"
+
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
+
+
+# TODO [MIC-5550]: Add tests for etiologies and alternative risk factors
 
 ####################
 # HELPER FUNCTIONS #
@@ -362,7 +394,7 @@ def run_test(
 
 def success_expected(entity, measure, location, data_type):
     df = get_measure(entity, measure, location, years=None, data_type=data_type)
-    check_data(measure, df, data_type)
+    check_data(entity, measure, df, data_type)
 
 
 def fail_expected(entity, measure, location, data_type, raise_type=Exception):
@@ -370,7 +402,12 @@ def fail_expected(entity, measure, location, data_type, raise_type=Exception):
         _df = get_measure(entity, measure, location, years=None, data_type=data_type)
 
 
-def check_data(measure: str, data: pd.DataFrame, data_type: str) -> None:
+def check_data(
+    entity: Cause | Sequela | RiskFactor | Covariate,
+    measure: str,
+    data: pd.DataFrame,
+    data_type: str,
+) -> None:
     """Check the data returned."""
     if measure in NON_STANDARD_MEASURES:
         assert list(data.columns) == ["value"]
@@ -388,5 +425,9 @@ def check_data(measure: str, data: pd.DataFrame, data_type: str) -> None:
         "year_start": {YEAR},
         "year_end": {YEAR + 1},
     }
+    if not getattr(entity, "by_age", True):
+        # Some entities do not have ages
+        del expected_metadata["age_start"]
+        del expected_metadata["age_end"]
     for idx, expected in expected_metadata.items():
         assert set(data.index.get_level_values(idx)) == expected

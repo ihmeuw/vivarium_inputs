@@ -93,6 +93,10 @@ def mock_vivarium_gbd_access(
         "RiskFactor": {
             "rei_id": int(entity.gbd_id),
         },
+        "Covariate": {
+            "covariate_id": DUMMY_INT,
+            "covariate_name_short": DUMMY_STR,
+        },
     }
     entity_specific_metadata = entity_specific_metadata_mapper[entity.__class__.__name__]
 
@@ -222,6 +226,12 @@ def mock_vivarium_gbd_access(
             ),
         )
         mocked_funcs = [mocked_pafs, mocked_exposure, mocked_rr]
+    elif measure == "estimate":
+        mock = mocker.patch(
+            "vivarium_inputs.extract.extract_estimate",
+            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+        )
+        mocked_funcs = [mock]
     else:
         raise NotImplementedError(f"Unexpected measure: {measure}")
     return mocked_funcs
@@ -273,6 +283,7 @@ def mocked_get_draws(measure: str, entity, **entity_specific_metadata) -> pd.Dat
         "exposure_distribution_weights": get_mocked_exposure_distribution_weights_get_draws,
         "population_attributable_fraction": get_mocked_pafs_get_draws,
         "relative_risk": partial(get_mocked_rr_get_draws, entity),
+        "estimate": get_mocked_estimate_get_draws,
     }[measure]()
 
     # Add on entity-specific metadata columns
@@ -548,6 +559,33 @@ def get_mocked_rr_get_draws(entity) -> pd.DataFrame:
     df["exposure"] = np.nan
 
     _add_value_columns(df, DRAW_COLUMNS, 0.0, 1000.0)
+
+    return df
+
+
+def get_mocked_estimate_get_draws() -> pd.DataFrame:
+    age_group_ids = [27]
+    sex_ids = [1, 2]
+
+    # Initiate df with all possible combinations of variable metadata columns
+    df = pd.DataFrame(
+        list(itertools.product(age_group_ids, sex_ids)),
+        columns=["age_group_id", "sex_id"],
+    )
+
+    # Add on other metadata columns
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["location_name"] = LOCATION
+    df["year_id"] = YEAR
+    df["covariate_id"] = DUMMY_INT
+    df["model_version_id"] = DUMMY_INT
+    df["age_group_name"] = DUMMY_STR
+    df["sex"] = DUMMY_STR
+
+    # Estimates don't play by the rules
+    df["mean_value"] = [DUMMY_FLOAT, DUMMY_FLOAT]
+    df["lower_value"] = 0.9 * df["mean_value"]
+    df["upper_value"] = 1.1 * df["mean_value"]
 
     return df
 
