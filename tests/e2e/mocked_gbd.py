@@ -430,30 +430,38 @@ def get_mocked_structure_get_draws() -> pd.DataFrame:
 
 def get_mocked_exposure_get_draws(entity) -> pd.DataFrame:
     if entity.name == "low_birth_weight_and_short_gestation":
-        df = pd.read_csv("tests/fixture_data/lbwsg_exposure_metadata.csv")
+        age_group_ids = [2, 3]
+        sex_ids = [1, 2]
+        parameters = list(entity.categories.to_dict())
+        # Initiate df with all possible combinations of variable metadata columns
+        df = pd.DataFrame(
+            list(itertools.product(age_group_ids, sex_ids, parameters)),
+            columns=["age_group_id", "sex_id", "parameter"],
+        )
+        # Add on other metadata columns
+        df["modelable_entity_id"] = DUMMY_FLOAT  # b/c nans come in
         _add_value_columns(df, DRAW_COLUMNS, 0.0, 1.0)
     elif entity.name == "high_systolic_blood_pressure":
         age_bins = get_mocked_age_bins()
         age_group_ids = list(age_bins["age_group_id"])
         sex_ids = [1, 2]
-
         # Initiate df with all possible combinations of variable metadata columns
         df = pd.DataFrame(
             list(itertools.product(age_group_ids, sex_ids)),
             columns=["age_group_id", "sex_id"],
         )
-
         # Add on other metadata columns
-        df["location_id"] = utility_data.get_location_id(LOCATION)
-        df["year_id"] = YEAR
         df["modelable_entity_id"] = DUMMY_INT
-        df["measure_id"] = 19  # continuous
-        df["metric_id"] = 3  # rate
         df["parameter"] = "continuous"
-
         _add_value_columns(df, DRAW_COLUMNS, 100.0, 200.0)
     else:
         raise NotImplementedError(f"{entity.name} not implemented in mocked_gbd.py")
+
+    df["location_id"] = utility_data.get_location_id(LOCATION)
+    df["year_id"] = YEAR
+    df["measure_id"] = 19  # continuous
+    df["metric_id"] = 3  # rate
+
     return df
 
 
