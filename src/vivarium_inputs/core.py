@@ -330,7 +330,7 @@ def get_cause_specific_mortality_rate(
     )
     data = deaths.join(pop, lsuffix="_deaths", rsuffix="_pop")
     data[data_type.value_columns] = data[data_type.value_columns].divide(data.value, axis=0)
-    return data.drop(["value"], axis="columns")
+    return data.drop(columns="value", inplace=True)
 
 
 def get_excess_mortality_rate(
@@ -398,7 +398,7 @@ def get_exposure(
         )
 
     data = extract.extract_data(entity, "exposure", location_id, years, data_type)
-    data = data.drop("modelable_entity_id", "columns")
+    data = data.drop(columns="modelable_entity_id")
 
     value_columns = data_type.value_columns
 
@@ -455,7 +455,7 @@ def get_exposure_standard_deviation(
     data = extract.extract_data(
         entity, "exposure_standard_deviation", location_id, years, data_type
     )
-    data = data.drop("modelable_entity_id", "columns")
+    data = data.drop(columns="modelable_entity_id")
 
     exposure = extract.extract_data(entity, "exposure", location_id, years, data_type)
     valid_age_groups = utilities.get_exposure_and_restriction_ages(exposure, entity)
@@ -485,7 +485,7 @@ def get_exposure_distribution_weights(
     exposure = extract.extract_data(entity, "exposure", location_id, years, data_type)
     valid_ages = utilities.get_exposure_and_restriction_ages(exposure, entity)
 
-    data.drop("age_group_id", axis=1, inplace=True)
+    data = data.drop(columns="age_group_id")
     df = []
     for age_id in valid_ages:
         copied = data.copy()
@@ -690,7 +690,7 @@ def get_structure(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
     data = extract.extract_data(entity, "structure", location_id, years, data_type)
-    data = data.drop("run_id", axis="columns").rename(columns={"population": "value"})
+    data = data.drop(columns="run_id").rename(columns={"population": "value"})
     data = utilities.normalize(data, data_type.value_columns)
     return data
 
