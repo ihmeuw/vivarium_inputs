@@ -330,7 +330,8 @@ def get_cause_specific_mortality_rate(
     )
     data = deaths.join(pop, lsuffix="_deaths", rsuffix="_pop")
     data[data_type.value_columns] = data[data_type.value_columns].divide(data.value, axis=0)
-    return data.drop(columns="value", inplace=True)
+    data = data.drop(columns="value")
+    return data
 
 
 def get_excess_mortality_rate(
