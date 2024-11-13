@@ -1,4 +1,4 @@
-**5.2.1 - 11/12/24**
+**5.2.1 - 11/13/24**
 
  - Add more get_measure tests: sequelae (mocked), risk factors, covariates
 
