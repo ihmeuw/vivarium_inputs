@@ -100,7 +100,7 @@ def get_population_structure(
 
     """
     pop = Population()
-    # Hack: The data_type is set to "draws" to avoid NotImplementedErros, but the
+    # Hack: The data_type is set to "draws" to avoid NotImplementedErrors, but the
     # data is not actually draw-level data.
     data_type = DataType("structure", "draws")
     data = core.get_data(pop, "structure", location, years, data_type)
@@ -126,7 +126,7 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
 
     """
     pop = Population()
-    # Hack: The data_type is set to "draws" to avoid NotImplementedErros, but the
+    # Hack: The data_type is set to "draws" to avoid NotImplementedErrors, but the
     # data is not actually draw-level data.
     data_type = DataType("theoretical_minimum_risk_life_expectancy", "draws")
     data = core.get_data(
