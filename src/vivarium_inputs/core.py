@@ -723,11 +723,6 @@ def get_age_bins(
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
 
-    if data_type.type != "draws":
-        raise utilities.DataTypeNotImplementedError(
-            f"Data type(s) {data_type.type} are not supported for this function."
-        )
-
     age_bins = utility_data.get_age_bins()[["age_group_name", "age_start", "age_end"]]
     return age_bins
 
@@ -738,11 +733,6 @@ def get_demographic_dimensions(
     years: int | str | list[int] | None,
     data_type: utilities.DataType,
 ) -> pd.DataFrame:
-
-    if data_type.type != "draws":
-        raise utilities.DataTypeNotImplementedError(
-            f"Data type(s) {data_type.type} are not supported for this function."
-        )
 
     demographic_dimensions = utility_data.get_demographic_dimensions(location_id, years=years)
     demographic_dimensions = utilities.normalize(

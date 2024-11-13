@@ -570,7 +570,7 @@ class DataTypeNotImplementedError(NotImplementedError):
 class DataType:
     """Class to handle data types and their corresponding differences."""
 
-    def __init__(self, measure: str, data_type: str | list[str]) -> None:
+    def __init__(self, measure: str, data_type: str | list[str] | None) -> None:
 
         self._validate_data_type(data_type)
 
@@ -583,6 +583,7 @@ class DataType:
         Supported values include:
         - 'means' for getting mean data
         - 'draws' for getting draw-level data
+        - None for measures that do not have meaningful value columns (e.g. age bins)
 
         The data for the following measures do not adhere standard data_types
         (i.e. they are not mean or draw-level data) and so this attribute
@@ -607,8 +608,11 @@ class DataType:
         """
 
     @staticmethod
-    def _validate_data_type(data_type: str | list[str]) -> None:
+    def _validate_data_type(data_type: str | list[str] | None) -> None:
         """Validate that the provided data type is supported."""
+
+        if data_type is None:
+            return
 
         # Temporarily raise for lists of data types
         if isinstance(data_type, list):
@@ -627,13 +631,15 @@ class DataType:
             )
 
     @staticmethod
-    def _get_value_columns(measure: str, data_type: str | list[str]) -> list[str]:
+    def _get_value_columns(measure: str, data_type: str | list[str] | None) -> list[str]:
         """Get the value columns corresponding to the provided data type(s).
 
         If the measure is one of 'structure', 'theoretical_minimum_risk_life_expectancy',
         'estimate', or 'exposure_distribution_weights', the value columns are always 'value'.
         """
         value_cols = []
+        if data_type is None:
+            return value_cols
         if isinstance(data_type, str):
             data_type = [data_type]
         for value in data_type:

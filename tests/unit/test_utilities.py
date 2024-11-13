@@ -106,7 +106,9 @@ def test_validate_data_type(data_type, should_raise):
 
 @pytest.mark.parametrize("measure", POSSIBLE_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
-    "data_type", ("means", "draws", ["means", "draws"]), ids=["means", "draws", "means_draws"]
+    "data_type",
+    ("means", "draws", None, ["means", "draws"]),
+    ids=["means", "draws", "None", "means_draws"],
 )
 def test_get_value_columns(measure, data_type):
     if isinstance(data_type, list):
@@ -116,7 +118,9 @@ def test_get_value_columns(measure, data_type):
         ):
             utilities.DataType(measure, data_type).value_columns
     else:
-        if measure in NON_STANDARD_MEASURES:
+        if data_type == None:  # Hacky: this goes first in the DataType class
+            expected_returned_cols = []
+        elif measure in NON_STANDARD_MEASURES:
             expected_returned_cols = ["value"]
         elif data_type == "means":
             expected_returned_cols = MEAN_COLUMNS
