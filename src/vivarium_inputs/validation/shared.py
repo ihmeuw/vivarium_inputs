@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from vivarium_inputs.globals import DRAW_COLUMNS, VivariumInputsError
+from vivarium_inputs.globals import VivariumInputsError
 
 ###############################
 # Shared validation utilities #

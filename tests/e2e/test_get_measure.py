@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 from gbd_mapping import (
     Cause,
+    Covariate,
     RiskFactor,
     Sequela,
     causes,
@@ -27,13 +28,11 @@ from tests.e2e.mocked_gbd import (
     mock_vivarium_gbd_access,
 )
 from vivarium_inputs import utility_data
-from vivarium_inputs.globals import (
-    NON_STANDARD_MEASURES,
-    SUPPORTED_DATA_TYPES,
-    DataAbnormalError,
-)
+from vivarium_inputs.globals import NON_STANDARD_MEASURES, SUPPORTED_DATA_TYPES
 from vivarium_inputs.interface import get_measure
 from vivarium_inputs.utilities import DataTypeNotImplementedError
+
+SLOW_TEST_DAY = "Sunday"  # Day to run very slow tests, e.g. PAFs and RRs
 
 
 # TODO [MIC-5448]: Move to vivarium_testing_utilties
@@ -214,7 +213,7 @@ RISK_FACTORS = [
             "exposure",
             "exposure_standard_deviation",
             "exposure_distribution_weights",
-            # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
+            "relative_risk",  # Very slow
             "population_attributable_fraction",  # Very slow
         ],
     ),
@@ -222,7 +221,7 @@ RISK_FACTORS = [
         risk_factors.low_birth_weight_and_short_gestation,
         [
             "exposure",
-            # "relative_risk",  # TODO: Add back in once Mic-4936 is resolved
+            "relative_risk",  # Very slow
             "population_attributable_fraction",  # Very slow
         ],
     ),
@@ -233,10 +232,6 @@ RISK_FACTOR_MEASURES = [
     "exposure_distribution_weights",
     "relative_risk",
     "population_attributable_fraction",
-    # "mediation_factors",
-    #   QUESTION: are we supposed to support mediation_factors? There is no mapping
-    #   for interface.get_measure(), but there is an extraction method
-    #   (i.e. interface.get_raw_data())
 ]
 
 
@@ -245,9 +240,9 @@ RISK_FACTOR_MEASURES = [
 @pytest.mark.parametrize(
     "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
 )
-@pytest.mark.parametrize("mock_gbd", [False], ids=("unmocked",))  # TODO: mock_id=True
+@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
 def test_get_measure_risklike(
-    entity_details: RiskFactor,
+    entity_details: tuple(RiskFactor, list[str]),
     measure: str,
     data_type: str | list[str],
     mock_gbd: bool,
@@ -274,8 +269,13 @@ def test_get_measure_risklike(
     """
 
     # Test-specific fixme skips
-    if measure == "relative_risk":
-        pytest.skip("FIXME: [mic-4936]")
+    if (
+        measure == "relative_risk"
+        and entity_details[0].name == "high_systolic_blood_pressure"
+        and not mock_gbd
+        and data_type == "draws"
+    ):
+        pytest.skip("FIXME: [mic-5543] continuous rrs cannot validate")
 
     # Handle not implemented
     is_unimplemented = isinstance(data_type, list) or data_type == "means"
@@ -283,52 +283,83 @@ def test_get_measure_risklike(
     run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
 
 
-ENTITIES_COV = [
-    covariates.systolic_blood_pressure_mmhg,
-]
-MEASURES_COV = ["estimate"]
+COVARIATES = [(covariates.systolic_blood_pressure_mmhg, ["estimate"])]
+COVARIATE_MEASURES = ["estimate"]
 
 
-@pytest.mark.skip("TODO: [mic-5456]")
-@pytest.mark.parametrize("entity", ENTITIES_COV, ids=lambda x: x.name)
-@pytest.mark.parametrize("measure", MEASURES_COV, ids=lambda x: x)
-def test_get_measure_covariatelike(entity, measure):
-    _df = get_measure(entity, measure, utility_data.get_location_id(LOCATION))
+@pytest.mark.parametrize("entity_details", COVARIATES, ids=lambda x: x[0].name)
+@pytest.mark.parametrize("measure", COVARIATE_MEASURES, ids=lambda x: x)
+@pytest.mark.parametrize(
+    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+)
+@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+def test_get_measure_covariatelike(
+    entity_details: tuple(Covariate, list[str]),
+    measure: str,
+    data_type: str | list[str],
+    mock_gbd: bool,
+    runslow: bool,
+    mocker: MockerFixture,
+):
+    """Test get_measure().
+
+    We are parametrizing over various things.
+    - entity_details: A tuple of an entity and a list of measures that are applicable to that entity.
+    - measure: The possible measures for that entity type (e.g. cause, sequela, etc)
+    - data_type: The data type request (means or draws)
+    - mock_gbd: Whether to mock calls to vivarium_gbd_access or not. We do this because
+        getting the real data tends to take a long time and so we want to only run that
+        when requesting a --runslow test. Note that we do not attempt to get more granular
+        with slow runs; mocked tests will always run and unmocked tests will only run
+        if --runslow is passed
+
+    Notes
+    -----
+    The --runslow flag is automatically passed into these tests as an argument; we do
+    not mark the tests themselves as slow (because we want more granularity, i.e.
+    mocked tests are not slow but unmocked tests are).
+    """
+
+    # Handle not implemented
+    is_unimplemented = isinstance(data_type, list) or data_type == "means"
+
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
 
 
-# TODO: Remove with Mic-4936
-ENTITIES_R = [
-    (risk_factors.high_systolic_blood_pressure, ["relative_risk"]),
-]
-MEASURES_R = ["relative_risk"]
-
-
-@pytest.mark.skip("TODO: [mic-5456]")
-@pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
-def test_get_failing_relative_risk(entity_details, measure):
-    entity, _entity_expected_measures = entity_details
-    with pytest.raises(DataAbnormalError):
-        _df = get_measure(entity, measure, LOCATION)
-
-
-ENTITIES_R = [
-    (risk_factors.iron_deficiency, ["relative_risk"]),
-]
-MEASURES_R = ["relative_risk"]
-
-
-@pytest.mark.skip("TODO: [mic-5456]")
-@pytest.mark.parametrize("entity_details", ENTITIES_R, ids=lambda x: x[0].name)
-@pytest.mark.parametrize("measure", MEASURES_R, ids=lambda x: x[0])
-def test_get_working_relative_risk(entity_details, measure):
-    entity, _entity_expected_measures = entity_details
-    _df = success_expected(entity, measure, utility_data.get_location_id(LOCATION))
+# TODO [MIC-5550]: Add tests for etiologies and alternative risk factors
 
 
 ####################
 # HELPER FUNCTIONS #
 ####################
+
+
+# FIXME [MIC-5454]: Move to vivarium_testing_utilities
+def is_slow_test_day(slow_test_day: str = SLOW_TEST_DAY) -> bool:
+    """Determine if today is the day to run slow/weekly tests.
+
+    Parameters
+    ----------
+    slow_test_day
+        The day to run the weekly tests on. Acceptable values are "Monday",
+        "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", or "Sunday".
+        Default is "Sunday".
+
+    Notes
+    -----
+    There is some risk that a test will be inadvertently skipped if there is a
+    significant delay between when a pipeline is kicked off and when the test
+    itself is run.
+    """
+    return [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ][datetime.datetime.today().weekday()] == slow_test_day
 
 
 def run_test(
@@ -339,6 +370,7 @@ def run_test(
     runslow: bool,
     mocker: MockerFixture,
     is_unimplemented: bool,
+    raise_type: Exception = None,
 ):
     entity, entity_expected_measures = entity_details
 
@@ -346,20 +378,22 @@ def run_test(
         pytest.skip("Need --runslow option to run unmocked tests")
     if NO_GBD_ACCESS and not mock_gbd:
         pytest.skip("Need GBD access to run unmocked tests")
-    # Only run PAF tests on Sundays since it's so slow. Note that this
-    # could indadvertently be skipped if there is a significant delay between when
-    # a jenkins pipeline is kicked off and when the test itself is run.
+    # Only run PAF tests on Sundays since it's so slow.
     if (
-        measure in entity_expected_measures
-        and measure == "population_attributable_fraction"
+        measure in ["population_attributable_fraction", "relative_risk"]
+        and measure in entity_expected_measures
         and not mock_gbd
-        and datetime.datetime.today().weekday() != 6
+        and not is_slow_test_day()
     ):
-        pytest.skip("Only run full PAF tests on Sundays")
+        pytest.skip(f"Only run full PAF and RR tests on {SLOW_TEST_DAY}s")
 
     tester = success_expected if measure in entity_expected_measures else fail_expected
-    if is_unimplemented:
+    if is_unimplemented:  # This should trigger first
         tester = partial(fail_expected, raise_type=DataTypeNotImplementedError)
+    elif raise_type:
+        tester = partial(fail_expected, raise_type=raise_type)
+    else:
+        pass  # success is really expected
 
     if mock_gbd:
         # TODO: Reduce duplicate testing. Since this data is mocked, it is doing the
@@ -378,7 +412,7 @@ def run_test(
 
 def success_expected(entity, measure, location, data_type):
     df = get_measure(entity, measure, location, years=None, data_type=data_type)
-    check_data(measure, df, data_type)
+    check_data(entity, measure, df, data_type)
 
 
 def fail_expected(entity, measure, location, data_type, raise_type=Exception):
@@ -386,7 +420,12 @@ def fail_expected(entity, measure, location, data_type, raise_type=Exception):
         _df = get_measure(entity, measure, location, years=None, data_type=data_type)
 
 
-def check_data(measure: str, data: pd.DataFrame, data_type: str) -> None:
+def check_data(
+    entity: Cause | Sequela | RiskFactor | Covariate,
+    measure: str,
+    data: pd.DataFrame,
+    data_type: str,
+) -> None:
     """Check the data returned."""
     if measure in NON_STANDARD_MEASURES:
         assert list(data.columns) == ["value"]
@@ -404,5 +443,9 @@ def check_data(measure: str, data: pd.DataFrame, data_type: str) -> None:
         "year_start": {YEAR},
         "year_end": {YEAR + 1},
     }
+    if not getattr(entity, "by_age", True):
+        # Some entities do not have ages
+        del expected_metadata["age_start"]
+        del expected_metadata["age_end"]
     for idx, expected in expected_metadata.items():
         assert set(data.index.get_level_values(idx)) == expected

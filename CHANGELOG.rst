@@ -1,3 +1,7 @@
+**5.2.1 - 11/13/24**
+
+ - Add more get_measure tests: sequelae (mocked), risk factors, covariates
+
 **5.2.0 - 11/07/24**
 
  - Add framework for getting mean data
