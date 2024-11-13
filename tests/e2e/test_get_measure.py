@@ -328,9 +328,38 @@ def test_get_measure_covariatelike(
 
 # TODO [MIC-5550]: Add tests for etiologies and alternative risk factors
 
+
 ####################
 # HELPER FUNCTIONS #
 ####################
+
+
+# FIXME [MIC-5454]: Move to vivarium_testing_utilities
+def is_slow_test_day(slow_test_day: str = SLOW_TEST_DAY) -> bool:
+    """Determine if today is the day to run slow/weekly tests.
+
+    Parameters
+    ----------
+    slow_test_day
+        The day to run the weekly tests on. Acceptable values are "Monday",
+        "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", or "Sunday".
+        Default is "Sunday".
+
+    Notes
+    -----
+    There is some risk that a test will be inadvertently skipped if there is a
+    significant delay between when a pipeline is kicked off and when the test
+    itself is run.
+    """
+    return [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ][datetime.datetime.today().weekday()] == slow_test_day
 
 
 def run_test(
@@ -349,23 +378,12 @@ def run_test(
         pytest.skip("Need --runslow option to run unmocked tests")
     if NO_GBD_ACCESS and not mock_gbd:
         pytest.skip("Need GBD access to run unmocked tests")
-    # Only run PAF tests on Sundays since it's so slow. Note that this
-    # could indadvertently be skipped if there is a significant delay between when
-    # a jenkins pipeline is kicked off and when the test itself is run.
-    run_weekly_tests = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    ][datetime.datetime.today().weekday()] == SLOW_TEST_DAY
+    # Only run PAF tests on Sundays since it's so slow.
     if (
         measure in ["population_attributable_fraction", "relative_risk"]
         and measure in entity_expected_measures
         and not mock_gbd
-        and not run_weekly_tests
+        and not is_slow_test_day()
     ):
         pytest.skip(f"Only run full PAF and RR tests on {SLOW_TEST_DAY}s")
 
