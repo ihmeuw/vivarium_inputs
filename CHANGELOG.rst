@@ -1,3 +1,7 @@
+**5.2.2 - 11/13/24**
+
+ - Bugfix to implement data type requests for remaining interface tests
+
 **5.2.1 - 11/13/24**
 
  - Add more get_measure tests: sequelae (mocked), risk factors, covariates

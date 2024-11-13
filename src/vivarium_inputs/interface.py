@@ -75,6 +75,7 @@ def get_measure(
     return utilities.sort_hierarchical_data(data)
 
 
+# FIXME [mic-5573]: Add tests against this function
 def get_population_structure(
     location: int | str | list[int | str],
     years: int | str | list[int] | None = None,
@@ -99,14 +100,20 @@ def get_population_structure(
 
     """
     pop = Population()
-    data = core.get_data(pop, "structure", location, years)
+    # Hack: The data_type is set to "draws" to avoid NotImplementedErrors, but the
+    # data is not actually draw-level data.
+    data_type = DataType("structure", "draws")
+    data = core.get_data(pop, "structure", location, years, data_type)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, pop, "structure", location, years)
+    validation.validate_for_simulation(
+        data, pop, "structure", location, years, data_type.value_columns
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
 
 
+# FIXME [mic-5573]: Add tests against this function
 def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
     """Pull GBD theoretical minimum risk life expectancy data and standardize
     to the expected simulation input format, including binning age parameters
@@ -119,16 +126,31 @@ def get_theoretical_minimum_risk_life_expectancy() -> pd.DataFrame:
 
     """
     pop = Population()
-    data = core.get_data(pop, "theoretical_minimum_risk_life_expectancy", "Global")
+    # Hack: The data_type is set to "draws" to avoid NotImplementedErrors, but the
+    # data is not actually draw-level data.
+    data_type = DataType("theoretical_minimum_risk_life_expectancy", "draws")
+    data = core.get_data(
+        pop,
+        "theoretical_minimum_risk_life_expectancy",
+        "Global",
+        years=None,
+        data_type=data_type,
+    )
     data = utilities.set_age_interval(data)
     validation.validate_for_simulation(
-        data, pop, "theoretical_minimum_risk_life_expectancy", "Global"
+        data,
+        pop,
+        "theoretical_minimum_risk_life_expectancy",
+        "Global",
+        years=None,
+        value_columns=data_type.value_columns,
     )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
 
 
+# FIXME [mic-5573]: Add tests against this function
 def get_age_bins() -> pd.DataFrame:
     """Pull GBD age bin data and standardize to the expected simulation input
     format.
@@ -140,14 +162,18 @@ def get_age_bins() -> pd.DataFrame:
 
     """
     pop = Population()
-    data = core.get_data(pop, "age_bins", "Global")
+    data_type = DataType("age_bins", None)
+    data = core.get_data(pop, "age_bins", "Global", years=None, data_type=data_type)
     data = utilities.set_age_interval(data)
-    validation.validate_for_simulation(data, pop, "age_bins", "Global")
+    validation.validate_for_simulation(
+        data, pop, "age_bins", "Global", years=None, value_columns=data_type.value_columns
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
 
 
+# FIXME [mic-5573]: Add tests against this function
 def get_demographic_dimensions(
     location: int | str | list[int | str],
     years: int | str | list[int] | None = None,
@@ -170,14 +196,18 @@ def get_demographic_dimensions(
 
     """
     pop = Population()
-    data = core.get_data(pop, "demographic_dimensions", location, years=years)
+    data_type = DataType("demographic_dimensions", None)
+    data = core.get_data(pop, "demographic_dimensions", location, years, data_type=data_type)
     data = utilities.scrub_gbd_conventions(data, location)
-    validation.validate_for_simulation(data, pop, "demographic_dimensions", location, years)
+    validation.validate_for_simulation(
+        data, pop, "demographic_dimensions", location, years, data_type.value_columns
+    )
     data = utilities.split_interval(data, interval_column="age", split_column_prefix="age")
     data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
     return utilities.sort_hierarchical_data(data)
 
 
+# FIXME [mic-5573]: Add tests against this function
 def get_raw_data(
     entity: ModelableEntity,
     measure: str,
@@ -237,7 +267,6 @@ def get_raw_data(
         Data for the entity-measure pair and specific location requested, with no
         formatting or reshaping.
     """
-    # FIXME: Add tests against this function
     data_type = DataType(measure, data_type)
     if not isinstance(location, list):
         location = [location]
