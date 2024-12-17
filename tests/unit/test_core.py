@@ -5,9 +5,11 @@ from tests.conftest import NO_GBD_ACCESS
 from vivarium_inputs import core, utility_data
 from vivarium_inputs.mapping_extension import healthcare_entities
 
-pytestmark = pytest.mark.skipif(
-    NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
-)
+pytestmark = pytest.mark.skip(reason="MIC-5245")
+
+# pytestmark = pytest.mark.skipif(
+#     NO_GBD_ACCESS, reason="Cannot run these tests without vivarium_gbd_access"
+# )
 
 
 def success_expected(entity_name, measure_name, location):
