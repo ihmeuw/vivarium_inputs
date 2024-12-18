@@ -203,6 +203,7 @@ def extract_incidence_rate(
         year_id=year_id,
         data_type=data_type.type,
     )
+    breakpoint()
     data = data[data["measure_id"] == MEASURES["Incidence rate"]]
     return data
 
