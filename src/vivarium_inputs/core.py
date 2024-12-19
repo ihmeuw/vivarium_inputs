@@ -665,19 +665,6 @@ def get_estimate(
     return data
 
 
-# FIXME: can this be deleted? It's not in the get_data() mapping.
-def get_utilization_rate(
-    entity: HealthcareEntity,
-    location_id: list[int],
-    years: int | str | list[int] | None,
-    data_type: utilities.DataType,
-) -> pd.DataFrame:
-    data = extract.extract_data(entity, "utilization_rate", location_id, years, data_type)
-    data = data.filter(DEMOGRAPHIC_COLUMNS + data_type.value_columns)
-    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
-    return data
-
-
 def get_structure(
     entity: Population,
     location_id: list[int],

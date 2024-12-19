@@ -21,7 +21,7 @@ from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 
 from tests.conftest import NO_GBD_ACCESS
-from tests.e2e.mocked_gbd import (
+from tests.mocked_gbd import (
     LOCATION,
     YEAR,
     get_mocked_age_bins,
@@ -50,6 +50,7 @@ def no_cache(mocker: MockerFixture) -> None:
 CAUSES = [
     # (entity, applicable_measures)
     # NOTE: 'raw_incidence_rate' and 'deaths' should not be called directly from `get_measure()`
+    # because there are no implemented validations for them.
     (
         causes.measles,
         [
@@ -135,6 +136,7 @@ def test_get_measure_causelike(
         "remission_rate",
         "cause_specific_mortality_rate",
         "excess_mortality_rate",
+        "deaths",
     ]
     is_unimplemented = isinstance(data_type, list) or is_unimplemented_means
 

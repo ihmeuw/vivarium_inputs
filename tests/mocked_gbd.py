@@ -100,7 +100,7 @@ def mock_vivarium_gbd_access(
     }
     entity_specific_metadata = entity_specific_metadata_mapper[entity.__class__.__name__]
 
-    if measure == "incidence_rate":
+    if measure in ["incidence_rate", "raw_incidence_rate"]:
         mocked_extract_incidence_rate = mocker.patch(
             "vivarium_inputs.extract.extract_incidence_rate",
             return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
