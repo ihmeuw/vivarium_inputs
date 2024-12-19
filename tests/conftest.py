@@ -64,3 +64,24 @@ def _no_gbd_access():
 
 
 NO_GBD_ACCESS = _no_gbd_access()
+
+
+def is_not_implemented(data_type: str | list[str], measure: str) -> bool:
+    return isinstance(data_type, list) or (
+        data_type == "means"
+        and measure
+        in [
+            "disability_weight",
+            "remission_rate",
+            "cause_specific_mortality_rate",
+            "excess_mortality_rate",
+            "deaths",
+            "exposure",
+            "exposure_standard_deviation",
+            "exposure_distribution_weights",
+            "relative_risk",
+            "population_attributable_fraction",
+            "estimate",
+            "structure",
+        ]
+    )

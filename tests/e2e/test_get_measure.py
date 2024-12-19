@@ -20,10 +20,9 @@ from gbd_mapping import (
 from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 
-from tests.conftest import NO_GBD_ACCESS
+from tests.conftest import NO_GBD_ACCESS, is_not_implemented
 from tests.mocked_gbd import (
-    LOCATION,
-    YEAR,
+    MOST_RECENT_YEAR,
     get_mocked_age_bins,
     mock_vivarium_gbd_access,
 )
@@ -34,6 +33,8 @@ from vivarium_inputs.utilities import DataTypeNotImplementedError
 
 SLOW_TEST_DAY = "Sunday"  # Day to run very slow tests, e.g. PAFs and RRs
 
+
+LOCATION = "India"
 
 # TODO [MIC-5448]: Move to vivarium_testing_utilties
 @pytest.fixture(autouse=True)
@@ -130,17 +131,7 @@ def test_get_measure_causelike(
     if measure == "birth_prevalence":
         pytest.skip("FIXME: need to find causes with birth prevalence")
 
-    # Handle not implemented
-    is_unimplemented_means = data_type == "means" and measure in [
-        "disability_weight",
-        "remission_rate",
-        "cause_specific_mortality_rate",
-        "excess_mortality_rate",
-        "deaths",
-    ]
-    is_unimplemented = isinstance(data_type, list) or is_unimplemented_means
-
-    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker)
 
 
 SEQUELAE = [
@@ -199,13 +190,7 @@ def test_get_measure_sequelalike(
     if measure == "birth_prevalence":
         pytest.skip("FIXME: need to find sequelae with birth prevalence")
 
-    # Handle not implemented
-    is_unimplemented_means = data_type == "means" and measure in [
-        "disability_weight",
-    ]
-    is_unimplemented = isinstance(data_type, list) or is_unimplemented_means
-
-    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker)
 
 
 RISK_FACTORS = [
@@ -279,10 +264,7 @@ def test_get_measure_risklike(
     ):
         pytest.skip("FIXME: [mic-5542] continuous rrs cannot validate")
 
-    # Handle not implemented
-    is_unimplemented = isinstance(data_type, list) or data_type == "means"
-
-    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker)
 
 
 COVARIATES = [(covariates.systolic_blood_pressure_mmhg, ["estimate"])]
@@ -322,10 +304,7 @@ def test_get_measure_covariatelike(
     mocked tests are not slow but unmocked tests are).
     """
 
-    # Handle not implemented
-    is_unimplemented = isinstance(data_type, list) or data_type == "means"
-
-    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker, is_unimplemented)
+    run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker)
 
 
 # TODO [MIC-5550]: Add tests for etiologies and alternative risk factors
@@ -371,7 +350,6 @@ def run_test(
     mock_gbd: bool,
     runslow: bool,
     mocker: MockerFixture,
-    is_unimplemented: bool,
     raise_type: Exception = None,
 ):
     entity, entity_expected_measures = entity_details
@@ -390,6 +368,8 @@ def run_test(
         pytest.skip(f"Only run full PAF and RR tests on {SLOW_TEST_DAY}s")
 
     tester = success_expected if measure in entity_expected_measures else fail_expected
+    is_unimplemented = is_not_implemented(data_type, measure)
+
     if is_unimplemented:  # This should trigger first
         tester = partial(fail_expected, raise_type=DataTypeNotImplementedError)
     elif raise_type:
@@ -404,7 +384,9 @@ def run_test(
             pytest.skip("Cannot mock data for unimplemented features.")
         if tester == fail_expected:
             pytest.skip("Do mock data for expected failed calls.")
-        mocked_funcs = mock_vivarium_gbd_access(entity, measure, data_type, mocker)
+        mocked_funcs = mock_vivarium_gbd_access(
+            entity, measure, LOCATION, MOST_RECENT_YEAR, data_type, mocker
+        )
 
     tester(entity, measure, utility_data.get_location_id(LOCATION), data_type)
     if mock_gbd:
@@ -442,8 +424,8 @@ def check_data(
         "sex": {"Male", "Female"},
         "age_start": set(age_bins["age_group_years_start"]),
         "age_end": set(age_bins["age_group_years_end"]),
-        "year_start": {YEAR},
-        "year_end": {YEAR + 1},
+        "year_start": {MOST_RECENT_YEAR},
+        "year_end": {MOST_RECENT_YEAR + 1},
     }
     if not getattr(entity, "by_age", True):
         # Some entities do not have ages

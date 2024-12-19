@@ -14,8 +14,7 @@ from pytest_mock import MockerFixture
 from vivarium_inputs import utility_data
 from vivarium_inputs.globals import DRAW_COLUMNS, MEAN_COLUMNS, MEASURES
 
-LOCATION = "India"
-YEAR = 2021  # most recent year (used when default None is provided to get_measure())
+MOST_RECENT_YEAR = 2021
 DUMMY_INT = 1234
 DUMMY_STR = "foo"
 DUMMY_FLOAT = 123.4
@@ -24,6 +23,8 @@ DUMMY_FLOAT = 123.4
 def mock_vivarium_gbd_access(
     entity,
     measure: str,
+    locations: str | int | list[str | int],
+    years: int | list[int] | str | None,
     data_type: str | list[str],
     mocker: MockerFixture,
 ) -> list["mocker.Mock"]:
@@ -50,7 +51,9 @@ def mock_vivarium_gbd_access(
     # TODO [MIC-5461]: Speed up mocked data generation
 
     # Generic/small mocks that may or may not actually be called for this specific test
-    mocker.patch("vivarium_inputs.utility_data.get_most_recent_year", return_value=YEAR)
+    mocker.patch(
+        "vivarium_inputs.utility_data.get_most_recent_year", return_value=MOST_RECENT_YEAR
+    )
     mocker.patch(
         "vivarium_inputs.utility_data.get_estimation_years",
         return_value=get_mocked_estimation_years(),
@@ -103,35 +106,47 @@ def mock_vivarium_gbd_access(
     if measure in ["incidence_rate", "raw_incidence_rate"]:
         mocked_extract_incidence_rate = mocker.patch(
             "vivarium_inputs.extract.extract_incidence_rate",
-            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                measure, entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_extract_prevalence = mocker.patch(
             "vivarium_inputs.extract.extract_prevalence",
-            return_value=mocked_data_func("prevalence", entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                "prevalence", entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_funcs = [mocked_extract_incidence_rate, mocked_extract_prevalence]
     elif measure == "prevalence":
         mock = mocker.patch(
             "vivarium_inputs.extract.extract_prevalence",
-            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                measure, entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_funcs = [mock]
     elif measure == "disability_weight":
         mock = mocker.patch(
             "vivarium_inputs.extract.extract_disability_weight",
-            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                measure, entity, locations, years, **entity_specific_metadata
+            ),
         )
         combined_metadata = entity_specific_metadata_mapper["Cause"]
         combined_metadata.update(entity_specific_metadata_mapper["Sequela"])
         mocked_extract_prevalence = mocker.patch(
             "vivarium_inputs.extract.extract_prevalence",
-            return_value=mocked_data_func("prevalence", entity, **combined_metadata),
+            return_value=mocked_data_func(
+                "prevalence", entity, locations, years, **combined_metadata
+            ),
         )
         mocked_funcs = [mock]
     elif measure == "remission_rate":
         mock = mocker.patch(
             "vivarium_inputs.extract.extract_remission_rate",
-            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                measure, entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_funcs = [mock]
     elif measure == "cause_specific_mortality_rate":
@@ -139,16 +154,18 @@ def mock_vivarium_gbd_access(
         del entity_specific_metadata["cause_name"]
         mocked_extract_deaths = mocker.patch(
             "vivarium_inputs.extract.extract_deaths",
-            return_value=mocked_data_func("deaths", entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                "deaths", entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_extract_structure = mocker.patch(
             "vivarium_inputs.extract.extract_structure",
-            return_value=mocked_data_func("structure", entity),
+            return_value=mocked_data_func("structure", entity, locations, years),
         )
         mocked_funcs = [mocked_extract_deaths, mocked_extract_structure]
     elif measure == "excess_mortality_rate":
         mocked_prevalence_data = mocked_data_func(
-            "prevalence", entity, **entity_specific_metadata
+            "prevalence", entity, locations, years, **entity_specific_metadata
         )
         mocked_extract_prevalence = mocker.patch(
             "vivarium_inputs.extract.extract_prevalence",
@@ -161,11 +178,13 @@ def mock_vivarium_gbd_access(
         del death_kwargs["cause_name"]
         mocked_extract_deaths = mocker.patch(
             "vivarium_inputs.extract.extract_deaths",
-            return_value=mocked_data_func("deaths", entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                "deaths", entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_extract_structure = mocker.patch(
             "vivarium_inputs.extract.extract_structure",
-            return_value=mocked_data_func("structure", entity),
+            return_value=mocked_data_func("structure", entity, locations, years),
         )
         mocked_funcs = [
             mocked_extract_prevalence,
@@ -175,61 +194,79 @@ def mock_vivarium_gbd_access(
     elif measure == "exposure":
         mock = mocker.patch(
             "vivarium_inputs.extract.extract_exposure",
-            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                measure, entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_funcs = [mock]
     elif measure == "exposure_standard_deviation":
         mocked_exposure_sd = mocker.patch(
             "vivarium_inputs.extract.extract_exposure_standard_deviation",
-            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                measure, entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_exposure = mocker.patch(
             "vivarium_inputs.extract.extract_exposure",
-            return_value=mocked_data_func("exposure", entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                "exposure", entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_funcs = [mocked_exposure_sd, mocked_exposure]
     elif measure == "exposure_distribution_weights":
         mocked_exposure_distribution_weights = mocker.patch(
             "vivarium_inputs.extract.extract_exposure_distribution_weights",
-            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                measure, entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_exposure = mocker.patch(
             "vivarium_inputs.extract.extract_exposure",
-            return_value=mocked_data_func("exposure", entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                "exposure", entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_funcs = [mocked_exposure_distribution_weights, mocked_exposure]
     elif measure == "relative_risk":
         mocked_rr = mocker.patch(
             "vivarium_inputs.extract.extract_relative_risk",
             return_value=mocked_data_func(
-                "relative_risk", entity, **entity_specific_metadata
+                "relative_risk", entity, locations, years, **entity_specific_metadata
             ),
         )
         mocked_exposure = mocker.patch(
             "vivarium_inputs.extract.extract_exposure",
-            return_value=mocked_data_func("exposure", entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                "exposure", entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_funcs = [mocked_rr, mocked_exposure]
     elif measure == "population_attributable_fraction":
         mocked_pafs = mocker.patch(
             "vivarium_inputs.extract.extract_population_attributable_fraction",
-            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                measure, entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_exposure = mocker.patch(
             "vivarium_inputs.extract.extract_exposure",
-            return_value=mocked_data_func("exposure", entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                "exposure", entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_rr = mocker.patch(
             "vivarium_inputs.extract.extract_relative_risk",
             return_value=mocked_data_func(
-                "relative_risk", entity, **entity_specific_metadata
+                "relative_risk", entity, locations, years, **entity_specific_metadata
             ),
         )
         mocked_funcs = [mocked_pafs, mocked_exposure, mocked_rr]
     elif measure == "estimate":
         mock = mocker.patch(
             "vivarium_inputs.extract.extract_estimate",
-            return_value=mocked_data_func(measure, entity, **entity_specific_metadata),
+            return_value=mocked_data_func(
+                measure, entity, locations, years, **entity_specific_metadata
+            ),
         )
         mocked_funcs = [mock]
     else:
@@ -267,7 +304,13 @@ def get_mocked_location_ids() -> pd.DataFrame:
 #########################
 
 
-def mocked_get_draws(measure: str, entity, **entity_specific_metadata) -> pd.DataFrame:
+def mocked_get_draws(
+    measure: str,
+    entity: "ModelableEntity",
+    locations: str | int | list[str | int],
+    years: int | list[int] | str | None,
+    **entity_specific_metadata,
+) -> pd.DataFrame:
     """Mocked vivarium_gbd_access get_draws() data for testing."""
 
     # Get the common data for the specific measure (regardless of entity type)
@@ -284,7 +327,7 @@ def mocked_get_draws(measure: str, entity, **entity_specific_metadata) -> pd.Dat
         "population_attributable_fraction": get_mocked_pafs_get_draws,
         "relative_risk": partial(get_mocked_rr_get_draws, entity),
         "estimate": get_mocked_estimate_get_draws,
-    }[measure]()
+    }[measure](locations, years)
 
     # Add on entity-specific metadata columns
     for key, value in entity_specific_metadata.items():
@@ -293,7 +336,9 @@ def mocked_get_draws(measure: str, entity, **entity_specific_metadata) -> pd.Dat
     return df
 
 
-def get_mocked_incidence_rate_get_draws() -> pd.DataFrame:
+def get_mocked_incidence_rate_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_group_ids = get_mocked_age_bins()["age_group_id"]
     sex_ids = [1, 2]
 
@@ -304,8 +349,8 @@ def get_mocked_incidence_rate_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["year_id"] = years
     df["measure_id"] = 6  # incidence
     df["metric_id"] = 3  # rate
     df["version_id"] = DUMMY_INT
@@ -315,7 +360,9 @@ def get_mocked_incidence_rate_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_prevalence_get_draws() -> pd.DataFrame:
+def get_mocked_prevalence_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_group_ids = get_mocked_age_bins()["age_group_id"]
     sex_ids = [1, 2]
 
@@ -326,8 +373,8 @@ def get_mocked_prevalence_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["year_id"] = years
     df["measure_id"] = 5  # prevalence
     df["metric_id"] = 3  # rate
     df["version_id"] = DUMMY_INT
@@ -337,11 +384,13 @@ def get_mocked_prevalence_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_dw_get_draws() -> pd.DataFrame:
+def get_mocked_dw_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     df = pd.DataFrame(
         {
-            "location_id": utility_data.get_location_id(LOCATION),
-            "year_id": YEAR,
+            "location_id": utility_data.get_location_id(locations),
+            "year_id": years,
             "age_group_id": 22,
             "sex_id": 3,
             "measure": "disability_weight",
@@ -356,7 +405,9 @@ def get_mocked_dw_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_remission_rate_get_draws() -> pd.DataFrame:
+def get_mocked_remission_rate_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
@@ -368,8 +419,8 @@ def get_mocked_remission_rate_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["year_id"] = years
     df["measure_id"] = 7  # remission
     df["metric_id"] = 3  # rate
     df["model_version_id"] = DUMMY_INT
@@ -380,7 +431,9 @@ def get_mocked_remission_rate_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_deaths_get_draws() -> pd.DataFrame:
+def get_mocked_deaths_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
@@ -392,8 +445,8 @@ def get_mocked_deaths_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["year_id"] = years
     df["measure_id"] = 1  # deaths
     df["metric_id"] = 1  # number
     df["version_id"] = DUMMY_INT
@@ -405,7 +458,9 @@ def get_mocked_deaths_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_structure_get_draws() -> pd.DataFrame:
+def get_mocked_structure_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     # Populations is difficult to mock at the age-group level so just load it
     # return pd.read_csv(f"tests/fixture_data/population_{LOCATION.lower()}_{YEAR}.csv")
     age_bins = get_mocked_age_bins()
@@ -419,8 +474,8 @@ def get_mocked_structure_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["year_id"] = years
     df["run_id"] = DUMMY_INT
 
     _add_value_columns(df, ["population"], 1.0e6, 100.0e6)
@@ -428,7 +483,9 @@ def get_mocked_structure_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_exposure_get_draws(entity) -> pd.DataFrame:
+def get_mocked_exposure_get_draws(
+    entity, locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     if entity.name == "low_birth_weight_and_short_gestation":
         age_group_ids = [2, 3]
         sex_ids = [1, 2]
@@ -457,15 +514,17 @@ def get_mocked_exposure_get_draws(entity) -> pd.DataFrame:
     else:
         raise NotImplementedError(f"{entity.name} not implemented in mocked_gbd.py")
 
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["year_id"] = years
     df["measure_id"] = 19  # continuous
     df["metric_id"] = 3  # rate
 
     return df
 
 
-def get_mocked_exposure_sd_get_draws() -> pd.DataFrame:
+def get_mocked_exposure_sd_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
@@ -477,8 +536,8 @@ def get_mocked_exposure_sd_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["year_id"] = years
     df["modelable_entity_id"] = DUMMY_INT
     df["measure_id"] = 19  # continuous
     df["metric_id"] = 3  # rate
@@ -489,7 +548,9 @@ def get_mocked_exposure_sd_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_exposure_distribution_weights_get_draws() -> pd.DataFrame:
+def get_mocked_exposure_distribution_weights_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
 
     # We simply copy/paste the data from the call here.
     return pd.DataFrame(
@@ -517,7 +578,9 @@ def get_mocked_exposure_distribution_weights_get_draws() -> pd.DataFrame:
     )
 
 
-def get_mocked_pafs_get_draws() -> pd.DataFrame:
+def get_mocked_pafs_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
@@ -530,8 +593,8 @@ def get_mocked_pafs_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["year_id"] = years
     df["cause_id"] = 495  # Needs to be a valid cause_id
     df["metric_id"] = 2  # percent
     df["version_id"] = DUMMY_INT
@@ -541,7 +604,9 @@ def get_mocked_pafs_get_draws() -> pd.DataFrame:
     return df
 
 
-def get_mocked_rr_get_draws(entity) -> pd.DataFrame:
+def get_mocked_rr_get_draws(
+    entity, locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     if entity.name == "high_systolic_blood_pressure":
         # high sbp is only for >=25 years
@@ -557,7 +622,7 @@ def get_mocked_rr_get_draws(entity) -> pd.DataFrame:
 
     # Add on other metadata columns
     df["location_id"] = 1  # Most relative risks are global
-    df["year_id"] = YEAR
+    df["year_id"] = years
     df["modelable_entity_id"] = DUMMY_INT
     df["cause_id"] = 495  # Needs to be a valid cause_id
     df["mortality"] = 1
@@ -571,7 +636,9 @@ def get_mocked_rr_get_draws(entity) -> pd.DataFrame:
     return df
 
 
-def get_mocked_estimate_get_draws() -> pd.DataFrame:
+def get_mocked_estimate_get_draws(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_group_ids = [27]
     sex_ids = [1, 2]
 
@@ -582,9 +649,9 @@ def get_mocked_estimate_get_draws() -> pd.DataFrame:
     )
 
     # Add on other metadata columns
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["location_name"] = LOCATION
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["location_name"] = locations
+    df["year_id"] = years
     df["covariate_id"] = DUMMY_INT
     df["model_version_id"] = DUMMY_INT
     df["age_group_name"] = DUMMY_STR
@@ -603,19 +670,25 @@ def get_mocked_estimate_get_draws() -> pd.DataFrame:
 ###########################
 
 
-def mocked_get_outputs(measure: str, entity, **entity_specific_metadata) -> pd.DataFrame:
+def mocked_get_outputs(
+    measure: str,
+    entity: "ModelableEntity",
+    locations: str | int | list[str | int],
+    years: int | list[int] | str | None,
+    **entity_specific_metadata,
+) -> pd.DataFrame:
     """Mocked vivarium_gbd_access get_outputs() data for testing."""
 
     # Get the common data for the specific measure (regardless of entity type)
     df = {
         "incidence_rate": get_mocked_incidence_rate_get_outputs,
         "prevalence": get_mocked_prevalence_get_outputs,
-    }[measure]()
+    }[measure](locations, years)
 
     # Add on common metadata (note that this may overwrite existing columns, e.g.
     # from loading a population static file)
-    df["location_id"] = utility_data.get_location_id(LOCATION)
-    df["year_id"] = YEAR
+    df["location_id"] = utility_data.get_location_id(locations)
+    df["year_id"] = years
     df["expected"] = False
     df["location_name"] = "India"
     df["location_type"] = "admin0"
@@ -636,7 +709,9 @@ def mocked_get_outputs(measure: str, entity, **entity_specific_metadata) -> pd.D
     return df
 
 
-def get_mocked_incidence_rate_get_outputs() -> pd.DataFrame:
+def get_mocked_incidence_rate_get_outputs(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]
@@ -659,7 +734,9 @@ def get_mocked_incidence_rate_get_outputs() -> pd.DataFrame:
     return df
 
 
-def get_mocked_prevalence_get_outputs() -> pd.DataFrame:
+def get_mocked_prevalence_get_outputs(
+    locations: str | int | list[str | int], years: int | list[int] | str | None
+) -> pd.DataFrame:
     age_bins = get_mocked_age_bins()
     age_group_ids = list(age_bins["age_group_id"])
     sex_ids = [1, 2]

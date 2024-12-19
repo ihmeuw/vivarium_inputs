@@ -1,14 +1,12 @@
 import pytest
 from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
 
-from tests.mocked_gbd import (
-    LOCATION,
-    YEAR,
-    get_mocked_age_bins,
-    mock_vivarium_gbd_access,
-)
+from tests.conftest import is_not_implemented
+from tests.mocked_gbd import MOST_RECENT_YEAR
 from vivarium_inputs import core, utility_data
 from vivarium_inputs.utilities import DataType, DataTypeNotImplementedError
+
+LOCATION = "India"
 
 CAUSES = [
     (
@@ -169,13 +167,13 @@ def test_year_id_population(measure, years, data_type):
     "data_type", ["draws", "means", ["draws", "means"]], ids=lambda x: str(x)
 )
 def test_multiple_locations_causelike(entity_details, measure, locations, data_type):
-    year = YEAR
+    year = MOST_RECENT_YEAR
     location_id_mapping = {
         "Ethiopia": 179,
         "Nigeria": 214,
     }
     entity, entity_expected_measures = entity_details
-    if _is_not_implemented(data_type, measure):
+    if is_not_implemented(data_type, measure):
         with pytest.raises(DataTypeNotImplementedError):
             data_type = DataType(measure, data_type)
             core.get_data(entity, measure, locations, year, data_type)
@@ -207,28 +205,8 @@ def test_multiple_locations_causelike(entity_details, measure, locations, data_t
 ####################
 
 
-def _is_not_implemented(data_type: str | list[str], measure: str) -> bool:
-    return isinstance(data_type, list) or (
-        data_type == "means"
-        and measure
-        in [
-            "disability_weight",
-            "remission_rate",
-            "cause_specific_mortality_rate",
-            "excess_mortality_rate",
-            "deaths",
-            "exposure",
-            "low_birth_weight_and_short_gestation",
-            "exposure_standard_deviation",
-            "exposure_distribution_weights",
-            "estimate",
-            "structure",
-        ]
-    )
-
-
 def check_year_in_data(entity, measure, location, years, data_type):
-    if _is_not_implemented(data_type, measure):
+    if is_not_implemented(data_type, measure):
         with pytest.raises(DataTypeNotImplementedError):
             data_type = DataType(measure, data_type)
             core.get_data(entity, measure, location, years, data_type)
@@ -241,7 +219,7 @@ def check_year_in_data(entity, measure, location, years, data_type):
         elif years != 1900:
             df = core.get_data(entity, measure, location, years, data_type)
             if years == None:
-                assert set(df.index.get_level_values("year_id")) == set([2021])
+                assert set(df.index.get_level_values("year_id")) == set([MOST_RECENT_YEAR])
             elif years == "all":
                 assert set(df.index.get_level_values("year_id")) == set(range(1990, 2023))
             else:  # a single (non-1900) year
