@@ -275,7 +275,7 @@ def test_get_measure_risklike(
         and not mock_gbd
         and data_type == "draws"
     ):
-        pytest.skip("FIXME: [mic-5543] continuous rrs cannot validate")
+        pytest.skip("FIXME: [mic-5542] continuous rrs cannot validate")
 
     # Handle not implemented
     is_unimplemented = isinstance(data_type, list) or data_type == "means"
