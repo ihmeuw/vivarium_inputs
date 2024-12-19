@@ -59,8 +59,9 @@ class RawValidationContext:
     def __init__(self, location_id, **additional_data):
         self.context_data = {"location_id": location_id}
         self.context_data.update(additional_data)
-
-        if "estimation_years" not in self.context_data:
+        if "estimation_years" not in self.context_data or self.context_data[
+            "estimation_years"
+        ] == ["full"]:
             self.context_data["estimation_years"] = utility_data.get_estimation_years()
         if "age_group_ids" not in self.context_data:
             self.context_data["age_group_ids"] = utility_data.get_age_group_ids()

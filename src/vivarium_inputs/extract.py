@@ -112,7 +112,7 @@ def extract_data(
 
     validation.check_metadata(entity, measure)
 
-    year_id = _get_year_id(years)
+    year_id = _get_year_id(years, data_type)
 
     try:
         main_extractor, additional_extractors = extractors[measure]
@@ -146,6 +146,10 @@ def extract_data(
     extra_draw_cols = [col for col in existing_draw_cols if col not in DRAW_COLUMNS]
     data = data.drop(columns=extra_draw_cols, errors="ignore")
 
+    # drop get_outputs data earlier than the estimation years
+    if data_type.type == "means":
+        data = data.loc[data["year_id"] >= min(utility_data.get_estimation_years())]
+
     if validate:
         additional_data = {
             name: extractor(entity, location_id, year_id, data_type)
@@ -167,11 +171,14 @@ def extract_data(
 ####################
 
 
-def _get_year_id(years):
+def _get_year_id(years, data_type):
     if years is None:  # default to most recent year
         year_id = utility_data.get_most_recent_year()
     elif years == "all":
-        year_id = None
+        if data_type.type == "draws":
+            year_id = None
+        else:  # means
+            year_id = "full"
     else:
         year_id = years if isinstance(years, list) else [years]
         estimation_years = utility_data.get_estimation_years()
