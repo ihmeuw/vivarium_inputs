@@ -524,9 +524,7 @@ def get_relative_risk(
             f"{location_id}."
         )
 
-    breakpoint()
     data = extract.extract_data(entity, "relative_risk", location_id, years, data_type)
-    breakpoint()
     # FIXME: we don't currently support yll-only causes so I'm dropping them because the data in some cases is
     #  very messed up, with mort = morb = 1 (e.g., aortic aneurysm in the RR data for high systolic bp) -
     #  2/8/19 K.W.
@@ -546,7 +544,6 @@ def get_relative_risk(
         + ["affected_entity", "affected_measure", "parameter"]
         + value_columns
     )
-    breakpoint()
     data = (
         data.groupby(["affected_entity", "parameter"])
         .apply(utilities.normalize, cols_to_fill=value_columns, fill_value=1)
