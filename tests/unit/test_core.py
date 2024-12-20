@@ -1,9 +1,15 @@
 import pytest
 from gbd_mapping import ModelableEntity, causes, covariates, risk_factors
+from pytest_mock import MockerFixture
 
 from tests.conftest import is_not_implemented
-from tests.mocked_gbd import MOST_RECENT_YEAR
-from vivarium_inputs import core, utility_data
+from tests.mocked_gbd import (
+    MOST_RECENT_YEAR,
+    get_mocked_location_ids,
+    mock_vivarium_gbd_access,
+)
+from vivarium_inputs import core
+from vivarium_inputs.globals import Population
 from vivarium_inputs.utilities import DataType, DataTypeNotImplementedError
 
 LOCATION = "India"
@@ -68,10 +74,16 @@ CAUSE_MEASURES = [
 @pytest.mark.parametrize(
     "data_type", ["draws", "means", ["draws", "means"]], ids=lambda x: str(x)
 )
-def test_year_id_causelike(entity_details, measure, years, data_type):
+def test_year_id_causelike(
+    entity_details: tuple[ModelableEntity, list[str]],
+    measure: str,
+    years: int | list[int] | str | None,
+    data_type: str | list[str],
+    mocker: MockerFixture,
+):
     entity, entity_expected_measures = entity_details
     if measure in entity_expected_measures:
-        check_year_in_data(entity, measure, LOCATION, years, data_type)
+        check_year_in_data(entity, measure, LOCATION, years, data_type, mocker)
 
 
 RISKS = [
@@ -111,7 +123,13 @@ RISK_MEASURES = [
 @pytest.mark.parametrize(
     "data_type", ["draws", "means", ["draws", "means"]], ids=lambda x: str(x)
 )
-def test_year_id_risklike(entity_details, measure, years, data_type):
+def test_year_id_risklike(
+    entity_details: tuple[ModelableEntity, list[str]],
+    measure: str,
+    years: int | list[int] | str | None,
+    data_type: str | list[str],
+    mocker: MockerFixture,
+):
     if (
         measure == "relative_risk"
         and entity_details[0].name == "high_systolic_blood_pressure"
@@ -120,7 +138,7 @@ def test_year_id_risklike(entity_details, measure, years, data_type):
         pytest.skip("FIXME: [mic-5542] continuous rrs cannot validate")
     entity, entity_expected_measures = entity_details
     if measure in entity_expected_measures:
-        check_year_in_data(entity, measure, LOCATION, years, data_type)
+        check_year_in_data(entity, measure, LOCATION, years, data_type, mocker)
 
 
 COVARIATES = [
@@ -137,8 +155,14 @@ COVARIATE_MEASURES = ["estimate"]
 @pytest.mark.parametrize(
     "data_type", ["draws", "means", ["draws", "means"]], ids=lambda x: str(x)
 )
-def test_year_id_covariatelike(entity, measure, years, data_type):
-    check_year_in_data(entity, measure, LOCATION, years, data_type)
+def test_year_id_covariatelike(
+    entity: ModelableEntity,
+    measure: str,
+    years: int | list[int] | str | None,
+    data_type: str | list[str],
+    mocker: MockerFixture,
+):
+    check_year_in_data(entity, measure, LOCATION, years, data_type, mocker)
 
 
 @pytest.mark.parametrize("measure", ["structure", "demographic_dimensions"], ids=lambda x: x)
@@ -148,10 +172,14 @@ def test_year_id_covariatelike(entity, measure, years, data_type):
 @pytest.mark.parametrize(
     "data_type", ["draws", "means", ["draws", "means"]], ids=lambda x: str(x)
 )
-def test_year_id_population(measure, years, data_type):
-    pop = ModelableEntity("ignored", "population", None)
-    location = utility_data.get_location_id(LOCATION)
-    check_year_in_data(pop, measure, location, years, data_type)
+def test_year_id_population(
+    measure: str,
+    years: int | list[int] | str | None,
+    data_type: str | list[str],
+    mocker: MockerFixture,
+):
+    pop = Population()
+    check_year_in_data(pop, measure, LOCATION, years, data_type, mocker)
 
 
 @pytest.mark.parametrize("entity_details", CAUSES, ids=lambda x: x[0].name)
@@ -170,7 +198,13 @@ def test_year_id_population(measure, years, data_type):
 @pytest.mark.parametrize(
     "data_type", ["draws", "means", ["draws", "means"]], ids=lambda x: str(x)
 )
-def test_multiple_locations_causelike(entity_details, measure, locations, data_type):
+def test_multiple_locations_causelike(
+    entity_details: tuple[ModelableEntity, list[str]],
+    measure: str,
+    locations: str | int | list[str | int],
+    data_type: str | list[str],
+    mocker: MockerFixture,
+):
     year = MOST_RECENT_YEAR
     location_id_mapping = {
         "Ethiopia": 179,
@@ -180,14 +214,24 @@ def test_multiple_locations_causelike(entity_details, measure, locations, data_t
     if is_not_implemented(data_type, measure):
         with pytest.raises(DataTypeNotImplementedError):
             data_type = DataType(measure, data_type)
+            mocker.patch(
+                "vivarium_inputs.utility_data.get_raw_location_ids",
+                return_value=get_mocked_location_ids(),
+            )
             core.get_data(entity, measure, locations, year, data_type)
     else:
-        data_type = DataType(measure, data_type)
         if measure not in entity_expected_measures:
             with pytest.raises(Exception):
+                data_type = DataType(measure, data_type)
                 core.get_data(entity, measure, locations, year, data_type)
         else:
+            mocked_funcs = mock_vivarium_gbd_access(
+                entity, measure, locations, year, data_type, mocker
+            )
+            data_type = DataType(measure, data_type)
             df = core.get_data(entity, measure, locations, year, data_type)
+            for mocked_func in mocked_funcs:
+                assert mocked_func.called_once()
             if not isinstance(locations, list):
                 locations = [locations]
             location_ids = {
@@ -209,16 +253,32 @@ def test_multiple_locations_causelike(entity_details, measure, locations, data_t
 ####################
 
 
-def check_year_in_data(entity, measure, location, years, data_type):
+def check_year_in_data(
+    entity: ModelableEntity,
+    measure: str,
+    location: str,
+    years: int | list[int] | str | None,
+    data_type: str | list[str],
+    mocker: MockerFixture,
+):
     if is_not_implemented(data_type, measure):
         with pytest.raises(DataTypeNotImplementedError):
             data_type = DataType(measure, data_type)
+            mocker.patch(
+                "vivarium_inputs.utility_data.get_raw_location_ids",
+                return_value=get_mocked_location_ids(),
+            )
             core.get_data(entity, measure, location, years, data_type)
     else:
+        mocked_funcs = mock_vivarium_gbd_access(
+            entity, measure, location, years, data_type, mocker
+        )
         data_type = DataType(measure, data_type)
         if isinstance(years, list):
             df = core.get_data(entity, measure, location, years, data_type)
             assert set(df.index.get_level_values("year_id")) == set(years)
+            for mocked_func in mocked_funcs:
+                assert mocked_func.called_once()
         # years expected to be 1900, 2019, None, or "all"
         elif years != 1900:
             df = core.get_data(entity, measure, location, years, data_type)
@@ -228,6 +288,8 @@ def check_year_in_data(entity, measure, location, years, data_type):
                 assert set(df.index.get_level_values("year_id")) == set(range(1990, 2023))
             else:  # a single (non-1900) year
                 assert set(df.index.get_level_values("year_id")) == set([years])
+            for mocked_func in mocked_funcs:
+                assert mocked_func.called_once()
         else:
             with pytest.raises(ValueError, match="years must be in"):
                 core.get_data(entity, measure, location, years, data_type)
