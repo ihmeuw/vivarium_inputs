@@ -112,8 +112,12 @@ RISK_MEASURES = [
     "data_type", ["draws", "means", ["draws", "means"]], ids=lambda x: str(x)
 )
 def test_year_id_risklike(entity_details, measure, years, data_type):
-    if measure in ["relative_risk", "population_attributable_fraction"]:
-        pytest.skip("TODO: mic-5245 punting until later b/c these are soooo slow")
+    if (
+        measure == "relative_risk"
+        and entity_details[0].name == "high_systolic_blood_pressure"
+        and data_type == "draws"
+    ):
+        pytest.skip("FIXME: [mic-5542] continuous rrs cannot validate")
     entity, entity_expected_measures = entity_details
     if measure in entity_expected_measures:
         check_year_in_data(entity, measure, LOCATION, years, data_type)
