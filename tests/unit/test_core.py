@@ -81,6 +81,13 @@ def test_year_id_causelike(
     data_type: str | list[str],
     mocker: MockerFixture,
 ):
+    if years == "all" and measure == "remission_rate":
+        # remission rates and relative risks have binned years and for
+        # "all" years will use central comp's `core-maths` library which, like
+        # vivarium_gbd_access, is hosted on bitbucket and so cannot be accessed
+        # from github-actions.
+        pytest.skip("Expected to fail - see test_xfailed test")
+
     entity, entity_expected_measures = entity_details
     if measure in entity_expected_measures:
         check_year_in_data(entity, measure, LOCATION, years, data_type, mocker)
@@ -130,6 +137,12 @@ def test_year_id_risklike(
     data_type: str | list[str],
     mocker: MockerFixture,
 ):
+    if years == "all" and measure == "relative_risk":
+        # remission rates and relative risks have binned years and for
+        # "all" years will use central comp's `core-maths` library which, like
+        # vivarium_gbd_access, is hosted on bitbucket and so cannot be accessed
+        # from github-actions.
+        pytest.skip("Expected to fail - see test_xfailed test")
     if (
         measure == "relative_risk"
         and entity_details[0].name == "high_systolic_blood_pressure"
@@ -139,6 +152,32 @@ def test_year_id_risklike(
     entity, entity_expected_measures = entity_details
     if measure in entity_expected_measures:
         check_year_in_data(entity, measure, LOCATION, years, data_type, mocker)
+
+
+@pytest.mark.xfail(raises=ModuleNotFoundError, reason="Cannot import core-maths", strict=True)
+@pytest.mark.parametrize(
+    "entity, measure",
+    [
+        [causes.diarrheal_diseases, "remission_rate"],
+        [risk_factors.high_systolic_blood_pressure, "relative_risk"],
+        [risk_factors.low_birth_weight_and_short_gestation, "relative_risk"],
+    ],
+)
+def test_xfailed(
+    entity: ModelableEntity,
+    measure: str,
+    mocker: MockerFixture,
+):
+    """We expect failures when trying to interpolate 'all' years for binned measures
+
+    Notes
+    -----
+    These test parameterizations are a subset of others in this test module
+    that are simply marked as 'skip'.
+    """
+    if measure == "relative_risk" and entity.name == "high_systolic_blood_pressure":
+        pytest.skip("FIXME: [mic-5542] continuous rrs cannot validate")
+    check_year_in_data(entity, measure, LOCATION, "all", "draws", mocker)
 
 
 COVARIATES = [
