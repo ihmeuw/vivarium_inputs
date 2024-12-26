@@ -1,3 +1,7 @@
+**5.2.3 - 12/26/24**
+
+ - Bugfix: better handle 'all' years when requesting mean data
+
 **5.2.2 - 11/13/24**
 
  - Bugfix to implement data type requests for remaining interface tests
