@@ -1,4 +1,8 @@
-**5.2.3 - 12/26/24**
+**5.2.4 - 12/27/24**
+
+ - Implement unit tests for core.get_data()
+ 
+ **5.2.3 - 12/26/24**
 
  - Bugfix: better handle 'all' years when requesting mean data
 
