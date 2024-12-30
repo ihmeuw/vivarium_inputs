@@ -1,4 +1,4 @@
-**5.2.4 - 12/27/24**
+**5.2.4 - 12/30/24**
 
  - Implement unit tests for core.get_data()
  
