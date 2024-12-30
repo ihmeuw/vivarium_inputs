@@ -1,6 +1,8 @@
-**5.2.3 - 12/26/24**
+**5.2.3 - 12/30/24**
 
  - Bugfix: better handle 'all' years when requesting mean data
+ - Implement unit tests for core.get_data()
+ - Skip broken unmocked sbp PAF tests in test_get_measure.py
 
 **5.2.2 - 11/13/24**
 
