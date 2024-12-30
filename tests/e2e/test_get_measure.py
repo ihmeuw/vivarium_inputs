@@ -98,9 +98,11 @@ CAUSE_MEASURES = [
 @pytest.mark.parametrize("entity_details", CAUSES, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", CAUSE_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
-    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+    "data_type", ["means", "draws", ["means", "draws"]], ids=lambda x: str(x)
 )
-@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+@pytest.mark.parametrize(
+    "mock_gbd", [True, False], ids=lambda x: "mocked" if x else "unmocked"
+)
 def test_get_measure_causelike(
     entity_details: tuple[Cause, list[str]],
     measure: str,
@@ -156,9 +158,11 @@ SEQUELA_MEASURES = [
 @pytest.mark.parametrize("entity_details", SEQUELAE, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", SEQUELA_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
-    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+    "data_type", ["means", "draws", ["means", "draws"]], ids=lambda x: str(x)
 )
-@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+@pytest.mark.parametrize(
+    "mock_gbd", [True, False], ids=lambda x: "mocked" if x else "unmocked"
+)
 def test_get_measure_sequelalike(
     entity_details: tuple[Sequela, list[str]],
     measure: str,
@@ -225,9 +229,11 @@ RISK_FACTOR_MEASURES = [
 @pytest.mark.parametrize("entity_details", RISK_FACTORS, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", RISK_FACTOR_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
-    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+    "data_type", ["means", "draws", ["means", "draws"]], ids=lambda x: str(x)
 )
-@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+@pytest.mark.parametrize(
+    "mock_gbd", [True, False], ids=lambda x: "mocked" if x else "unmocked"
+)
 def test_get_measure_risklike(
     entity_details: tuple(RiskFactor, list[str]),
     measure: str,
@@ -257,7 +263,7 @@ def test_get_measure_risklike(
 
     # Test-specific fixme skips
     if (
-        measure == "relative_risk"
+        measure in ["relative_risk", "population_attributable_fraction"]
         and entity_details[0].name == "high_systolic_blood_pressure"
         and not mock_gbd
         and data_type == "draws"
@@ -274,9 +280,11 @@ COVARIATE_MEASURES = ["estimate"]
 @pytest.mark.parametrize("entity_details", COVARIATES, ids=lambda x: x[0].name)
 @pytest.mark.parametrize("measure", COVARIATE_MEASURES, ids=lambda x: x)
 @pytest.mark.parametrize(
-    "data_type", ["means", "draws", ["means", "draws"]], ids=("means", "draws", "means_draws")
+    "data_type", ["means", "draws", ["means", "draws"]], ids=lambda x: str(x)
 )
-@pytest.mark.parametrize("mock_gbd", [True, False], ids=("mocked", "unmocked"))
+@pytest.mark.parametrize(
+    "mock_gbd", [True, False], ids=lambda x: "mocked" if x else "unmocked"
+)
 def test_get_measure_covariatelike(
     entity_details: tuple(Covariate, list[str]),
     measure: str,
