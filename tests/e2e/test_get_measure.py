@@ -263,19 +263,12 @@ def test_get_measure_risklike(
 
     # Test-specific fixme skips
     if (
-        measure == "relative_risk"
+        measure in ["relative_risk", "population_attributable_fraction"]
         and entity_details[0].name == "high_systolic_blood_pressure"
         and not mock_gbd
         and data_type == "draws"
     ):
         pytest.skip("FIXME: [mic-5542] continuous rrs cannot validate")
-    if (
-        measure == "population_attributable_fraction"
-        and entity_details[0].name == "high_systolic_blood_pressure"
-        and not mock_gbd
-        and data_type == "draws"
-    ):
-        pytest.skip("FIXME: [mic-5644] test always gets killed")
 
     run_test(entity_details, measure, data_type, mock_gbd, runslow, mocker)
 
