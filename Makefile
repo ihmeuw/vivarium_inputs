@@ -84,7 +84,7 @@ install: # Install setuptools, install this package in editable mode
 # Then, assuming the build passes, you can change it back (which will cause builds to 
 # start failing again until everything gets merged to main).
 
-e2e-runslow: $(MAKE_SOURCES) # Run all (--runslow) end-to-end tests
+e2e: $(MAKE_SOURCES) # Run all (--runslow) end-to-end tests
 	export COVERAGE_FILE=./output/.coverage.e2e
 	pytest tests/e2e -vvv --runslow --cov --cov-report term --cov-report html:./output/htmlcov_e2e
 	@echo "Ignore, Created by Makefile, `date`" > $@
