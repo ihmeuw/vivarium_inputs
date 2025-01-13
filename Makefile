@@ -85,8 +85,8 @@ install: # Install setuptools, install this package in editable mode
 # start failing again until everything gets merged to main).
 
 format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and import sorter
-	black $(LOCATIONS)
 	isort $(LOCATIONS)
+	black $(LOCATIONS)
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 e2e: $(MAKE_SOURCES) # Run all (--runslow) end-to-end tests
