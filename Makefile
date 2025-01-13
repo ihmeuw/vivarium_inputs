@@ -75,7 +75,7 @@ install: # Install setuptools, install this package in editable mode
 # FIXME: Add support for installing non-develop branches of vivarium_gbd_access
 # @sh vivarium_build_utils/install_dependency_branch.sh vivarium_gbd_access ${GIT_BRANCH} jenkins
 
-# NOTE: we cannot currently install anything but the 'main' branch in vivarium_gbd_access
+# NOTE: We cannot currently install anything but the 'main' branch in vivarium_gbd_access
 # due to it being hosted on bitbucket and behind the IHME firewall (which vivarium_build_utils 
 # cannot see because it is on github). One workaround until we get this fixed is to 
 # TEMPORARILY (i.e. just for testing) change the vivarium_gbd_access setup.py data_requires 
@@ -89,7 +89,7 @@ format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and imp
 	black $(LOCATIONS)
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
-e2e-runslow: $(MAKE_SOURCES) # Run all (--runslow) end-to-end tests
+e2e: $(MAKE_SOURCES) # Run all (--runslow) end-to-end tests
 	export COVERAGE_FILE=./output/.coverage.e2e
 	pytest tests/e2e -vvv --runslow --cov --cov-report term --cov-report html:./output/htmlcov_e2e
 	@echo "Ignore, Created by Makefile, `date`" > $@
