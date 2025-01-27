@@ -457,7 +457,7 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
     """It applies age restrictions according to affected causes
     and affected measures. If affected measure is incidence_rate,
     it applies the yld_age_restrictions. If affected measure is
-    excess_mortality_rate, it applies the yll_age_restrictions to filter
+    cause_specific_mortality_rate, it applies the yll_age_restrictions to filter
     the relative_risk data"""
 
     age_bins = utility_data.get_age_bins()
@@ -471,7 +471,11 @@ def filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFra
         cause = causes_map[cause]
         if measure == "cause_specific_mortality_rate":
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yll")
-        else:  # incidence_rate
+        else:
+            assert (
+                measure == "incidence_rate",
+                "Affected measure must be incidence_rate or cause_specific_mortality_rate to apply cause restrictions"
+            )
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yld")
         start_index = list(ordered_age_ids).index(start)
         end_index = list(ordered_age_ids).index(end)
@@ -603,9 +607,18 @@ def get_population_attributable_fraction(
             data = data.where(data[DRAW_COLUMNS] > 0, 0).reset_index()
 
     data = utilities.convert_affected_entity(data, "cause_id")
+    # NOTE: We intend to review how we assign affected measures in the future
+    # on the research side, since it is not obvious that YLL PAFs are the same
+    # as CSMR PAFs, nor that YLD PAFs are the same as incidence PAFs.
+    # This is also deeply related to how we handle it in the relative risk
+    # data.
+    # For now, we have updated this from EMR to CSMR to reflect a prior
+    # change on the relative risk side (https://github.com/ihmeuw/vivarium_inputs/commit/9d648dfd066fbd46d03c2f49969b0809832874a0),
+    # which was probably inspired by this documentation change:
+    # https://github.com/ihmeuw/vivarium_research/commit/a739ab19df4c3fcbd0c38ec3e2ed30c18557c6dd
     data.loc[
         data["measure_id"] == MEASURES["YLLs"], "affected_measure"
-    ] = "excess_mortality_rate"
+    ] = "cause_specific_mortality_rate"
     data.loc[data["measure_id"] == MEASURES["YLDs"], "affected_measure"] = "incidence_rate"
     data = (
         data.groupby(["affected_entity", "affected_measure"])
