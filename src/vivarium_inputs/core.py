@@ -762,7 +762,7 @@ def _filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFr
         else:
             assert (
                 measure == "incidence_rate",
-                "Affected measure must be incidence_rate or cause_specific_mortality_rate to apply cause restrictions"
+                "Affected measure must be incidence_rate or cause_specific_mortality_rate to apply cause restrictions",
             )
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yld")
         start_index = list(ordered_age_ids).index(start)
