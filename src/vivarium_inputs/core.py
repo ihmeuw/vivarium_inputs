@@ -760,7 +760,7 @@ def _filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFr
         cause = causes_map[cause]
         if measure == "cause_specific_mortality_rate":
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yll")
-        elif measure == "incidence_rate":  
+        elif measure == "incidence_rate":
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yld")
         else:
             raise DataTransformationError(
