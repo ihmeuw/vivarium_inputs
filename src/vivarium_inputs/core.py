@@ -24,6 +24,7 @@ from vivarium_inputs.globals import (
     MEASURES,
     MINIMUM_EXPOSURE_VALUE,
     DataDoesNotExistError,
+    DataTransformationError,
     InvalidQueryError,
     Population,
     gbd,
@@ -759,12 +760,14 @@ def _filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFr
         cause = causes_map[cause]
         if measure == "cause_specific_mortality_rate":
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yll")
-        else:
-            assert (
-                measure == "incidence_rate",
-                "Affected measure must be incidence_rate or cause_specific_mortality_rate to apply cause restrictions",
-            )
+        elif measure == "incidence_rate":  
             start, end = utilities.get_age_group_ids_by_restriction(cause, "yld")
+        else:
+            raise DataTransformationError(
+                "Affected measure must be incidence_rate or cause_specific_mortality_rate "
+                "to apply cause restrictions to relative risks. "
+                "Check the morbidity and mortality columns."
+            )
         start_index = list(ordered_age_ids).index(start)
         end_index = list(ordered_age_ids).index(end)
         allowed_ids = ordered_age_ids[start_index : (end_index + 1)]
