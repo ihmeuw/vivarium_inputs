@@ -745,7 +745,7 @@ def _filter_relative_risk_to_cause_restrictions(data: pd.DataFrame) -> pd.DataFr
     """It applies age restrictions according to affected causes
     and affected measures. If affected measure is incidence_rate,
     it applies the yld_age_restrictions. If affected measure is
-    excess_mortality_rate, it applies the yll_age_restrictions to filter
+    cause_specific_mortality_rate, it applies the yll_age_restrictions to filter
     the relative_risk data"""
 
     age_bins = utility_data.get_age_bins()
