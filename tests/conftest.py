@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 import pytest
 from _pytest.logging import caplog as _caplog
-from gbd_mapping import causes, etiologies, risk_factors
 from loguru import logger
 
 
@@ -25,6 +27,12 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture
+def runslow(request: pytest.FixtureRequest):
+    """Fixture to allow 'runslow' to be used as an argument in tests."""
+    return request.config.getoption("--runslow")
+
+
+@pytest.fixture
 def caplog(_caplog):
     class PropogateHandler(logging.Handler):
         def emit(self, record):
@@ -35,49 +43,45 @@ def caplog(_caplog):
     logger.remove(handler_id)
 
 
-@pytest.fixture
-def cause_list():
-    return [
-        causes.diarrheal_diseases,
-        causes.ischemic_heart_disease,
-        causes.ischemic_stroke,
-        causes.hemorrhagic_stroke,
-        causes.tetanus,
-        causes.diabetes_mellitus,
-        causes.all_causes,
-    ]
+def pytest_report_teststatus(report: Any, config: Any) -> tuple[Any, str, str] | None:
+    if report.when == "call" and report.skipped:
+        if "todo" in report.longreprtext.lower():
+            return (report.outcome, "T", "TODO")
+        if "fixme" in report.longreprtext.lower():
+            # NOTE: We mark the non-verbose status as "T" (the same as a TODO) because
+            # "F" is reserved for failures.
+            return (report.outcome, "T", "FIXME")
 
 
-@pytest.fixture
-def etiology_list():
-    return [etiologies.cholera, etiologies.amoebiasis]
+def _no_gbd_access():
+    try:
+        from vivarium_inputs.globals import GBDDummy
+
+        return True
+    except ImportError:
+        pass
+    return False
 
 
-@pytest.fixture
-def sequela_list():
-    return list(
-        causes.diarrheal_diseases.sequelae
-        + causes.ischemic_heart_disease.sequelae
-        + causes.ischemic_stroke.sequelae
-        + causes.hemorrhagic_stroke.sequelae
-        + causes.hemorrhagic_stroke.sequelae
-        + causes.tetanus.sequelae
-        + causes.diabetes_mellitus.sequelae
+NO_GBD_ACCESS = _no_gbd_access()
+
+
+def is_not_implemented(data_type: str | list[str], measure: str) -> bool:
+    return isinstance(data_type, list) or (
+        data_type == "means"
+        and measure
+        in [
+            "disability_weight",
+            "remission_rate",
+            "cause_specific_mortality_rate",
+            "excess_mortality_rate",
+            "deaths",
+            "exposure",
+            "exposure_standard_deviation",
+            "exposure_distribution_weights",
+            "relative_risk",
+            "population_attributable_fraction",
+            "estimate",
+            "structure",
+        ]
     )
-
-
-@pytest.fixture
-def etiology_list():
-    return list(
-        causes.diarrheal_diseases.etiologies + causes.lower_respiratory_infections.etiologies
-    )
-
-
-@pytest.fixture
-def risk_list():
-    return [r for r in risk_factors]
-
-
-@pytest.fixture
-def locations():
-    return ["Bangladesh", "Ethiopia", "Kenya", "China", "North Korea", "Nigeria"]

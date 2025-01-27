@@ -1,7 +1,59 @@
+**5.2.3 - 12/30/24**
+
+ - Bugfix: better handle 'all' years when requesting mean data
+ - Implement unit tests for core.get_data()
+ - Skip broken unmocked sbp PAF tests in test_get_measure.py
+
+**5.2.2 - 11/13/24**
+
+ - Bugfix to implement data type requests for remaining interface tests
+
+**5.2.1 - 11/13/24**
+
+ - Add more get_measure tests: sequelae (mocked), risk factors, covariates
+
+**5.2.0 - 11/07/24**
+
+ - Add framework for getting mean data
+ - Add mean data support for getting incidence, prevalence, and birth prevalence
+ - Add a few tests to be run in CI against get_measure
+
+**5.1.0 - 11/04/24**
+
+ - Drop support for Python 3.9
+
+**5.0.7 - 09/13/24**
+
+ - Process exposure parametrized relative risks
+
+**5.0.6 - 08/21/24**
+
+ - Use script to install dependencies in CI
+
+**5.0.5 - 08/02/24**
+
+ - Fix CI bug when installing upstream dependencies
+
+**5.0.4 - 07/16/24**
+
+ - Fix bug in processing locations when pulling disability weights
+
+**5.0.3 - 07/12/24**
+
+ - Fix bug in processing year ID of disability weight
+
+**5.0.2 - 07/01/24**
+
+ - Fix bug in validation of the year parameter
+
+**5.0.1 - 06/13/24**
+
+ - Fix bug in scrub_location
+
 **5.0.0 - 05/20/24**
 
  - Pull GBD 2021 data
- - Add functionality to pull multiple locationals at once
+ - Add functionality to pull multiple locations at once
 
 **4.1.4 - 01/11/24**
 

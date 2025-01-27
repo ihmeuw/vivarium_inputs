@@ -1,15 +1,20 @@
 [tool.black]
 line_length = 94
-exclude = '''
-/(
-   vivarium
-   | vivarium_public_health
-   | gbd_mapping
-)/
-
-'''
 
 [tool.isort]
 profile = "black"
-skip = ["vivarium", "vivarium_public_health", "gbd_mapping"]
 known_third_party = ["vivarium", "vivarium_public_health", "gbd_mapping"]
+multi_line_output = 3 # Vertical Hanging Indent, see https://pypi.org/project/isort/
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/"]
+
+[tool.coverage.run]
+source = ["vivarium_inputs"]
+
+[tool.coverage.report]
+show_missing = true

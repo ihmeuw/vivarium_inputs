@@ -9,130 +9,20 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 8 * * *"
-
+  
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
-    defaults:
-      run:
-        shell: bash -le {0}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          activate-environment: test_env_python${{ matrix.python-version }}
-          python-version: ${{ matrix.python-version }}
-          auto-activate-base: false
-
-      - name: Install hdf5 libs
-        run: |
-          sudo apt-get update
-          sudo apt-get install libhdf5-dev
-      
-      - name: get upstream branch name
-        run: |
-          if "${{ github.event_name == 'pull_request' }}" ; then
-            echo "branch_name=${GITHUB_HEAD_REF}" >> $GITHUB_ENV
-          else
-            echo "branch_name=${GITHUB_REF_NAME}" >> $GITHUB_ENV
-          fi
-      - name: Conda info
-        run: |
-          conda info
-          conda list
-          echo branch_name = ${branch_name}
-      - name: check for upstream vivarium
-        run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium.git ${branch_name} == "0"; then
-            echo "upstream_vivarium_exist=true" >> $GITHUB_ENV
-          else
-            echo "upstream_vivarium_exist=false" >> $GITHUB_ENV
-          fi
-      - name: check for upstream vivarium_public_health
-        run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/vivarium_public_health.git ${branch_name} == "0"; then
-            echo "upstream_vivarium_public_health_exist=true" >> $GITHUB_ENV
-          else
-            echo "upstream_vivarium_public_health_exist=false" >> $GITHUB_ENV
-          fi
-      - name: check for upstream gbd_mapping
-        run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/gbd_mapping.git ${branch_name} == "0"; then
-            echo "upstream_gbd_mapping_exist=true" >> $GITHUB_ENV
-          else
-            echo "upstream_gbd_mapping_exist=false" >> $GITHUB_ENV
-          fi
-
-      - name: print environment values
-        run: |
-          cat $GITHUB_ENV
-
-      - name: Retrieve upstream vivarium
-        if: env.upstream_vivarium_exist == 'true'
-        run: |
-          echo "Cloning vivarium upstream branch: ${branch_name}"
-          git clone --branch=${branch_name} https://github.com/ihmeuw/vivarium.git
-          pushd vivarium
-          pip install .
-          popd
-      - name: Retrieve upstream vivarium_public_health
-        if: env.upstream_vivarium_public_health_exist == 'true'
-        run: |
-          echo "Cloning vivarium_public_health upstream branch: ${branch_name}"
-          git clone --branch=${branch_name} https://github.com/ihmeuw/vivarium_public_health.git
-          pushd vivarium_public_health
-          pip install .
-          popd
-      - name: Retrieve upstream gbd_mapping
-        if: env.upstream_gbd_mapping_exist == 'true'
-        run: |
-          echo "Cloning upstream gbd_mapping branch: ${branch_name}"
-          git clone --branch=${branch_name} https://github.com/ihmeuw/gbd_mapping.git
-          pushd gbd_mapping
-          pip install .
-          popd
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip        
-          pip install .[docs,test]
-      - name: Lint
-        run: |
-          pip install black==22.3.0 isort
-          black . --check --diff
-          isort . --check --verbose --only-modified --diff
-      - name: Test
-        run: |
-          if github.event_name == 'schedule'; then
-            pytest --runslow ./tests
-          else
-            pytest ./tests
-          fi
-      - name: Doc build
-        run: |
-          make html -C docs/ SPHINXOPTS="-W --keep-going -n"
-      - name: Doctest
-        run: |
-          make doctest -C docs/
-      - name: Send mail
-        # Notify when cron job fails
-        if: (github.event_name == 'schedule' && failure())
-        uses: dawidd6/action-send-mail@v2
-        with:
-          # mail server settings
-          server_address: smtp.gmail.com
-          server_port: 465
-          # user credentials
-          username: ${{ secrets.NOTIFY_EMAIL }}
-          password: ${{ secrets.NOTIFY_PASSWORD }}
-          # email subject
-          subject: ${{ github.job }} job of ${{ github.repository }} has ${{ job.status }}
-          # email body as text
-          body: ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }}
-          # comma-separated string, send email to
-          to: uw_ihme_simulationscience@uw.edu
-          # from email name
-          from: Dr Manhattan
+        python-version: ["3.10", "3.11"]
+    uses: 
+      ihmeuw/vivarium_build_utils/.github/workflows/build.yml@main
+    with:
+      # FIXME: we can't install vivarium_gbd_access
+      dependencies: "vivarium,gbd_mapping"
+      skip_mypy: true
+      install_type: "[test,docs]"
+      python_version: ${{ matrix.python-version }}
+    secrets:
+      NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+      NOTIFY_PASSWORD: ${{ secrets.NOTIFY_PASSWORD }}

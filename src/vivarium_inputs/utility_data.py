@@ -1,5 +1,3 @@
-from typing import Dict, List, Optional, Union
-
 import pandas as pd
 from gbd_mapping import RiskFactor
 
@@ -7,8 +5,11 @@ from vivarium_inputs.globals import NON_MAX_TMREL, NUM_DRAWS, SEXES, gbd
 
 
 def get_estimation_years(*_, **__) -> pd.Series:
-    data = gbd.get_estimation_years()
-    return data
+    return gbd.get_estimation_years()
+
+
+def get_most_recent_year(*_, **__) -> int:
+    return gbd.get_most_recent_year()
 
 
 def get_year_block(*_, **__) -> pd.DataFrame:
@@ -20,35 +21,44 @@ def get_year_block(*_, **__) -> pd.DataFrame:
     return year_block
 
 
-def get_age_group_ids(*_, **__) -> List[int]:
-    data = gbd.get_age_group_id()
-    return data
+def get_age_group_ids(*_, **__) -> list[int]:
+    return gbd.get_age_group_id()
 
 
 def get_age_bins(*_, **__) -> pd.DataFrame:
-    age_bins = gbd.get_age_bins()[
+    age_bins = get_raw_age_bins()[
         ["age_group_id", "age_group_name", "age_group_years_start", "age_group_years_end"]
     ].rename(columns={"age_group_years_start": "age_start", "age_group_years_end": "age_end"})
     age_bins = age_bins.sort_values("age_start").reset_index(drop=True)
     return age_bins
 
 
+def get_raw_age_bins() -> pd.DataFrame:
+    """Wrapper for gbd call for test mocking purposes."""
+    return gbd.get_age_bins()
+
+
 def get_location_id(location_name: str) -> int:
-    return {r.location_name: r.location_id for _, r in gbd.get_location_ids().iterrows()}[
+    return {r.location_name: r.location_id for _, r in get_raw_location_ids().iterrows()}[
         location_name
     ]
 
 
 def get_location_name(location_id: int) -> str:
     return {
-        row.location_id: row.location_name for _, row in gbd.get_location_ids().iterrows()
+        row.location_id: row.location_name for _, row in get_raw_location_ids().iterrows()
     }[location_id]
 
 
-def get_location_id_parents(location_id: Union[int, List[int]]) -> Dict[int, List]:
+def get_raw_location_ids() -> pd.DataFrame:
+    """Wrapper for gbd call for test mocking purposes."""
+    return gbd.get_location_ids()
+
+
+def get_location_id_parents(location_id: int | list[int]) -> dict[int, list]:
     if isinstance(location_id, int):
         location_id = [location_id]
-    location_metadata = gbd.get_location_path_to_global()
+    location_metadata = get_location_path_to_global()
     parent_ids = (
         location_metadata.loc[location_metadata.location_id.isin(location_id)]
         .set_index("location_id")["path_to_top_parent"]
@@ -61,20 +71,31 @@ def get_location_id_parents(location_id: Union[int, List[int]]) -> Dict[int, Lis
     return parent_ids
 
 
+def get_location_path_to_global() -> pd.DataFrame:
+    """Wrapper for gbd call for test mocking purposes."""
+    return gbd.get_location_path_to_global()
+
+
 def get_demographic_dimensions(
-    location_id: Union[int, List[int]],
+    location_id: int | list[int],
     draws: bool = False,
     value: float = None,
-    years: Optional[Union[int, str, List[int]]] = None,
+    years: int | str | list[int] | None = None,
 ) -> pd.DataFrame:
     ages = get_age_group_ids()
     estimation_years = get_estimation_years()
-    if years == "all":
+    if years is None:  # default to most recent year
+        years = [get_most_recent_year()]
+    elif years == "all":
         years = range(min(estimation_years), max(estimation_years) + 1)
     else:
-        if years and years not in estimation_years:
-            raise ValueError(f"years must be in {estimation_years}. You provided {years}.")
-        years = [years] if years else [gbd.get_most_recent_year()]
+        years = years if isinstance(years, list) else [years]
+        not_estimated_years = set(years).difference(estimation_years)
+        if not_estimated_years:
+            raise ValueError(
+                f"years must be in {estimation_years}. You provided {not_estimated_years}."
+            )
+
     sexes = [SEXES["Male"], SEXES["Female"]]
     location = [location_id] if isinstance(location_id, int) else location_id
     values = [location, sexes, ages, years]

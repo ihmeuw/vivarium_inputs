@@ -15,13 +15,13 @@ try:
 
 except ModuleNotFoundError:
 
-    class GbdDummy:
+    class GBDDummy:
         """Mock class to wrap internal dependency."""
 
         def __getattr__(self, item):
             raise ModuleNotFoundError("Required package vivarium_gbd_access not found.")
 
-    gbd = GbdDummy()
+    gbd = GBDDummy()
 
     class NoBestVersionsException(Exception):
         """Mock class for gbd exception"""
@@ -156,10 +156,28 @@ COVARIATE_VALUE_COLUMNS = ["mean_value", "upper_value", "lower_value"]
 DEMOGRAPHIC_COLUMNS = ["location_id", "sex_id", "age_group_id", "year_id"]
 # List of standard GBD draw column names.
 DRAW_COLUMNS = [f"draw_{i}" for i in range(NUM_DRAWS)]
+# List of mean data columns.
+MEAN_COLUMNS = ["val"]
 # Mapping of GBD sex ids
 SEXES = {"Male": 1, "Female": 2, "Combined": 3}
 # Mapping of non-standard age group ids sometimes found in GBD data
 SPECIAL_AGES = {"all_ages": 22, "age_standardized": 27}
+
+
+# Supported data request types
+SUPPORTED_DATA_TYPES = {
+    "means": MEAN_COLUMNS,
+    "draws": DRAW_COLUMNS,
+}
+
+# Measures that don't have mean or draw-level data
+NON_STANDARD_MEASURES = [
+    "structure",
+    "theoretical_minimum_risk_life_expectancy",
+    "estimate",
+    "exposure_distribution_weights",
+]
+
 
 # Cause-risk pair where risk may have a protective effect on a certain cause with negative paf
 PROTECTIVE_CAUSE_RISK_PAIRS = {
