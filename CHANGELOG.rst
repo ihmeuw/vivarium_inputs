@@ -1,3 +1,8 @@
+**5.2.4 - 01/28/25**
+
+ - Bugfix: change PAFs to load with a "cause_specific_mortality_rate" affected_measure
+   rather than "excess_mortality_rate"
+
 **5.2.3 - 12/30/24**
 
  - Bugfix: better handle 'all' years when requesting mean data
