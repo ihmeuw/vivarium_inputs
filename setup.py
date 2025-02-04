@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     data_requires = ["vivarium-gbd-access>=4.1.0, <5.0.0", "core-maths"]
 
-    lint_requirements = ["black==22.3.0", "isort"]
+    lint_requirements = ["black==22.3.0", "isort==5.13.2"]
 
     test_requirements = [
         "pytest",
