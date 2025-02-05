@@ -1,4 +1,4 @@
-**5.2.5 - 01/30/24**
+**5.2.5 - 02/05/25**
 
   - Get python versions from python_versions.json
 
