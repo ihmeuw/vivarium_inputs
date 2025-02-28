@@ -463,8 +463,17 @@ def get_birth_exposure(
     data = data.loc[data["parameter"] != extra_residual_category]
     idx_cols = ["location_id", "age_group_id", "year_id", "sex_id", "parameter"]
     data = data.set_index(idx_cols)[DRAW_COLUMNS]
-    # TODO: write function
-    pass
+
+    # Sometimes there are data values on the order of 10e-300 that cause
+    # floating point headaches, so clip everything to reasonable values
+    data = data.clip(lower=MINIMUM_EXPOSURE_VALUE)
+
+    # normalize so all categories sum to 1
+    total_exposure = data.groupby(["location_id", "age_group_id", "sex_id"]).transform("sum")
+    data = (data / total_exposure).reset_index()
+    data = data.filter(["years", "sex_id", "location_id"] + data_type.value_columns)
+    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
+    return data
 
 
 def get_exposure_standard_deviation(
