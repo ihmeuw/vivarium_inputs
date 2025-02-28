@@ -456,7 +456,7 @@ def get_birth_exposure(
             f"Data type(s) {data_type.type} are not supported for this function."
         )
 
-    data = extract.extract_data(entity, "exposure", location_id, years, data_type)
+    data = extract.extract_data(entity, "birth_exposure", location_id, years, data_type)
     data = data.drop(columns="modelable_entity_id")
 
     extra_residual_category = EXTRA_RESIDUAL_CATEGORY[entity.name]
