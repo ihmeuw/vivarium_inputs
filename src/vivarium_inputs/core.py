@@ -20,6 +20,7 @@ from vivarium_inputs.globals import (
     COVARIATE_VALUE_COLUMNS,
     DEMOGRAPHIC_COLUMNS,
     DISTRIBUTION_COLUMNS,
+    DRAW_COLUMNS,
     EXTRA_RESIDUAL_CATEGORY,
     MEASURES,
     MINIMUM_EXPOSURE_VALUE,
@@ -105,6 +106,7 @@ def get_data(
         ),
         "age_bins": (get_age_bins, ("population",)),
         "demographic_dimensions": (get_demographic_dimensions, ("population",)),
+        "birth_exposure": {get_birth_exposure, ("risk_factor")},
     }
 
     if measure not in measure_handlers:
@@ -441,6 +443,28 @@ def get_exposure(
     else:
         data = utilities.normalize(data, value_columns, fill_value=0)
     return data
+
+
+def get_birth_exposure(
+    entity: RiskFactor,
+    location_id: list[int],
+    years: int | str | list[int] | None,
+    data_type: utilities.DataType,
+) -> pd.DataFrame:
+    if data_type.type != "draws":
+        raise utilities.DataTypeNotImplementedError(
+            f"Data type(s) {data_type.type} are not supported for this function."
+        )
+
+    data = extract.extract_data(entity, "exposure", location_id, years, data_type)
+    data = data.drop(columns="modelable_entity_id")
+
+    extra_residual_category = EXTRA_RESIDUAL_CATEGORY[entity.name]
+    data = data.loc[data["parameter"] != extra_residual_category]
+    idx_cols = ["location_id", "age_group_id", "year_id", "sex_id", "parameter"]
+    data = data.set_index(idx_cols)[DRAW_COLUMNS]
+    # TODO: write function
+    pass
 
 
 def get_exposure_standard_deviation(

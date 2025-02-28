@@ -83,6 +83,7 @@ def extract_data(
         "deaths": (extract_deaths, {"population": extract_structure}),
         # Risk-like measures
         "exposure": (extract_exposure, {}),
+        "birth_exposure": (extract_birth_exposure, {}),
         "exposure_standard_deviation": (
             extract_exposure_standard_deviation,
             {"exposure": extract_exposure},
@@ -329,6 +330,36 @@ def extract_exposure(
 
     else:  # alternative_risk_factor
         data = gbd.get_auxiliary_data("exposure", entity.kind, entity.name, location_id)
+
+    return data
+
+
+def extract_birth_exposure(
+    entity: RiskFactor,
+    location_id: int,
+    year_id: int | str | list[int] | None,
+    data_type: DataType,
+) -> pd.DataFrame:
+    if entity.kind == "risk_factor":
+        data = gbd.get_birth_exposure(entity.gbd_id, location_id, year_id, data_type.type)
+        # Do we need this if block?
+        if entity.gbd_id == 341:
+            data = process_kidney_dysfunction_exposure(data)
+        allowable_measures = [
+            MEASURES["Proportion"],
+            MEASURES["Continuous"],
+            MEASURES["Prevalence"],
+        ]
+        proper_measure_id = set(data["measure_id"]).intersection(allowable_measures)
+        if len(proper_measure_id) != 1:
+            raise DataAbnormalError(
+                f"Exposure data have {len(proper_measure_id)} measure id(s). Data should have"
+                f"exactly one id out of {allowable_measures} but came back with {proper_measure_id}."
+            )
+        else:
+            data = data[data["measure_id"] == proper_measure_id.pop()]
+    else:
+        raise ValueError("Birth exposure data not available for alternative risk factors.")
 
     return data
 
