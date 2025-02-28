@@ -2597,7 +2597,7 @@ def validate_birth_exposure(
     check_data_exist(data, zeros_missing=True, value_columns=value_columns)
 
     expected_columns = (
-        ["measure_id", "metric_id", f"{entity.kind}_id"]
+        ["measure_id", "metric_id"]
         + value_columns
         + DEMOGRAPHIC_COLUMNS
         + DRAW_COLUMNS
