@@ -2614,7 +2614,7 @@ def validate_birth_exposure(
     birth_age_group_id = 164
     if data.age_group_id.unique() != birth_age_group_id:
         raise DataAbnormalError(
-            f"Birth prevalence data for {entity.kind} {entity.name} includes age groups beyond "
+            f"Birth exposure data for {entity.kind} {entity.name} includes age groups beyond "
             f"the expected birth age group (id {birth_age_group_id})."
         )
 
