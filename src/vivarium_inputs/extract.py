@@ -343,8 +343,8 @@ def extract_birth_exposure(
     if entity.kind == "risk_factor":
         data = gbd.get_birth_exposure(entity.gbd_id, location_id, year_id, data_type.type)
         # Do we need this if block?
-        if entity.gbd_id == 341:
-            data = process_kidney_dysfunction_exposure(data)
+        # if entity.gbd_id == 341:
+        #     data = process_kidney_dysfunction_exposure(data)
         allowable_measures = [
             MEASURES["Proportion"],
             MEASURES["Continuous"],
