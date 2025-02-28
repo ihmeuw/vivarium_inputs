@@ -106,7 +106,7 @@ def get_data(
         ),
         "age_bins": (get_age_bins, ("population",)),
         "demographic_dimensions": (get_demographic_dimensions, ("population",)),
-        "birth_exposure": {get_birth_exposure, ("risk_factor")},
+        "birth_exposure": (get_birth_exposure, ("risk_factor")),
     }
 
     if measure not in measure_handlers:
