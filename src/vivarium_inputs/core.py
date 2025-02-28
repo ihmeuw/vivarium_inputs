@@ -472,7 +472,6 @@ def get_birth_exposure(
     total_exposure = data.groupby(["location_id", "age_group_id", "sex_id"]).transform("sum")
     data = (data / total_exposure).reset_index()
     data = data.filter(["years", "sex_id", "location_id"] + data_type.value_columns)
-    data = utilities.normalize(data, data_type.value_columns, fill_value=0)
     return data
 
 
