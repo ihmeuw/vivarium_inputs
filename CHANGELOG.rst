@@ -1,3 +1,7 @@
+**5.2.6 - TBD/TBD/TBD**
+
+  - Add birth exposure to list of measures that can be extracted from GBD.
+
 **5.2.5 - 02/05/25**
 
   - Get python versions from python_versions.json
