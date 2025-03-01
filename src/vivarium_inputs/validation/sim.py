@@ -161,6 +161,7 @@ def validate_for_simulation(
         "theoretical_minimum_risk_life_expectancy": validate_theoretical_minimum_risk_life_expectancy,
         "age_bins": validate_age_bins,
         "demographic_dimensions": validate_demographic_dimensions,
+        "birth_exposure": validate_birth_exposure,
     }
 
     if measure not in validators:
@@ -1857,3 +1858,65 @@ def check_covariate_values(data: pd.DataFrame) -> None:
             "estimates for lower, mean, and upper values are not all 0 "
             "and it is not the case that lower <= mean <= upper. "
         )
+
+
+def validate_birth_exposure(
+    data: pd.DataFrame,
+    entity: Cause | Sequela,
+    context: SimulationValidationContext,
+    value_columns: list[str],
+) -> None:
+    """Check the standard set of validations on simulation-prepped birth
+    exposure data, skipping the check on age columns since birth prevalence
+    is not age-specific.
+
+    Parameters
+    ----------
+    data
+        Simulation-prepped birth exposure data to validate.
+    entity
+        Entity to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+    value_columns
+        List of column names in `data` that contain the values to be validated.
+
+    Raises
+    ------
+    DataTransformationError
+        If any standard columns are incorrectly named or contain invalid values,
+        if sex restrictions are violated, or data falls outside the expected
+        boundary values.
+
+    """
+    expected_index_names = ["location", "sex", "year_start", "year_end"]
+    validate_expected_index_and_columns(
+        expected_index_names, data.index.names, DRAW_COLUMNS, data.columns
+    )
+
+    validate_location_column(data, context)
+    validate_sex_column(data)
+    validate_year_column(data, context)
+    validate_value_column(data)
+
+    check_value_columns_boundary(
+        data,
+        boundary_value=VALID_BIRTH_PREVALENCE_RANGE[0],
+        boundary_type="lower",
+        value_columns=DRAW_COLUMNS,
+        error=DataTransformationError,
+    )
+    check_value_columns_boundary(
+        data,
+        boundary_value=VALID_BIRTH_PREVALENCE_RANGE[1],
+        boundary_type="upper",
+        value_columns=DRAW_COLUMNS,
+        error=DataTransformationError,
+    )
+    check_sex_restrictions(
+        data,
+        entity.restrictions.male_only,
+        entity.restrictions.female_only,
+        fill_value=0.0,
+        entity=entity,
+    )
