@@ -7,7 +7,12 @@ from gbd_mapping import ModelableEntity
 
 import vivarium_inputs.validation.sim as validation
 from vivarium_inputs import core, extract, utilities, utility_data
-from vivarium_inputs.globals import DRAW_COLUMNS, EXTRA_RESIDUAL_CATEGORY, MINIMUM_EXPOSURE_VALUE, Population
+from vivarium_inputs.globals import (
+    DRAW_COLUMNS,
+    EXTRA_RESIDUAL_CATEGORY,
+    MINIMUM_EXPOSURE_VALUE,
+    Population,
+)
 from vivarium_inputs.utilities import DataType
 
 

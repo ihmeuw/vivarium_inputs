@@ -202,6 +202,7 @@ def validate_raw_data(
         # Population measures
         "structure": validate_structure,
         "theoretical_minimum_risk_life_expectancy": validate_theoretical_minimum_risk_life_expectancy,
+        "birth_exposure": validate_birth_exposure,
     }
 
     if measure not in validators:
@@ -2563,3 +2564,60 @@ def check_metric_id(data: pd.DataFrame, expected_metric: str) -> None:
             f"Data includes metrics beyond the expected '{expected_metric.lower()}' "
             f"(metric_id {METRICS[expected_metric.capitalize()]})"
         )
+
+
+def validate_birth_exposure(
+    data: pd.DataFrame,
+    entity: Cause | Sequela,
+    context: RawValidationContext,
+    value_columns: list[str],
+) -> None:
+    """Check the standard set of validations on raw birth exposure data for
+    entity, replacing the standard age id checks with a custom check of the
+    birth age group.
+    Parameters
+    ----------
+    data
+        Birth exposure data pulled for entity in location_id.
+    entity
+        Cause or sequela to which the data pertain.
+    context
+        Wrapper for additional data used in the validation process.
+    value_columns
+        List of value columns to be validated.
+    Raises
+    ------
+    DataAbnormalError
+        If data does not exist, expected columns are not found in data, or
+        any values in columns do not match the expected set of values.
+    """
+    check_data_exist(data, zeros_missing=True, value_columns=value_columns)
+
+    expected_columns = (
+        ["measure_id", "metric_id"] + value_columns + DEMOGRAPHIC_COLUMNS + DRAW_COLUMNS
+    )
+
+    check_columns(expected_columns, data.columns)
+
+    check_measure_id(data, ["Prevalence", "Proportion", "Continuous"])
+    check_metric_id(data, "rate")
+
+    check_years(data, context, "either")
+    check_location(data, context)
+
+    birth_age_group_id = 164
+    if data.age_group_id.unique() != birth_age_group_id:
+        raise DataAbnormalError(
+            f"Birth exposure data for {entity.kind} {entity.name} includes age groups beyond "
+            f"the expected birth age group (id {birth_age_group_id})."
+        )
+
+    # como should return all sexes regardless of restrictions
+    check_sex_ids(data, context, male_expected=True, female_expected=True)
+
+    check_value_columns_boundary(
+        data, 0, "lower", value_columns=value_columns, inclusive=True, error=DataAbnormalError
+    )
+    check_value_columns_boundary(
+        data, 1, "upper", value_columns=value_columns, inclusive=True, error=DataAbnormalError
+    )
