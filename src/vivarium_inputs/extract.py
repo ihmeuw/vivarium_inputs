@@ -108,6 +108,7 @@ def extract_data(
             extract_theoretical_minimum_risk_life_expectancy,
             {},
         ),
+        "birth_exposure": (extract_birth_exposure, {}),
     }
 
     validation.check_metadata(entity, measure)

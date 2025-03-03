@@ -7,7 +7,7 @@ from gbd_mapping import ModelableEntity
 
 import vivarium_inputs.validation.sim as validation
 from vivarium_inputs import core, extract, utilities, utility_data
-from vivarium_inputs.globals import Population
+from vivarium_inputs.globals import DRAW_COLUMNS, EXTRA_RESIDUAL_CATEGORY, MINIMUM_EXPOSURE_VALUE, Population
 from vivarium_inputs.utilities import DataType
 
 
@@ -281,4 +281,34 @@ def get_raw_data(
         data_type,
         validate=False,
     )
+    return data
+
+
+def get_lbwsg_birth_exposure(
+    entity: RisModelableEntitykFactor,
+    location_id: list[int],
+    years: int | str | list[int] | None,
+    data_type: utilities.DataType,
+) -> pd.DataFrame:
+    if data_type.type != "draws":
+        raise utilities.DataTypeNotImplementedError(
+            f"Data type(s) {data_type.type} are not supported for this function."
+        )
+
+    data = extract.extract_data(entity, "birth_exposure", location_id, years, data_type)
+    data = data.drop(columns="modelable_entity_id")
+
+    extra_residual_category = EXTRA_RESIDUAL_CATEGORY[entity.name]
+    data = data.loc[data["parameter"] != extra_residual_category]
+    idx_cols = ["location_id", "age_group_id", "year_id", "sex_id", "parameter"]
+    data = data.set_index(idx_cols)[DRAW_COLUMNS]
+
+    # Sometimes there are data values on the order of 10e-300 that cause
+    # floating point headaches, so clip everything to reasonable values
+    data = data.clip(lower=MINIMUM_EXPOSURE_VALUE)
+
+    # normalize so all categories sum to 1
+    total_exposure = data.groupby(["location_id", "age_group_id", "sex_id"]).transform("sum")
+    data = (data / total_exposure).reset_index()
+    data = data.filter(["year_id", "sex_id", "location_id"] + data_type.value_columns)
     return data
