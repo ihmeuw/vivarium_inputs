@@ -290,16 +290,14 @@ def get_raw_data(
 
 
 def get_lbwsg_birth_exposure(
-    entity: RisModelableEntitykFactor,
+    entity: ModelableEntity,
     location_id: list[int],
     years: int | str | list[int] | None,
-    data_type: utilities.DataType,
 ) -> pd.DataFrame:
-    if data_type.type != "draws":
-        raise utilities.DataTypeNotImplementedError(
-            f"Data type(s) {data_type.type} are not supported for this function."
-        )
 
+    location_id = [
+        utility_data.get_location_id(loc) if isinstance(loc, str) else loc for loc in location
+    ]
     data = extract.extract_data(entity, "birth_exposure", location_id, years, data_type)
     data = data.drop(columns="modelable_entity_id")
 
