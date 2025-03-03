@@ -216,7 +216,7 @@ def get_demographic_dimensions(
 def get_raw_data(
     entity: ModelableEntity,
     measure: str,
-    location: int | str | list[int | str],
+    location: str,
     years: int | str | list[int] | None = None,
     data_type: str | list[str] = "means",
 ) -> pd.Series | pd.DataFrame:
@@ -275,9 +275,7 @@ def get_raw_data(
     data_type = DataType(measure, data_type)
     if not isinstance(location, list):
         location = [location]
-    location_id = [
-        utility_data.get_location_id(loc) if isinstance(loc, str) else loc for loc in location
-    ]
+    location_id = [utility_data.get_location_id(location)]
     data = extract.extract_data(
         entity,
         measure,
@@ -291,14 +289,12 @@ def get_raw_data(
 
 def get_lbwsg_birth_exposure(
     entity: ModelableEntity,
-    location_id: list[int],
+    location: str,
     years: int | str | list[int] | None,
 ) -> pd.DataFrame:
 
-    location_id = [
-        utility_data.get_location_id(loc) if isinstance(loc, str) else loc for loc in location
-    ]
-    data = extract.extract_data(entity, "birth_exposure", location_id, years, data_type)
+    location_id = [utility_data.get_location_id(location)]
+    data = extract.extract_data(entity, "birth_exposure", location_id, years)
     data = data.drop(columns="modelable_entity_id")
 
     extra_residual_category = EXTRA_RESIDUAL_CATEGORY[entity.name]
