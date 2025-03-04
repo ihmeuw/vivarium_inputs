@@ -294,7 +294,7 @@ def get_lbwsg_birth_exposure(
 ) -> pd.DataFrame:
 
     location_id = [utility_data.get_location_id(location)]
-    data = extract.extract_data(entity, "birth_exposure", location_id, years)
+    data = extract.extract_data(entity, "birth_exposure", location_id, years, "draws")
     data = data.drop(columns="modelable_entity_id")
 
     extra_residual_category = EXTRA_RESIDUAL_CATEGORY[entity.name]
