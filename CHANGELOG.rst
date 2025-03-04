@@ -1,3 +1,7 @@
+**5.2.6 - TBD/TBD/TBD**
+
+  - Feature: Add custom function for pulling birth exposure for LBWSG.
+
 **5.2.5 - 02/05/25**
 
   - Get python versions from python_versions.json
