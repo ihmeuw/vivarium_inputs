@@ -462,7 +462,7 @@ def extract_birth_exposure(
     data_type: DataType,
 ) -> pd.DataFrame:
     if entity.kind == "risk_factor":
-        data = gbd.get_birth_exposure(entity.gbd_id, location_id, year_id, data_type.type)
+        data = gbd.get_birth_exposure(entity.gbd_id, location_id, year_id, "draws")
         allowable_measures = [
             MEASURES["Proportion"],
             MEASURES["Continuous"],
