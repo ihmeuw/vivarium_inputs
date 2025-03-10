@@ -310,5 +310,8 @@ def get_lbwsg_birth_exposure(
     total_exposure = data.groupby(["location_id", "age_group_id", "sex_id"]).transform("sum")
     data = (data / total_exposure).reset_index()
     data = data.filter(["year_id", "sex_id", "location_id"] + data_type.value_columns)
+    data = utilities.scrub_location(data, location)
+    data = utilities.scrub_sex(data)
+    data = data.set_index(["location", "sex", "year_start", "year_end"])
 
     return data
