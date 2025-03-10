@@ -313,5 +313,6 @@ def get_lbwsg_birth_exposure(
     data = utilities.scrub_location(data, location)
     data = utilities.scrub_sex(data)
     data = utilities.scrub_year(data)
+    data = utilities.split_interval(data, interval_column="year", split_column_prefix="year")
 
     return data
