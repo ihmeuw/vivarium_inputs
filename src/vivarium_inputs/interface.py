@@ -216,7 +216,7 @@ def get_demographic_dimensions(
 def get_raw_data(
     entity: ModelableEntity,
     measure: str,
-    location: str,
+    location: int | str | list[int | str],
     years: int | str | list[int] | None = None,
     data_type: str | list[str] = "means",
 ) -> pd.Series | pd.DataFrame:
