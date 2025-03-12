@@ -108,6 +108,7 @@ def extract_data(
             extract_theoretical_minimum_risk_life_expectancy,
             {},
         ),
+        "birth_exposure": (extract_birth_exposure, {}),
     }
 
     validation.check_metadata(entity, measure)
@@ -451,4 +452,30 @@ def extract_theoretical_minimum_risk_life_expectancy(
     data_type: DataType,
 ) -> pd.DataFrame:
     data = gbd.get_theoretical_minimum_risk_life_expectancy()
+    return data
+
+
+def extract_birth_exposure(
+    entity: RiskFactor,
+    location_id: int,
+    year_id: int | str | list[int] | None,
+    data_type: DataType,
+) -> pd.DataFrame:
+    if entity.kind != "risk_factor":
+        raise ValueError("Birth exposure data not available for non-risk factors.")
+    data = gbd.get_birth_exposure(entity.gbd_id, location_id, year_id, data_type.type)
+    allowable_measures = [
+        MEASURES["Proportion"],
+        MEASURES["Continuous"],
+        MEASURES["Prevalence"],
+    ]
+    proper_measure_id = set(data["measure_id"]).intersection(allowable_measures)
+    if len(proper_measure_id) != 1:
+        raise DataAbnormalError(
+            f"Exposure data have {len(proper_measure_id)} measure id(s). Data should have"
+            f"exactly one id out of {allowable_measures} but came back with {proper_measure_id}."
+        )
+    else:
+        data = data[data["measure_id"] == proper_measure_id.pop()]
+
     return data
