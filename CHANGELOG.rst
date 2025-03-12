@@ -1,4 +1,4 @@
-**5.2.6 - TBD/TBD/TBD**
+**5.2.6 - 03/12/25**
 
   - Feature: Add custom function for pulling birth exposure for LBWSG.
 
